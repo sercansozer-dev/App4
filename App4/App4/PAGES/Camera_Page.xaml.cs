@@ -672,7 +672,7 @@ namespace App4.PAGES
                     {
                         data.points.Add(new Point3D
                         {
-                            x = msg.Offset.X + msg.Resolution.X * c,
+                            x = -(msg.Offset.X + msg.Resolution.X * c), // X eksenini ters çevir (aynalama düzeltme)
                             y = msg.Offset.Y + msg.Resolution.Y * r,
                             z = msg.Offset.Z + msg.Resolution.Z * val,
                             intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) 
@@ -720,7 +720,7 @@ namespace App4.PAGES
                     {
                         data.points.Add(new Point3D
                         {
-                            x = msg.Offset.X + msg.Resolution.X * p.X,
+                            x = -(msg.Offset.X + msg.Resolution.X * p.X), // X eksenini ters çevir (aynalama düzeltme)
                             y = msg.Offset.Y + msg.Resolution.Y * p.Y,
                             z = msg.Offset.Z + msg.Resolution.Z * p.Z,
                             intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) 
