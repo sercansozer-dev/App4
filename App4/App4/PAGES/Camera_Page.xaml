@@ -129,30 +129,27 @@
                         </StackPanel>
                     </Border>
 
-                   
-                    <!-- WebView 3D Alanı -->
+                    <!-- WebView Container -->
                     <Grid Grid.Row="1" Background="#0D0D0D" x:Name="WebViewContainer">
                         <controls:WebView2
-         x:Name="PointCloudWebView"
-         CoreWebView2Initialized="PointCloudWebView_CoreWebView2Initialized"/>
+                            x:Name="PointCloudWebView"/>
 
-                        <!-- Durum Göstergesi Paneli -->
+                        <!-- Yükleme Göstergesi -->
                         <StackPanel x:Name="WebViewStatusPanel" 
-                 VerticalAlignment="Center" 
-                 HorizontalAlignment="Center" 
-                 Spacing="10">
-                            <ProgressRing IsActive="True" Width="40" Height="40" Foreground="#00A4EF" Visibility="Collapsed" x:Name="WebViewLoadingRing"/>
+                            VerticalAlignment="Center" 
+                            HorizontalAlignment="Center" 
+                            Spacing="10">
+                            <ProgressRing IsActive="True" Width="40" Height="40" Foreground="#00A4EF"/>
                             <TextBlock x:Name="WebViewStatus" 
-                    Text="🔄 3D VERISI BEKLENIYOR" 
-                    Foreground="#555555" 
-                    FontWeight="Bold" 
-                    Opacity="0.6" 
-                    FontSize="13"
-                    TextAlignment="Center"/>
+                                Text="🔄 WebView Yükleniyor..." 
+                                Foreground="#888888" 
+                                FontWeight="Bold" 
+                                FontSize="12"
+                                TextAlignment="Center"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Durum ve Buton -->
+                    <!-- Buton Paneli -->
                     <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,2,0,0" BorderBrush="#00A4EF">
                         <Grid VerticalAlignment="Center">
                             <StackPanel>
@@ -161,16 +158,16 @@
                             </StackPanel>
 
                             <Button x:Name="SurfaceButton" 
-                                    Click="SurfaceButton_Click"
-                                    HorizontalAlignment="Right" 
-                                    VerticalAlignment="Center"
-                                    Width="140" 
-                                    Height="50" 
-                                    Background="#00A4EF" 
-                                    CornerRadius="8" 
-                                    FontWeight="Bold" 
-                                    FontSize="14"
-                                    Foreground="White">
+                                Click="SurfaceButton_Click"
+                                HorizontalAlignment="Right" 
+                                VerticalAlignment="Center"
+                                Width="140" 
+                                Height="50" 
+                                Background="#00A4EF" 
+                                CornerRadius="8" 
+                                FontWeight="Bold" 
+                                FontSize="14"
+                                Foreground="White">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE71D;" FontSize="16"/>
                                     <TextBlock Text="SURFACE"/>
@@ -202,15 +199,13 @@
 
                 <!-- Log İçeriği -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                    <RichTextBlock Padding="15,10" VerticalAlignment="Stretch">
-                        <Paragraph>
-                            <Run x:Name="LogOutput" 
-                                 Text="[00:00:00] ► Uygulama başlatıldı..." 
-                                 Foreground="#00FF88" 
-                                 FontFamily="Cascadia Mono" 
-                                 FontSize="10"/>
-                        </Paragraph>
-                    </RichTextBlock>
+                    <TextBlock x:Name="LogOutput" 
+                        Text="[00:00:00] ► Uygulama başlatıldı..." 
+                        Foreground="#00FF88" 
+                        FontFamily="Cascadia Mono" 
+                        FontSize="10"
+                        Padding="15,10"
+                        TextWrapping="Wrap"/>
                 </ScrollViewer>
             </Grid>
         </Border>

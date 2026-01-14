@@ -25,6 +25,11 @@
             left: 10px;
             z-index: 100;
             pointer-events: none;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00A4EF;
+            font-size: 12px;
         }
 
         #loading {
@@ -32,8 +37,37 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 24px;
+            font-size: 20px;
             color: #3498db;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #error {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 400px;
+            display: none;
+            border-left: 4px solid #dc3545;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #4CAF50;
         }
     </style>
     <!-- Three.js CDN -->
@@ -42,58 +76,108 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="info">3D Point Cloud Viewer</div>
-    <div id="loading" style="display:none;">Loading Data...</div>
+    <div id="info">
+        <div>🎥 3D Point Cloud Viewer</div>
+        <div id="pointCount">Bekleniyor...</div>
+    </div>
+    <div id="loading">⏳ Veriler işleniyor...</div>
+    <div id="error"></div>
+    <div id="status">Başlatılıyor...</div>
 
     <script>
         let scene, camera, renderer, controls, pointsMesh;
+        const statusEl = document.getElementById('status');
+        const errorEl = document.getElementById('error');
+        const loadingEl = document.getElementById('loading');
+
+        // Global error handler
+        window.addEventListener('error', function (event) {
+            console.error('❌ JavaScript Hatası:', event.error);
+            updateError(`JS Hatası: ${event.error?.message || 'Bilinmeyen hata'}`);
+        });
+
+        function updateStatus(message) {
+            statusEl.textContent = message;
+            console.log(`[STATUS] ${message}`);
+        }
+
+        function updateError(message) {
+            errorEl.textContent = `❌ ${message}`;
+            errorEl.style.display = 'block';
+            console.error(`[ERROR] ${message}`);
+        }
+
+        function clearError() {
+            errorEl.style.display = 'none';
+        }
+
+        function showLoading(show = true) {
+            loadingEl.style.display = show ? 'block' : 'none';
+        }
 
         function initPointCloudViewer() {
-            // Sahne Kurulumu
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x111111); // Koyu gri arkaplan
+            try {
+                console.log('🟢 initPointCloudViewer çağrıldı');
+                updateStatus("🔧 Viewer başlatılıyor...");
+                clearError();
 
-            // Kamera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-            camera.position.set(0, -200, 400);
-            camera.up.set(0, 0, 1); // Z ekseni yukarı
+                // Sahne Kurulumu
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x111111);
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            document.body.appendChild(renderer.domElement);
+                // Kamera
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+                camera.position.set(0, -200, 400);
+                camera.up.set(0, 0, 1);
 
-            // Kontroller (OrbitControls)
-            if (typeof THREE.OrbitControls !== 'undefined') {
-                controls = new THREE.OrbitControls(camera, renderer.domElement);
-                controls.enableDamping = true;
-                controls.dampingFactor = 0.05;
+                // Renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.body.appendChild(renderer.domElement);
+
+                // OrbitControls
+                if (typeof THREE.OrbitControls !== 'undefined') {
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.05;
+                    updateStatus("✓ OrbitControls yüklendi");
+                } else {
+                    updateError('OrbitControls bulunamadı');
+                }
+
+                // Işık
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                // Eksenler
+                const axesHelper = new THREE.AxesHelper(100);
+                scene.add(axesHelper);
+
+                // Pencere Resize
+                window.addEventListener('resize', onWindowResize, false);
+
+                // Animasyon
+                animate();
+
+                updateStatus("✓ Viewer başlatıldı");
+                console.log("✓ Point Cloud Viewer hazır!");
+                return "Viewer Ready";
+            } catch (error) {
+                console.error("❌ Viewer başlatma hatası:", error);
+                updateError(`Viewer hatası: ${error.message}`);
+                return "Error: " + error.message;
             }
-
-            // Işıklandırma (Opsiyonel, PointCloud için şart değil ama geometri için iyi)
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-
-            // Eksenler (Yardımcı)
-            const axesHelper = new THREE.AxesHelper(100);
-            scene.add(axesHelper);
-
-            // Pencere Boyutlandırma
-            window.addEventListener('resize', onWindowResize, false);
-
-            // Animasyon Döngüsü
-            animate();
-
-            console.log("Viewer initialized.");
-            return "Viewer Ready";
         }
 
         function loadPointCloud(jsonData) {
             try {
-                document.getElementById('loading').style.display = 'block';
+                console.log('🟢 loadPointCloud çağrıldı', jsonData);
+                updateStatus("📊 Point Cloud yükleniyor...");
+                clearError();
+                showLoading(true);
 
-                // Eğer eski bir mesh varsa temizle
+                // Eski mesh temizle
                 if (pointsMesh) {
                     scene.remove(pointsMesh);
                     pointsMesh.geometry.dispose();
@@ -101,8 +185,7 @@
                 }
 
                 if (!jsonData || !jsonData.points || jsonData.points.length === 0) {
-                    console.error("No point data found");
-                    return "No Data";
+                    throw new Error('Geçersiz JSON verisi');
                 }
 
                 const geometry = new THREE.BufferGeometry();
@@ -112,14 +195,9 @@
                 const positions = new Float32Array(count * 3);
                 const colors = new Float32Array(count * 3);
 
-                // Normalizasyon için min/max bulma
+                // Min/Max Z bulma
                 let minZ = Infinity;
                 let maxZ = -Infinity;
-
-                // Renklendirme için Z aralığını kullan
-                if (jsonData.metadata && jsonData.metadata.offsetZ) {
-                    // Metadata varsa kullanabiliriz ama genelde datadan hesaplamak daha güvenli
-                }
 
                 for (let i = 0; i < count; i++) {
                     if (points[i].z < minZ) minZ = points[i].z;
@@ -128,17 +206,13 @@
 
                 const zRange = maxZ - minZ || 1;
 
-                // Veriyi doldur
+                // Veri doldurma
                 for (let i = 0; i < count; i++) {
                     const p = points[i];
-
-                    // Pozisyon verisi
                     positions[i * 3] = p.x;
                     positions[i * 3 + 1] = p.y;
                     positions[i * 3 + 2] = p.z;
 
-                    // Renklendirme (Z yüksekliğine göre Heatmap benzeri)
-                    // HSL renk uzayı kullanarak: düşük Z -> mazi, yüksek Z -> kırmızı
                     const normalizedZ = (p.z - minZ) / zRange;
                     const color = new THREE.Color();
                     color.setHSL((1.0 - normalizedZ) * 0.7, 1.0, 0.5);
@@ -151,37 +225,48 @@
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
                 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-                // Materyal oluştur
+                // Materyal
                 const material = new THREE.PointsMaterial({
                     size: 2,
                     vertexColors: true,
-                    sizeAttenuation: false // Boyut mesafeye göre değişmesin
+                    sizeAttenuation: false
                 });
 
                 pointsMesh = new THREE.Points(geometry, material);
 
-                // Mesh'i ortala
+                // Mesh merkez
                 geometry.computeBoundingBox();
                 const center = new THREE.Vector3();
                 geometry.boundingBox.getCenter(center);
-                pointsMesh.position.sub(center); // Orjin noktasına taşı
+                pointsMesh.position.sub(center);
 
                 scene.add(pointsMesh);
-                //asdasdasdasdasdasdasdas
-                //test1
-                //test4
-                // Kamerayı odakla
+
+                // Kamera konumla
                 if (controls) {
                     controls.reset();
                 }
-                camera.position.set(0, -Math.max(jsonData.metadata.width, jsonData.metadata.length) * 0.8, 400);
+
+                const metadata = jsonData.metadata || {};
+                const width = metadata.width || 100;
+                const length = metadata.length || 100;
+
+                camera.position.set(0, -Math.max(width, length) * 0.8, 400);
                 camera.lookAt(0, 0, 0);
 
-                document.getElementById('loading').style.display = 'none';
+                showLoading(false);
+                document.getElementById('pointCount').textContent =
+                    `Noktalar: ${count.toLocaleString()} | Min Z: ${minZ.toFixed(2)} | Max Z: ${maxZ.toFixed(2)}`;
+
+                updateStatus(`✓ ${count.toLocaleString()} nokta yüklendi`);
+                console.log(`✓ Points loaded: ${count}`);
+
                 return "Points Loaded: " + count;
 
             } catch (err) {
-                console.error(err);
+                console.error("❌ Point Cloud Hatası:", err);
+                updateError(`Yükleme hatası: ${err.message}`);
+                showLoading(false);
                 return "Error: " + err.message;
             }
         }
@@ -197,6 +282,21 @@
             if (controls) controls.update();
             renderer.render(scene, camera);
         }
+
+        // Sayfa yüklendiğinde otomatik başlat
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                initPointCloudViewer();
+            });
+        } else {
+            initPointCloudViewer();
+        }
+
+        // Global fonksiyonlar
+        window.initPointCloudViewer = initPointCloudViewer;
+        window.loadPointCloud = loadPointCloud;
+
+        console.log('✓ HTML script yüklendi ve hazır');
     </script>
 </body>
 </html>

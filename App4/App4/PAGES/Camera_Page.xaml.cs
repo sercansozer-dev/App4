@@ -12,119 +12,243 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
-using Windows.Graphics.Imaging;
+using Windows.ApplicationModel;
 using Windows.Storage;
 using Windows.Storage.Streams;
 using static GoPxLSdkSamplesCommon.Utilities;
-//deneme test
-//asdasd
+
 namespace App4.PAGES
 {
     public sealed partial class Camera_Page : Page
     {
-        private List<string> logHistory = new();
-        private WebView2Manager webViewManager;
+        private List<string> _logHistory = new();
+        private bool _isWebViewInitialized = false;
 
         public Camera_Page()
         {
             this.InitializeComponent();
-            webViewManager = new WebView2Manager(PointCloudWebView, AddLog);
+            this.Loaded += Camera_Page_Loaded;
         }
 
-        #region ═══ Logging System ═══
+        #region ═══ WebView2 Initialization (Modern Approach) ═══
 
-        private void AddLog(string message)
+        private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
-            string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-            string logEntry = $"[{timestamp}] {message}";
-            logHistory.Add(logEntry);
+            if (_isWebViewInitialized) return;
 
-            if (logHistory.Count > 100)
-                logHistory.RemoveAt(0);
-
-            this.DispatcherQueue.TryEnqueue(() =>
-            {
-                LogOutput.Text = string.Join("\n", logHistory);
-            });
-
-            Debug.WriteLine(logEntry);
-        }
-
-        #endregion
-
-        #region ═══ WebView2 Initialization ═══
-
-        private async void PointCloudWebView_CoreWebView2Initialized(WebView2 sender, CoreWebView2InitializedEventArgs args)
-        {
             try
             {
-                AddLog("► WebView2 CoreWebView2Initialized event tetiklendi");
+                AddLog("► WebView2 Ortamı Hazırlanıyor...");
 
+                // 1. Temp klasöründe UserData oluştur (Önbellek/Cache için)
+                string userDataFolder = Path.Combine(Path.GetTempPath(), "App4_WebView2_Cache");
+
+                // Environment oluştur
+                var env = await CoreWebView2Environment.CreateWithOptionsAsync(null, userDataFolder, null);
+
+                // 2. CoreWebView2'yi bu environment ile başlat
+                await PointCloudWebView.EnsureCoreWebView2Async(env);
+
+                // 3. Assets Klasörünü Belirle ve Eşle
+                string assetsPath;
                 try
                 {
-                    // ms-appx-web:// protokolü ile doğrudan yükle
-                    string url = "ms-appx-web:///Assets/PointCloud3DViewer.html";
-                    AddLog($"► URL yükleniyor: {url}");
-                    sender.CoreWebView2.Navigate(url);
-                    AddLog("✓ URL navigate başarılı");
+                    // Paketli uygulama (MSIX) için yol
+                    assetsPath = Path.Combine(Package.Current.InstalledLocation.Path, "Assets");
                 }
-                catch (Exception navEx)
+                catch
                 {
-                    AddLog($"✗ Navigate hatası: {navEx.Message}");
-                    return;
+                    // Paketsiz çalışıyorsa (Debug/Release folder)
+                    assetsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
                 }
 
-                await Task.Delay(2000); // HTML tam yüklenmesi için bekle
-                AddLog("✓ WebView2 tamamen başlatıldı");
+                if (!Directory.Exists(assetsPath))
+                {
+                    AddLog($"⚠ Assets klasörü bulunamadı: {assetsPath}");
+                }
+                else
+                {
+                    AddLog($"► Mapping Yolu: {assetsPath}");
+                }
+
+                // Sanal Host: https://appassets/ -> Yerel Assets klasörü
+                PointCloudWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    "appassets",
+                    assetsPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+
+                // Ayarlar
+                PointCloudWebView.CoreWebView2.Settings.IsScriptEnabled = true;
+                PointCloudWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+
+                // Eventleri bağla
+                PointCloudWebView.NavigationCompleted += PointCloudWebView_NavigationCompleted;
+                PointCloudWebView.WebMessageReceived += PointCloudWebView_WebMessageReceived;
+
+                // 4. HTML'i Yükle
+                AddLog("► HTML Yükleniyor...");
+                PointCloudWebView.Source = new Uri("https://appassets/PointCloud3DViewer.html");
+
+                _isWebViewInitialized = true;
             }
             catch (Exception ex)
             {
-                AddLog($"✗ WebView2 başlatma hatası: {ex.Message}");
-                AddLog($"  Stack: {ex.StackTrace}");
+                AddLog($"✗ WebView2 Başlatma Hatası: {ex.Message}");
+                // UI'daki yükleniyor ekranını kaldırıp hata göster
+                ShowCloudStatus("HATA: WebView2 Başlatılamadı", Microsoft.UI.Colors.Red, false);
+            }
+        }
+
+        private void PointCloudWebView_NavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
+        {
+            if (args.IsSuccess)
+            {
+                AddLog("✓ HTML Sayfası Başarıyla Yüklendi");
+                // Yüklenme dönen simgeyi durdur
+                ShowCloudStatus("Hazır", Microsoft.UI.Colors.LimeGreen, false);
+            }
+            else
+            {
+                AddLog($"✗ HTML Navigasyon Hatası: {args.WebErrorStatus}");
+                ShowCloudStatus("Sayfa Yüklenemedi", Microsoft.UI.Colors.Red, false);
+            }
+        }
+
+        private void PointCloudWebView_WebMessageReceived(WebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+        {
+            try
+            {
+                string msg = args.TryGetWebMessageAsString();
+                if (!string.IsNullOrEmpty(msg))
+                {
+                    Debug.WriteLine($"[WEBVIEW LOG] {msg}");
+                    // HTML'den gelen "Error:" mesajlarını da loglayabiliriz
+                    if (msg.StartsWith("Error")) AddLog($"⚠ WebView JS Hatası: {msg}");
+                }
+            }
+            catch { }
+        }
+
+        #endregion
+
+        #region ═══ Surface / Point Cloud Process ═══
+
+        private async void SurfaceButton_Click(object sender, RoutedEventArgs e)
+        {
+            // WebView hazır mı kontrolü
+            if (!_isWebViewInitialized || PointCloudWebView.CoreWebView2 == null)
+            {
+                AddLog("✗ WebView henüz hazır değil, işlem yapılamaz.");
+                ShowCloudStatus("WebView Hazır Değil", Microsoft.UI.Colors.Red, false);
+                return;
+            }
+
+            try
+            {
+                // UI Durum Güncelleme
+                ShowCloudStatus("Veriler Alınıyor...", Microsoft.UI.Colors.Orange, true);
+                SurfaceButton.IsEnabled = false;
+
+                AddLog("════════════════════════════════════════════");
+                AddLog("► POINT CLOUD İŞLEMİ BAŞLATILIYOR");
+
+                // Asenkron olarak veriyi çek
+                var (result, pointCloudJson) = await ReceiveSurfaceSample.ReceiveSurfacePointCloudNet(AddLog);
+
+                if (result != OK_STATUS)
+                {
+                    ShowCloudStatus("Sensör Hatası", Microsoft.UI.Colors.Red, false);
+                    AddLog($"✗ Gocator Hatası (Kod: {result})");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(pointCloudJson))
+                {
+                    ShowCloudStatus("Veri Boş", Microsoft.UI.Colors.Orange, false);
+                    AddLog("✗ JSON Verisi oluşturulamadı veya boş.");
+                    return;
+                }
+
+                AddLog($"✓ {pointCloudJson.Length} byte JSON alındı. WebView'a aktarılıyor...");
+                ShowCloudStatus("Çizim Yapılıyor...", Microsoft.UI.Colors.LightBlue, true);
+
+                // Gelen veriyi JavaScript'e gönder
+                string escapedJson = JsonConvert.ToString(pointCloudJson); // JSON'ı string string yapar ("..." formatına alır)
+
+                string jsCode = $@"
+                    if (typeof window.loadPointCloud === 'function') {{
+                        try {{
+                            window.loadPointCloud({escapedJson});
+                        }} catch(err) {{
+                            console.error(err);
+                            window.chrome.webview.postMessage('Error: ' + err.message);
+                        }}
+                    }} else {{
+                        window.chrome.webview.postMessage('Error: loadPointCloud fonksiyonu bulunamadı');
+                    }}";
+
+                await PointCloudWebView.ExecuteScriptAsync(jsCode);
+
+                // İşlem tamamlandı
+                ShowCloudStatus("Point Cloud Hazır!", Microsoft.UI.Colors.LimeGreen, false);
+                AddLog("✓✓✓ İŞLEM TAMAMLANDI ✓✓✓");
+                AddLog("════════════════════════════════════════════");
+            }
+            catch (Exception ex)
+            {
+                ShowCloudStatus("Uygulama Hatası", Microsoft.UI.Colors.Red, false);
+                AddLog($"✗ Kritik Hata: {ex.Message}");
+            }
+            finally
+            {
+                SurfaceButton.IsEnabled = true;
+                // Her ihtimale karşı yükleniyor durumunu kapat
+                if (WebViewStatusPanel != null && WebViewStatusPanel.Visibility == Visibility.Visible && SurfaceButton.IsEnabled)
+                {
+                    // Eğer hata ile bittiyse yukarıda kapanmıştır, ama yine de garanti olsun
+                    LoadingRing.IsActive = false;
+                }
             }
         }
 
         #endregion
 
-        #region ═══ Photo Capture ═══
+        #region ═══ Photo Capture Process ═══
 
         private async void RunButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                StatusLabel.Text = "Haberleşme Katmanı çalıştırılıyor...";
+                StatusLabel.Text = "Çekim Yapılıyor...";
                 StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
                 PhotoButton.IsEnabled = false;
                 LoadingRing.IsActive = true;
 
-                AddLog("► ÇEK işlemi başlatılıyor...");
+                AddLog("► Kamera Çekimi Başlatıldı...");
                 int result = await ReceiveImageSample.ReceiveImageNet(AddLog);
 
                 if (result == OK_STATUS)
                 {
-                    StatusLabel.Text = "BAŞARILI: Çekim yapıldı ve kaydedildi.";
-                    StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LightGreen);
-                    PhotoStatus.Text = "OK Başarıyla çekildi!";
+                    StatusLabel.Text = "BAŞARILI";
+                    StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+                    PhotoStatus.Text = "OK";
                     PhotoStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-                    AddLog("✓ Çekim başarıyla tamamlandı");
+                    AddLog("✓ Fotoğraf başarıyla çekildi");
                     await ShowCapturedImage();
                 }
                 else
                 {
-                    StatusLabel.Text = "HATA: İşlem başarısız (Kod: " + result + ")";
+                    StatusLabel.Text = $"HATA: {result}";
                     StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
-                    PhotoStatus.Text = "HATA Çekim başarısız";
+                    PhotoStatus.Text = "HATA";
                     PhotoStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.IndianRed);
-                    AddLog("✗ Çekim başarısız!");
+                    AddLog("✗ Çekim başarısız oldu");
                 }
             }
             catch (Exception ex)
             {
-                StatusLabel.Text = "Uygulama Hatası: " + ex.Message;
-                PhotoStatus.Text = "HATA " + ex.Message;
-                AddLog($"✗ HATA: {ex.Message}");
+                AddLog($"✗ Hata: {ex.Message}");
             }
             finally
             {
@@ -146,18 +270,15 @@ namespace App4.PAGES
 
                 if (rawFile != null)
                 {
-                    AddLog($"► Görüntü dosyası bulundu: {rawFile.Name}");
+                    AddLog($"► Dosya bulundu: {rawFile.Name}");
                     await ConvertRawToBmpAndDisplay(rawFile, SensorDisplay);
                 }
                 else
                 {
-                    AddLog("✗ Görüntü dosyası (RAW) bulunamadı");
+                    AddLog("⚠ Görüntülenecek RAW dosyası bulunamadı.");
                 }
             }
-            catch (Exception ex)
-            {
-                AddLog($"✗ Görüntüleme Hatası: {ex.Message}");
-            }
+            catch (Exception ex) { AddLog($"✗ Görüntüleme Hatası: {ex.Message}"); }
         }
 
         private async Task ConvertRawToBmpAndDisplay(FileInfo rawFile, Image targetImage)
@@ -169,12 +290,11 @@ namespace App4.PAGES
 
                 if (parts.Length >= 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height))
                 {
-                    AddLog($"► Görüntü boyutu: {width}x{height}");
                     byte[] rawBytes = await Task.Run(() => File.ReadAllBytes(rawFile.FullName));
 
                     if (rawBytes.Length != width * height)
                     {
-                        AddLog($"✗ Dosya boyutu eşleşmiyor. Beklenen: {width * height}, Alınan: {rawBytes.Length}");
+                        AddLog("⚠ Dosya boyutu beklenen çözünürlükle eşleşmiyor.");
                         return;
                     }
 
@@ -186,7 +306,7 @@ namespace App4.PAGES
                         bgraBytes[pos] = val;
                         bgraBytes[pos + 1] = val;
                         bgraBytes[pos + 2] = val;
-                        bgraBytes[pos + 3] = 255;
+                        bgraBytes[pos + 3] = 255; // Alpha
                     }
 
                     string bmpPath = Path.Combine(
@@ -194,218 +314,106 @@ namespace App4.PAGES
                         $"Gocator_{width}_{height}.bmp");
 
                     await SaveBitmapFile(bmpPath, bgraBytes, width, height);
-                    AddLog($"✓ BMP dosyası kaydedildi: {Path.GetFileName(bmpPath)}");
                     await DisplayBitmapFile(new FileInfo(bmpPath), targetImage);
-                    AddLog("✓ Görüntü başarıyla gösterildi");
                 }
             }
-            catch (Exception ex)
-            {
-                AddLog($"✗ Dönüştürme Hatası: {ex.Message}");
-            }
+            catch (Exception ex) { AddLog($"✗ Dönüştürme Hatası: {ex.Message}"); }
         }
 
         private async Task SaveBitmapFile(string filePath, byte[] bgraData, int width, int height)
         {
-            try
+            using (FileStream fs = new(filePath, FileMode.Create, FileAccess.Write))
             {
-                using (FileStream fs = new(filePath, FileMode.Create, FileAccess.Write))
+                byte[] fileHeader = new byte[14];
+                fileHeader[0] = 66; // B
+                fileHeader[1] = 77; // M
+
+                int fileSize = 54 + (width * height * 3);
+                BitConverter.GetBytes(fileSize).CopyTo(fileHeader, 2);
+                BitConverter.GetBytes(54).CopyTo(fileHeader, 10);
+
+                byte[] dibHeader = new byte[40];
+                BitConverter.GetBytes(40).CopyTo(dibHeader, 0);
+                BitConverter.GetBytes(width).CopyTo(dibHeader, 4);
+                BitConverter.GetBytes(height).CopyTo(dibHeader, 8);
+                dibHeader[12] = 1; // Planes
+                dibHeader[14] = 24; // Bits per pixel
+
+                await fs.WriteAsync(fileHeader, 0, fileHeader.Length);
+                await fs.WriteAsync(dibHeader, 0, dibHeader.Length);
+
+                byte[] pixelData = new byte[width * height * 3];
+                for (int i = 0; i < width * height; i++)
                 {
-                    byte[] fileHeader = new byte[14];
-                    fileHeader[0] = (byte)'B';
-                    fileHeader[1] = (byte)'M';
-
-                    int fileSize = 54 + (width * height * 3);
-                    BitConverter.GetBytes(fileSize).CopyTo(fileHeader, 2);
-                    BitConverter.GetBytes(54).CopyTo(fileHeader, 10);
-
-                    byte[] dibHeader = new byte[40];
-                    BitConverter.GetBytes(40).CopyTo(dibHeader, 0);
-                    BitConverter.GetBytes(width).CopyTo(dibHeader, 4);
-                    BitConverter.GetBytes(height).CopyTo(dibHeader, 8);
-                    dibHeader[12] = 1;
-                    dibHeader[14] = 24;
-
-                    await fs.WriteAsync(fileHeader, 0, fileHeader.Length);
-                    await fs.WriteAsync(dibHeader, 0, dibHeader.Length);
-
-                    byte[] pixelData = new byte[width * height * 3];
-                    for (int i = 0; i < width * height; i++)
-                    {
-                        int srcPos = i * 4;
-                        int dstPos = i * 3;
-                        pixelData[dstPos] = bgraData[srcPos];
-                        pixelData[dstPos + 1] = bgraData[srcPos + 1];
-                        pixelData[dstPos + 2] = bgraData[srcPos + 2];
-                    }
-
-                    await fs.WriteAsync(pixelData, 0, pixelData.Length);
+                    int srcPos = i * 4;
+                    int dstPos = i * 3;
+                    pixelData[dstPos] = bgraData[srcPos];
+                    pixelData[dstPos + 1] = bgraData[srcPos + 1];
+                    pixelData[dstPos + 2] = bgraData[srcPos + 2];
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"BMP Kayıt Hatası: {ex.Message}");
-                throw;
+
+                await fs.WriteAsync(pixelData, 0, pixelData.Length);
             }
         }
 
         private async Task DisplayBitmapFile(FileInfo bmpFile, Image targetImage)
         {
-            try
+            using (IRandomAccessStream stream = await (await StorageFile.GetFileFromPathAsync(bmpFile.FullName))
+                .OpenAsync(FileAccessMode.Read))
             {
-                using (IRandomAccessStream stream = await (await StorageFile.GetFileFromPathAsync(bmpFile.FullName))
-                    .OpenAsync(FileAccessMode.Read))
-                {
-                    var bitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
-                    await bitmap.SetSourceAsync(stream);
-                    targetImage.Source = bitmap;
-                }
-            }
-            catch (Exception ex)
-            {
-                AddLog($"✗ DisplayBitmapFile Hatası: {ex.Message}");
+                var bitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
+                await bitmap.SetSourceAsync(stream);
+                targetImage.Source = bitmap;
             }
         }
 
         #endregion
 
-        #region ═══ Surface / Point Cloud ═══
+        #region ═══ Helper Methods (Logs, Status) ═══
 
-        private async void SurfaceButton_Click(object sender, RoutedEventArgs e)
+        private void AddLog(string message)
         {
             try
             {
-                Cloud3DStatus.Text = "⏳ İşleniyor...";
-                Cloud3DStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
-                SurfaceButton.IsEnabled = false;
+                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string logEntry = $"[{timestamp}] {message}";
+                _logHistory.Add(logEntry);
 
-                AddLog("► SURFACE işlemi başlatılıyor...");
+                if (_logHistory.Count > 200) _logHistory.RemoveAt(0);
 
-                if (!await webViewManager.EnsureInitializedAsync())
+                this.DispatcherQueue.TryEnqueue(() =>
                 {
-                    Cloud3DStatus.Text = "✗ HATA: WebView2 başlatılamadı";
-                    Cloud3DStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
-                    AddLog("✗ WebView2 hazırlanamadı!");
-                    return;
-                }
+                    if (LogOutput != null)
+                        LogOutput.Text = string.Join("\n", _logHistory);
+                });
 
-                var (result, pointCloudJson) = await ReceiveSurfaceSample.ReceiveSurfacePointCloudNet(AddLog);
-
-                if (result == OK_STATUS && !string.IsNullOrEmpty(pointCloudJson))
-                {
-                    Cloud3DStatus.Text = "✓ Point Cloud hazır!";
-                    Cloud3DStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-                    AddLog("✓ Point Cloud başarıyla işlendi");
-                    await webViewManager.SendPointCloudAsync(pointCloudJson);
-                }
-                else
-                {
-                    Cloud3DStatus.Text = "✗ HATA Başarısız";
-                    Cloud3DStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
-                    AddLog("✗ Surface işlemi başarısız!");
-                }
+                Debug.WriteLine(logEntry);
             }
-            catch (Exception ex)
+            catch { }
+        }
+
+        private void ShowCloudStatus(string message, Windows.UI.Color color, bool isLoading)
+        {
+            this.DispatcherQueue.TryEnqueue(() =>
             {
-                Cloud3DStatus.Text = "HATA " + ex.Message;
-                Cloud3DStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
-                AddLog($"✗ HATA: {ex.Message}");
-            }
-            finally
-            {
-                SurfaceButton.IsEnabled = true;
-            }
+                if (Cloud3DStatus != null)
+                {
+                    Cloud3DStatus.Text = message;
+                    Cloud3DStatus.Foreground = new SolidColorBrush(color);
+                }
+
+                if (WebViewStatusPanel != null)
+                {
+                    WebViewStatusPanel.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
+                    if (WebViewStatus != null) WebViewStatus.Text = message;
+                }
+            });
         }
 
         #endregion
     }
 
-    #region ═══ WebView2 Manager ═══
-
-    public class WebView2Manager
-    {
-        private readonly WebView2 webView;
-        private readonly Action<string> log;
-
-        public WebView2Manager(WebView2 webView, Action<string> log)
-        {
-            this.webView = webView;
-            this.log = log;
-        }
-
-        public async Task<bool> EnsureInitializedAsync()
-        {
-            try
-            {
-                if (webView?.CoreWebView2 != null)
-                {
-                    log("✓ WebView2 hazır");
-                    return true;
-                }
-
-                log("► WebView2 initialization bekleniyor...");
-                int maxAttempts = 100;
-                int attempt = 0;
-
-                while (webView?.CoreWebView2 == null && attempt < maxAttempts)
-                {
-                    await Task.Delay(100);
-                    attempt++;
-
-                    if (attempt % 10 == 0)
-                        log($"  ⏳ Bekleniyor... ({attempt * 100 / 1000}s)");
-                }
-
-                if (webView?.CoreWebView2 != null)
-                {
-                    log("✓ WebView2 hazır");
-                    return true;
-                }
-
-                log("✗ WebView2 zaman aşımı");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                log($"✗ WebView2 hatası: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task SendPointCloudAsync(string pointCloudJson)
-        {
-            try
-            {
-                log("► Point Cloud gönderiliyor...");
-
-                if (webView?.CoreWebView2 == null)
-                {
-                    log("✗ CoreWebView2 null");
-                    return;
-                }
-
-                // Viewer initialize et
-                await webView.CoreWebView2.ExecuteScriptAsync("window.initPointCloudViewer?.();");
-                await Task.Delay(300);
-
-                // JSON'u güvenli şekilde gönder
-                string escapedJson = JsonConvert.ToString(pointCloudJson);
-                string script = $"window.loadPointCloud?.({escapedJson});";
-
-                log("► JavaScript çalıştırılıyor...");
-                string result = await webView.CoreWebView2.ExecuteScriptAsync(script);
-                log($"✓ Point Cloud gönderildi");
-            }
-            catch (Exception ex)
-            {
-                log($"✗ Gönderme hatası: {ex.Message}");
-            }
-        }
-    }
-
-    #endregion
-
-    #region ═══ Image Capture ═══
+    #region ═══ GOCATOR CLASSES ═══
 
     public class ReceiveImageSample
     {
@@ -422,176 +430,89 @@ namespace App4.PAGES
         public static async Task<int> ReceiveImageNet(Action<string>? log = null)
         {
             IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-
             return await Task.Run(async () =>
             {
                 using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
                 {
                     try
                     {
-                        log?.Invoke("► Sensora bağlanıyor...");
+                        log?.Invoke("Sensöre bağlanılıyor...");
                         system.Connect();
-                        log?.Invoke("✓ Sensora bağlandı");
+                        if (VerifyConnection(system) == ERROR_STATUS) return ERROR_STATUS;
 
-                        if (VerifyConnection(system) == ERROR_STATUS)
-                        {
-                            log?.Invoke("✗ Connection doğrulama başarısız");
-                            return ERROR_STATUS;
-                        }
-
-                        log?.Invoke("✓ Connection doğrulandı");
-
-                        log?.Invoke("► Replay durumu kontrol ediliyor...");
                         JObject response = system.Client().Read(REPLAY_PATH).GetResponse().Payload;
                         bool replayDataEnabled = (bool)response.GetValue("enabled")!;
-                        log?.Invoke($"   Replay enabled: {replayDataEnabled}");
 
                         if (!replayDataEnabled)
                         {
-                            log?.Invoke("► Scanner yapılandırması okunuyor...");
                             response = system.Client().Read(SCANNER_PATH).GetResponse().Payload;
-
                             if ((int)response.SelectToken(SCAN_MODE_PATH)! != IMAGE_MODE)
                             {
-                                log?.Invoke("► Scan mode IMAGE_MODE olarak ayarlanıyor...");
-                                JObject payload = new JObject
-                                {
-                                    ["parameters"] = new JObject
-                                    {
-                                        ["scanModeSettings"] = new JObject { ["scanMode"] = IMAGE_MODE }
-                                    }
-                                };
+                                log?.Invoke("Mod değiştiriliyor: IMAGE");
+                                JObject payload = new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["scanMode"] = IMAGE_MODE } } };
                                 system.Client().Update(SCANNER_PATH, payload).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
                                 await Task.Delay(500);
-                                log?.Invoke("✓ Scan mode ayarlandı");
                             }
                         }
 
-                        log?.Invoke("► Gocator Protocol etkinleştiriliyor...");
-                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true })
-                            .CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
+                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
                         await Task.Delay(500);
-                        log?.Invoke("✓ Gocator Protocol etkinleştirildi");
 
-                        log?.Invoke("► Sistem başlatılıyor...");
-                        if (system.RunningState() == GoSystem.State.Ready)
-                        {
-                            system.Start();
-                            await Task.Delay(1000);
-                        }
-                        log?.Invoke("✓ Sistem başlatıldı");
+                        if (system.RunningState() == GoSystem.State.Ready) system.Start();
 
+                        // Output Add Check
                         string dataSourceKey = "Image";
                         string imageDataSourceId = $"scan:{ENGINE_ID}:{SCANNER_ID}:{SCAN_ENGINE_COMPONENT}{dataSourceKey}0";
-
-                        bool imageOutputAdded = false;
+                        bool outputExists = false;
                         try
                         {
-                            response = system.Client().Read(GOCATOR_OUTPUT_PATH).GetResponse().Payload;
-                            JArray map = (JArray)response.GetValue("map")!;
-
-                            for (int i = 0; i < map.Count; i++)
-                            {
-                                if (map[i]?.ToString().Contains(dataSourceKey) == true)
-                                {
-                                    imageOutputAdded = true;
-                                    log?.Invoke("► Image output zaten eklenmiş");
-                                    break;
-                                }
-                            }
+                            var map = (JArray)system.Client().Read(GOCATOR_OUTPUT_PATH).GetResponse().Payload.GetValue("map")!;
+                            outputExists = map.Any(m => m.ToString().Contains(dataSourceKey));
                         }
-                        catch (Exception ex)
+                        catch { }
+
+                        if (!outputExists)
                         {
-                            log?.Invoke($"⚠ Output kontrol hatası: {ex.Message}");
+                            system.Client().Call(GOCATOR_ADD_OUTPUT_PATH, new JObject { ["source"] = imageDataSourceId, ["outputId"] = 0, ["autoShift"] = true }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
                         }
 
-                        if (!imageOutputAdded)
-                        {
-                            log?.Invoke("► Image output ekleniyor...");
-                            try
-                            {
-                                JObject payload = new JObject
-                                {
-                                    ["source"] = imageDataSourceId,
-                                    ["outputId"] = 0,
-                                    ["autoShift"] = true
-                                };
-                                system.Client().Call(GOCATOR_ADD_OUTPUT_PATH, payload).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                                log?.Invoke("✓ Image output eklendi");
-                            }
-                            catch (Exception ex)
-                            {
-                                log?.Invoke($"⚠ Output ekleme hatası: {ex.Message}");
-                            }
-                        }
-
-                        log?.Invoke("► GDP Client bağlanıyor...");
                         using (GoGdpClient gdpClient = new GoGdpClient())
                         {
                             gdpClient.Connect(system.Address, system.GdpPort());
-                            log?.Invoke("✓ GDP Client bağlandı");
-
-                            log?.Invoke("► Veri bekleniyor (timeout: 60 saniye)...");
                             gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
-                            log?.Invoke($"✓ Veri alındı. DataSet sayısı: {gdpClient.DataSet?.Count ?? 0}");
 
-                            if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
+                            if (gdpClient.DataSet != null)
                             {
-                                for (int msgIndex = 0; msgIndex < gdpClient.DataSet.Count; msgIndex++)
+                                for (int i = 0; i < gdpClient.DataSet.Count; i++)
                                 {
-                                    GoGdpMsg msg = gdpClient.DataSet.GdpMsgAt(msgIndex);
-
-                                    if (msg.Type == MessageType.Image)
+                                    if (gdpClient.DataSet.GdpMsgAt(i) is GoGdpImage imageMsg)
                                     {
-                                        GoGdpImage? imageMsg = msg as GoGdpImage;
-                                        if (imageMsg != null)
-                                        {
-                                            log?.Invoke($"✓ Image mesajı: {imageMsg.Width}x{imageMsg.Height}");
+                                        int width = (int)imageMsg.Width;
+                                        int height = (int)imageMsg.Height;
 
-                                            byte[,] pixelArray = imageMsg.Pixels;
-                                            int rows = pixelArray.GetLength(0);
-                                            int cols = pixelArray.GetLength(1);
+                                        byte[] flatData = new byte[width * height];
+                                        System.Buffer.BlockCopy(imageMsg.Pixels, 0, flatData, 0, flatData.Length);
 
-                                            byte[] flatData = new byte[rows * cols];
-                                            System.Buffer.BlockCopy(pixelArray, 0, flatData, 0, flatData.Length);
-
-                                            string path = Path.Combine(
-                                                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                                                $"Gocator_{cols}_{rows}.raw");
-
-                                            File.WriteAllBytes(path, flatData);
-                                            log?.Invoke($"✓ RAW kaydedildi: {Path.GetFileName(path)}");
-                                        }
+                                        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"Gocator_{width}_{height}.raw");
+                                        File.WriteAllBytes(path, flatData);
+                                        log?.Invoke($"RAW Kaydedildi: {Path.GetFileName(path)}");
                                     }
                                 }
                             }
-
                             gdpClient.Close();
                         }
-
-                        log?.Invoke("► Sistem durduruluyor...");
                         system.Stop();
-                        log?.Invoke("✓ Sistem durduruldu");
-                        log?.Invoke("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-                        log?.Invoke("✓✓✓ BAŞARILI ✓✓✓");
-                        log?.Invoke("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
                         return OK_STATUS;
                     }
                     catch (Exception ex)
                     {
-                        log?.Invoke($"✗ HATA: {ex.Message}");
-                        log?.Invoke($"  Stack: {ex.StackTrace}");
+                        log?.Invoke($"Resim Alma Hatası: {ex.Message}");
                         return ERROR_STATUS;
                     }
                 }
             });
         }
     }
-
-    #endregion
-
-    #region ═══ Surface Point Cloud ═══
 
     public class ReceiveSurfaceSample
     {
@@ -608,444 +529,202 @@ namespace App4.PAGES
         public static async Task<(int status, string pointCloudJson)> ReceiveSurfacePointCloudNet(Action<string>? log = null)
         {
             IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-
             return await Task.Run(async () =>
             {
                 using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
                 {
                     try
                     {
-                        log?.Invoke("► Sensora bağlanıyor...");
+                        log?.Invoke("Sensöre bağlanılıyor...");
                         system.Connect();
-                        log?.Invoke("✓ Sensora bağlandı");
-
                         if (VerifyConnection(system) == ERROR_STATUS)
-                        {
-                            log?.Invoke("✗ Connection doğrulama başarısız");
-                            return (ERROR_STATUS, string.Empty);
-                        }
+                            return (ERROR_STATUS, "");
 
-                        log?.Invoke("✓ Connection doğrulandı");
-
-                        log?.Invoke("► Replay durumu kontrol ediliyor...");
                         JObject response = system.Client().Read(REPLAY_PATH).GetResponse().Payload;
                         bool replayDataEnabled = (bool)response.GetValue("enabled")!;
-                        log?.Invoke($"   Replay enabled: {replayDataEnabled}");
 
                         if (!replayDataEnabled)
                         {
-                            log?.Invoke("► Scanner yapılandırması okunuyor...");
                             response = system.Client().Read(SCANNER_PATH).GetResponse().Payload;
-
                             if ((int)response.SelectToken(SCAN_MODE_PATH)! != SURFACE_MODE)
                             {
-                                log?.Invoke("► Scan mode SURFACE olarak ayarlanıyor...");
-                                JObject payload = new JObject
-                                {
-                                    ["parameters"] = new JObject
-                                    {
-                                        ["scanModeSettings"] = new JObject { ["scanMode"] = SURFACE_MODE }
-                                    }
-                                };
+                                log?.Invoke("Mod değiştiriliyor: SURFACE");
+                                JObject payload = new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["scanMode"] = SURFACE_MODE } } };
                                 system.Client().Update(SCANNER_PATH, payload).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
                                 await Task.Delay(1000);
-                                log?.Invoke("✓ Scan mode SURFACE olarak ayarlandı");
                             }
                         }
 
-                        log?.Invoke("► Intensity etkinleştiriliyor...");
-                        JObject intensityPayload = new JObject
-                        {
-                            ["parameters"] = new JObject
-                            {
-                                ["scanModeSettings"] = new JObject { ["intensityEnabled"] = true }
-                            }
-                        };
-                        system.Client().Update(SCANNER_PATH, intensityPayload).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                        await Task.Delay(1000);
-                        log?.Invoke("✓ Intensity etkinleştirildi");
+                        system.Client().Update(SCANNER_PATH, new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["intensityEnabled"] = true } } }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
 
-                        log?.Invoke("► Gocator Protocol etkinleştiriliyor...");
-                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true })
-                            .CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
+                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
                         await Task.Delay(1000);
-                        log?.Invoke("✓ Gocator Protocol etkinleştirildi");
 
-                        log?.Invoke("► Sistem başlatılıyor...");
                         if (system.RunningState() == GoSystem.State.Ready)
                         {
                             system.Start();
                             await Task.Delay(2000);
                         }
-                        log?.Invoke("✓ Sistem başlatıldı");
 
-                        const string dataSourceKey = "UniformSurface";
-                        const string dataSourceComponent = "top";
-                        string uniformSurfaceDataSourceId = $"scan:{ENGINE_ID}:{SCANNER_ID}:{dataSourceComponent}{dataSourceKey}0";
-
-                        bool outputAdded = false;
+                        string dataSourceKey = "UniformSurface";
+                        string uniformSurfaceDataSourceId = $"scan:{ENGINE_ID}:{SCANNER_ID}:top{dataSourceKey}0";
+                        bool outputExists = false;
                         try
                         {
-                            response = system.Client().Read(GOCATOR_OUTPUT_PATH).GetResponse().Payload;
-                            JArray map = (JArray)response.GetValue("map")!;
-
-                            for (int i = 0; i < map.Count; i++)
-                            {
-                                if (map[i]?.ToString().Contains(dataSourceKey) == true)
-                                {
-                                    outputAdded = true;
-                                    log?.Invoke("► Uniform Surface output zaten eklenmiş");
-                                    break;
-                                }
-                            }
+                            var map = (JArray)system.Client().Read(GOCATOR_OUTPUT_PATH).GetResponse().Payload.GetValue("map")!;
+                            outputExists = map.Any(m => m.ToString().Contains(dataSourceKey));
                         }
-                        catch (Exception ex)
+                        catch { }
+
+                        if (!outputExists)
                         {
-                            log?.Invoke($"⚠ Output kontrol hatası: {ex.Message}");
+                            log?.Invoke("Uniform Output ekleniyor...");
+                            system.Client().Call(GOCATOR_ADD_OUTPUT_PATH, new JObject { ["source"] = uniformSurfaceDataSourceId, ["outputId"] = 0, ["autoShift"] = true }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
                         }
 
-                        if (!outputAdded)
-                        {
-                            log?.Invoke("► Uniform Surface output ekleniyor...");
-                            try
-                            {
-                                JObject payload = new JObject
-                                {
-                                    ["source"] = uniformSurfaceDataSourceId,
-                                    ["outputId"] = 0,
-                                    ["autoShift"] = true
-                                };
-                                system.Client().Call(GOCATOR_ADD_OUTPUT_PATH, payload)
-                                    .CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                                await Task.Delay(1000);
-                                log?.Invoke("✓ Uniform Surface output eklendi");
-                            }
-                            catch (Exception ex)
-                            {
-                                log?.Invoke($"⚠ Output ekleme hatası: {ex.Message}");
-                            }
-                        }
-
-                        log?.Invoke("► GDP Client bağlanıyor...");
-                        string pointCloudJson = string.Empty;
-
+                        string resultJson = "";
                         using (GoGdpClient gdpClient = new GoGdpClient())
                         {
                             gdpClient.Connect(system.Address, system.GdpPort());
-                            log?.Invoke("✓ GDP Client bağlandı");
-
-                            log?.Invoke("► Surface verisi bekleniyor (timeout: 60 saniye)...");
+                            log?.Invoke("Veri bekleniyor...");
                             gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
 
-                            int datasetCount = (int)(gdpClient.DataSet?.Count ?? 0);
-                            log?.Invoke($"✓ Veri alındı. DataSet sayısı: {datasetCount}");
+                            int count = (int)(gdpClient.DataSet?.Count ?? 0);
+                            log?.Invoke($"Veri paketi alındı. Mesaj sayısı: {count}");
 
-                            if (datasetCount > 0 && gdpClient.DataSet != null)
+                            if (count > 0 && gdpClient.DataSet != null)
                             {
-                                log?.Invoke("📋 DataSet içeriği:");
-                                for (int msgIndex = 0; msgIndex < datasetCount; msgIndex++)
+                                for (int i = 0; i < count; i++)
                                 {
-                                    GoGdpMsg msg = gdpClient.DataSet.GdpMsgAt(msgIndex);
-                                    log?.Invoke($"  [{msgIndex}] Mesaj Tipi: {msg.Type}");
-                                    log?.Invoke($"      GDP ID: {msg.GdpId}");
-                                    log?.Invoke($"      Data Source ID: {msg.DataSourceId}");
-
-                                    if (msg.Type == MessageType.UniformSurface)
+                                    if (gdpClient.DataSet.GdpMsgAt(i) is GoGdpSurfaceUniform uMsg)
                                     {
-                                        log?.Invoke($"      ✓✓✓ UniformSurface bulundu!");
-                                        if (msg is GoGdpSurfaceUniform uniformMsg)
-                                        {
-                                            log?.Invoke($"          Width: {uniformMsg.Width}, Length: {uniformMsg.Length}");
-                                            log?.Invoke($"          Offset: ({uniformMsg.Offset.X}, {uniformMsg.Offset.Y}, {uniformMsg.Offset.Z})");
-                                        }
+                                        log?.Invoke("Uniform Surface işleniyor...");
+                                        resultJson = ProcessUniformSurface(uMsg);
+                                        if (!string.IsNullOrEmpty(resultJson)) break;
                                     }
-                                    else if (msg.Type == MessageType.SurfacePointCloud)
+                                    else if (gdpClient.DataSet.GdpMsgAt(i) is GoGdpSurfacePointCloud pMsg)
                                     {
-                                        log?.Invoke($"      ✓✓✓ SurfacePointCloud bulundu!");
-                                        if (msg is GoGdpSurfacePointCloud surfaceMsg)
-                                        {
-                                            log?.Invoke($"          Width: {surfaceMsg.Width}, Length: {surfaceMsg.Length}");
-                                            log?.Invoke($"          Offset: ({surfaceMsg.Offset.X}, {surfaceMsg.Offset.Y}, {surfaceMsg.Offset.Z})");
-                                        }
+                                        log?.Invoke("Point Cloud işleniyor...");
+                                        resultJson = ProcessSurfacePointCloud(pMsg);
+                                        if (!string.IsNullOrEmpty(resultJson)) break;
                                     }
                                 }
                             }
-
-                            // UniformSurface işle
-                            for (int msgIndex = 0; msgIndex < datasetCount; msgIndex++)
-                            {
-                                if (gdpClient.DataSet?.GdpMsgAt(msgIndex) is GoGdpSurfaceUniform uniformMsg)
-                                {
-                                    log?.Invoke($"✓ UniformSurface mesajı işleniyor...");
-                                    pointCloudJson = ProcessUniformSurface(uniformMsg, log);
-                                    if (!string.IsNullOrEmpty(pointCloudJson))
-                                    {
-                                        log?.Invoke($"✓ JSON başarıyla oluşturuldu");
-                                        break;
-                                    }
-                                }
-                            }
-
-                            // SurfacePointCloud işle
-                            if (string.IsNullOrEmpty(pointCloudJson))
-                            {
-                                for (int msgIndex = 0; msgIndex < datasetCount; msgIndex++)
-                                {
-                                    if (gdpClient.DataSet?.GdpMsgAt(msgIndex) is GoGdpSurfacePointCloud pointMsg)
-                                    {
-                                        log?.Invoke($"✓ SurfacePointCloud mesajı işleniyor...");
-                                        pointCloudJson = ProcessSurfacePointCloud(pointMsg, log);
-                                        if (!string.IsNullOrEmpty(pointCloudJson))
-                                        {
-                                            log?.Invoke($"✓ JSON başarıyla oluşturuldu");
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
                             gdpClient.Close();
                         }
 
-                        log?.Invoke("► Sistem durduruluyor...");
                         system.Stop();
-                        log?.Invoke("✓ Sistem durduruldu");
-                        log?.Invoke("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-                        if (!string.IsNullOrEmpty(pointCloudJson))
-                        {
-                            log?.Invoke("✓✓✓ BAŞARILI ✓✓✓");
-                            return (OK_STATUS, pointCloudJson);
-                        }
-                        else
-                        {
-                            log?.Invoke("✗ Surface mesajı bulunamadı!");
-                            return (ERROR_STATUS, string.Empty);
-                        }
+                        return string.IsNullOrEmpty(resultJson) ? (ERROR_STATUS, "") : (OK_STATUS, resultJson);
                     }
                     catch (Exception ex)
                     {
-                        log?.Invoke($"✗ HATA: {ex.Message}");
-                        log?.Invoke($"  Stack: {ex.StackTrace}");
-                        return (ERROR_STATUS, string.Empty);
+                        log?.Invoke($"Surface Alma Hatası: {ex.Message}");
+                        return (ERROR_STATUS, "");
                     }
                 }
             });
         }
 
-        private static string ProcessUniformSurface(GoGdpSurfaceUniform uniformSurfaceMsg, Action<string>? log)
+        private static string ProcessUniformSurface(GoGdpSurfaceUniform msg)
         {
-            try
+            var data = new PointCloudData
             {
-                uint validPointCount = 0;
-                int length = (int)uniformSurfaceMsg.Length;
-                int width = (int)uniformSurfaceMsg.Width;
-                int intensityLength = (int)uniformSurfaceMsg.IntensityLength;
-                int intensityWidth = (int)uniformSurfaceMsg.IntensityWidth;
-
-                var pointCloudData = new PointCloudData
+                metadata = new PointCloudMetadata
                 {
-                    metadata = new PointCloudMetadata
-                    {
-                        timestamp = DateTime.Now,
-                        pointCount = length * width,
-                        validPoints = 0,
-                        offsetX = uniformSurfaceMsg.Offset.X,
-                        offsetY = uniformSurfaceMsg.Offset.Y,
-                        offsetZ = uniformSurfaceMsg.Offset.Z,
-                        resolutionX = uniformSurfaceMsg.Resolution.X,
-                        resolutionY = uniformSurfaceMsg.Resolution.Y,
-                        resolutionZ = uniformSurfaceMsg.Resolution.Z,
-                        width = (uint)width,
-                        length = (uint)length
-                    },
-                    points = new List<Point3D>()
-                };
+                    timestamp = DateTime.Now,
+                    // DÜZELTME: explicit cast
+                    pointCount = (int)(msg.Width * msg.Length),
+                    offsetX = msg.Offset.X,
+                    offsetY = msg.Offset.Y,
+                    offsetZ = msg.Offset.Z,
+                    resolutionX = msg.Resolution.X,
+                    resolutionY = msg.Resolution.Y,
+                    resolutionZ = msg.Resolution.Z,
+                    width = (uint)msg.Width,
+                    length = (uint)msg.Length
+                }
+            };
 
-                for (int j = 0; j < length; j++)
+            for (int r = 0; r < msg.Length; r++)
+            {
+                for (int c = 0; c < msg.Width; c++)
                 {
-                    for (int k = 0; k < width; k++)
+                    short val = msg.Ranges[r, c];
+                    if (val != short.MinValue)
                     {
-                        short data = uniformSurfaceMsg.Ranges[j, k];
-
-                        if (data != short.MinValue)
+                        data.points.Add(new Point3D
                         {
-                            double x = uniformSurfaceMsg.Offset.X + uniformSurfaceMsg.Resolution.X * k;
-                            double y = uniformSurfaceMsg.Offset.Y + uniformSurfaceMsg.Resolution.Y * j;
-                            double z = uniformSurfaceMsg.Offset.Z + uniformSurfaceMsg.Resolution.Z * data;
-
-                            byte intensity = 0;
-                            if (uniformSurfaceMsg.Intensities != null && j < intensityLength && k < intensityWidth)
-                            {
-                                intensity = uniformSurfaceMsg.Intensities[j, k];
-                            }
-
-                            pointCloudData.points.Add(new Point3D { x = x, y = y, z = z, intensity = intensity });
-                            validPointCount++;
-                        }
+                            x = msg.Offset.X + msg.Resolution.X * c,
+                            y = msg.Offset.Y + msg.Resolution.Y * r,
+                            z = msg.Offset.Z + msg.Resolution.Z * val,
+                            intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) ? msg.Intensities[r, c] : (byte)0
+                        });
                     }
                 }
-
-                pointCloudData.metadata.validPoints = (int)validPointCount;
-                log?.Invoke($"✓ UniformSurface işlendi: {validPointCount} geçerli nokta");
-                log?.Invoke($"Surface data length: {length}");
-                log?.Invoke($"Surface data width: {width}");
-                log?.Invoke($"✓ Geçerli noktalar: {validPointCount}/{length * width}");
-
-                log?.Invoke($"📊 JSON oluşturuluyor... ({pointCloudData.points.Count} nokta)");
-                string jsonResult = JsonConvert.SerializeObject(pointCloudData, Formatting.Indented);
-                log?.Invoke($"✓ JSON oluşturuldu: {jsonResult.Length} karakter");
-
-                return jsonResult;
             }
-            catch (Exception ex)
-            {
-                log?.Invoke($"✗ UniformSurface işleme hatası: {ex.Message}");
-                return string.Empty;
-            }
+            return JsonConvert.SerializeObject(data);
         }
 
-        private static string ProcessSurfacePointCloud(GoGdpSurfacePointCloud pointCloudMsg, Action<string>? log)
+        private static string ProcessSurfacePointCloud(GoGdpSurfacePointCloud msg)
         {
-            try
+            var data = new PointCloudData
             {
-                uint validPointCount = 0;
-                int length = (int)pointCloudMsg.Length;
-                int width = (int)pointCloudMsg.Width;
-                byte[,]? intensityArray = pointCloudMsg.Intensities;
-                int intensityLength = (int)pointCloudMsg.IntensityLength;
-                int intensityWidth = (int)pointCloudMsg.IntensityWidth;
-
-                SurfacePointLocal[,] surfaceBuffer = new SurfacePointLocal[length, width];
-
-                for (int j = 0; j < length; j++)
+                metadata = new PointCloudMetadata
                 {
-                    for (int k = 0; k < width; k++)
-                    {
-                        GoPoint3d16s point = pointCloudMsg.Ranges[j, k];
-
-                        surfaceBuffer[j, k].X = pointCloudMsg.Offset.X + pointCloudMsg.Resolution.X * point.X;
-                        surfaceBuffer[j, k].Y = pointCloudMsg.Offset.Y + pointCloudMsg.Resolution.Y * point.Y;
-
-                        if (point.Z != short.MinValue)
-                        {
-                            surfaceBuffer[j, k].Z = pointCloudMsg.Offset.Z + pointCloudMsg.Resolution.Z * point.Z;
-                            validPointCount++;
-                        }
-                        else
-                        {
-                            surfaceBuffer[j, k].Z = double.MinValue;
-                        }
-                    }
+                    timestamp = DateTime.Now,
+                    // DÜZELTME: explicit cast
+                    pointCount = (int)(msg.Width * msg.Length),
+                    offsetX = msg.Offset.X,
+                    offsetY = msg.Offset.Y,
+                    offsetZ = msg.Offset.Z,
+                    resolutionX = msg.Resolution.X,
+                    resolutionY = msg.Resolution.Y,
+                    resolutionZ = msg.Resolution.Z,
+                    width = (uint)msg.Width,
+                    length = (uint)msg.Length
                 }
+            };
 
-                if (intensityArray != null)
-                {
-                    int maxJ = Math.Min(length, intensityLength);
-                    int maxK = Math.Min(width, intensityWidth);
-
-                    for (int j = 0; j < maxJ; j++)
-                    {
-                        for (int k = 0; k < maxK; k++)
-                        {
-                            surfaceBuffer[j, k].Intensity = intensityArray[j, k];
-                        }
-                    }
-                }
-
-                log?.Invoke($"Surface data length: {length}");
-                log?.Invoke($"Surface data width: {width}");
-                log?.Invoke($"✓ Geçerli noktalar: {validPointCount}/{length * width}");
-
-                var pointCloudData = new PointCloudData
-                {
-                    metadata = new PointCloudMetadata
-                    {
-                        timestamp = DateTime.Now,
-                        pointCount = length * width,
-                        validPoints = (int)validPointCount,
-                        offsetX = pointCloudMsg.Offset.X,
-                        offsetY = pointCloudMsg.Offset.Y,
-                        offsetZ = pointCloudMsg.Offset.Z,
-                        resolutionX = pointCloudMsg.Resolution.X,
-                        resolutionY = pointCloudMsg.Resolution.Y,
-                        resolutionZ = pointCloudMsg.Resolution.Z,
-                        width = (uint)width,
-                        length = (uint)length
-                    },
-                    points = new List<Point3D>()
-                };
-
-                for (int j = 0; j < length; j++)
-                {
-                    for (int k = 0; k < width; k++)
-                    {
-                        if (surfaceBuffer[j, k].Z != double.MinValue)
-                        {
-                            pointCloudData.points.Add(new Point3D
-                            {
-                                x = surfaceBuffer[j, k].X,
-                                y = surfaceBuffer[j, k].Y,
-                                z = surfaceBuffer[j, k].Z,
-                                intensity = surfaceBuffer[j, k].Intensity
-                            });
-                        }
-                    }
-                }
-
-                log?.Invoke($"📊 JSON oluşturuluyor... ({pointCloudData.points.Count} nokta)");
-                string jsonResult = JsonConvert.SerializeObject(pointCloudData, Formatting.Indented);
-                log?.Invoke($"✓ JSON oluşturuldu: {jsonResult.Length} karakter");
-
-                return jsonResult;
-            }
-            catch (Exception ex)
+            for (int r = 0; r < msg.Length; r++)
             {
-                log?.Invoke($"✗ Point Cloud işleme hatası: {ex.Message}");
-                return string.Empty;
+                for (int c = 0; c < msg.Width; c++)
+                {
+                    var p = msg.Ranges[r, c];
+                    if (p.Z != short.MinValue)
+                    {
+                        data.points.Add(new Point3D
+                        {
+                            x = msg.Offset.X + msg.Resolution.X * p.X,
+                            y = msg.Offset.Y + msg.Resolution.Y * p.Y,
+                            z = msg.Offset.Z + msg.Resolution.Z * p.Z,
+                            intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) ? msg.Intensities[r, c] : (byte)0
+                        });
+                    }
+                }
             }
+            return JsonConvert.SerializeObject(data);
         }
 
         public class PointCloudData
         {
-            [JsonProperty("metadata")]
             public PointCloudMetadata metadata { get; set; } = new();
-
-            [JsonProperty("points")]
             public List<Point3D> points { get; set; } = new();
         }
 
         public class PointCloudMetadata
         {
-            [JsonProperty("timestamp")] public DateTime timestamp { get; set; }
-            [JsonProperty("pointCount")] public int pointCount { get; set; }
-            [JsonProperty("validPoints")] public int validPoints { get; set; }
-            [JsonProperty("offsetX")] public double offsetX { get; set; }
-            [JsonProperty("offsetY")] public double offsetY { get; set; }
-            [JsonProperty("offsetZ")] public double offsetZ { get; set; }
-            [JsonProperty("resolutionX")] public double resolutionX { get; set; }
-            [JsonProperty("resolutionY")] public double resolutionY { get; set; }
-            [JsonProperty("resolutionZ")] public double resolutionZ { get; set; }
-            [JsonProperty("width")] public uint width { get; set; }
-            [JsonProperty("length")] public uint length { get; set; }
+            public DateTime timestamp;
+            public int pointCount;
+            public double offsetX, offsetY, offsetZ;
+            public double resolutionX, resolutionY, resolutionZ;
+            public uint width, length;
         }
 
         public class Point3D
         {
-            [JsonProperty("x")] public double x { get; set; }
-            [JsonProperty("y")] public double y { get; set; }
-            [JsonProperty("z")] public double z { get; set; }
-            [JsonProperty("intensity")] public byte intensity { get; set; }
-        }
-
-        private struct SurfacePointLocal
-        {
-            public double X;
-            public double Y;
-            public double Z;
-            public byte Intensity;
+            public double x, y, z;
+            public byte intensity;
         }
     }
-
     #endregion
 }
