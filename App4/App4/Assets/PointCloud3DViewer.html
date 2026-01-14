@@ -20,6 +20,7 @@
         }
 
         #info {
+            display: none; /* Gizle */
             position: absolute;
             top: 10px;
             left: 10px;
@@ -44,6 +45,7 @@
         }
 
         #status {
+            display: none; /* Gizle */
             position: absolute;
             bottom: 20px;
             left: 20px;
@@ -84,10 +86,10 @@
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x111111);
 
-                // Kamera
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-                camera.position.set(0, -200, 400);
-                camera.up.set(0, 0, 1); // Z ekseni yukarı
+                // Kamera - Daha yakında ve Z ekseni boyunca bakacak şekilde
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+                camera.position.set(0, 0, 35); // Z ekseninden bakıyor - ÇOK daha yakın (50'den 35'e)
+                camera.up.set(0, 1, 0); // Y ekseni yukarı
 
                 // Renderer
                 renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -100,17 +102,23 @@
                     controls = new THREE.OrbitControls(camera, renderer.domElement);
                     controls.enableDamping = true;
                     controls.dampingFactor = 0.05;
+                    controls.autoRotate = false;
+                    controls.target.set(0, 0, 0); // Hedef noktayı merkeze ayarla
                     updateStatus("✓ OrbitControls yüklendi");
                 } else {
                     updateStatus("⚠ OrbitControls bulunamadı");
                 }
 
                 // Işıklandırma
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
                 scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(100, 100, 100);
+                scene.add(directionalLight);
 
-                // Eksenler
-                const axesHelper = new THREE.AxesHelper(100);
+                // Eksenler (Z = Kırmızı)
+                const axesHelper = new THREE.AxesHelper(50);
                 scene.add(axesHelper);
 
                 // Pencere Boyutlandırma
@@ -174,10 +182,11 @@
                     positions[i * 3 + 1] = p.y;
                     positions[i * 3 + 2] = p.z;
 
-                    // Renklendirme (Z yüksekliğine göre Heatmap)
+                    // Renklendirme (Z yüksekliğine göre Heatmap: Kırmızı = Yakın/Yüksek, Mavi = Uzak/Düşük)
                     const normalizedZ = (p.z - minZ) / zRange;
                     const color = new THREE.Color();
-                    color.setHSL((1.0 - normalizedZ) * 0.7, 1.0, 0.5);
+                    // HSL: H=(normalizedZ)*0.7 => Yüksek Z = Düşük H değeri = Kırmızı, Düşük Z = Yüksek H değeri = Mavi
+                    color.setHSL(normalizedZ * 0.7, 1.0, 0.5);
 
                     colors[i * 3] = color.r;
                     colors[i * 3 + 1] = color.g;
@@ -189,7 +198,7 @@
 
                 // Materyal oluştur
                 const material = new THREE.PointsMaterial({
-                    size: 2,
+                    size: 5, // Daha büyük noktalar (önceden 3.5)
                     vertexColors: true,
                     sizeAttenuation: false
                 });
@@ -207,14 +216,25 @@
                 // Kamerayı odakla
                 if (controls) {
                     controls.reset();
+                    controls.target.set(0, 0, 0);
                 }
 
                 const metadata = jsonData.metadata || {};
                 const width = metadata.width || 100;
                 const length = metadata.length || 100;
 
-                camera.position.set(0, -Math.max(width, length) * 0.8, 400);
+                // Kamera konumunu veri boyutuna göre ayarla
+                // Z ekseni boyunca bakıyor (kırmızı taraf ön plana)
+                const maxDim = Math.max(width, length);
+                const distance = maxDim * 0.08; // 0.08'e indirdi (çok yakın zoom - 0.15'ten azaldı)
+                camera.position.set(0, 0, distance);
                 camera.lookAt(0, 0, 0);
+
+                // Controls target'ı güncelle
+                if (controls) {
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                }
 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('pointCount').textContent = `Noktalar: ${count.toLocaleString()} | Min Z: ${minZ.toFixed(2)} | Max Z: ${maxZ.toFixed(2)}`;

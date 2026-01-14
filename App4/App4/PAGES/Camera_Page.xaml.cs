@@ -177,6 +177,7 @@ namespace App4.PAGES
                 }
 
                 AddLog($"✓ {pointCloudJson.Length} byte JSON alındı. WebView'a aktarılıyor...");
+                AddLog("💡 Bakış Açısı: Z ekseni → Kırmızı (yakın) ön plana, Mavi (uzak) arka planda");
                 ShowCloudStatus("Çizim Yapılıyor...", Microsoft.UI.Colors.LightBlue, true);
 
                 // JSON verisini doğrudan JavaScript'e gönder
