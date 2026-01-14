@@ -25,6 +25,12 @@ namespace App4.PAGES
         private List<string> _logHistory = new();
         private bool _isWebViewInitialized = false;
 
+        // Cached brushes for better performance
+        private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.Colors.Orange);
+        private static readonly SolidColorBrush BrushGreen = new(Microsoft.UI.Colors.LimeGreen);
+        private static readonly SolidColorBrush BrushRed = new(Microsoft.UI.Colors.Red);
+        private static readonly SolidColorBrush BrushIndianRed = new(Microsoft.UI.Colors.IndianRed);
+
         public Camera_Page()
         {
             this.InitializeComponent();
@@ -173,22 +179,28 @@ namespace App4.PAGES
                 AddLog($"✓ {pointCloudJson.Length} byte JSON alındı. WebView'a aktarılıyor...");
                 ShowCloudStatus("Çizim Yapılıyor...", Microsoft.UI.Colors.LightBlue, true);
 
-                // Gelen veriyi JavaScript'e gönder
-                string escapedJson = JsonConvert.ToString(pointCloudJson); // JSON'ı string string yapar ("..." formatına alır)
-
+                // JSON verisini doğrudan JavaScript'e gönder
                 string jsCode = $@"
-                    if (typeof window.loadPointCloud === 'function') {{
+                    (function() {{
                         try {{
-                            window.loadPointCloud({escapedJson});
+                            if (typeof window.loadPointCloud === 'function') {{
+                                const data = {pointCloudJson};
+                                console.log('Loading ' + (data.points ? data.points.length : 0) + ' points...');
+                                window.loadPointCloud(data);
+                            }} else {{
+                                console.error('loadPointCloud function not found');
+                                window.chrome.webview.postMessage('Error: loadPointCloud fonksiyonu bulunamadı');
+                            }}
                         }} catch(err) {{
-                            console.error(err);
+                            console.error('Error loading point cloud:', err);
                             window.chrome.webview.postMessage('Error: ' + err.message);
                         }}
-                    }} else {{
-                        window.chrome.webview.postMessage('Error: loadPointCloud fonksiyonu bulunamadı');
-                    }}";
+                    }})();
+                ";
 
-                await PointCloudWebView.ExecuteScriptAsync(jsCode);
+                AddLog("► JavaScript execute ediliyor...");
+                var jsResult = await PointCloudWebView.ExecuteScriptAsync(jsCode);
+                AddLog($"✓ JavaScript sonucu: {jsResult}");
 
                 // İşlem tamamlandı
                 ShowCloudStatus("Point Cloud Hazır!", Microsoft.UI.Colors.LimeGreen, false);
@@ -203,12 +215,14 @@ namespace App4.PAGES
             finally
             {
                 SurfaceButton.IsEnabled = true;
-                // Her ihtimale karşı yükleniyor durumunu kapat
-                if (WebViewStatusPanel != null && WebViewStatusPanel.Visibility == Visibility.Visible && SurfaceButton.IsEnabled)
+                // Status panelini kapat
+                this.DispatcherQueue.TryEnqueue(() =>
                 {
-                    // Eğer hata ile bittiyse yukarıda kapanmıştır, ama yine de garanti olsun
-                    LoadingRing.IsActive = false;
-                }
+                    if (WebViewStatusPanel != null)
+                    {
+                        WebViewStatusPanel.Visibility = Visibility.Collapsed;
+                    }
+                });
             }
         }
 
@@ -221,7 +235,7 @@ namespace App4.PAGES
             try
             {
                 StatusLabel.Text = "Çekim Yapılıyor...";
-                StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
+                StatusLabel.Foreground = BrushOrange;
                 PhotoButton.IsEnabled = false;
                 LoadingRing.IsActive = true;
 
@@ -231,18 +245,18 @@ namespace App4.PAGES
                 if (result == OK_STATUS)
                 {
                     StatusLabel.Text = "BAŞARILI";
-                    StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+                    StatusLabel.Foreground = BrushGreen;
                     PhotoStatus.Text = "OK";
-                    PhotoStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+                    PhotoStatus.Foreground = BrushGreen;
                     AddLog("✓ Fotoğraf başarıyla çekildi");
                     await ShowCapturedImage();
                 }
                 else
                 {
                     StatusLabel.Text = $"HATA: {result}";
-                    StatusLabel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
+                    StatusLabel.Foreground = BrushRed;
                     PhotoStatus.Text = "HATA";
-                    PhotoStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.IndianRed);
+                    PhotoStatus.Foreground = BrushIndianRed;
                     AddLog("✗ Çekim başarısız oldu");
                 }
             }
@@ -405,7 +419,8 @@ namespace App4.PAGES
                 if (WebViewStatusPanel != null)
                 {
                     WebViewStatusPanel.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
-                    if (WebViewStatus != null) WebViewStatus.Text = message;
+                    if (WebViewStatus != null) 
+                        WebViewStatus.Text = message;
                 }
             });
         }
@@ -632,7 +647,6 @@ namespace App4.PAGES
                 metadata = new PointCloudMetadata
                 {
                     timestamp = DateTime.Now,
-                    // DÜZELTME: explicit cast
                     pointCount = (int)(msg.Width * msg.Length),
                     offsetX = msg.Offset.X,
                     offsetY = msg.Offset.Y,
@@ -644,6 +658,9 @@ namespace App4.PAGES
                     length = (uint)msg.Length
                 }
             };
+
+            // Kapasiteyi önceden ayarla
+            data.points = new List<Point3D>((int)(msg.Width * msg.Length));
 
             for (int r = 0; r < msg.Length; r++)
             {
@@ -657,12 +674,18 @@ namespace App4.PAGES
                             x = msg.Offset.X + msg.Resolution.X * c,
                             y = msg.Offset.Y + msg.Resolution.Y * r,
                             z = msg.Offset.Z + msg.Resolution.Z * val,
-                            intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) ? msg.Intensities[r, c] : (byte)0
+                            intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) 
+                                ? msg.Intensities[r, c] 
+                                : (byte)0
                         });
                     }
                 }
             }
-            return JsonConvert.SerializeObject(data);
+
+            return JsonConvert.SerializeObject(data, new JsonSerializerSettings 
+            { 
+                NullValueHandling = NullValueHandling.Ignore 
+            });
         }
 
         private static string ProcessSurfacePointCloud(GoGdpSurfacePointCloud msg)
@@ -672,7 +695,6 @@ namespace App4.PAGES
                 metadata = new PointCloudMetadata
                 {
                     timestamp = DateTime.Now,
-                    // DÜZELTME: explicit cast
                     pointCount = (int)(msg.Width * msg.Length),
                     offsetX = msg.Offset.X,
                     offsetY = msg.Offset.Y,
@@ -684,6 +706,9 @@ namespace App4.PAGES
                     length = (uint)msg.Length
                 }
             };
+
+            // Kapasiteyi önceden ayarla
+            data.points = new List<Point3D>((int)(msg.Width * msg.Length));
 
             for (int r = 0; r < msg.Length; r++)
             {
@@ -697,33 +722,75 @@ namespace App4.PAGES
                             x = msg.Offset.X + msg.Resolution.X * p.X,
                             y = msg.Offset.Y + msg.Resolution.Y * p.Y,
                             z = msg.Offset.Z + msg.Resolution.Z * p.Z,
-                            intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) ? msg.Intensities[r, c] : (byte)0
+                            intensity = (msg.Intensities != null && r < msg.IntensityLength && c < msg.IntensityWidth) 
+                                ? msg.Intensities[r, c] 
+                                : (byte)0
                         });
                     }
                 }
             }
-            return JsonConvert.SerializeObject(data);
+
+            return JsonConvert.SerializeObject(data, new JsonSerializerSettings 
+            { 
+                NullValueHandling = NullValueHandling.Ignore 
+            });
         }
 
         public class PointCloudData
         {
+            [JsonProperty("metadata")]
             public PointCloudMetadata metadata { get; set; } = new();
+            
+            [JsonProperty("points")]
             public List<Point3D> points { get; set; } = new();
         }
 
         public class PointCloudMetadata
         {
-            public DateTime timestamp;
-            public int pointCount;
-            public double offsetX, offsetY, offsetZ;
-            public double resolutionX, resolutionY, resolutionZ;
-            public uint width, length;
+            [JsonProperty("timestamp")]
+            public DateTime timestamp { get; set; }
+            
+            [JsonProperty("pointCount")]
+            public int pointCount { get; set; }
+            
+            [JsonProperty("offsetX")]
+            public double offsetX { get; set; }
+            
+            [JsonProperty("offsetY")]
+            public double offsetY { get; set; }
+            
+            [JsonProperty("offsetZ")]
+            public double offsetZ { get; set; }
+            
+            [JsonProperty("resolutionX")]
+            public double resolutionX { get; set; }
+            
+            [JsonProperty("resolutionY")]
+            public double resolutionY { get; set; }
+            
+            [JsonProperty("resolutionZ")]
+            public double resolutionZ { get; set; }
+            
+            [JsonProperty("width")]
+            public uint width { get; set; }
+            
+            [JsonProperty("length")]
+            public uint length { get; set; }
         }
 
         public class Point3D
         {
-            public double x, y, z;
-            public byte intensity;
+            [JsonProperty("x")]
+            public double x { get; set; }
+            
+            [JsonProperty("y")]
+            public double y { get; set; }
+            
+            [JsonProperty("z")]
+            public double z { get; set; }
+            
+            [JsonProperty("intensity")]
+            public byte intensity { get; set; }
         }
     }
     #endregion
