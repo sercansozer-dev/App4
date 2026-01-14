@@ -1,0 +1,209 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>GoPxLSdk</ProjectName>
+    <ProjectGuid>{9E6A0079-EE68-563C-A244-1EEC03644633}</ProjectGuid>
+    <RootNamespace>GoPxLSdk</RootNamespace>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\bin\win64d\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\build\$(ProjectName)-$(Configuration)-$(PlatformName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkIncremental>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GoPxLSdk</TargetName>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\bin\win64\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\build\$(ProjectName)-$(Configuration)-$(PlatformName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">GoPxLSdk</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\..\Platform\kApi;..\GoApi;..\extern\json-develop\include;$(VCInstallDir)UnitTest\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;K_DEBUG;K_HOST;K_PLUGIN;_CRT_SECURE_NO_WARNINGS=0;_WINSOCK_DEPRECATED_NO_WARNINGS;GOPXLSDK_EMIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4100;4127;4706;4456;4457;4458;4459</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj /Zc:__cplusplus</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>kApi.lib;GoApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\..\bin\win64d\GoPxLSdk.dll</OutputFile>
+      <AdditionalLibraryDirectories>..\..\lib\win64d;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>..\..\lib\win64d\GoPxLSdk.lib</ImportLibrary>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX64</TargetMachine>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\..\Platform\kApi;..\GoApi;..\extern\json-develop\include;$(VCInstallDir)UnitTest\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;K_HOST;K_PLUGIN;_CRT_SECURE_NO_WARNINGS=0;_WINSOCK_DEPRECATED_NO_WARNINGS;GOPXLSDK_EMIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4100;4127;4706;4456;4457;4458;4459</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj /Zc:__cplusplus</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>kApi.lib;GoApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\..\bin\win64\GoPxLSdk.dll</OutputFile>
+      <AdditionalLibraryDirectories>..\..\lib\win64;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>..\..\lib\win64\GoPxLSdk.lib</ImportLibrary>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="GoPxLSdk\Version.cpp" />
+    <ClCompile Include="GoPxLSdk\Def.cpp" />
+    <ClCompile Include="GoPxLSdk\GoDataSet.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpClient.cpp" />
+    <ClCompile Include="GoPxLSdk\GoDiscoveryClient.cpp" />
+    <ClCompile Include="GoPxLSdk\GoInstance.cpp" />
+    <ClCompile Include="GoPxLSdk\GoRequest.cpp" />
+    <ClCompile Include="GoPxLSdk\GoResponse.cpp" />
+    <ClCompile Include="GoPxLSdk\GoRestClient.cpp" />
+    <ClCompile Include="GoPxLSdk\GoSystem.cpp" />
+    <ClCompile Include="GoPxLSdk\GoTransaction.cpp" />
+    <ClCompile Include="GoPxLSdk\GoChannelError.cpp" />
+    <ClCompile Include="GoPxLSdk\GoRequestError.cpp" />
+    <ClCompile Include="GoPxLSdk\GoJsonError.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpBoundingBox.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureCircle.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureLine.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePlane.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePoint.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpImage.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpMeasurement.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpMesh.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpMsg.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpNull.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpPixelFormat.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpProfileBase.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpProfilePointCloud.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpProfileUniform.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpRendering.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSignal.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSpots.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpStamp.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpString.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceBase.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSurfacePointCloud.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceUniform.cpp" />
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpTransform.cpp" />
+    <ClCompile Include="GoPxLSdk\Internal\V1\GoCtrlChannelV1.cpp" />
+    <ClCompile Include="GoPxLSdk\GoNotificationType.cpp" />
+    <ClCompile Include="GoPxLSdk\GoRequestMethod.cpp" />
+    <ClCompile Include="GoPxLSdk\GoResponseType.cpp" />
+    <ClCompile Include="GoPxLSdk\GoUri.cpp" />
+    <ClCompile Include="GoPxLSdk\GoJson.cpp" />
+    <ClCompile Include="GoPxLSdk\GoJsonPointer.cpp" />
+    <ClCompile Include="GoPxLSdk\GoJsonIterator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GoPxLSdk\Version.h" />
+    <ClInclude Include="GoPxLSdk\Def.h" />
+    <ClInclude Include="GoPxLSdk\GoDataSet.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpClient.h" />
+    <ClInclude Include="GoPxLSdk\GoDiscoveryClient.h" />
+    <ClInclude Include="GoPxLSdk\GoInstance.h" />
+    <ClInclude Include="GoPxLSdk\GoRequest.h" />
+    <ClInclude Include="GoPxLSdk\GoResponse.h" />
+    <ClInclude Include="GoPxLSdk\GoRestClient.h" />
+    <ClInclude Include="GoPxLSdk\GoSystem.h" />
+    <ClInclude Include="GoPxLSdk\GoTransaction.h" />
+    <ClInclude Include="GoPxLSdk\GoChannelError.h" />
+    <ClInclude Include="GoPxLSdk\GoRequestError.h" />
+    <ClInclude Include="GoPxLSdk\GoJsonError.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpBoundingBox.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureCircle.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureLine.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePlane.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePoint.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpImage.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMeasurement.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMesh.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMsg.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMsgDef.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpNull.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpPixelFormat.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpProfileBase.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpProfilePointCloud.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpProfileUniform.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpRendering.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSignal.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSpots.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpStamp.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpString.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceBase.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSurfacePointCloud.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceUniform.h" />
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpTransform.h" />
+    <ClInclude Include="GoPxLSdk\Internal\GoCtrlChannel.h" />
+    <ClInclude Include="GoPxLSdk\Internal\V1\GoCtrlChannelV1.h" />
+    <ClInclude Include="GoPxLSdk\GoNotificationType.h" />
+    <ClInclude Include="GoPxLSdk\GoRequestMethod.h" />
+    <ClInclude Include="GoPxLSdk\GoResponseType.h" />
+    <ClInclude Include="GoPxLSdk\GoUri.h" />
+    <ClInclude Include="GoPxLSdk\GoJson.h" />
+    <ClInclude Include="GoPxLSdk\GoJsonPointer.h" />
+    <ClInclude Include="GoPxLSdk\GoJsonIterator.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="GoPxLSdk\Res\GoPxLSdk.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GoPxLSdk.xml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

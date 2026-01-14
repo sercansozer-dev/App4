@@ -1,0 +1,318 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Exception">
+      <UniqueIdentifier>{01f9b971-44bc-5e73-987a-e309d56aeb4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GoGdpMsg">
+      <UniqueIdentifier>{906112df-94b2-5b61-b0de-cd43d29146b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal">
+      <UniqueIdentifier>{31079e72-d8e6-5b06-a982-0d31f583c6cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal\V1">
+      <UniqueIdentifier>{418cb164-77bf-58ef-bcd4-eac24e1ce823}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Type">
+      <UniqueIdentifier>{90bdc7fa-1512-5697-b088-0a02d8b08cee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{0a4c092b-eee3-5d95-9632-88d6a21958ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Res">
+      <UniqueIdentifier>{c83a58ea-a2e0-5387-bcaa-f63103c97fe9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <ResourceCompile Include="GoPxLSdk\Res\GoPxLSdk.rc">
+      <Filter>Res</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GoPxLSdk\Version.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\Def.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoDataSet.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpClient.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoDiscoveryClient.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoInstance.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoRequest.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoResponse.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoRestClient.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoSystem.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoTransaction.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoChannelError.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoRequestError.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoJsonError.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpBoundingBox.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureCircle.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureLine.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePlane.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePoint.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpImage.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMeasurement.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMesh.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMsg.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpMsgDef.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpNull.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpPixelFormat.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpProfileBase.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpProfilePointCloud.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpProfileUniform.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpRendering.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSignal.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSpots.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpStamp.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpString.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceBase.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSurfacePointCloud.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceUniform.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoGdpMsg\GoGdpTransform.h">
+      <Filter>GoGdpMsg</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\Internal\GoCtrlChannel.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\Internal\V1\GoCtrlChannelV1.h">
+      <Filter>Internal\V1</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoNotificationType.h">
+      <Filter>Type</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoRequestMethod.h">
+      <Filter>Type</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoResponseType.h">
+      <Filter>Type</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoUri.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoJson.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoJsonPointer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="GoPxLSdk\GoJsonIterator.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="GoPxLSdk\Version.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\Def.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoDataSet.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpClient.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoDiscoveryClient.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoInstance.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoRequest.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoResponse.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoRestClient.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoSystem.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoTransaction.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoChannelError.cpp">
+      <Filter>Exception</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoRequestError.cpp">
+      <Filter>Exception</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoJsonError.cpp">
+      <Filter>Exception</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpBoundingBox.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureCircle.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeatureLine.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePlane.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpFeaturePoint.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpImage.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpMeasurement.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpMesh.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpMsg.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpNull.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpPixelFormat.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpProfileBase.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpProfilePointCloud.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpProfileUniform.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpRendering.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSignal.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSpots.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpStamp.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpString.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceBase.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSurfacePointCloud.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpSurfaceUniform.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoGdpMsg\GoGdpTransform.cpp">
+      <Filter>GoGdpMsg</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\Internal\V1\GoCtrlChannelV1.cpp">
+      <Filter>Internal\V1</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoNotificationType.cpp">
+      <Filter>Type</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoRequestMethod.cpp">
+      <Filter>Type</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoResponseType.cpp">
+      <Filter>Type</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoUri.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoJson.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoJsonPointer.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="GoPxLSdk\GoJsonIterator.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GoPxLSdk.xml">
+      <Filter></Filter>
+    </None>
+  </ItemGroup>
+</Project>

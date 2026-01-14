@@ -1,0 +1,399 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="GoApiLib">
+      <UniqueIdentifier>{48410485-6c48-5ab6-9daa-d92a80bb711e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Profiling">
+      <UniqueIdentifier>{1b1bece4-308a-5220-af59-5d4ac1899e0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Exception">
+      <UniqueIdentifier>{01f9b971-44bc-5e73-987a-e309d56aeb4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CompileMacros">
+      <UniqueIdentifier>{a2c9f9cc-e19b-5017-b8c3-b49354565a18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{3083f5b4-bb8b-5d8e-b9c2-9cf9c9ad7c0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MemoryLeak">
+      <UniqueIdentifier>{e96fddc8-d7ac-5771-b0d8-9053e5adc94a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{6b1a5c9d-bddb-59bc-8f76-2fc4d29589f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object">
+      <UniqueIdentifier>{2ab79f38-2d8b-52d5-a91e-9e076c30dc4a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Threads">
+      <UniqueIdentifier>{d50ca657-34e4-5879-88d9-9d5ac9efb18e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Translations">
+      <UniqueIdentifier>{30f8812b-09cf-576d-8fb1-afa5c227b8dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Async">
+      <UniqueIdentifier>{ec19dc5a-281c-54bd-97a1-f2237595b5ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Event">
+      <UniqueIdentifier>{2fc8879f-a884-5980-95c1-0a66e5158eb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Properties">
+      <UniqueIdentifier>{299c2d8e-f0e5-5703-8aaa-a50c693e73ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Properties\Nodes">
+      <UniqueIdentifier>{e3e4ef6d-8d18-59ca-a8bf-70836be3457f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Properties\Serializers">
+      <UniqueIdentifier>{d6b3be02-cfc5-5865-9be5-075c9791480f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Params">
+      <UniqueIdentifier>{b754533c-04d4-58d6-8178-6c8dcd6df6c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Net">
+      <UniqueIdentifier>{996e22a5-f798-58eb-be7b-e8a27a42e8af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PointerWrapper">
+      <UniqueIdentifier>{106800b3-ec12-5c68-bc3b-b61702903fa4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Updating">
+      <UniqueIdentifier>{d1d4a88d-9501-5f86-b88f-3470d47333bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{0a4c092b-eee3-5d95-9632-88d6a21958ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GoDataTree">
+      <UniqueIdentifier>{6eddcc8b-699c-5b97-892d-63d68ad8ba48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GoDataTree\Serializer">
+      <UniqueIdentifier>{b0cb673e-8681-5e63-8e0a-e7c9b953ec00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GoArray1Span">
+      <UniqueIdentifier>{17aad581-1b36-5c00-8536-9ce59eb965c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GoApi.Res">
+      <UniqueIdentifier>{337caceb-f73f-5cd5-af94-1d310dafdffa}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <ResourceCompile Include="GoApi\Res\GoApi.rc">
+      <Filter>GoApi.Res</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GoApi\GoApi.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoApiDef.h">
+      <Filter></Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoApiLib.x.h">
+      <Filter>GoApiLib</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoApiLib.h">
+      <Filter>GoApiLib</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Profiling\Profiling.h">
+      <Filter>Profiling</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Exception.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\ITerminateHandler.h">
+      <Filter>Exception</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\CompileMacros.h">
+      <Filter>CompileMacros</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Logging.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\MemoryLeakDetection.h">
+      <Filter>MemoryLeak</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\EventType.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\IResource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\Path.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\PathExpressions.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\ReqRespInfo.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\ResourceBase.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\ResourceRouter.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Resource\ResourceDef.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Object.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Threads\Locker.h">
+      <Filter>Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Threads\MsgQueue.h">
+      <Filter>Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Translations\GoGetText.h">
+      <Filter>Translations</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Translations\Catalog.h">
+      <Filter>Translations</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Async\AsyncLoop.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Async\AsyncNotifier.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Async\AsyncRunner.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Async\AsyncTimer.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Async\AsyncUdpSocket.h">
+      <Filter>Async</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Event.h">
+      <Filter>Event</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes.h">
+      <Filter>Properties</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\Node.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\ValueWrapper.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\Value.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\ValueBase.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\Structure.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\Array.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\ArrayBase.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\TypeInfo.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Nodes\NodeType.h">
+      <Filter>Properties\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\ValueIO.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\ValueIODispatch.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\StringConvert.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\XmlAccessors.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\JsonSerializer.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\XmlSerializer.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Properties\Serializers\GoDataTreeSerializer.h">
+      <Filter>Properties\Serializers</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Params\Params.h">
+      <Filter>Params</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Params\UnsignedValueMin.h">
+      <Filter>Params</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Net\Url.h">
+      <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\PointerWrapper\PointerWrapper.x.h">
+      <Filter>PointerWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\PointerWrapper\PointerWrapper.h">
+      <Filter>PointerWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Updating\BeginEndUpdater.h">
+      <Filter>Updating</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Updating\ScopedUpdater.h">
+      <Filter>Updating</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Utils\CoordUtils.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\Utils\MemUtils.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\GoDataTree.h">
+      <Filter>GoDataTree</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\IGoDataTreeSerializer.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\IGoDataTreeSerializerInputIterator.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerInputIterator.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\IGoDataTreeSerializerOutputWriter.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerOutputWriter.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoJsonSerializer.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoMsgPackSerializer.h">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClInclude>
+    <ClInclude Include="GoApi\GoArray1Span.h">
+      <Filter>GoArray1Span</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="GoApi\GoApi.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\GoApiLib.cpp">
+      <Filter>GoApiLib</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Profiling\Profiling.cpp">
+      <Filter>Profiling</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Exception.cpp">
+      <Filter>Exception</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Logging.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\MemoryLeakDetection.cpp">
+      <Filter>MemoryLeak</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Resource\EventType.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Resource\Path.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Resource\PathExpressions.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Resource\ReqRespInfo.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Resource\ResourceBase.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Resource\ResourceRouter.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Translations\GoGetText.cpp">
+      <Filter>Translations</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Translations\Catalog.cpp">
+      <Filter>Translations</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Async\AsyncLoop.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Async\AsyncNotifier.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Async\AsyncRunner.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Async\AsyncTimer.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Async\AsyncUdpSocket.cpp">
+      <Filter>Async</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Nodes\Node.cpp">
+      <Filter>Properties\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Nodes\Structure.cpp">
+      <Filter>Properties\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Nodes\ArrayBase.cpp">
+      <Filter>Properties\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Nodes\TypeInfo.cpp">
+      <Filter>Properties\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Nodes\NodeType.cpp">
+      <Filter>Properties\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Serializers\JsonSerializer.cpp">
+      <Filter>Properties\Serializers</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Serializers\XmlSerializer.cpp">
+      <Filter>Properties\Serializers</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Properties\Serializers\GoDataTreeSerializer.cpp">
+      <Filter>Properties\Serializers</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Net\Url.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\PointerWrapper\PointerWrapper.cpp">
+      <Filter>PointerWrapper</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Updating\BeginEndUpdater.cpp">
+      <Filter>Updating</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Updating\ScopedUpdater.cpp">
+      <Filter>Updating</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Utils\CoordUtils.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\Utils\MemUtils.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\GoDataTree\GoDataTree.cpp">
+      <Filter>GoDataTree</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerInputIterator.cpp">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerOutputWriter.cpp">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoJsonSerializer.cpp">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClCompile>
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoMsgPackSerializer.cpp">
+      <Filter>GoDataTree\Serializer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GoApi.xml">
+      <Filter></Filter>
+    </None>
+  </ItemGroup>
+</Project>

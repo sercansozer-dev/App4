@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Point Cloud Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #3498db;
+        }
+    </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="info">3D Point Cloud Viewer</div>
+    <div id="loading" style="display:none;">Loading Data...</div>
+
+    <script>
+        let scene, camera, renderer, controls, pointsMesh;
+
+        function initPointCloudViewer() {
+            // Sahne Kurulumu
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111); // Koyu gri arkaplan
+
+            // Kamera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.set(0, -200, 400);
+            camera.up.set(0, 0, 1); // Z ekseni yukarı
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // Kontroller (OrbitControls)
+            if (typeof THREE.OrbitControls !== 'undefined') {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+            }
+
+            // Işıklandırma (Opsiyonel, PointCloud için şart değil ama geometri için iyi)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // Eksenler (Yardımcı)
+            const axesHelper = new THREE.AxesHelper(100);
+            scene.add(axesHelper);
+
+            // Pencere Boyutlandırma
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Animasyon Döngüsü
+            animate();
+
+            console.log("Viewer initialized.");
+            return "Viewer Ready";
+        }
+
+        function loadPointCloud(jsonData) {
+            try {
+                document.getElementById('loading').style.display = 'block';
+
+                // Eğer eski bir mesh varsa temizle
+                if (pointsMesh) {
+                    scene.remove(pointsMesh);
+                    pointsMesh.geometry.dispose();
+                    pointsMesh.material.dispose();
+                }
+
+                if (!jsonData || !jsonData.points || jsonData.points.length === 0) {
+                    console.error("No point data found");
+                    return "No Data";
+                }
+
+                const geometry = new THREE.BufferGeometry();
+                const points = jsonData.points;
+                const count = points.length;
+
+                const positions = new Float32Array(count * 3);
+                const colors = new Float32Array(count * 3);
+
+                // Normalizasyon için min/max bulma
+                let minZ = Infinity;
+                let maxZ = -Infinity;
+
+                // Renklendirme için Z aralığını kullan
+                if (jsonData.metadata && jsonData.metadata.offsetZ) {
+                    // Metadata varsa kullanabiliriz ama genelde datadan hesaplamak daha güvenli
+                }
+
+                for (let i = 0; i < count; i++) {
+                    if (points[i].z < minZ) minZ = points[i].z;
+                    if (points[i].z > maxZ) maxZ = points[i].z;
+                }
+
+                const zRange = maxZ - minZ || 1;
+
+                // Veriyi doldur
+                for (let i = 0; i < count; i++) {
+                    const p = points[i];
+
+                    // Pozisyon verisi
+                    positions[i * 3] = p.x;
+                    positions[i * 3 + 1] = p.y;
+                    positions[i * 3 + 2] = p.z;
+
+                    // Renklendirme (Z yüksekliğine göre Heatmap benzeri)
+                    // HSL renk uzayı kullanarak: düşük Z -> mazi, yüksek Z -> kırmızı
+                    const normalizedZ = (p.z - minZ) / zRange;
+                    const color = new THREE.Color();
+                    color.setHSL((1.0 - normalizedZ) * 0.7, 1.0, 0.5);
+
+                    colors[i * 3] = color.r;
+                    colors[i * 3 + 1] = color.g;
+                    colors[i * 3 + 2] = color.b;
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                // Materyal oluştur
+                const material = new THREE.PointsMaterial({
+                    size: 2,
+                    vertexColors: true,
+                    sizeAttenuation: false // Boyut mesafeye göre değişmesin
+                });
+
+                pointsMesh = new THREE.Points(geometry, material);
+
+                // Mesh'i ortala
+                geometry.computeBoundingBox();
+                const center = new THREE.Vector3();
+                geometry.boundingBox.getCenter(center);
+                pointsMesh.position.sub(center); // Orjin noktasına taşı
+
+                scene.add(pointsMesh);
+                //asdasdasdasdasdasd
+                // Kamerayı odakla
+                if (controls) {
+                    controls.reset();
+                }
+                camera.position.set(0, -Math.max(jsonData.metadata.width, jsonData.metadata.length) * 0.8, 400);
+                camera.lookAt(0, 0, 0);
+
+                document.getElementById('loading').style.display = 'none';
+                return "Points Loaded: " + count;
+
+            } catch (err) {
+                console.error(err);
+                return "Error: " + err.message;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

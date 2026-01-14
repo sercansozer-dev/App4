@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<Solution version="6">
+  <ProjectGroup name="kApi">
+    <Project name="../Platform/kApi/kApi.xml" />
+  </ProjectGroup>
+  <ProjectGroup name="GoApi">
+    <Project name="GoApi/GoApi.xml">
+      <Dependency name="kApi" />
+    </Project>
+  </ProjectGroup>
+  <ProjectGroup name="GoPxLSdk">
+    <Project name="GoPxLSdk/GoPxLSdk.xml">
+      <Dependency name="GoApi" />
+    </Project>
+  </ProjectGroup>
+  <ProjectGroup name="samples">
+    <Project name="GoPxLSdk/samples/AlignSensor/AlignSensor.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/BackupRestore/BackupRestore.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ConfigureSensor/ConfigureSensor.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ConfigureTool/ConfigureTool.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/Discover/Discover.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/MultilayerOutputs/MultilayerOutputs.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/MultiSensorLayout/MultiSensorLayout.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveAsync/ReceiveAsync.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveMetrics/ReceiveMetrics.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveMeasurement/ReceiveMeasurement.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveProfile/ReceiveProfile.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveString/ReceiveString.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveSurface/ReceiveSurface.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReceiveImage/ReceiveImage.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/Receive2dImage/Receive2dImage.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/ReplayData/ReplayData.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+    <Project name="GoPxLSdk/samples/SaveJob/SaveJob.xml">
+      <Dependency name="GoPxLSdk" />
+    </Project>
+  </ProjectGroup>
+</Solution>

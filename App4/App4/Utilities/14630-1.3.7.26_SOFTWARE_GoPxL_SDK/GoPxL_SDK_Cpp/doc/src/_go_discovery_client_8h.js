@@ -1,0 +1,25 @@
+var _go_discovery_client_8h =
+[
+    [ "CLIENT_BUFFER_SIZE", "_go_discovery_client_8h.html#a0e171c116b8899434835531a7c9ddfa1", null ],
+    [ "CLIENT_SOCKET_SIZE", "_go_discovery_client_8h.html#a94db8c8775cfb145cc73556476fad841", null ],
+    [ "GOPXL_BROADCAST_SIGNATURE", "_go_discovery_client_8h.html#ad53a6b7df25da2e65e8744881d963daa", null ],
+    [ "GOPXL_DISCOVERY_ADDRESS", "_go_discovery_client_8h.html#a2e6fb4a388a95f2849fed94ae09eef59", null ],
+    [ "GOPXL_DISCOVERY_ADDRESS_CONFLICT", "_go_discovery_client_8h.html#a59bb3219d3d9f4accbf7e5f5e13b599d", null ],
+    [ "GOPXL_DISCOVERY_APP_ID", "_go_discovery_client_8h.html#a58a3479feb8ae557a469391c784548ad", null ],
+    [ "GOPXL_DISCOVERY_APP_NAME", "_go_discovery_client_8h.html#aeae70a687e4c5f67d0277e690353aba5", null ],
+    [ "GOPXL_DISCOVERY_APP_VERSION", "_go_discovery_client_8h.html#af00734c4967dba76a745b411b1022d7c", null ],
+    [ "GOPXL_DISCOVERY_CONTROL_PORT", "_go_discovery_client_8h.html#a07836b3da8b6208981756322df70764d", null ],
+    [ "GOPXL_DISCOVERY_DEVICE_MODEL", "_go_discovery_client_8h.html#a313d194e9262da5734266d04a9b70b84", null ],
+    [ "GOPXL_DISCOVERY_DHCP", "_go_discovery_client_8h.html#a138613ca812f12fe2dff2a3d227ee3c0", null ],
+    [ "GOPXL_DISCOVERY_GATEWAY", "_go_discovery_client_8h.html#af4a9f4fe7d6c85271ba843b13229a689", null ],
+    [ "GOPXL_DISCOVERY_GDP_PORT", "_go_discovery_client_8h.html#a5ba58cbbe6062f2cf3b4b7d0b77ea7bc", null ],
+    [ "GOPXL_DISCOVERY_HMI_STATUS", "_go_discovery_client_8h.html#a3641ef3eb8369656c25a719b81861f92", null ],
+    [ "GOPXL_DISCOVERY_IS_REMOTE", "_go_discovery_client_8h.html#ab6ffabb46448328adbcf5e6cbda0ba42", null ],
+    [ "GOPXL_DISCOVERY_MASK", "_go_discovery_client_8h.html#a3ec9aed8f6ceb10766880cf0cbc5ade6", null ],
+    [ "GOPXL_DISCOVERY_MESSAGE_ANNOUNCE", "_go_discovery_client_8h.html#afffb167c8f86da8ef78fa4d401046396", null ],
+    [ "GOPXL_DISCOVERY_MESSAGE_DISCOVER", "_go_discovery_client_8h.html#a9956daa08586bc04d8a260ff83da111a", null ],
+    [ "GOPXL_DISCOVERY_SERIAL_NUMBER", "_go_discovery_client_8h.html#adb33da19f72e2280ad8918a163ce8ae8", null ],
+    [ "GOPXL_DISCOVERY_WEB_PORT", "_go_discovery_client_8h.html#a3162f9b694fe2b7fde4ad02c9dbb37b8", null ],
+    [ "GOPXL_RESERVED_PORT_DISCOVERY_PROTOCOL", "_go_discovery_client_8h.html#a9d5fff7fdfdd04d87fdc479e82957837", null ],
+    [ "MAX_MESSAGE_SIZE", "_go_discovery_client_8h.html#a55afea408ad661d43b5541b1ee1cdac8", null ]
+];

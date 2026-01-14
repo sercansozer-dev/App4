@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>GoApi-2022</ProjectName>
+    <ProjectGuid>{021D07BC-5872-5C7B-B50C-8603000A72F7}</ProjectGuid>
+    <RootNamespace>GoApi</RootNamespace>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\bin\win64d\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\build\$(ProjectName)-$(Configuration)-$(PlatformName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkIncremental>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GoApi</TargetName>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\bin\win64\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\build\$(ProjectName)-$(Configuration)-$(PlatformName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">GoApi</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\GoApi;..\..\Platform\kApi;..\..\Platform\kFireSync;..\..\Platform\kVision;..\extern\json-develop\include;$(VCInstallDir)UnitTest\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;K_DEBUG;_CRT_SECURE_NO_WARNINGS=0;GOAPI_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4100;4127;4706;4456;4457;4458;4459</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj /Zc:__cplusplus</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>kApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\..\bin\win64d\GoApi.dll</OutputFile>
+      <AdditionalLibraryDirectories>..\..\lib\win64d;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>..\..\lib\win64d\GoApi.lib</ImportLibrary>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX64</TargetMachine>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\GoApi;..\..\Platform\kApi;..\..\Platform\kFireSync;..\..\Platform\kVision;..\extern\json-develop\include;$(VCInstallDir)UnitTest\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS=0;GOAPI_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4100;4127;4706;4456;4457;4458;4459</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj /Zc:__cplusplus</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>kApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\..\bin\win64\GoApi.dll</OutputFile>
+      <AdditionalLibraryDirectories>..\..\lib\win64;$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>..\..\lib\win64\GoApi.lib</ImportLibrary>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="GoApi\GoApi.cpp" />
+    <ClCompile Include="GoApi\GoApiLib.cpp" />
+    <ClCompile Include="GoApi\Profiling\Profiling.cpp" />
+    <ClCompile Include="GoApi\Exception.cpp" />
+    <ClCompile Include="GoApi\Logging.cpp" />
+    <ClCompile Include="GoApi\MemoryLeakDetection.cpp" />
+    <ClCompile Include="GoApi\Resource\EventType.cpp" />
+    <ClCompile Include="GoApi\Resource\Path.cpp" />
+    <ClCompile Include="GoApi\Resource\PathExpressions.cpp" />
+    <ClCompile Include="GoApi\Resource\ReqRespInfo.cpp" />
+    <ClCompile Include="GoApi\Resource\ResourceBase.cpp" />
+    <ClCompile Include="GoApi\Resource\ResourceRouter.cpp" />
+    <ClCompile Include="GoApi\Translations\GoGetText.cpp" />
+    <ClCompile Include="GoApi\Translations\Catalog.cpp" />
+    <ClCompile Include="GoApi\Async\AsyncLoop.cpp" />
+    <ClCompile Include="GoApi\Async\AsyncNotifier.cpp" />
+    <ClCompile Include="GoApi\Async\AsyncRunner.cpp" />
+    <ClCompile Include="GoApi\Async\AsyncTimer.cpp" />
+    <ClCompile Include="GoApi\Async\AsyncUdpSocket.cpp" />
+    <ClCompile Include="GoApi\Properties\Nodes\Node.cpp" />
+    <ClCompile Include="GoApi\Properties\Nodes\Structure.cpp" />
+    <ClCompile Include="GoApi\Properties\Nodes\ArrayBase.cpp" />
+    <ClCompile Include="GoApi\Properties\Nodes\TypeInfo.cpp" />
+    <ClCompile Include="GoApi\Properties\Nodes\NodeType.cpp" />
+    <ClCompile Include="GoApi\Properties\Serializers\JsonSerializer.cpp" />
+    <ClCompile Include="GoApi\Properties\Serializers\XmlSerializer.cpp" />
+    <ClCompile Include="GoApi\Properties\Serializers\GoDataTreeSerializer.cpp" />
+    <ClCompile Include="GoApi\Net\Url.cpp" />
+    <ClCompile Include="GoApi\PointerWrapper\PointerWrapper.cpp" />
+    <ClCompile Include="GoApi\Updating\BeginEndUpdater.cpp" />
+    <ClCompile Include="GoApi\Updating\ScopedUpdater.cpp" />
+    <ClCompile Include="GoApi\Utils\CoordUtils.cpp" />
+    <ClCompile Include="GoApi\Utils\MemUtils.cpp" />
+    <ClCompile Include="GoApi\GoDataTree\GoDataTree.cpp" />
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerInputIterator.cpp" />
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerOutputWriter.cpp" />
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoJsonSerializer.cpp" />
+    <ClCompile Include="GoApi\GoDataTree\Serializer\GoMsgPackSerializer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GoApi\GoApi.h" />
+    <ClInclude Include="GoApi\GoApiDef.h" />
+    <ClInclude Include="GoApi\GoApiLib.x.h" />
+    <ClInclude Include="GoApi\GoApiLib.h" />
+    <ClInclude Include="GoApi\Profiling\Profiling.h" />
+    <ClInclude Include="GoApi\Exception.h" />
+    <ClInclude Include="GoApi\ITerminateHandler.h" />
+    <ClInclude Include="GoApi\CompileMacros.h" />
+    <ClInclude Include="GoApi\Logging.h" />
+    <ClInclude Include="GoApi\MemoryLeakDetection.h" />
+    <ClInclude Include="GoApi\Resource\EventType.h" />
+    <ClInclude Include="GoApi\Resource\IResource.h" />
+    <ClInclude Include="GoApi\Resource\Path.h" />
+    <ClInclude Include="GoApi\Resource\PathExpressions.h" />
+    <ClInclude Include="GoApi\Resource\ReqRespInfo.h" />
+    <ClInclude Include="GoApi\Resource\ResourceBase.h" />
+    <ClInclude Include="GoApi\Resource\ResourceRouter.h" />
+    <ClInclude Include="GoApi\Resource\ResourceDef.h" />
+    <ClInclude Include="GoApi\Object.h" />
+    <ClInclude Include="GoApi\Threads\Locker.h" />
+    <ClInclude Include="GoApi\Threads\MsgQueue.h" />
+    <ClInclude Include="GoApi\Translations\GoGetText.h" />
+    <ClInclude Include="GoApi\Translations\Catalog.h" />
+    <ClInclude Include="GoApi\Async\AsyncLoop.h" />
+    <ClInclude Include="GoApi\Async\AsyncNotifier.h" />
+    <ClInclude Include="GoApi\Async\AsyncRunner.h" />
+    <ClInclude Include="GoApi\Async\AsyncTimer.h" />
+    <ClInclude Include="GoApi\Async\AsyncUdpSocket.h" />
+    <ClInclude Include="GoApi\Event.h" />
+    <ClInclude Include="GoApi\Properties\Nodes.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\Node.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\ValueWrapper.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\Value.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\ValueBase.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\Structure.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\Array.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\ArrayBase.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\TypeInfo.h" />
+    <ClInclude Include="GoApi\Properties\Nodes\NodeType.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\ValueIO.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\ValueIODispatch.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\StringConvert.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\XmlAccessors.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\JsonSerializer.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\XmlSerializer.h" />
+    <ClInclude Include="GoApi\Properties\Serializers\GoDataTreeSerializer.h" />
+    <ClInclude Include="GoApi\Params\Params.h" />
+    <ClInclude Include="GoApi\Params\UnsignedValueMin.h" />
+    <ClInclude Include="GoApi\Net\Url.h" />
+    <ClInclude Include="GoApi\PointerWrapper\PointerWrapper.x.h" />
+    <ClInclude Include="GoApi\PointerWrapper\PointerWrapper.h" />
+    <ClInclude Include="GoApi\Updating\BeginEndUpdater.h" />
+    <ClInclude Include="GoApi\Updating\ScopedUpdater.h" />
+    <ClInclude Include="GoApi\Utils\CoordUtils.h" />
+    <ClInclude Include="GoApi\Utils\MemUtils.h" />
+    <ClInclude Include="GoApi\GoDataTree\GoDataTree.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\IGoDataTreeSerializer.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\IGoDataTreeSerializerInputIterator.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerInputIterator.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\IGoDataTreeSerializerOutputWriter.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoDataTreeSerializerOutputWriter.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoJsonSerializer.h" />
+    <ClInclude Include="GoApi\GoDataTree\Serializer\GoMsgPackSerializer.h" />
+    <ClInclude Include="GoApi\GoArray1Span.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="GoApi\Res\GoApi.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GoApi.xml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

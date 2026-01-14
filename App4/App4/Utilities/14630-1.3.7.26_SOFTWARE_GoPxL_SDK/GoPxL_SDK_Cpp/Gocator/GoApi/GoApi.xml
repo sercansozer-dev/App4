@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project>
+  <Variables>
+    <Variable name="Root">../..</Variable>
+    <Variable name="Gocator">..</Variable>
+    <Variable name="Platform">../../Platform</Variable>
+  </Variables>
+  <Sources>
+    <Source>GoApi/GoApi.h</Source>
+    <Source>GoApi/GoApiDef.h</Source>
+    <Source>GoApi/GoApi.cpp</Source>
+	<SourceGroup name="GoApiLib">
+	  <Source>GoApi/GoApiLib.x.h</Source>
+	  <Source>GoApi/GoApiLib.h</Source>
+	  <Source>GoApi/GoApiLib.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Profiling">
+      <Source>GoApi/Profiling/Profiling.h</Source>
+      <Source>GoApi/Profiling/Profiling.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Exception">
+      <Source>GoApi/Exception.h</Source>
+      <Source>GoApi/Exception.cpp</Source>
+      <Source>GoApi/ITerminateHandler.h</Source>
+    </SourceGroup>
+    <SourceGroup name="CompileMacros">
+      <Source>GoApi/CompileMacros.h</Source>
+    </SourceGroup>
+    <SourceGroup name="Logging">
+      <Source>GoApi/Logging.h</Source>
+      <Source>GoApi/Logging.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="MemoryLeak">
+      <Source>GoApi/MemoryLeakDetection.h</Source>
+      <Source>GoApi/MemoryLeakDetection.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Resource">
+      <Source>GoApi/Resource/EventType.h</Source>
+      <Source>GoApi/Resource/EventType.cpp</Source>
+      <Source>GoApi/Resource/IResource.h</Source>
+      <Source>GoApi/Resource/Path.h</Source>
+      <Source>GoApi/Resource/Path.cpp</Source>
+      <Source>GoApi/Resource/PathExpressions.h</Source>
+      <Source>GoApi/Resource/PathExpressions.cpp</Source>
+      <Source>GoApi/Resource/ReqRespInfo.h</Source>
+      <Source>GoApi/Resource/ReqRespInfo.cpp</Source>
+      <Source>GoApi/Resource/ResourceBase.h</Source>
+      <Source>GoApi/Resource/ResourceBase.cpp</Source>
+      <Source>GoApi/Resource/ResourceRouter.h</Source>
+      <Source>GoApi/Resource/ResourceRouter.cpp</Source>
+      <Source>GoApi/Resource/ResourceDef.h</Source>
+    </SourceGroup>
+    <SourceGroup name="Object">
+      <Source>GoApi/Object.h</Source>
+    </SourceGroup>
+    <SourceGroup name="Threads">
+      <Source>GoApi/Threads/Locker.h</Source>
+      <Source>GoApi/Threads/MsgQueue.h</Source>
+    </SourceGroup>
+	<SourceGroup name="Translations">
+        <Source>GoApi/Translations/GoGetText.h</Source>
+        <Source>GoApi/Translations/GoGetText.cpp</Source>		
+        <Source>GoApi/Translations/Catalog.h</Source>
+        <Source>GoApi/Translations/Catalog.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Async">
+      <Source>GoApi/Async/AsyncLoop.h</Source>
+      <Source>GoApi/Async/AsyncLoop.cpp</Source>
+      <Source>GoApi/Async/AsyncNotifier.h</Source>
+      <Source>GoApi/Async/AsyncNotifier.cpp</Source>
+      <Source>GoApi/Async/AsyncRunner.h</Source>
+      <Source>GoApi/Async/AsyncRunner.cpp</Source>
+      <Source>GoApi/Async/AsyncTimer.h</Source>
+      <Source>GoApi/Async/AsyncTimer.cpp</Source>
+      <Source>GoApi/Async/AsyncUdpSocket.h</Source>
+      <Source>GoApi/Async/AsyncUdpSocket.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Event">
+      <Source>GoApi/Event.h</Source>
+    </SourceGroup>
+    <SourceGroup name="Properties">
+      <Source>GoApi/Properties/Nodes.h</Source>
+      <SourceGroup name="Nodes">
+        <Source>GoApi/Properties/Nodes/Node.h</Source>
+        <Source>GoApi/Properties/Nodes/Node.cpp</Source>
+        <Source>GoApi/Properties/Nodes/ValueWrapper.h</Source>
+        <Source>GoApi/Properties/Nodes/Value.h</Source>
+        <Source>GoApi/Properties/Nodes/ValueBase.h</Source>
+        <Source>GoApi/Properties/Nodes/Structure.h</Source>
+        <Source>GoApi/Properties/Nodes/Structure.cpp</Source>
+        <Source>GoApi/Properties/Nodes/Array.h</Source>
+        <Source>GoApi/Properties/Nodes/ArrayBase.h</Source>
+        <Source>GoApi/Properties/Nodes/ArrayBase.cpp</Source>
+        <Source>GoApi/Properties/Nodes/TypeInfo.h</Source>
+        <Source>GoApi/Properties/Nodes/TypeInfo.cpp</Source>
+        <Source>GoApi/Properties/Nodes/NodeType.h</Source>
+        <Source>GoApi/Properties/Nodes/NodeType.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="Serializers">
+        <Source>GoApi/Properties/Serializers/ValueIO.h</Source>
+        <Source>GoApi/Properties/Serializers/ValueIODispatch.h</Source>
+        <Source>GoApi/Properties/Serializers/StringConvert.h</Source>
+        <Source>GoApi/Properties/Serializers/XmlAccessors.h</Source>
+        <Source>GoApi/Properties/Serializers/JsonSerializer.h</Source>
+        <Source>GoApi/Properties/Serializers/JsonSerializer.cpp</Source>
+        <Source>GoApi/Properties/Serializers/XmlSerializer.h</Source>
+        <Source>GoApi/Properties/Serializers/XmlSerializer.cpp</Source>
+        <Source>GoApi/Properties/Serializers/GoDataTreeSerializer.h</Source>
+        <Source>GoApi/Properties/Serializers/GoDataTreeSerializer.cpp</Source>
+      </SourceGroup>
+    </SourceGroup>
+    <SourceGroup name="Params">
+        <Source>GoApi/Params/Params.h</Source>
+        <Source>GoApi/Params/UnsignedValueMin.h</Source>
+    </SourceGroup>
+    <SourceGroup name="Net">
+      <Source>GoApi/Net/Url.h</Source>
+      <Source>GoApi/Net/Url.cpp</Source>
+    </SourceGroup>
+	<SourceGroup name="PointerWrapper">
+      <Source>GoApi/PointerWrapper/PointerWrapper.x.h</Source>
+      <Source>GoApi/PointerWrapper/PointerWrapper.h</Source>
+	  <Source>GoApi/PointerWrapper/PointerWrapper.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Updating">
+      <Source>GoApi/Updating/BeginEndUpdater.h</Source>
+      <Source>GoApi/Updating/BeginEndUpdater.cpp</Source>
+      <Source>GoApi/Updating/ScopedUpdater.h</Source>
+      <Source>GoApi/Updating/ScopedUpdater.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="Utilities">
+      <Source>GoApi/Utils/CoordUtils.h</Source>
+      <Source>GoApi/Utils/CoordUtils.cpp</Source>
+      <Source>GoApi/Utils/MemUtils.h</Source>
+      <Source>GoApi/Utils/MemUtils.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="GoDataTree">
+        <SourceGroup name="Serializer">
+            <Source>GoApi/GoDataTree/Serializer/IGoDataTreeSerializer.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/IGoDataTreeSerializerInputIterator.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoDataTreeSerializerInputIterator.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoDataTreeSerializerInputIterator.cpp</Source>
+            <Source>GoApi/GoDataTree/Serializer/IGoDataTreeSerializerOutputWriter.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoDataTreeSerializerOutputWriter.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoDataTreeSerializerOutputWriter.cpp</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoJsonSerializer.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoJsonSerializer.cpp</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoMsgPackSerializer.h</Source>
+            <Source>GoApi/GoDataTree/Serializer/GoMsgPackSerializer.cpp</Source>
+        </SourceGroup>
+        <Source>GoApi/GoDataTree/GoDataTree.h</Source>
+        <Source>GoApi/GoDataTree/GoDataTree.cpp</Source>
+    </SourceGroup>
+    <SourceGroup name="GoArray1Span">
+      <Source>GoApi/GoArray1Span.h</Source>
+    </SourceGroup>
+    <SourceGroup name="GoApi.Res">
+      <Source>GoApi/Res/GoApi.rc</Source>
+    </SourceGroup>
+  </Sources>
+  <Configurations>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Win64</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|Win64|MultiProcessorCompile|FastRuntimeChecks" />
+      <BinDir>#[Root]/bin/win64d</BinDir>
+      <LibDir>#[Root]/lib/win64d</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>GoApi.dll</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Platform]/kVision</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN64</Define>
+        <Define>_DEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>_USRDLL</Define>
+        <Define>K_DEBUG</Define>
+        <Define>_CRT_SECURE_NO_WARNINGS=0</Define>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/win64d</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi.lib</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Win64</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize|Win64|MultiProcessorCompile" />
+      <BinDir>#[Root]/bin/win64</BinDir>
+      <LibDir>#[Root]/lib/win64</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>GoApi.dll</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Platform]/kVision</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN64</Define>
+        <Define>NDEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>_USRDLL</Define>
+        <Define>_CRT_SECURE_NO_WARNINGS=0</Define>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/win64</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi.lib</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_Arm64</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols" />
+      <BinDir>#[Root]/bin/linux_arm64d</BinDir>
+      <LibDir>#[Root]/lib/linux_arm64d</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libGoApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Platform]/kVision</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_arm64d</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_Arm64</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize" />
+      <BinDir>#[Root]/bin/linux_arm64</BinDir>
+      <LibDir>#[Root]/lib/linux_arm64</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libGoApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Platform]/kVision</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_arm64</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_X64</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols" />
+      <BinDir>#[Root]/bin/linux_x64d</BinDir>
+      <LibDir>#[Root]/lib/linux_x64d</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libGoApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Platform]/kVision</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_x64d</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_X64</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize" />
+      <BinDir>#[Root]/bin/linux_x64</BinDir>
+      <LibDir>#[Root]/lib/linux_x64</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libGoApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Platform]/kVision</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_x64</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_Arm7</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols" />
+      <BinDir>#[Root]/bin/linux_arm7d</BinDir>
+      <LibDir>#[Root]/lib/linux_arm7d</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libGoApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_arm7d</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_Arm7</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize3" />
+      <BinDir>#[Root]/bin/linux_arm7</BinDir>
+      <LibDir>#[Root]/lib/linux_arm7</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libGoApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>.</IncludeDir>
+        <IncludeDir>#[Gocator]/GoApi</IncludeDir>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+        <IncludeDir>#[Platform]/kFireSync</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/json-develop/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>GOAPI_EXPORT</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_arm7</LibraryDir>
+      </LibraryDirs>
+      <Libs>
+        <Lib>kApi</Lib>
+      </Libs>
+    </Configuration>
+  </Configurations>
+</Project>

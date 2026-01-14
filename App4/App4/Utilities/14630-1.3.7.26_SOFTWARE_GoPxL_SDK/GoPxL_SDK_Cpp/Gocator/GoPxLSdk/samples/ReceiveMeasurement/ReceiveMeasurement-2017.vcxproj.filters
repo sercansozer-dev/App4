@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{9af8b0d1-465c-51ec-be08-6ead9b6fd12d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <ClInclude Include="..\Common\src\SampleUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ReceiveMeasurement.cpp">
+      <Filter></Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\SampleUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReceiveMeasurement.xml">
+      <Filter></Filter>
+    </None>
+  </ItemGroup>
+</Project>

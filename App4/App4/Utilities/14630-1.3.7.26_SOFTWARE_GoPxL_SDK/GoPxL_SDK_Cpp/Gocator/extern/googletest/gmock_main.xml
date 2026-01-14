@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project>
+  <Variables>
+    <Variable name="Root">../../..</Variable>
+    <Variable name="Gocator">../..</Variable>
+  </Variables>
+  <Sources>
+    <!-- This is copied from the stock generated project -->
+    <Source>#[Gocator]/extern/googletest/package/googletest/src/gtest-all.cc</Source>
+    <Source>#[Gocator]/extern/googletest/package/googlemock/src/gmock-all.cc</Source>
+    <Source>#[Gocator]/extern/googletest/package/googlemock/src/gmock_main.cc</Source>
+  </Sources>
+  <Configurations>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Win64</Platform>
+      <Type>Library</Type>
+      <Template value="Symbols|Win64|MultiProcessorCompile|FastRuntimeChecks" />
+      <BinDir>#[Root]/bin/win64d</BinDir>
+      <LibDir>#[Root]/lib/win64d</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>gmock_main.lib</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest/include</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN64</Define>
+        <Define>_DEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>GTEST_HAS_PTHREAD=0</Define>
+        <Define>_HAS_EXCEPTIONS=1</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/win64d</LibraryDir>
+      </LibraryDirs>
+      <Libs />
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Win64</Platform>
+      <Type>Library</Type>
+      <Template value="Optimize|Win64|MultiProcessorCompile" />
+      <BinDir>#[Root]/bin/win64</BinDir>
+      <LibDir>#[Root]/lib/win64</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>gmock_main.lib</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest/include</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN64</Define>
+        <Define>NDEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>GTEST_HAS_PTHREAD=0</Define>
+        <Define>_HAS_EXCEPTIONS=1</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/win64</LibraryDir>
+      </LibraryDirs>
+      <Libs />
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_X64</Platform>
+      <Type>Library</Type>
+      <Template value="Symbols" />
+      <BinDir>#[Root]/bin/linux_x64d</BinDir>
+      <LibDir>#[Root]/lib/linux_x64d</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libgmock_main.a</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest/include</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>GTEST_HAS_PTHREAD=0</Define>
+        <Define>_HAS_EXCEPTIONS=1</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_x64d</LibraryDir>
+      </LibraryDirs>
+      <Libs />
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_X64</Platform>
+      <Type>Library</Type>
+      <Template value="Optimize" />
+      <BinDir>#[Root]/bin/linux_x64</BinDir>
+      <LibDir>#[Root]/lib/linux_x64</LibDir>
+      <TempDir>#[Root]/build</TempDir>
+      <Target>libgmock_main.a</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googletest/include</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock</IncludeDir>
+        <IncludeDir>#[Gocator]/extern/googletest/package/googlemock/include</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>GTEST_HAS_PTHREAD=0</Define>
+        <Define>_HAS_EXCEPTIONS=1</Define>
+      </Defines>
+      <LibraryDirs>
+        <LibraryDir>#[Root]/lib/linux_x64</LibraryDir>
+      </LibraryDirs>
+      <Libs />
+    </Configuration>
+  </Configurations>
+</Project>

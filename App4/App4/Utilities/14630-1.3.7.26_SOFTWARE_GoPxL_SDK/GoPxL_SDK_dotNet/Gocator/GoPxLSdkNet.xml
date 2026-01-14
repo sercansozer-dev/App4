@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<Solution version="6">
+  <ProjectGroup name="GoPxLSdkNet">
+    <Project name="GoPxLSdkNet/GoPxLSdkNet/GoPxLSdkNet.xml">
+    </Project>
+  </ProjectGroup>
+  <ProjectGroup name="samples">
+    <Project name="GoPxLSdkNet/samples/AlignSensor/AlignSensorNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/BackupRestore/BackupRestoreNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ConfigureSensor/ConfigureSensorNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ConfigureTool/ConfigureToolNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/Discover/DiscoverNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/MultilayerOutputs/MultilayerOutputsNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/MultiSensorLayout/MultiSensorLayoutNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveAsync/ReceiveAsyncNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveMetrics/ReceiveMetricsNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveMeasurement/ReceiveMeasurementNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveProfile/ReceiveProfileNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveString/ReceiveStringNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveSurface/ReceiveSurfaceNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReceiveImage/ReceiveImageNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/Receive2dImage/Receive2dImageNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/ReplayData/ReplayDataNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+    <Project name="GoPxLSdkNet/samples/SaveJob/SaveJobNet.xml">
+      <Dependency name="GoPxLSdkNet" />
+    </Project>
+  </ProjectGroup>
+</Solution>

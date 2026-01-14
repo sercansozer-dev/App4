@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="App4.PAGES.Camera_Page"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    mc:Ignorable="d">
+
+    <Grid Background="#0D0D0D">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="180"/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- BAŞLIK BÖLÜMÜ - Header -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,2" BorderBrush="#00A4EF" Padding="25,0">
+            <Grid VerticalAlignment="Center">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="KAMERA KONTROL PANELİ" FontSize="22" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Text="Gocator Sensör | Point Cloud 3D Analiz" FontSize="11" Foreground="#00A4EF" Margin="0,3,0,0"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20" VerticalAlignment="Center">
+                    <StackPanel VerticalAlignment="Center" Spacing="5">
+                        <TextBlock Text="SİSTEM DURUMU" FontSize="9" Foreground="#888888" HorizontalAlignment="Right"/>
+                        <TextBlock x:Name="StatusLabel" Text="HAZIR" FontSize="13" FontWeight="Bold" Foreground="#4CAF50"/>
+                    </StackPanel>
+                    <FontIcon Glyph="&#xE957;" Foreground="#4CAF50" FontSize="24"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- İKİ PANEL: FOTO ÇEKIMI (SOL) + 3D POINT CLOUD (SAĞ) -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <Grid Grid.Row="1" Padding="20" ColumnSpacing="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ───────────────────────────────────────────────────────────────── -->
+            <!-- SOL PANEL: FOTOGRAF ÇEKIMI -->
+            <!-- ───────────────────────────────────────────────────────────────── -->
+            <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="70"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Başlık -->
+                    <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                            <FontIcon Glyph="&#xE722;" Foreground="#00A4EF" FontSize="20"/>
+                            <TextBlock Text="FOTOGRAF ÇEKIMI" FontSize="14" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Görüntü Alanı -->
+                    <Grid Grid.Row="1" Background="#0D0D0D">
+                        <!-- Arka Plan Grid -->
+                        <Canvas Opacity="0.03">
+                            <Path Stroke="White" StrokeThickness="0.5" Data="M0,50 H2000 M0,100 H2000 M50,0 V2000 M100,0 V2000"/>
+                        </Canvas>
+
+                        <!-- Görüntü -->
+                        <Image x:Name="SensorDisplay" Stretch="UniformToFill" Margin="0"/>
+
+                        <!-- Yükleme Halka -->
+                        <ProgressRing x:Name="LoadingRing" IsActive="False" Width="70" Height="70" Foreground="#00A4EF" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                        <!-- Varsayılan Metin -->
+                        <TextBlock x:Name="NoDataText" Text="🖼️ GÖRÜNTÜ BEKLENİYOR" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#555555" FontWeight="Bold" Opacity="0.6" FontSize="13" TextAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Durum ve Buton -->
+                    <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,2,0,0" BorderBrush="#00A4EF">
+                        <Grid VerticalAlignment="Center">
+                            <StackPanel>
+                                <TextBlock Text="Durum:" FontSize="10" Foreground="#888888"/>
+                                <TextBlock x:Name="PhotoStatus" Text="Hazırlanıyor..." FontSize="12" Foreground="#4CAF50" FontWeight="Bold" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <Button x:Name="PhotoButton" 
+                                    Click="RunButton_Click" 
+                                    HorizontalAlignment="Right" 
+                                    VerticalAlignment="Center"
+                                    Width="120" 
+                                    Height="50" 
+                                    Background="#00A4EF" 
+                                    CornerRadius="8" 
+                                    FontWeight="Bold" 
+                                    FontSize="14"
+                                    Foreground="White">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE722;" FontSize="16"/>
+                                    <TextBlock Text="ÇEK"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ───────────────────────────────────────────────────────────────── -->
+            <!-- SAĞ PANEL: 3D POINT CLOUD VİZÜALİZASYONU -->
+            <!-- ───────────────────────────────────────────────────────────────── -->
+            <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="70"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Başlık -->
+                    <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                            <FontIcon Glyph="&#xE71D;" Foreground="#00A4EF" FontSize="20"/>
+                            <TextBlock Text="3D POINT CLOUD" FontSize="14" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                   
+                    <!-- WebView 3D Alanı -->
+                    <Grid Grid.Row="1" Background="#0D0D0D" x:Name="WebViewContainer">
+                        <controls:WebView2
+         x:Name="PointCloudWebView"
+         CoreWebView2Initialized="PointCloudWebView_CoreWebView2Initialized"/>
+
+                        <!-- Durum Göstergesi Paneli -->
+                        <StackPanel x:Name="WebViewStatusPanel" 
+                 VerticalAlignment="Center" 
+                 HorizontalAlignment="Center" 
+                 Spacing="10">
+                            <ProgressRing IsActive="True" Width="40" Height="40" Foreground="#00A4EF" Visibility="Collapsed" x:Name="WebViewLoadingRing"/>
+                            <TextBlock x:Name="WebViewStatus" 
+                    Text="🔄 3D VERISI BEKLENIYOR" 
+                    Foreground="#555555" 
+                    FontWeight="Bold" 
+                    Opacity="0.6" 
+                    FontSize="13"
+                    TextAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Durum ve Buton -->
+                    <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,2,0,0" BorderBrush="#00A4EF">
+                        <Grid VerticalAlignment="Center">
+                            <StackPanel>
+                                <TextBlock Text="Durum:" FontSize="10" Foreground="#888888"/>
+                                <TextBlock x:Name="Cloud3DStatus" Text="Hazırlanıyor..." FontSize="12" Foreground="#4CAF50" FontWeight="Bold" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <Button x:Name="SurfaceButton" 
+                                    Click="SurfaceButton_Click"
+                                    HorizontalAlignment="Right" 
+                                    VerticalAlignment="Center"
+                                    Width="140" 
+                                    Height="50" 
+                                    Background="#00A4EF" 
+                                    CornerRadius="8" 
+                                    FontWeight="Bold" 
+                                    FontSize="14"
+                                    Foreground="White">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE71D;" FontSize="16"/>
+                                    <TextBlock Text="SURFACE"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- LOG KONSOLU -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="2" Background="#1A1A1C" Margin="20,10,20,10" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="45"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Log Başlığı -->
+                <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                        <FontIcon Glyph="&#xE7C3;" Foreground="#00A4EF" FontSize="16"/>
+                        <TextBlock Text="LOG KONSOLu" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Log İçeriği -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                    <RichTextBlock Padding="15,10" VerticalAlignment="Stretch">
+                        <Paragraph>
+                            <Run x:Name="LogOutput" 
+                                 Text="[00:00:00] ► Uygulama başlatıldı..." 
+                                 Foreground="#00FF88" 
+                                 FontFamily="Cascadia Mono" 
+                                 FontSize="10"/>
+                        </Paragraph>
+                    </RichTextBlock>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- ALT DURUM ÇUBUĞU - Footer -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <Border Grid.Row="3" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
+            <Grid VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
+                    <Ellipse Width="10" Height="10" Fill="#4CAF50" VerticalAlignment="Center"/>
+                    <TextBlock Text="Çalışma Durumu:" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
+                    <TextBlock Text="AKTIF" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <TextBlock Text="© 2025 Simbiosis Mekatronik | Gocator 3D Sensor" 
+                           VerticalAlignment="Center" 
+                           HorizontalAlignment="Right" 
+                           FontSize="10" 
+                           Foreground="#555555"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

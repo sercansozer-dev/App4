@@ -1,0 +1,713 @@
+<Project>
+  <Variables>
+    <Variable name="kDev">../..</Variable>
+    <Variable name="Platform">..</Variable>
+  </Variables>
+  <Sources>
+    <SourceGroup name="kApi">
+      <SourceGroup name="kAlloc">
+        <Source>kApi/kAlloc.cpp</Source>
+        <Source>kApi/kAlloc.h</Source>
+        <Source>kApi/kAlloc.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kApi">
+        <Source>kApi/kApi.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kApiCfg">
+        <Source>kApi/kApiCfg.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kApiDef">
+        <Source>kApi/kApiDef.cpp</Source>
+        <Source>kApi/kApiDef.h</Source>
+        <Source>kApi/kApiDef.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kApiLib">
+        <Source>kApi/kApiLib.cpp</Source>
+        <Source>kApi/kApiLib.h</Source>
+        <Source>kApi/kApiLib.x.h</Source>
+        <Source>kApi/kApiLib.rc</Source>
+      </SourceGroup>
+      <SourceGroup name="kApiVersion">
+        <Source>kApi/kApiVersion.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kAssembly">
+        <Source>kApi/kAssembly.cpp</Source>
+        <Source>kApi/kAssembly.h</Source>
+        <Source>kApi/kAssembly.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kObject">
+        <Source>kApi/kObject.cpp</Source>
+        <Source>kApi/kObject.h</Source>
+        <Source>kApi/kObject.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kType">
+        <Source>kApi/kType.cpp</Source>
+        <Source>kApi/kType.h</Source>
+        <Source>kApi/kType.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kValue">
+        <Source>kApi/kValue.cpp</Source>
+        <Source>kApi/kValue.h</Source>
+        <Source>kApi/kValue.x.h</Source>
+      </SourceGroup>
+    </SourceGroup>
+    <SourceGroup name="kApi.Crypto">
+      <SourceGroup name="kCipher">
+        <Source>kApi/Crypto/kCipher.h</Source>
+        <Source>kApi/Crypto/kCipher.x.h</Source>
+        <Source>kApi/Crypto/kCipher.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="kBlowfishCipher">
+        <Source>kApi/Crypto/kBlowfishCipher.h</Source>
+        <Source>kApi/Crypto/kBlowfishCipher.x.h</Source>
+        <Source>kApi/Crypto/kBlowfishCipher.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="kCipherStream">
+        <Source>kApi/Crypto/kCipherStream.h</Source>
+        <Source>kApi/Crypto/kCipherStream.x.h</Source>
+        <Source>kApi/Crypto/kCipherStream.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="kHash">
+        <Source>kApi/Crypto/kHash.h</Source>
+        <Source>kApi/Crypto/kHash.x.h</Source>
+        <Source>kApi/Crypto/kHash.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="kSha1Hash">
+        <Source>kApi/Crypto/kSha1Hash.h</Source>
+        <Source>kApi/Crypto/kSha1Hash.x.h</Source>
+        <Source>kApi/Crypto/kSha1Hash.cpp</Source>
+      </SourceGroup>
+    </SourceGroup>    
+    <SourceGroup name="kApi.Data">
+      <SourceGroup name="kArray1">
+        <Source>kApi/Data/kArray1.cpp</Source>
+        <Source>kApi/Data/kArray1.h</Source>
+        <Source>kApi/Data/kArray1.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kArray2">
+        <Source>kApi/Data/kArray2.cpp</Source>
+        <Source>kApi/Data/kArray2.h</Source>
+        <Source>kApi/Data/kArray2.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kArray3">
+        <Source>kApi/Data/kArray3.cpp</Source>
+        <Source>kApi/Data/kArray3.h</Source>
+        <Source>kApi/Data/kArray3.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kArrayList">
+        <Source>kApi/Data/kArrayList.cpp</Source>
+        <Source>kApi/Data/kArrayList.h</Source>
+        <Source>kApi/Data/kArrayList.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kArrayProvider">
+        <Source>kApi/Data/kArrayProvider.cpp</Source>
+        <Source>kApi/Data/kArrayProvider.h</Source>
+        <Source>kApi/Data/kArrayProvider.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kBitArray">
+        <Source>kApi/Data/kBitArray.cpp</Source>
+        <Source>kApi/Data/kBitArray.h</Source>
+        <Source>kApi/Data/kBitArray.x.h</Source>
+      </SourceGroup>      
+      <SourceGroup name="kBox">
+        <Source>kApi/Data/kBox.cpp</Source>
+        <Source>kApi/Data/kBox.h</Source>
+        <Source>kApi/Data/kBox.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kBytes">
+        <Source>kApi/Data/kBytes.cpp</Source>
+        <Source>kApi/Data/kBytes.h</Source>
+        <Source>kApi/Data/kBytes.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kCollection">
+        <Source>kApi/Data/kCollection.cpp</Source>
+        <Source>kApi/Data/kCollection.h</Source>
+        <Source>kApi/Data/kCollection.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kDataTree">
+        <Source>kApi/Data/kDataTree.h</Source>
+        <Source>kApi/Data/kDataTree.x.h</Source>
+        <Source>kApi/Data/kDataTree.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="kDataTreeItem">
+        <Source>kApi/Data/kDataTreeItem.x.h</Source>
+        <Source>kApi/Data/kDataTreeItem.cpp</Source>
+      </SourceGroup>
+      <SourceGroup name="kImage">
+        <Source>kApi/Data/kImage.cpp</Source>
+        <Source>kApi/Data/kImage.h</Source>
+        <Source>kApi/Data/kImage.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kList">
+        <Source>kApi/Data/kList.cpp</Source>
+        <Source>kApi/Data/kList.h</Source>
+        <Source>kApi/Data/kList.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kMath">
+        <Source>kApi/Data/kMath.cpp</Source>
+        <Source>kApi/Data/kMath.h</Source>
+        <Source>kApi/Data/kMath.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kMap">
+        <Source>kApi/Data/kMap.cpp</Source>
+        <Source>kApi/Data/kMap.h</Source>
+        <Source>kApi/Data/kMap.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kString">
+        <Source>kApi/Data/kString.cpp</Source>
+        <Source>kApi/Data/kString.h</Source>
+        <Source>kApi/Data/kString.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kQueue">
+        <Source>kApi/Data/kQueue.cpp</Source>
+        <Source>kApi/Data/kQueue.h</Source>
+        <Source>kApi/Data/kQueue.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kXml">
+        <Source>kApi/Data/kXml.cpp</Source>
+        <Source>kApi/Data/kXml.h</Source>
+        <Source>kApi/Data/kXml.x.h</Source>
+      </SourceGroup>
+    </SourceGroup>
+    <SourceGroup name="kApi.extern">
+      <SourceGroup name="lodepng">
+        <Source>kApi.extern/lodepng/lodepng.cpp</Source>
+        <Source>kApi.extern/lodepng/lodepng.h</Source>
+        <Source>kApi.extern/lodepng/lodepng_ex.cpp</Source>
+        <Source>kApi.extern/lodepng/lodepng_ex.h</Source>
+      </SourceGroup>
+      <SourceGroup name="rbtree">
+        <Source>kApi.extern/rbtree/rbtree.c</Source>
+        <Source>kApi.extern/rbtree/rbtree.h</Source>
+      </SourceGroup>
+    </SourceGroup>      
+    <SourceGroup name="kApi.Io">
+      <SourceGroup name="kDat5Serializer">
+        <Source>kApi/Io/kDat5Serializer.cpp</Source>
+        <Source>kApi/Io/kDat5Serializer.h</Source>
+        <Source>kApi/Io/kDat5Serializer.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kDat6Serializer">
+        <Source>kApi/Io/kDat6Serializer.cpp</Source>
+        <Source>kApi/Io/kDat6Serializer.h</Source>
+        <Source>kApi/Io/kDat6Serializer.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kDirectory">
+        <Source>kApi/Io/kDirectory.cpp</Source>
+        <Source>kApi/Io/kDirectory.h</Source>
+        <Source>kApi/Io/kDirectory.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kFile">
+        <Source>kApi/Io/kFile.cpp</Source>
+        <Source>kApi/Io/kFile.h</Source>
+        <Source>kApi/Io/kFile.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kHttpServer">
+        <Source>kApi/Io/kHttpServer.cpp</Source>
+        <Source>kApi/Io/kHttpServer.h</Source>
+        <Source>kApi/Io/kHttpServer.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kHttpServerChannel">
+        <Source>kApi/Io/kHttpServerChannel.cpp</Source>
+        <Source>kApi/Io/kHttpServerChannel.h</Source>
+        <Source>kApi/Io/kHttpServerChannel.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kHttpServerRequest">
+        <Source>kApi/Io/kHttpServerRequest.cpp</Source>
+        <Source>kApi/Io/kHttpServerRequest.h</Source>
+        <Source>kApi/Io/kHttpServerRequest.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kHttpServerResponse">
+        <Source>kApi/Io/kHttpServerResponse.cpp</Source>
+        <Source>kApi/Io/kHttpServerResponse.h</Source>
+        <Source>kApi/Io/kHttpServerResponse.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kMemory">
+        <Source>kApi/Io/kMemory.cpp</Source>
+        <Source>kApi/Io/kMemory.h</Source>
+        <Source>kApi/Io/kMemory.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kNetwork">
+        <Source>kApi/Io/kNetwork.cpp</Source>
+        <Source>kApi/Io/kNetwork.h</Source>
+        <Source>kApi/Io/kNetwork.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kPath">
+        <Source>kApi/Io/kPath.cpp</Source>
+        <Source>kApi/Io/kPath.h</Source>
+        <Source>kApi/Io/kPath.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kPipeStream">
+        <Source>kApi/Io/kPipeStream.cpp</Source>
+        <Source>kApi/Io/kPipeStream.h</Source>
+        <Source>kApi/Io/kPipeStream.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kSerializer">
+        <Source>kApi/Io/kSerializer.cpp</Source>
+        <Source>kApi/Io/kSerializer.h</Source>
+        <Source>kApi/Io/kSerializer.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kStream">
+        <Source>kApi/Io/kStream.cpp</Source>
+        <Source>kApi/Io/kStream.h</Source>
+        <Source>kApi/Io/kStream.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kSocket">
+        <Source>kApi/Io/kSocket.cpp</Source>
+        <Source>kApi/Io/kSocket.h</Source>
+        <Source>kApi/Io/kSocket.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kTcpClient">
+        <Source>kApi/Io/kTcpClient.cpp</Source>
+        <Source>kApi/Io/kTcpClient.h</Source>
+        <Source>kApi/Io/kTcpClient.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kTcpServer">
+        <Source>kApi/Io/kTcpServer.cpp</Source>
+        <Source>kApi/Io/kTcpServer.h</Source>
+        <Source>kApi/Io/kTcpServer.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kUdpClient">
+        <Source>kApi/Io/kUdpClient.cpp</Source>
+        <Source>kApi/Io/kUdpClient.h</Source>
+        <Source>kApi/Io/kUdpClient.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kWebSocket">
+        <Source>kApi/Io/kWebSocket.h</Source>
+        <Source>kApi/Io/kWebSocket.x.h</Source>
+        <Source>kApi/Io/kWebSocket.cpp</Source>
+      </SourceGroup>
+    </SourceGroup>
+    <SourceGroup name="kApi.Threads">
+      <SourceGroup name="kAtomic">
+        <Source>kApi/Threads/kAtomic.cpp</Source>
+        <Source>kApi/Threads/kAtomic.h</Source>
+        <Source>kApi/Threads/kAtomic.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kLock">
+        <Source>kApi/Threads/kLock.cpp</Source>
+        <Source>kApi/Threads/kLock.h</Source>
+        <Source>kApi/Threads/kLock.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kMsgQueue">
+        <Source>kApi/Threads/kMsgQueue.cpp</Source>
+        <Source>kApi/Threads/kMsgQueue.h</Source>
+        <Source>kApi/Threads/kMsgQueue.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kParallel">
+        <Source>kApi/Threads/kParallel.cpp</Source>
+        <Source>kApi/Threads/kParallel.h</Source>
+        <Source>kApi/Threads/kParallel.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kPeriodic">
+        <Source>kApi/Threads/kPeriodic.cpp</Source>
+        <Source>kApi/Threads/kPeriodic.h</Source>
+        <Source>kApi/Threads/kPeriodic.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kThread">
+        <Source>kApi/Threads/kThread.cpp</Source>
+        <Source>kApi/Threads/kThread.h</Source>
+        <Source>kApi/Threads/kThread.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kThreadPool">
+        <Source>kApi/Threads/kThreadPool.cpp</Source>
+        <Source>kApi/Threads/kThreadPool.h</Source>
+        <Source>kApi/Threads/kThreadPool.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kTimer">
+        <Source>kApi/Threads/kTimer.cpp</Source>
+        <Source>kApi/Threads/kTimer.h</Source>
+        <Source>kApi/Threads/kTimer.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kSemaphore">
+        <Source>kApi/Threads/kSemaphore.cpp</Source>
+        <Source>kApi/Threads/kSemaphore.h</Source>
+        <Source>kApi/Threads/kSemaphore.x.h</Source>
+      </SourceGroup>
+    </SourceGroup>
+    <SourceGroup name="kApi.Utils">
+      <SourceGroup name="kBackTrace">
+        <Source>kApi/Utils/kBackTrace.cpp</Source>
+        <Source>kApi/Utils/kBackTrace.h</Source>
+        <Source>kApi/Utils/kBackTrace.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kDateTime">
+        <Source>kApi/Utils/kDateTime.cpp</Source>
+        <Source>kApi/Utils/kDateTime.h</Source>
+        <Source>kApi/Utils/kDateTime.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kDebugAlloc">
+        <Source>kApi/Utils/kDebugAlloc.cpp</Source>
+        <Source>kApi/Utils/kDebugAlloc.h</Source>
+        <Source>kApi/Utils/kDebugAlloc.x.h</Source>
+      </SourceGroup>      
+      <SourceGroup name="kDynamicLib">
+        <Source>kApi/Utils/kDynamicLib.cpp</Source>
+        <Source>kApi/Utils/kDynamicLib.h</Source>
+        <Source>kApi/Utils/kDynamicLib.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kEvent">
+        <Source>kApi/Utils/kEvent.cpp</Source>
+        <Source>kApi/Utils/kEvent.h</Source>
+        <Source>kApi/Utils/kEvent.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kHeapAlloc">
+        <Source>kApi/Utils/kHeapAlloc.cpp</Source>
+        <Source>kApi/Utils/kHeapAlloc.h</Source>
+        <Source>kApi/Utils/kHeapAlloc.x.h</Source>
+      </SourceGroup>      
+      <SourceGroup name="kImageUtils">
+        <Source>kApi/Utils/kImageUtils.cpp</Source>
+        <Source>kApi/Utils/kImageUtils.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kObjectPool">
+        <Source>kApi/Utils/kObjectPool.cpp</Source>
+        <Source>kApi/Utils/kObjectPool.h</Source>
+        <Source>kApi/Utils/kObjectPool.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kPlugin">
+        <Source>kApi/Utils/kPlugin.cpp</Source>
+        <Source>kApi/Utils/kPlugin.h</Source>
+        <Source>kApi/Utils/kPlugin.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kPoolAlloc">
+        <Source>kApi/Utils/kPoolAlloc.cpp</Source>
+        <Source>kApi/Utils/kPoolAlloc.h</Source>
+        <Source>kApi/Utils/kPoolAlloc.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kProcess">
+        <Source>kApi/Utils/kProcess.cpp</Source>
+        <Source>kApi/Utils/kProcess.h</Source>
+        <Source>kApi/Utils/kProcess.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kSymbolInfo">
+        <Source>kApi/Utils/kSymbolInfo.cpp</Source>
+        <Source>kApi/Utils/kSymbolInfo.h</Source>
+        <Source>kApi/Utils/kSymbolInfo.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kTimeSpan">
+        <Source>kApi/Utils/kTimeSpan.cpp</Source>
+        <Source>kApi/Utils/kTimeSpan.h</Source>
+        <Source>kApi/Utils/kTimeSpan.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kUserAlloc">
+        <Source>kApi/Utils/kUserAlloc.cpp</Source>
+        <Source>kApi/Utils/kUserAlloc.h</Source>
+        <Source>kApi/Utils/kUserAlloc.x.h</Source>
+      </SourceGroup>
+      <SourceGroup name="kUtils">
+        <Source>kApi/Utils/kUtils.cpp</Source>
+        <Source>kApi/Utils/kUtils.h</Source>
+        <Source>kApi/Utils/kUtils.x.h</Source>
+      </SourceGroup>
+    </SourceGroup>
+  </Sources>
+  <Configurations>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Win32</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|Unicode|Win32|MultiProcessorCompile|FastRuntimeChecks" />
+      <BinDir>#[kDev]/bin/win32d</BinDir>
+      <LibDir>#[kDev]/lib/win32d</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>kApi.dll</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN32</Define>
+        <Define>_DEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>_USRDLL</Define>
+        <Define>_CRT_SECURE_NO_WARNINGS</Define>
+        <Define>K_DEBUG</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>ws2_32.lib</Lib>
+        <Lib>iphlpapi.lib</Lib>
+        <Lib>dbghelp.lib</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Win64</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|Unicode|Win64|MultiProcessorCompile|FastRuntimeChecks" />
+      <BinDir>#[kDev]/bin/win64d</BinDir>
+      <LibDir>#[kDev]/lib/win64d</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>kApi.dll</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN64</Define>
+        <Define>_DEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>_USRDLL</Define>
+        <Define>_CRT_SECURE_NO_WARNINGS</Define>
+        <Define>K_DEBUG</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>ws2_32.lib</Lib>
+        <Lib>iphlpapi.lib</Lib>
+        <Lib>dbghelp.lib</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Win32</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize|Unicode|Win32|MultiProcessorCompile" />
+      <BinDir>#[kDev]/bin/win32</BinDir>
+      <LibDir>#[kDev]/lib/win32</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>kApi.dll</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN32</Define>
+        <Define>NDEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>_USRDLL</Define>
+        <Define>_CRT_SECURE_NO_WARNINGS</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>ws2_32.lib</Lib>
+        <Lib>iphlpapi.lib</Lib>
+        <Lib>dbghelp.lib</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Win64</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize|Unicode|Win64|MultiProcessorCompile" />
+      <BinDir>#[kDev]/bin/win64</BinDir>
+      <LibDir>#[kDev]/lib/win64</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>kApi.dll</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>WIN64</Define>
+        <Define>NDEBUG</Define>
+        <Define>_WINDOWS</Define>
+        <Define>_USRDLL</Define>
+        <Define>_CRT_SECURE_NO_WARNINGS</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>ws2_32.lib</Lib>
+        <Lib>iphlpapi.lib</Lib>
+        <Lib>dbghelp.lib</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_X64</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|c++11" />
+      <BinDir>#[kDev]/bin/linux_x64d</BinDir>
+      <LibDir>#[kDev]/lib/linux_x64d</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_X64</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize|c++11" />
+      <BinDir>#[kDev]/bin/linux_x64</BinDir>
+      <LibDir>#[kDev]/lib/linux_x64</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_X86</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|c++11" />
+      <BinDir>#[kDev]/bin/linux_x86d</BinDir>
+      <LibDir>#[kDev]/lib/linux_x86d</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_X86</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize|c++11" />
+      <BinDir>#[kDev]/bin/linux_x86</BinDir>
+      <LibDir>#[kDev]/lib/linux_x86</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>    
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_Arm64</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|c++11" />
+      <BinDir>#[kDev]/bin/linux_arm64d</BinDir>
+      <LibDir>#[kDev]/lib/linux_arm64d</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_Arm64</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize|c++11" />
+      <BinDir>#[kDev]/bin/linux_arm64</BinDir>
+      <LibDir>#[kDev]/lib/linux_arm64</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Debug</Name>
+      <Platform>Linux_Arm7</Platform>
+      <Type>Shared</Type>
+      <Template value="Symbols|c++11" />
+      <BinDir>#[kDev]/bin/linux_arm7d</BinDir>
+      <LibDir>#[kDev]/lib/linux_arm7d</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_DEBUG</Define>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+    <Configuration>
+      <Name>Release</Name>
+      <Platform>Linux_Arm7</Platform>
+      <Type>Shared</Type>
+      <Template value="Optimize3|c++11" />
+      <BinDir>#[kDev]/bin/linux_arm7</BinDir>
+      <LibDir>#[kDev]/lib/linux_arm7</LibDir>
+      <TempDir>#[kDev]/build</TempDir>
+      <Target>libkApi.so</Target>
+      <IncludeDirs>
+        <IncludeDir>#[Platform]/kApi</IncludeDir>
+      </IncludeDirs>
+      <Defines>
+        <Define>K_EMIT</Define>
+        <Define>K_PLUGIN</Define>
+      </Defines>
+      <Libs>
+        <Lib>c</Lib>
+        <Lib>pthread</Lib>
+        <Lib>rt</Lib>
+        <Lib>m</Lib>
+        <Lib>dl</Lib>
+      </Libs>
+    </Configuration>
+  </Configurations>
+</Project>

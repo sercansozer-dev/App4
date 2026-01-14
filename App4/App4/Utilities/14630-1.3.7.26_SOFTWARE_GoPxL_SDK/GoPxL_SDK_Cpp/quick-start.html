@@ -1,0 +1,852 @@
+<html><head>
+  <style>  
+        :root {
+            --gopxl-blue: #298ec9;
+            --gopxl-grey: #9e9c9c;
+            --dark-grey: #ced4da;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            color: #141414;
+            background-color: #fff;
+        }
+
+        body {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: var(--gopxl-blue);
+            border-bottom: 3px solid var(--gopxl-blue);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            color: var(--gopxl-blue);
+            margin-top: 2em;
+            border-bottom: 1px solid var(--dark-grey);
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: #333;
+            margin-top: 1.5em;
+        }
+
+        h4 {
+            color: #555;
+            margin-top: 1.2em;
+        }
+
+        a {
+            color: var(--gopxl-blue);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid var(--dark-grey);
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+            color: var(--gopxl-blue);
+            font-size: 0.9em;
+            line-height: 1.5em;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+            font-size: 1em;
+        }
+
+        blockquote {
+            background-color: #fffbf0;
+            border-left: 4px solid #f0ad4e;
+            padding: 10px 15px;
+            margin: 1em 0;
+        }
+
+        blockquote p {
+            margin: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5em;
+            background-color: #f9fafb;
+            border: 1px solid var(--dark-grey);
+        }
+
+        th, td {
+            border: 1px solid #dcdcdc;
+            padding: 0.5em 0.75em;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f5f8;
+            font-weight: 600;
+            font-size: 1em;
+            line-height: 1.4em;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 0.5em 0;
+        }
+
+        p {
+            letter-spacing: 0.02em;
+            margin: 1em 0;
+        }
+
+        strong {
+            color: #333;
+        }
+    </style>
+    </head><body><h1 id="gopxl-sdk-documentation">GoPxL SDK Documentation</h1>
+<p>Comprehensive guide for the <strong>GoPxL C++ SDK</strong> and <strong>GoPxL .NET SDK</strong> – open-source libraries for programmatically accessing and controlling Gocator devices.</p>
+<h2 id="quick-start">Quick Start</h2>
+  <ol>
+    <li>Extract the SDK archive</li>
+    <li>Navigate to <code>GoPxL_SDK_Cpp/Gocator/GoPxLSdk</code> (C++) or <code>GoPxL_SDK_dotNet/Gocator/GoPxLSdkNet</code> (.NET)</li>
+    <li>Visual Studio solution (.sln) files are included for Windows. For Linux (C++ only), run <code>python -m generate</code> to create makefiles</li>
+    <li>Make any necessary code changes (e.g., update sensor IP if different from default)</li>
+    <li>Build using Visual Studio (Windows) or Make (Linux) for C++. For .NET, open <code>GoPxLSdkNet.sln</code> in Visual Studio (Windows only)</li>
+    <li>Run samples from <code>GoPxL_SDK_Cpp/bin</code> (C++ Windows/Linux) or <code>GoPxL_SDK_dotNet/bin</code> (.NET Windows), or run directly from Visual
+  Studio</li>
+  </ol>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#prerequisites">Prerequisites</a><ul>
+<li><a href="#c-prerequisites">C++ Prerequisites</a></li>
+<li><a href="#-net-prerequisites">.NET Prerequisites</a></li>
+</ul>
+</li>
+<li><a href="#building-the-sdk">Building the SDK</a><ul>
+<li><a href="#c-build-instructions">C++ Build Instructions</a></li>
+<li><a href="#-net-build-instructions">.NET Build Instructions</a></li>
+</ul>
+</li>
+
+<li><a href="#using-rest">Using the REST API</a></li>
+<li><a href="#workflow">Workflow Overview</a></li>
+<li><a href="#available-samples">Available Samples</a></li>
+<li><a href="#running-the-samples">Running the Samples</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#api-documentation">API Documentation</a></li>
+<li><a href="#support">Support</a></li>
+</ul>
+<h2 id="overview">Overview</h2>
+<p>The GoPxL Software Development Kit (GoPxL SDK) is available in two variants:</p>
+<h3 id="c-sdk">C++ SDK</h3>
+<p>An open-source C++ library for programmatically accessing and controlling Gocator devices. Provides a modern C++ interface to the GoPxL REST API.</p>
+<p><strong>Platform Support</strong>: Windows, Linux (x64, ARM)</p>
+<h4 id="technical-architecture">Architecture</h4>
+ <p>The C++ SDK implements a REST-like wrapper over a custom binary protocol, built on top of the <strong>kApi</strong> (K Framework) and
+  <strong>GoApi</strong> (Gocator API) foundations. The architecture features a dual-threaded I/O model with separate read/write threads to prevent blocking
+  on network operations. Communication uses MessagePack and JSON serialization over TCP with binary framing via kApi&#39;s <code>kSerializer</code>.</p>
+  <p>The SDK employs <strong>nlohmann/json</strong> for JSON handling (forward-declared in headers for ABI stability), <strong>std::shared_ptr</strong> for
+  exception-safe resource management, and a <strong>Promise/Future pattern</strong> via <code>std::shared_future</code> for synchronous API layering over
+  asynchronous transport. Request-response correlation is managed through auto-incrementing 64-bit IDs with transaction queuing via
+  <code>std::deque</code>.</p>
+  <p>Data streaming leverages the <strong>GoPxL Data Protocol (GDP)</strong> on a separate TCP channel (default port 3601) for high-bandwidth binary data
+  transfer. The protocol supports 15+ message types (profiles, surfaces, measurements, features, etc.) with scale factors converting millimeters to
+  nanometers. Thread synchronization uses <code>std::mutex</code> with RAII lock guards, and <code>kSemaphore</code> for non-blocking queue signaling.</p>
+  <p>The SDK is cross-platform (Windows x64, Linux x64/ARM7/ARM64) and builds as a shared library with configurable timeouts per operation class, supporting
+  both blocking and async I/O patterns.</p>
+  <h3 id="-net-sdk">.NET SDK</h3>
+<p>A managed C# library for programmatically accessing and controlling Gocator devices. Provides a .NET interface to the GoPxL REST API.</p>
+<p><strong>Platform Support</strong>: Windows only (.NET Framework 4.7.2+)</p>
+<h4 id="technical-architecture">Architecture</h4>
+<p>The .NET SDK targets <strong>.NET Framework 4.8</strong> with C# 7.3. It uses <strong>MessagePack</strong> (3.1.3) and <strong>Newtonsoft.Json</strong> (13.0.3) for dual-protocol serialization. The architecture implements a layered REST wrapper with binary carrier protocol, featuring custom <code>JObjectFormatter</code> for seamless integration between MessagePack and dynamic JSON objects (<code>JObject</code>).</p>
+<p>Thread safety is ensured through explicit locking via <code>object _commandMutex</code> and <strong>BlockingCollection<T></strong> for producer-consumer patterns. The SDK uses a <strong>dual-threaded I/O model</strong> with dedicated read/write threads, and employs <strong>TaskCompletionSource<T></strong> for the Promise/Future pattern which enables synchronous API calls over asynchronous transport.</p>
+<p>Binary I/O is handled through custom <code>GoBinaryReader</code>/<code>GoBinaryWriter</code> with length-prefixed framing and nested section support via stack-based tracking. <strong>System.Memory</strong> (4.6.3) provides <code>Span&lt;T&gt;</code> primitives for high-performance data handling. The GDP stream handler supports both synchronous polling (<code>Client.Poll()</code>) and asynchronous callback-driven modes with background thread pools.</p>
+<p>Discovery uses UDP broadcast (port 3320) with magic signature validation (0x4C58504F47494D4C). Request-response correlation utilizes transaction queues with per-operation timeouts (default 3-15 seconds). The protocol implements retry logic, graceful degradation, and comprehensive exception handling via <code>GoChannelException</code> and <code>GoRequestException</code>.</p>
+<p>Platform support is Windows-only (x64/AnyCPU), with dependency on <strong>Microsoft.Bcl.AsyncInterfaces</strong> for modern async patterns in .NET 4.8.</p>
+<h3 id="common-features">Common Features</h3>
+<p>Both SDKs enable developers to:</p>
+<ul>
+<li>Discover sensors on the network</li>
+<li>Configure measurement tools</li>
+<li>Control sensor operations (start/stop scanning, alignment, etc.)</li>
+<li>Receive real-time scan data (profiles, surfaces, images, stamp, etc.)</li>
+<li>Manage sensor jobs and configurations</li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<h3 id="hardware-requirements-both-sdks-">Hardware Requirements (Both SDKs)</h3>
+<ul>
+<li>Gocator sensor or GoPxL on PC instance</li>
+<li>Network connectivity to the sensor (sensor must be reachable via IP)</li>
+<li>For samples receiving live data: sensor must be capable of scanning</li>
+</ul>
+<h3 id="c-prerequisites">C++ Prerequisites</h3>
+<p><strong>Windows:</strong></p>
+<ul>
+<li>Windows 10 or 11 (64-bit)</li>
+<li>Visual Studio 2017 or later</li>
+<li>Python 3.7 or later</li>
+<li>Microsoft Visual C++ Redistributable (automatically installed with Visual Studio)</li>
+</ul>
+<p><strong>Linux:</strong></p>
+<ul>
+<li>Ubuntu 18.04, 20.04, or 22.04 (64-bit)</li>
+<li>GCC compiler (<code>sudo apt install build-essential</code>)</li>
+<li>Python 3.7 or later (<code>sudo apt install python3</code>)</li>
+<li>Standard C++ libraries</li>
+</ul>
+<h3 id="-net-prerequisites">.NET Prerequisites</h3>
+<p><strong>Operating System:</strong></p>
+<ul>
+<li>Windows 10 or 11 (64-bit)</li>
+</ul>
+<p><strong>Development Environment:</strong></p>
+<ul>
+<li>Visual Studio 2017 or later (Community, Professional, or Enterprise)</li>
+<li>.NET Framework 4.7.2 or later (included with Visual Studio)</li>
+<li>Python 3.7 or later</li>
+</ul>
+<p><strong>Runtime Requirements (for deployment):</strong></p>
+<ul>
+<li>.NET Framework 4.7.2 Runtime or later</li>
+<li>Visual C++ Redistributable 2015-2022 (x64)</li>
+</ul>
+<h2 id="building-the-sdk">Building the SDK</h2>
+<h3 id="c-build-instructions">C++ Build Instructions</h3>
+<p>The SDK uses a Python-based build system generator that creates platform-specific build files (Visual Studio solutions for Windows, GNU Makefiles for Linux).</p>
+<h4 id="windows">Windows</h4>
+<ol>
+<li><p><strong>Navigate to the SDK directory:</strong></p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_Cpp<span class="hljs-symbol">\G</span>ocator<span class="hljs-symbol">\G</span>oPxLSdk
+</code></pre>
+</li>
+<li><p><strong>Generate Visual Studio solution:</strong></p>
+<pre><code class="lang-cmd">python -m <span class="hljs-keyword">generate</span>
+</code></pre>
+<p>This creates <code>GoPxLSdk.sln</code> in the parent directory (<code>GoPxL_SDK_Cpp/Gocator/</code>).</p>
+</li>
+<li><p><strong>Open and build in Visual Studio:</strong></p>
+<pre><code class="lang-cmd"><span class="hljs-built_in">cd</span> ..
+<span class="hljs-built_in">start</span> GoPxLSdk.sln
+</code></pre>
+<ul>
+<li>Select <strong>Debug</strong> or <strong>Release</strong> configuration</li>
+<li>Choose <strong>x64</strong> platform</li>
+<li>Build the entire solution (Build → Build Solution or Ctrl+Shift+B)</li>
+</ul>
+</li>
+<li><p><strong>Build output locations:</strong></p>
+<ul>
+<li>Executables: <code>GoPxL_SDK_Cpp/bin/win64/</code> (Release) or <code>GoPxL_SDK_Cpp/bin/win64d/</code> (Debug)</li>
+<li>Libraries: <code>GoPxL_SDK_Cpp/lib/win64/</code> (Release) or <code>GoPxL_SDK_Cpp/lib/win64d/</code> (Debug)</li>
+</ul>
+</li>
+</ol>
+<p><strong>Alternative - Command Line Build:</strong></p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_Cpp\Gocator
+msbuild GoPxLSdk<span class="hljs-selector-class">.sln</span> /<span class="hljs-selector-tag">p</span>:Configuration=Release /<span class="hljs-selector-tag">p</span>:Platform=x64
+</code></pre>
+<h4 id="linux">Linux</h4>
+<ol>
+<li><p><strong>Navigate to the SDK directory:</strong></p>
+<pre><code class="lang-bash">cd GoPxL_SDK_Cpp<span class="hljs-regexp">/Gocator/</span>GoPxLSdk
+</code></pre>
+</li>
+<li><p><strong>Generate Makefiles:</strong></p>
+<pre><code class="lang-bash">python -m <span class="hljs-keyword">generate</span>
+</code></pre>
+<p>This creates <code>GoPxLSdk-Linux_X64.mk</code> in the parent directory.</p>
+</li>
+<li><p><strong>Build the SDK and samples:</strong></p>
+<pre><code class="lang-bash"><span class="hljs-keyword">cd</span> ..
+<span class="hljs-keyword">make</span> -<span class="hljs-keyword">f</span> GoPxLSdk-Linux_X64.<span class="hljs-keyword">mk</span>
+</code></pre>
+<p>For parallel builds (faster):</p>
+<pre><code class="lang-bash">make -j$<span class="hljs-comment">(nproc)</span> -f GoPxLSdk-Li<span class="hljs-symbol">nux_X64</span>.mk
+</code></pre>
+</li>
+<li><p><strong>Build output locations:</strong></p>
+<ul>
+<li>Executables: <code>GoPxL_SDK_Cpp/bin/linux_x64/</code></li>
+<li>Libraries: <code>GoPxL_SDK_Cpp/lib/linux_x64/libGoPxLSdk.so</code></li>
+</ul>
+</li>
+</ol>
+<p><strong>Clean build:</strong></p>
+<pre><code class="lang-bash">make -f GoPxLSdk-Linux_X64<span class="hljs-selector-class">.mk</span> clean
+</code></pre>
+<h3 id="-net-build-instructions">.NET Build Instructions</h3>
+<p>The SDK uses a Python-based build system generator that creates Visual Studio solution and project files.</p>
+<ol>
+<li><p><strong>Navigate to the SDK directory:</strong></p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_dotNet<span class="hljs-symbol">\G</span>ocator<span class="hljs-symbol">\G</span>oPxLSdkNet
+</code></pre>
+</li>
+<li><p><strong>Generate Visual Studio solution:</strong></p>
+<pre><code class="lang-cmd">python -m <span class="hljs-keyword">generate</span>
+</code></pre>
+<p>This creates <code>GoPxLSdkNet.sln</code> in the parent directory (<code>GoPxL_SDK_dotNet/Gocator/</code>).</p>
+</li>
+<li><p><strong>Open in Visual Studio:</strong></p>
+<pre><code class="lang-cmd"><span class="hljs-built_in">cd</span> ..
+<span class="hljs-built_in">start</span> GoPxLSdkNet.sln
+</code></pre>
+</li>
+<li><p><strong>Select build configuration:</strong></p>
+<ul>
+<li>Configuration: <strong>Debug</strong> or <strong>Release</strong></li>
+<li>Platform: <strong>Any CPU</strong> or <strong>x64</strong></li>
+</ul>
+</li>
+<li><p><strong>Build the solution:</strong></p>
+<ul>
+<li>Menu: Build → Build Solution (or Ctrl+Shift+B)</li>
+<li>All projects (SDK library + 17 samples) will be built</li>
+</ul>
+</li>
+<li><p><strong>Build output locations:</strong></p>
+<ul>
+<li>Debug builds: <code>GoPxL_SDK_dotNet/bin/win64d/</code></li>
+<li>Release builds: <code>GoPxL_SDK_dotNet/bin/win64/</code></li>
+<li>Assemblies: <code>GoPxLSdkNet.dll</code> and sample executables</li>
+<li>Dependencies: Required DLLs are copied automatically</li>
+</ul>
+</li>
+</ol>
+<p><strong>Alternative - Command Line Build:</strong></p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_dotNet\Gocator
+msbuild GoPxLSdkNet<span class="hljs-selector-class">.sln</span> /<span class="hljs-selector-tag">p</span>:Configuration=Release /<span class="hljs-selector-tag">p</span>:Platform=<span class="hljs-string">"Any CPU"</span>
+</code></pre>
+<p><strong>Clean Build:</strong></p>
+<ul>
+<li>Visual Studio: Build → Clean Solution</li>
+<li>Command line: <code>msbuild GoPxLSdkNet.sln /t:Clean</code></li>
+</ul>
+
+<blockquote>
+<p><strong>Note:</strong> The <code>python -m generate</code> step is only required when building from source. SDK packages distributed from LMI Technologies include pre-generated project files.</p>
+</blockquote>
+<h2 id="using-rest">Using the REST API</h2>
+
+  <h3>Main Classes and Methods</h3>
+
+  <p>The GoPxL SDK provides several key classes for interacting with sensors via the REST API:</p>
+
+  <ul>
+    <li><strong>GoSystem</strong> - Primary class for managing sensor connections and system state. Provides high-level methods like <code>Connect()</code>,
+  <code>Start()</code>, <code>Stop()</code>, and <code>Disconnect()</code>. Access the REST client via <code>system.Client()</code></li>
+
+    <li><strong>GoRestClient</strong> - Handles all REST API communication. Accessed through <code>system.Client()</code>, it provides methods for:
+      <ul>
+        <li><code>Read(path)</code> - Retrieve resource content (for Readable resources)</li>
+        <li><code>Update(path, payload)</code> - Modify resource properties (for Observable resources)</li>
+        <li><code>Create(path, payload)</code> - Create new collection items (for Collection resources)</li>
+        <li><code>Delete(path)</code> - Remove resources (for Collection resources)</li>
+        <li><code>Call(path)</code> - Invoke actions and commands (for Callable resources)</li>
+        <li><code>Subscribe(path)</code> / <code>Unsubscribe(path)</code> - Manage event notifications (for Observable resources)</li>
+      </ul>
+    </li>
+
+    <li><strong>GoJson</strong> - JSON manipulation class for constructing payloads and parsing responses. Use <code>At(path)</code> to navigate nested
+  properties and <code>Get&lt;T&gt;()</code> to extract typed values</li>
+
+    <li><strong>GoGdpClient</strong> - Handles high-bandwidth binary data streaming over the GDP protocol (port 3601). Use <code>Connect()</code> and
+  <code>ReceiveDataSync()</code> to receive profiles, surfaces, and measurements</li>
+  </ul>
+  <h3>How REST API is Used Under the Hood</h3>
+
+  <p>The SDK abstracts REST API interactions through high-level methods, but understanding the underlying REST operations is crucial for advanced scenarios.
+  Every SDK operation maps to REST API calls:</p>
+
+  <ul>
+    <li><strong>Resource paths</strong> - The SDK uses hierarchical URI paths like <code>/scan/scanners/scanner-0/sensors/sensor-0</code> to address specific
+   resources (scanners (sensor groups), sensors, tools, control protocols). Each path follows the format <code>/collection/item-id/subcollection/subitem-id</code></li>
+
+  <li><strong>Resource types and operations</strong> - Resources in the REST API are categorized by type, which determines the available operations:
+    <ul>
+      <li><strong>Standard</strong> - Resources that contain JSON properties and can be read using <code>Read()</code> and modified using
+  <code>Update()</code></li>
+      <li><strong>Observable</strong> - Resources that can be monitored via <code>Subscribe()</code> for asynchronous change notifications. Unless otherwise
+  stated, all resources are Observable</li>
+      <li><strong>Collection</strong> - Resources that contain multiple items, supporting <code>Create()</code> to add new items and <code>Delete()</code> to
+   remove items</li>
+      <li><strong>Callable</strong> - Action/command resources invoked using <code>Call()</code> (e.g., <code>/system/commands/start</code>,
+  <code>/scan/scanners/scanner-0/actions/trigger</code>)</li>
+    </ul>
+  </li>
+
+    <li><strong>Response handling</strong> - All REST operations return responses containing <code>status</code> (1=Success), <code>payload</code> (JSON
+  data), and <code>path</code>. The SDK's <code>CheckResponse()</code> method validates the status and throws exceptions for errors, while
+  <code>Payload()</code> extracts JSON data for parsing:
+      <pre><code>GoJson response = system.Client().Read("/system").GetResponse().Payload();
+  int runState = response.At("runState").Get&lt;int&gt;();</code></pre>
+    </li>
+
+    <li><strong>Subscriptions and notifications</strong> - For event-driven applications, use <code>system.Client().Subscribe(path)</code> to receive
+  asynchronous notifications when Observable resources change (e.g., <code>sub /system</code> notifies when runState transitions, <code>sub /tools/*</code>
+  notifies when any tool updates). This eliminates polling overhead</li>
+
+    <li><strong>GDP integration</strong> - While configuration uses REST API over the control port, high-bandwidth data streaming uses the separate GDP
+  protocol (port 3601). Enable GDP via REST (<code>system.Client().Update("/controls/gocator", {"enabled":true})</code>), then use <code>GoGdpClient</code>
+  to receive binary messages (profiles, surfaces, measurements, images) with message types identified by enum values rather than parsing JSON</li>
+
+    <li><strong>Error handling</strong> - REST errors return structured JSON in <code>payload.errors</code> with status codes and descriptions. The SDK
+  throws <code>GoRequestError</code> for failed REST commands (invalid paths, timeout) and <code>GoChannelError</code> for connection issues, allowing
+  targeted exception handling</li>
+  </ul>
+
+  <p>For developers extending SDK functionality, directly using <code>system.Client().Read()</code>, <code>Update()</code>, <code>Call()</code>, etc. with
+  custom resource paths enables accessing any REST API feature not wrapped by high-level SDK classes. Consult the REST API reference documentation (located
+  in the "doc" folder) for complete information including:</p>
+
+  <ul>
+    <li><strong>Resource Reference</strong> - Complete list of all available resources organized by category:
+      <ul>
+        <li>General resources (system, version, jobs, replay)</li>
+        <li>Scanner and sensor configuration (scan engines for G2/G3/G4/G5 sensors)</li>
+        <li>Tool resources (measurement tools, inputs/outputs)</li>
+        <li>Control protocols (GDP, HMI, Modbus, EtherNet/IP, PROFINET, Digital Output, Ethernet ASCII)</li>
+        <li>Metrics resources (performance statistics and system health)</li>
+        <li>Routine resources (alignment, calibration workflows)</li>
+      </ul>
+    </li>
+    <li><strong>User Guide</strong> - Detailed explanations of REST API concepts:
+      <ul>
+        <li>Resource design and request methods (Create, Read, Update, Delete, Call, Subscribe)</li>
+        <li>Resource types and traits (Standard, Observable, Collection, Callable)</li>
+        <li>Connection and message framing (TCP protocol, MessagePack/JSON serialization)</li>
+        <li>Notification and streaming (subscription patterns, event handling)</li>
+        <li>Schema and data types (property validation, units, enums)</li>
+        <li>GDP (GoPxL Data Protocol) for high-bandwidth binary data streaming</li>
+        <li>HAL (Hypertext Application Language) for resource discovery</li>
+        <li>Versioning and compatibility guidelines</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2 id="workflow">SDK Workflow Overview</h2>
+
+  <p>A typical GoPxL SDK application follows this workflow pattern, as demonstrated in the ConfigureSensor sample:</p>
+
+  <ol>
+    <li><strong>Initialize the SDK</strong> - Construct the GoApiLib framework to initialize the underlying kApi and GoApi foundations that handle binary
+  protocol communication:
+      <pre><code>kAssembly goApiLib = kNULL;
+  GoApiLib_Construct(&amp;goApiLib);</code></pre>
+    </li>
+
+    <li><strong>Connect to the sensor</strong> - Create a <code>GoSystem</code> object, set the sensor IP address and control port (default 3600), then call
+  <code>system.Connect()</code> to establish a TCP connection:
+      <pre><code>GoSystem system;
+  kIpAddress systemIpAddress;
+  kIpAddress_Parse(&amp;systemIpAddress, "192.168.1.10");
+  system.SetAddress(systemIpAddress);
+  system.SetControlPort(3600);
+  system.Connect();</code></pre>
+    </li>
+
+    <li><strong>Configure the sensor</strong> - Update scanner (aka sensor group) and sensor settings through REST API calls:
+      <ul>
+        <li>Read current configuration: <code>system.Client().Read("/scan/scanners/scanner-0")</code></li>
+        <li>Update parameters: <code>system.Client().Update(path, payload)</code> where payload is JSON containing the properties to modify (e.g., trigger
+  source, exposure values, active area dimensions)</li>
+        <li>The SDK uses <strong>patch semantics by default</strong>, meaning you only specify properties you want to change—the rest remain unchanged</li>
+      </ul>
+      <pre><code>GoJson payload = GoJson(R"({"parameters": {"exposureSettings": {"singleExposure": 1200}}})");
+  system.Client().Update("/scan/scanners/scanner-0/sensors/sensor-0", payload).CheckResponse(20000);</code></pre>
+    </li>
+
+    <li><strong>Configure tools and outputs</strong> (if needed) - Create measurement tools via <code>system.Client().Create("/tools", {"type":
+  "ProfileArea"})</code>, configure tool parameters, and map outputs to control protocols:
+      <pre><code>GoJson createPayload = GoJson(R"({"type": "ProfileArea"})");
+  GoJson response = system.Client().Create("/tools", createPayload).GetResponse().Payload();
+  string toolId = response.At("id").ToString();</code></pre>
+    </li>
+
+    <li><strong>Start data acquisition</strong> - Call <code>system.Start()</code> which internally invokes the REST API command <code>call
+  /system/commands/start</code> to transition the system to Running state:
+      <pre><code>system.Start();</code></pre>
+    </li>
+
+    <li><strong>Receive data</strong> - For measurement/profile/surface data, connect a <code>GoGdpClient</code> to the GDP port (default 3601) and call
+  <code>ReceiveDataSync()</code> to retrieve binary data streams:
+      <pre><code>system.Client().Update("/controls/gocator", GoJson("{\"enabled\":true}")).CheckResponse(20000);
+  auto gdpClient = std::make_unique&lt;GoGdpClient&gt;();
+  gdpClient-&gt;Connect(system.Address(), system.GdpPort());
+  gdpClient-&gt;ReceiveDataSync(20000);
+
+  const GoDataSet&amp; dataSet = gdpClient-&gt;DataSet();
+  for (size_t i = 0; i &lt; dataSet.Count(); i++) {
+      const auto&amp; msg = dataSet.GdpMsgAt(i);
+      if (msg.Type() == MessageType::MEASUREMENT) {
+          const auto&amp; measurementMsg = static_cast&lt;const GoGdpMeasurement&amp;&gt;(msg);
+          std::cout &lt;&lt; "Value: " &lt;&lt; measurementMsg.Value() &lt;&lt; std::endl;
+      }
+  }</code></pre>
+    </li>
+
+    <li><strong>Stop and cleanup</strong> - Call <code>system.Stop()</code> and <code>system.Disconnect()</code> to halt acquisition and close connections:
+      <pre><code>system.Stop();
+  system.Disconnect();
+  kDestroyRef(&amp;goApiLib);</code></pre>
+    </li>
+  </ol>
+
+<h2 id="available-samples">Available Samples</h2>
+<p>Both C++ and .NET SDKs include the following 17 sample applications:</p>
+<table>
+<thead>
+<tr>
+<th>Sample</th>
+<th>Description</th>
+<th>Key Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AlignSensor</strong></td>
+<td>Perform sensor alignment operations</td>
+<td>Alignment workflows, transformation matrices</td>
+</tr>
+<tr>
+<td><strong>BackupRestore</strong></td>
+<td>Save and restore sensor configurations</td>
+<td>Backup/restore operations, configuration management</td>
+</tr>
+<tr>
+<td><strong>ConfigureSensor</strong></td>
+<td>Configure sensor parameters</td>
+<td>Trigger source, exposure, digital I/O, scan settings</td>
+</tr>
+<tr>
+<td><strong>ConfigureTool</strong></td>
+<td>Add and configure measurement tools</td>
+<td>Tool creation, parameter configuration, output settings</td>
+</tr>
+<tr>
+<td><strong>Discover</strong></td>
+<td>Discover Gocator sensors on the network</td>
+<td>Network discovery, sensor enumeration</td>
+</tr>
+<tr>
+<td><strong>MultiSensorLayout</strong></td>
+<td>Configure multi-sensor layouts</td>
+<td>Multi-sensor coordination, layout configuration</td>
+</tr>
+<tr>
+<td><strong>MultilayerOutputs</strong></td>
+<td>Work with multi-layer scan data</td>
+<td>Multi-layer profiles, layer selection</td>
+</tr>
+<tr>
+<td><strong>Receive2dImage</strong></td>
+<td>Receive and process 2D image data</td>
+<td>Image data reception, pixel access</td>
+</tr>
+<tr>
+<td><strong>ReceiveAsync</strong></td>
+<td>Receive data asynchronously</td>
+<td>Asynchronous data handling, callbacks/async patterns</td>
+</tr>
+<tr>
+<td><strong>ReceiveImage</strong></td>
+<td>Receive and process image data</td>
+<td>Image reception, data processing</td>
+</tr>
+<tr>
+<td><strong>ReceiveMeasurement</strong></td>
+<td>Receive measurement values from tools</td>
+<td>Measurement data, tool outputs</td>
+</tr>
+<tr>
+<td><strong>ReceiveMetrics</strong></td>
+<td>Receive sensor metrics data</td>
+<td>Performance metrics, statistics</td>
+</tr>
+<tr>
+<td><strong>ReceiveProfile</strong></td>
+<td>Receive profile data</td>
+<td>Profile data reception, point cloud access</td>
+</tr>
+<tr>
+<td><strong>ReceiveString</strong></td>
+<td>Receive string data</td>
+<td>String data outputs</td>
+</tr>
+<tr>
+<td><strong>ReceiveSurface</strong></td>
+<td>Receive surface data</td>
+<td>Surface data reception, 3D point clouds</td>
+</tr>
+<tr>
+<td><strong>ReplayData</strong></td>
+<td>Record, download, upload, and replay data</td>
+<td>Data recording, file operations, replay mode</td>
+</tr>
+<tr>
+<td><strong>SaveJob</strong></td>
+<td>Save and manage sensor jobs</td>
+<td>Job management, job file operations</td>
+</tr>
+</tbody>
+</table>
+<p>Each sample is a self-contained console application demonstrating specific SDK functionality. These samples serve as practical starting points for developing your own applications.</p>
+
+<h2 id="running-the-samples">Running the Samples</h2>
+<h3 id="configuration">Configuration</h3>
+<p>Before running any sample, you must update the sensor connection parameters in the source code:</p>
+<p><strong>C++ Example (from any sample .cpp file):</strong></p>
+<pre><code class="lang-cpp"><span class="hljs-keyword">const</span> <span class="hljs-built_in">std</span>::<span class="hljs-built_in">string</span> SENSOR_IP = <span class="hljs-string">"192.168.1.10"</span>;  <span class="hljs-comment">// Update with your sensor's IP address</span>
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">uint16_t</span> CONTROL_PORT = <span class="hljs-number">3600</span>;             <span class="hljs-comment">// Default control port is 3600</span>
+</code></pre>
+<p><strong>.NET Example (from any sample .cs file):</strong></p>
+<pre><code class="lang-csharp"><span class="hljs-keyword">private</span> <span class="hljs-keyword">const</span> <span class="hljs-keyword">string</span> SENSOR_IP = <span class="hljs-string">"192.168.1.10"</span>;  <span class="hljs-comment">// Update with your sensor's IP address</span>
+<span class="hljs-keyword">private</span> <span class="hljs-keyword">const</span> <span class="hljs-keyword">ushort</span> CONTROL_PORT = <span class="hljs-number">3600</span>;          <span class="hljs-comment">// Default control port is 3600</span>
+</code></pre>
+<p><strong>To find your sensor&#39;s IP address:</strong></p>
+<ol>
+<li>Use the <strong>Discover</strong> sample to scan the network</li>
+<li>Use GoPxL Manager application</li>
+<li>Check the sensor&#39;s display or web interface</li>
+<li>Check your DHCP server for assigned addresses</li>
+</ol>
+<p><strong>Important:</strong> After changing these values, you must rebuild the sample.</p>
+<h3 id="executing-c-samples">Executing C++ Samples</h3>
+<h4 id="windows">Windows</h4>
+<ol>
+<li><p><strong>Navigate to the output directory:</strong></p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_Cpp<span class="hljs-symbol">\b</span>in<span class="hljs-symbol">\w</span>in64
+</code></pre>
+</li>
+<li><p><strong>Run a sample:</strong></p>
+<pre><code class="lang-cmd"><span class="hljs-selector-tag">AlignSensor</span><span class="hljs-selector-class">.exe</span>
+</code></pre>
+</li>
+</ol>
+<p><strong>Or run from Visual Studio:</strong></p>
+<ul>
+<li>Right-click the sample project → Set as Startup Project</li>
+<li>Press F5 (Debug) or Ctrl+F5 (Run without debugging)</li>
+</ul>
+<h4 id="linux">Linux</h4>
+<ol>
+<li><p><strong>Navigate to the output directory:</strong></p>
+<pre><code class="lang-bash">cd GoPxL_SDK_Cpp<span class="hljs-regexp">/bin/</span>linux_x64
+</code></pre>
+</li>
+<li><p><strong>Ensure execute permissions:</strong></p>
+<pre><code class="lang-bash"><span class="hljs-keyword">chmod</span> +<span class="hljs-keyword">x</span> AlignSensor
+</code></pre>
+</li>
+<li><p><strong>Run a sample:</strong></p>
+<pre><code class="lang-bash">./AlignSensor
+</code></pre>
+</li>
+</ol>
+<p><strong>Or with full path:</strong></p>
+<pre><code class="lang-bash">GoPxL_SDK_Cpp<span class="hljs-regexp">/bin/</span>linux_x64<span class="hljs-regexp">/AlignSensor</span>
+</code></pre>
+<h3 id="executing-net-samples">Executing .NET Samples</h3>
+<h4 id="from-visual-studio-recommended-">From Visual Studio (Recommended)</h4>
+<ol>
+<li><p><strong>Set the desired sample as the startup project:</strong></p>
+<ul>
+<li>In Solution Explorer, right-click the sample project (e.g., &quot;AlignSensor&quot;)</li>
+<li>Select &quot;Set as Startup Project&quot;</li>
+</ul>
+</li>
+<li><p><strong>Run the sample:</strong></p>
+<ul>
+<li>Press <strong>F5</strong> (Debug mode - allows breakpoints)</li>
+<li>Or press <strong>Ctrl+F5</strong> (Run without debugging - faster)</li>
+</ul>
+</li>
+<li><p><strong>View output:</strong></p>
+<ul>
+<li>Console window will display sample output</li>
+<li>Errors and exceptions are shown in the Output window (View → Output)</li>
+</ul>
+</li>
+</ol>
+<h4 id="from-command-line">From Command Line</h4>
+<ol>
+<li><p><strong>Navigate to the output directory:</strong></p>
+<p>For Debug builds:</p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_dotNet<span class="hljs-symbol">\b</span>in<span class="hljs-symbol">\w</span>in64d
+</code></pre>
+<p>For Release builds:</p>
+<pre><code class="lang-cmd">cd GoPxL_SDK_dotNet<span class="hljs-symbol">\b</span>in<span class="hljs-symbol">\w</span>in64
+</code></pre>
+</li>
+<li><p><strong>Run a sample:</strong></p>
+<pre><code class="lang-cmd"><span class="hljs-selector-tag">AlignSensor</span><span class="hljs-selector-class">.exe</span>
+</code></pre>
+</li>
+</ol>
+<h3 id="sample-workflow-example">Sample Workflow Example</h3>
+<p><strong>Typical workflow for testing samples:</strong></p>
+<ol>
+<li><p><strong>Discover sensors:</strong></p>
+<ul>
+<li>Run the Discover sample</li>
+<li>Note the sensor IP address from the output</li>
+</ul>
+</li>
+<li><p><strong>Update source code:</strong></p>
+<ul>
+<li>Open the sample source file you want to run</li>
+<li>Update <code>SENSOR_IP</code> constant with your sensor&#39;s address</li>
+<li>Save the file</li>
+</ul>
+</li>
+<li><p><strong>Rebuild the sample:</strong></p>
+<ul>
+<li>Rebuild the project</li>
+</ul>
+</li>
+<li><p><strong>Run the sample:</strong></p>
+<ul>
+<li>Execute the sample application</li>
+</ul>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="build-issues">Build Issues</h3>
+<p><strong>Problem: &quot;Python not found&quot; or &quot;python command not recognized&quot;</strong></p>
+<ul>
+<li><strong>Windows</strong>: Install Python from <a href="https://python.org">https://python.org</a> and ensure it&#39;s in your PATH</li>
+<li><strong>Linux</strong>: <code>sudo apt install python3 python3-pip</code></li>
+</ul>
+<p><strong>Problem: &quot;Cannot find Visual Studio&quot; (C++)</strong></p>
+<ul>
+<li>Ensure Visual Studio 2017 or later is installed with C++ workload</li>
+<li>Run from &quot;Developer Command Prompt for VS&quot;</li>
+</ul>
+<p><strong>Problem: &quot;g++ not found&quot; (Linux)</strong></p>
+<pre><code class="lang-bash">sudo apt <span class="hljs-keyword">update</span>
+sudo apt <span class="hljs-keyword">install</span> <span class="hljs-keyword">build</span>-essential
+</code></pre>
+<p><strong>Problem: &quot;.NET Framework 4.7.2 not found&quot;</strong></p>
+<ul>
+<li>Install .NET Framework 4.7.2 Developer Pack</li>
+<li>Or retarget the solution to your installed version</li>
+</ul>
+<p><strong>Problem: &quot;Permission denied&quot; when running Linux samples</strong></p>
+<pre><code class="lang-bash">chmod +x GoPxL_SDK_Cpp<span class="hljs-regexp">/bin/</span>linux_x64<span class="hljs-regexp">/*</span>
+</code></pre>
+<h3 id="runtime-issues">Runtime Issues</h3>
+<p><strong>Problem: &quot;Connection refused&quot; or &quot;Cannot connect to sensor&quot;</strong></p>
+<ul>
+<li>Verify sensor IP address is correct</li>
+<li>Check sensor is powered on and network cable is connected</li>
+<li>Ping the sensor: <code>ping 192.168.1.10</code></li>
+<li>Check firewall settings are not blocking ports 3600-3601</li>
+<li>Ensure sensor is in remote mode (accelerated or buddied)</li>
+</ul>
+<p><strong>Problem: &quot;Timeout waiting for data&quot;</strong></p>
+<ul>
+<li>Verify sensor is in scanning mode</li>
+<li>Check sensor is properly configured with a valid job</li>
+<li>For samples requiring live data, ensure sensor can trigger and scan</li>
+</ul>
+<p><strong>Problem: Linux samples crash with &quot;error while loading shared libraries&quot;</strong></p>
+<pre><code class="lang-bash">export LD_LIBRARY_PATH=$<span class="hljs-symbol">LD_LIBRARY_PATH:</span>$PWD/../../<span class="hljs-class"><span class="hljs-keyword">lib</span>/<span class="hljs-title">linux_x64</span></span>
+</code></pre>
+<p>Or add permanently to <code>~/.bashrc</code>:</p>
+<pre><code class="lang-bash"><span class="hljs-built_in">echo</span> <span class="hljs-string">'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/GoPxL_SDK_Cpp/lib/linux_x64'</span> &gt;&gt; ~/.bashrc
+<span class="hljs-built_in">source</span> ~/.bashrc
+</code></pre>
+<p><strong>Problem: &quot;No sensors found&quot; when running Discover</strong></p>
+<ul>
+<li>Ensure sensor and PC are on the same network/subnet</li>
+<li>Check UDP broadcast is not blocked by firewall</li>
+<li>Try direct connection with IP address instead</li>
+</ul>
+<p><strong>Problem: Windows Firewall blocks the application (.NET)</strong></p>
+<ul>
+<li>Click &quot;Allow access&quot; when prompted</li>
+<li>Or manually add exception: Windows Defender Firewall → Allow an app</li>
+</ul>
+<h3 id="common-configuration-errors">Common Configuration Errors</h3>
+<p><strong>Problem: Sensor rejects connection</strong></p>
+<ul>
+<li>Another application may have exclusive control</li>
+<li>Close GoPxL Manager or other SDK applications</li>
+<li>Reboot the sensor if necessary</li>
+</ul>
+<p><strong>Problem: Data reception fails</strong></p>
+<ul>
+<li>Verify sensor is configured with valid scan settings</li>
+<li>Check sensor firmware version compatibility</li>
+<li>Ensure sufficient network bandwidth</li>
+</ul>
+<h2 id="api-documentation">API Documentation</h2>
+<p>Complete API reference documentation is available in the <code>doc</code> folder:</p>
+<h3 id="c-sdk">C++ SDK</h3>
+<ul>
+<li><strong>C++ API Reference</strong>: <a href="doc/class-reference.html">doc/class-reference.html</a> - Detailed C++ class and method documentation</li>
+<li><strong>API & Protocol Manual</strong>: <a href="doc/api-protocol-manual.html">doc/api-protocol-manual.html</a> - Complete API and protocol reference</li>
+</ul>
+<h3 id="-net-sdk">.NET SDK</h3>
+<ul>
+<li><strong>.NET API Reference</strong>: <a href="doc/class-reference.html">doc/class-reference.html</a> - Detailed .NET class and method documentation</li>
+<li><strong>API & Protocol Manual</strong>: <a href="doc/api-protocol-manual.html">doc/api-protocol-manual.html</a> - Complete API and protocol reference</li>
+<li><strong>IntelliSense</strong>: XML documentation is included for inline help in Visual Studio</li>
+</ul>
+<p>Click the links above to open the documentation in your web browser.</p>
+<h2 id="units">Units</h2>
+<p>Both SDKs use the following standard units:</p>
+<ul>
+<li><strong>Distance</strong>: millimeters (mm)</li>
+<li><strong>Area</strong>: square millimeters (mm²)</li>
+<li><strong>Volume</strong>: cubic millimeters (mm³)</li>
+<li><strong>Frequency</strong>: hertz (Hz)</li>
+<li><strong>Time</strong>: microseconds (μs)</li>
+<li><strong>Angle</strong>: degrees (°)</li>
+</ul>
+<h2 id="support">Support</h2>
+<p><strong>Resources:</strong></p>
+<ul>
+<li>SDK Documentation: <a href="doc/class-reference.html">doc/class-reference.html</a></li>
+<li>API & Protocol Manual: <a href="doc/api-protocol-manual.html">doc/api-protocol-manual.html</a></li>
+<li>Downloads: <a href="https://lmi3d.com/product-downloads">https://lmi3d.com/product-downloads</a></li>
+<li>Product Support: <a href="https://lmi3d.com/support">https://lmi3d.com/support</a></li>
+</ul>
+<p><strong>For Technical Support:</strong></p>
+<ul>
+<li>Contact your local LMI Technologies distributor</li>
+<li>Visit: <a href="https://lmi3d.com/contact">https://lmi3d.com/contact</a></li>
+</ul>
+<h2 id="license">License</h2>
+<p>This SDK is provided under the terms specified in the <code>license.txt</code> file included with the SDK distribution.</p>
+<p>Copyright © 2025 LMI Technologies Inc. All rights reserved.</p>
+</body></html>

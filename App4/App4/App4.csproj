@@ -1,0 +1,118 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>App4</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Assets\PointCloud3DViewer.html" />
+    <None Remove="Auto_Page.xaml" />
+    <None Remove="Camera_Page.xaml" />
+    <None Remove="Manuel_Page.xaml" />
+    <None Remove="PAGES\Klima_Editor_Page.xaml" />
+    <None Remove="PAGES\Recipes_Page.xaml" />
+    <None Remove="PAGES\Robot_Page.xaml" />
+    <None Remove="Settings_Page.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3179.45" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7463" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="GoPxLSdkNet">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\GoPxLSdkNet.dll</HintPath>
+    </Reference>
+    <Reference Include="MessagePack">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\MessagePack.dll</HintPath>
+    </Reference>
+    <Reference Include="MessagePack.Annotations">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\MessagePack.Annotations.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.NET.StringTools">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Microsoft.NET.StringTools.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\System.Collections.Immutable.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Assets\PointCloud3DViewer.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Assets\ThreeJS_Viewer.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="PAGES\Klima_Editor_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="PAGES\Recipes_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Camera_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Manuel_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Auto_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="PAGES\Robot_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Settings_Page.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+    <!-- Publish Properties -->
+  <PropertyGroup>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+  </PropertyGroup>
+</Project>

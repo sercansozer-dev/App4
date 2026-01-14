@@ -1,0 +1,27 @@
+var files =
+[
+    [ "GoGdpMsg", "dir_389a25c5f2751516590104e22c582660.html", "dir_389a25c5f2751516590104e22c582660" ],
+    [ "Internal", "dir_fe10b436a84a20bae4af599f57964cc6.html", "dir_fe10b436a84a20bae4af599f57964cc6" ],
+    [ "Res", "dir_0a3cb0001095bace337239aa4074ac1b.html", "dir_0a3cb0001095bace337239aa4074ac1b" ],
+    [ "Def.h", "_def_8h.html", "_def_8h" ],
+    [ "GoChannelError.h", "_go_channel_error_8h.html", null ],
+    [ "GoDataSet.h", "_go_data_set_8h.html", null ],
+    [ "GoDiscoveryClient.h", "_go_discovery_client_8h.html", "_go_discovery_client_8h" ],
+    [ "GoGdpClient.h", "_go_gdp_client_8h.html", null ],
+    [ "GoInstance.h", "_go_instance_8h.html", null ],
+    [ "GoJson.h", "_go_json_8h.html", "_go_json_8h" ],
+    [ "GoJsonError.h", "_go_json_error_8h.html", null ],
+    [ "GoJsonIterator.h", "_go_json_iterator_8h.html", null ],
+    [ "GoJsonPointer.h", "_go_json_pointer_8h.html", null ],
+    [ "GoNotificationType.h", "_go_notification_type_8h.html", null ],
+    [ "GoRequest.h", "_go_request_8h.html", null ],
+    [ "GoRequestError.h", "_go_request_error_8h.html", null ],
+    [ "GoRequestMethod.h", "_go_request_method_8h.html", null ],
+    [ "GoResponse.h", "_go_response_8h.html", null ],
+    [ "GoResponseType.h", "_go_response_type_8h.html", null ],
+    [ "GoRestClient.h", "_go_rest_client_8h.html", "_go_rest_client_8h" ],
+    [ "GoSystem.h", "_go_system_8h.html", null ],
+    [ "GoTransaction.h", "_go_transaction_8h.html", "_go_transaction_8h" ],
+    [ "GoUri.h", "_go_uri_8h.html", null ],
+    [ "Version.h", "_version_8h.html", "_version_8h" ]
+];
