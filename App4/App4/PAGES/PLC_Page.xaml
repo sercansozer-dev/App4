@@ -16,7 +16,7 @@
                 <RowDefinition Height="200"/>
                 <RowDefinition Height="280"/>
                 <RowDefinition Height="300"/>
-                <RowDefinition Height="280"/>
+                <RowDefinition Height="800"/>
                 <RowDefinition Height="50"/>
             </Grid.RowDefinitions>
 
@@ -344,13 +344,15 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
+                    <!-- Header -->
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <Grid ColumnSpacing="10">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
@@ -361,13 +363,39 @@
                             <Button Grid.Column="1" x:Name="AddVariableBtn" Content="➕ Yeni Değişken Ekle" 
                                     Background="#00A4EF" Foreground="White" CornerRadius="4" 
                                     Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
-                                    Click="AddVariableBtn_Click" VerticalAlignment="Center"/>
+                                    Click="AddVariableBtn_Click" VerticalAlignment="Center" HorizontalAlignment="Right"/>
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden" MaxHeight="800">
-                            <StackPanel x:Name="PLCVariablesContainer" Spacing="6"/>
+                    <!-- Sütun Başlıkları (Header Row) -->
+                    <Border Grid.Row="1" Background="#1A1A1C" Padding="8" BorderThickness="0,1,0,1" BorderBrush="#333333">
+                        <Grid ColumnSpacing="8" Padding="4,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="70"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="#" FontSize="10" FontWeight="Bold" Foreground="#FFB81C" TextAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Değişken Adı" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="Tip" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="3" Text="Değer" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="4" Text="Min/Max" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="5" Text="Force Değeri" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="6" Text="Force" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="7" Text="İşlem" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Veri Satırları (Scroll Area) -->
+                    <Grid Grid.Row="2" Background="#0D0D0D" Padding="4">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden" MaxHeight="700">
+                            <StackPanel x:Name="PLCVariablesContainer" Spacing="6" Padding="4,0"/>
                         </ScrollViewer>
                     </Grid>
                 </Grid>
