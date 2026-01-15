@@ -75,6 +75,11 @@
                 <NavigationViewItem Content="Otomatik Mod" Tag="auto" Icon="Target" Margin="0,5,0,0"/>
                 <NavigationViewItem Content="Manuel Mod" Tag="manuel" Icon="Edit" Margin="0,5,0,0"/>
                 <NavigationViewItem Icon="Camera" Content="Kamera Görüntüsü" Tag="camera" Margin="0,5,0,0"/>
+                <NavigationViewItem Content="PLC Kontrol" Tag="plc">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE713;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Reçete Yönetimi" Tag="recipes" Icon="Library" Margin="0,5,0,0"/>
                 <NavigationViewItem Content="Robot Entegrasyonu" Tag="robot" Icon="Remote" Margin="0,5,0,0"/>
                 <NavigationViewItem Content="Klima Editörü" Tag="Klima_Editor_Page">

@@ -17,6 +17,7 @@
     <None Remove="Camera_Page.xaml" />
     <None Remove="Manuel_Page.xaml" />
     <None Remove="PAGES\Klima_Editor_Page.xaml" />
+    <None Remove="PAGES\PLC_Page.xaml" />
     <None Remove="PAGES\Recipes_Page.xaml" />
     <None Remove="PAGES\Robot_Page.xaml" />
     <None Remove="Settings_Page.xaml" />
@@ -113,6 +114,12 @@
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Assets\ThreeJS_Viewer.html" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Page Update="PAGES\PLC_Page.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
     <!-- Publish Properties -->
   <PropertyGroup>

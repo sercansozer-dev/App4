@@ -184,7 +184,8 @@ namespace App4
             {
                 case "auto": ContentFrame.Navigate(typeof(Auto_Page), null, transition); break;
                 case "manuel": ContentFrame.Navigate(typeof(Manuel_Page), null, transition); break;
-                case "camera": ContentFrame.Navigate(typeof(Camera_Page), null, transition); break; // Alt çizgiye dikkat!
+                case "camera": ContentFrame.Navigate(typeof(Camera_Page), null, transition); break;
+                case "plc": ContentFrame.Navigate(typeof(PLC_Page), null, transition); break;
                 case "settings": ContentFrame.Navigate(typeof(Settings_Page), null, transition); break;
                 case "robot": ContentFrame.Navigate(typeof(Robot_Page), null, transition); break;
                 case "recipes": ContentFrame.Navigate(typeof(Recipes_Page), null, transition); break;
