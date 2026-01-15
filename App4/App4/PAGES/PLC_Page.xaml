@@ -16,6 +16,7 @@
                 <RowDefinition Height="200"/>
                 <RowDefinition Height="280"/>
                 <RowDefinition Height="300"/>
+                <RowDefinition Height="250"/>
                 <RowDefinition Height="800"/>
                 <RowDefinition Height="50"/>
             </Grid.RowDefinitions>
@@ -338,13 +339,12 @@
             </Border>
 
             <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- PLC DEĞİŞKENLERİ VE FORCE KONTROL -->
+            <!-- PLC BAĞLANTI AYARLARI VE LOG -->
             <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="5" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -356,57 +356,144 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
+
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                                 <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
-                                <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
+                                <TextBlock Text="PLC BAĞLANTI AYARLARI" FontSize="12" FontWeight="Bold" Foreground="White"/>
                             </StackPanel>
-                            <Button Grid.Column="1" x:Name="ImportVariablesBtn" Content="📤 İçe Aktar" 
-                                    Background="#FF9800" Foreground="White" CornerRadius="4" 
-                                    Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
-                                    Click="ImportVariablesBtn_Click" VerticalAlignment="Center"/>
-                            <Button Grid.Column="2" x:Name="ExportVariablesBtn" Content="📥 Dışa Aktar" 
+
+                            <!-- IP Adresi -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                <TextBlock Text="IP:" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                                <TextBox x:Name="PLCIPAddressBox" Text="192.168.1.100" Width="120" Height="28" 
+                                         Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" 
+                                         FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Port -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                <TextBlock Text="Port:" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                                <TextBox x:Name="PLCPortBox" Text="2000" Width="70" Height="28" 
+                                         Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" 
+                                         FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Bağlan Butonu -->
+                            <Button Grid.Column="3" x:Name="ConnectPLCBtn" Content="🔗 Bağlan" 
                                     Background="#4CAF50" Foreground="White" CornerRadius="4" 
-                                    Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
-                                    Click="ExportVariablesBtn_Click" VerticalAlignment="Center"/>
-                            <Button Grid.Column="3" x:Name="AddVariableBtn" Content="➕ Yeni Değişken Ekle" 
-                                    Background="#00A4EF" Foreground="White" CornerRadius="4" 
-                                    Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
-                                    Click="AddVariableBtn_Click" VerticalAlignment="Center"/>
+                                    Height="28" FontWeight="Bold" FontSize="9" Padding="10,0"
+                                    Click="ConnectPLCBtn_Click" VerticalAlignment="Center"/>
+
+                            <!-- Bağlantı Durumu -->
+                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                <Ellipse x:Name="ConnectionStatusIndicator" Width="12" Height="12" 
+                                         Fill="#FF5252" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ConnectionStatusLabel" Text="Bağlı Değil" 
+                                          FontSize="10" Foreground="#FF5252" FontWeight="Bold" 
+                                          VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Temizle Log Butonu -->
+                            <Button Grid.Column="5" x:Name="ClearLogBtn" Content="🗑️ Logları Temizle" 
+                                    Background="#FF9800" Foreground="White" CornerRadius="4" 
+                                    Height="28" FontWeight="Bold" FontSize="9" Padding="10,0"
+                                    Click="ClearLogBtn_Click" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
 
-                    <!-- Sütun Başlıkları (Header Row) -->
-                    <Border Grid.Row="1" Background="#1A1A1C" Padding="8" BorderThickness="0,1,0,1" BorderBrush="#333333">
-                        <Grid ColumnSpacing="8" Padding="4,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="40"/>
-                                <ColumnDefinition Width="150"/>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="100"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="70"/>
-                                <ColumnDefinition Width="70"/>
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock Grid.Column="0" Text="#" FontSize="10" FontWeight="Bold" Foreground="#FFB81C" TextAlignment="Center" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="Değişken Adı" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="2" Text="Tip" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="3" Text="Değer" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="4" Text="Min/Max" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="5" Text="Force Değeri" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="6" Text="Force" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="7" Text="İşlem" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" TextAlignment="Center" VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
-
-                    <!-- Veri Satırları (Scroll Area) -->
-                    <Grid Grid.Row="2" Background="#0D0D0D" Padding="4">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden" MaxHeight="700">
-                            <StackPanel x:Name="PLCVariablesContainer" Spacing="6" Padding="4,0"/>
+                    <!-- Log Gösterimi -->
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                            <TextBlock x:Name="LogTextBlock" Text="[INFO] PLC Sistemi başlatıldı&#x0a;[INFO] Bağlantı ayarları yapılandırıldı&#x0a;[INFO] Mitsubishi PLC R08 için hazır&#x0a;" 
+                                      Foreground="#00FF88" FontSize="9" FontFamily="Cascadia Mono" 
+                                      TextWrapping="Wrap" Padding="8"/>
                         </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- PLC DEĞİŞKENLERİ VE FORCE KONTROL -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="6" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                            <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
+                            <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Content Area - Input ve Output Yan Yana -->
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- INPUT VARİABLELERİ -->
+                        <Border Grid.Column="0" Background="#0D0D0D" Margin="0,0,4,0" CornerRadius="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="35"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Input Header with Add Button -->
+                                <Border Grid.Row="0" Background="#1A4D2E" CornerRadius="6,6,0,0" Padding="8" BorderThickness="1" BorderBrush="#4CAF50">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="📥 INPUT VARİABLELERİ (PLC'DEN OKU)" FontSize="10" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="➕" Background="#4CAF50" Foreground="White" CornerRadius="3" Height="20" Width="25" Padding="0" FontSize="10" Click="AddInputVariableBtn_Click" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Input Data -->
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                                    <StackPanel x:Name="InputVariablesContainer" Spacing="3" Padding="4"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- OUTPUT VARİABLELERİ -->
+                        <Border Grid.Column="1" Background="#0D0D0D" Margin="4,0,0,0" CornerRadius="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="35"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Output Header with Add Button -->
+                                <Border Grid.Row="0" Background="#4D3A1A" CornerRadius="6,6,0,0" Padding="8" BorderThickness="1" BorderBrush="#FF9800">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="📤 OUTPUT VARİABLELERİ (PLC'YE YAZ)" FontSize="10" FontWeight="Bold" Foreground="#FF9800" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="➕" Background="#FF9800" Foreground="White" CornerRadius="3" Height="20" Width="25" Padding="0" FontSize="10" Click="AddOutputVariableBtn_Click" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Output Data -->
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                                    <StackPanel x:Name="OutputVariablesContainer" Spacing="3" Padding="4"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Grid>
             </Border>
@@ -414,7 +501,7 @@
             <!-- ═══════════════════════════════════════════════════════════════════ -->
             <!-- FOOTER -->
             <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <Border Grid.Row="6" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
+            <Border Grid.Row="7" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
                 <Grid VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
                         <Ellipse Width="10" Height="10" Fill="#4CAF50" VerticalAlignment="Center"/>

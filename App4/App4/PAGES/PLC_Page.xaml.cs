@@ -7,9 +7,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using Windows.Storage.Pickers;
+using Windows.Storage;
 using Windows.UI;
 
 namespace App4.PAGES
@@ -17,61 +21,64 @@ namespace App4.PAGES
     public sealed partial class PLC_Page : Page
     {
         // PLC Deðiþkenleri Koleksiyonu
-        private ObservableCollection<PLCVariable> PLCVariables { get; set; }
+        private ObservableCollection<PLCVariable> InputVariables { get; set; }
+        private ObservableCollection<PLCVariable> OutputVariables { get; set; }
+
+        // PLC Baðlantý Deðiþkenleri
+        private TcpClient _plcClient;
+        private NetworkStream _plcStream;
+        private bool _isConnected = false;
+        private StringBuilder _logBuilder = new StringBuilder();
+
+        // Kalýcýlýk için dosya yolu
+        private readonly string _variablesFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "PLC_Variables.json");
 
         public PLC_Page()
         {
             this.InitializeComponent();
-            PLCVariables = new ObservableCollection<PLCVariable>();
+            InputVariables = new ObservableCollection<PLCVariable>();
+            OutputVariables = new ObservableCollection<PLCVariable>();
             InitializeIOMapping();
             InitializeSystemMonitor();
             InitializeStatistics();
             InitializePLCVariables();
+            LoadVariablesFromFile();
         }
 
-        /// <summary>
-        /// Ýstatistikleri baþlat
-        /// </summary>
         private void InitializeStatistics()
         {
-            // Örnek veriler - gerçek veriler veritabanýndan çekilebilir
             TotalTestsLabel.Text = "1,247";
             SuccessTestsLabel.Text = "1,186";
             FailedTestsLabel.Text = "61";
-            LastTestLabel.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             UptimeLabel.Text = "47.3h";
+            LastTestLabel.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             AvgDurationLabel.Text = "2.36 sn";
             TodayTestsLabel.Text = "47 Test";
             SystemQualityLabel.Text = "A+";
         }
 
-        /// <summary>
-        /// I/O Mapping verilerini dinamik olarak yükle
-        /// </summary>
         private void InitializeIOMapping()
         {
-            var ioMappings = new List<(string Source, string Channel, string Destination, string Status, string Value)>
+            var mappings = new List<(string, string, string, string, string)>
             {
-                ("PLC", "DI01", "Robot.Input.StartSignal", "Aktif", "HIGH"),
-                ("Robot", "DO01", "Camera.Trigger", "Aktif", "PULSE"),
-                ("Camera", "AI01", "PLC.Data.PointCloud", "Aktif", "2048 Points"),
-                ("PLC", "DI02", "Robot.Input.SafetyStop", "Pasif", "LOW"),
-                ("Robot", "DO02", "Camera.Record", "Aktif", "ON"),
-                ("Camera", "AI02", "PLC.Data.Coordinates", "Aktif", "X:125mm"),
-                ("PLC", "DO03", "Robot.LED.Status", "Aktif", "GREEN"),
-                ("Robot", "AI03", "PLC.Position.X", "Aktif", "125.5mm"),
+                ("PLC", "D0", "Robot", "Aktif", "1"),
+                ("Robot", "X1", "Kamera", "Aktif", "1"),
+                ("Kamera", "Result", "PLC", "Aktif", "Pass"),
             };
 
-            foreach (var mapping in ioMappings)
+            foreach (var mapping in mappings)
             {
-                var row = CreateIORow(mapping.Source, mapping.Channel, mapping.Destination, mapping.Status, mapping.Value);
-                IOMapContainer.Children.Add(row);
+                IOMapContainer.Children.Add(CreateIORow(mapping.Item1, mapping.Item2, mapping.Item3, mapping.Item4, mapping.Item5));
             }
         }
 
-        /// <summary>
-        /// I/O Mapping satýrý oluþtur
-        /// </summary>
+        private void InitializeSystemMonitor()
+        {
+            // Statik veriler zaten XAML'de tanýmlý
+        }
+
         private Grid CreateIORow(string source, string channel, string destination, string status, string value)
         {
             var grid = new Grid();
@@ -88,863 +95,279 @@ namespace App4.PAGES
             grid.BorderThickness = new Thickness(0, 0, 0, 1);
             grid.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 0, 164, 239));
 
-            // Kaynak
-            var sourceBlock = new TextBlock
-            {
-                Text = source,
-                Foreground = GetSourceColor(source),
-                FontSize = 10,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(sourceBlock, 0);
-            grid.Children.Add(sourceBlock);
-
-            // Kanal
-            var channelBlock = new TextBlock
-            {
-                Text = channel,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 255, 136)),
-                FontSize = 10,
-                FontFamily = new FontFamily("Cascadia Mono"),
-                VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold
-            };
-            Grid.SetColumn(channelBlock, 1);
-            grid.Children.Add(channelBlock);
-
-            // Oklar (Veri Akýþý)
-            var arrowBlock = new TextBlock
-            {
-                Text = "?",
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 100, 200, 255)),
-                FontSize = 14,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold
-            };
-            Grid.SetColumn(arrowBlock, 2);
-            grid.Children.Add(arrowBlock);
-
-            // Hedef
-            var destinationBlock = new TextBlock
-            {
-                Text = destination,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                FontSize = 10,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(destinationBlock, 3);
-            grid.Children.Add(destinationBlock);
-
-            // Durum Badge
-            var statusColor = status == "Aktif" 
-                ? Windows.UI.Color.FromArgb(255, 76, 175, 80)
-                : Windows.UI.Color.FromArgb(255, 170, 170, 170);
-
-            var statusBlock = new TextBlock
-            {
-                Text = value,
-                Foreground = new SolidColorBrush(statusColor),
-                FontSize = 9,
-                FontFamily = new FontFamily("Cascadia Mono"),
-                VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Right
-            };
-            Grid.SetColumn(statusBlock, 4);
-            grid.Children.Add(statusBlock);
+            AddGridChild(grid, 0, new TextBlock { Text = source, FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 164, 239)) });
+            AddGridChild(grid, 1, new TextBlock { Text = channel, FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)) });
+            AddGridChild(grid, 2, new TextBlock { Text = destination, FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 255, 136)) });
+            AddGridChild(grid, 3, new TextBlock { Text = status, FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)) });
+            AddGridChild(grid, 4, new TextBlock { Text = value, FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), TextAlignment = TextAlignment.Right });
 
             return grid;
         }
 
-        /// <summary>
-        /// Kaynak rengini belirle (PLC, Robot, Camera)
-        /// </summary>
-        private SolidColorBrush GetSourceColor(string source)
+        private void AddGridChild(Grid grid, int column, UIElement element)
         {
-            return source switch
-            {
-                "PLC" => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0)), // Orange
-                "Robot" => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 33, 150, 243)), // Blue
-                "Camera" => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)), // Green
-                _ => new SolidColorBrush(Microsoft.UI.Colors.White)
-            };
+            Grid.SetColumn(element as FrameworkElement, column);
+            grid.Children.Add(element);
         }
 
-        /// <summary>
-        /// Sistem monitörünü baþlat
-        /// </summary>
-        private void InitializeSystemMonitor()
-        {
-            // Burada timer baþlatýp real-time veri güncellenebilir
-            // Þimdilik örnek veriler sabit
-        }
-
-        /// <summary>
-        /// Yeni Deðiþken Ekle butonu týklandý
-        /// </summary>
-        private void AddVariableBtn_Click(object sender, RoutedEventArgs e)
-        {
-            AddNewPLCVariable();
-        }
-
-        /// <summary>
-        /// Dýþa Aktar butonu týklandý
-        /// </summary>
-        private void ExportVariablesBtn_Click(object sender, RoutedEventArgs e)
-        {
-            ExportVariablesToFile();
-        }
-
-        /// <summary>
-        /// Ýçe Aktar butonu týklandý
-        /// </summary>
-        private void ImportVariablesBtn_Click(object sender, RoutedEventArgs e)
-        {
-            ImportVariablesFromFile();
-        }
-
-        /// <summary>
-        /// Deðiþkenleri JSON dosyasýna dýþa aktar
-        /// </summary>
-        private async void ExportVariablesToFile()
-        {
-            try
-            {
-                // Kaydedilecek klasör: Masaüstü (Desktop)
-                var exportPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                    "PLC_Exports"
-                );
-                Directory.CreateDirectory(exportPath);
-
-                // Dosya adý: PLC_Variables_[timestamp].json
-                var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                var fileName = $"PLC_Variables_{timestamp}.json";
-                var filePath = Path.Combine(exportPath, fileName);
-
-                // JSON options
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                // JSON'a serialize et
-                var json = JsonSerializer.Serialize(PLCVariables, options);
-                
-                // Dosyaya yaz
-                File.WriteAllText(filePath, json, Encoding.UTF8);
-
-                System.Diagnostics.Debug.WriteLine($"? Dosya baþarýyla kaydedildi: {filePath}");
-
-                // Baþarý mesajý - Tam path'i göster
-                var successDialog = new ContentDialog
-                {
-                    Title = "? Dýþa Aktarma Baþarýlý",
-                    Content = $"Deðiþkenler JSON formatýnda masaüstüne dýþa aktarýldý!\n\n" +
-                              $"?? Dosya: {fileName}\n" +
-                              $"?? Konum: Masaüstü\\PLC_Exports\\\n\n" +
-                              $"? {PLCVariables.Count} deðiþken kaydedildi.",
-                    PrimaryButtonText = "?? Klasörü Aç",
-                    CloseButtonText = "Tamam",
-                    XamlRoot = this.Content.XamlRoot,
-                    RequestedTheme = ElementTheme.Dark
-                };
-
-                var result = await successDialog.ShowAsync();
-                
-                // Eðer "Klasörü Aç" týklanýrsa
-                if (result == ContentDialogResult.Primary)
-                {
-                    // Windows Explorer'da klasörü aç
-                    try
-                    {
-                        var psi = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "explorer.exe",
-                            Arguments = exportPath,
-                            UseShellExecute = true
-                        };
-                        System.Diagnostics.Process.Start(psi);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"? Klasör açýlamadý: {ex.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"? Hata - Dýþa aktarma baþarýsýz: {ex.Message}");
-
-                var errorDialog = new ContentDialog
-                {
-                    Title = "? Hata",
-                    Content = $"Dýþa aktarma sýrasýnda hata oluþtu:\n\n{ex.Message}",
-                    CloseButtonText = "Tamam",
-                    XamlRoot = this.Content.XamlRoot,
-                    RequestedTheme = ElementTheme.Dark
-                };
-                _ = errorDialog.ShowAsync();
-            }
-        }
-
-        /// <summary>
-        /// JSON dosyasýndan deðiþkenleri içe aktar
-        /// </summary>
-        private async void ImportVariablesFromFile()
-        {
-            try
-            {
-                // Dosya seçici dialog'u aç
-                var exportsPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                    "PLC_Exports"
-                );
-
-                if (!Directory.Exists(exportsPath))
-                {
-                    var warningDialog = new ContentDialog
-                    {
-                        Title = "?? Uyarý",
-                        Content = $"PLC_Exports klasörü bulunamadý!\n\nKonum: Masaüstü\\PLC_Exports",
-                        CloseButtonText = "Tamam",
-                        XamlRoot = this.Content.XamlRoot,
-                        RequestedTheme = ElementTheme.Dark
-                    };
-                    _ = await warningDialog.ShowAsync();
-                    return;
-                }
-
-                // Mevcut JSON dosyalarýný listele
-                var jsonFiles = Directory.GetFiles(exportsPath, "*.json")
-                    .OrderByDescending(f => File.GetLastWriteTime(f))
-                    .ToList();
-
-                if (jsonFiles.Count == 0)
-                {
-                    var noFilesDialog = new ContentDialog
-                    {
-                        Title = "?? Bilgi",
-                        Content = $"Ýçe aktarýlacak JSON dosyasý bulunamadý!\n\nKonum: Masaüstü\\PLC_Exports",
-                        CloseButtonText = "Tamam",
-                        XamlRoot = this.Content.XamlRoot,
-                        RequestedTheme = ElementTheme.Dark
-                    };
-                    _ = await noFilesDialog.ShowAsync();
-                    return;
-                }
-
-                // Dosya seçim listesi oluþtur
-                var stackPanel = new StackPanel { Spacing = 10 };
-                var listBox = new ListBox { Height = 300 };
-                foreach (var file in jsonFiles)
-                {
-                    var fileInfo = new FileInfo(file);
-                    listBox.Items.Add($"{fileInfo.Name} ({fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss})");
-                }
-                listBox.SelectedIndex = 0;
-                stackPanel.Children.Add(listBox);
-
-                var importDialog = new ContentDialog
-                {
-                    Title = "?? Dosya Seç",
-                    Content = stackPanel,
-                    PrimaryButtonText = "Ýçe Aktar",
-                    CloseButtonText = "Ýptal",
-                    XamlRoot = this.Content.XamlRoot,
-                    RequestedTheme = ElementTheme.Dark
-                };
-
-                var result = await importDialog.ShowAsync();
-
-                if (result == ContentDialogResult.Primary && listBox.SelectedIndex >= 0)
-                {
-                    var selectedFile = jsonFiles[listBox.SelectedIndex];
-                    
-                    // JSON dosyasýný oku
-                    var json = File.ReadAllText(selectedFile, Encoding.UTF8);
-                    
-                    // JSON options
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    };
-
-                    // JSON'dan deserialize et
-                    var loadedVariables = JsonSerializer.Deserialize<List<PLCVariable>>(json, options);
-
-                    if (loadedVariables != null && loadedVariables.Count > 0)
-                    {
-                        // Onay dialog'u
-                        var confirmDialog = new ContentDialog
-                        {
-                            Title = "?? Onay",
-                            Content = $"{loadedVariables.Count} deðiþken içe aktarýlacak.\n\nMevcut deðiþkenler silinecektir. Devam et?",
-                            PrimaryButtonText = "Evet",
-                            CloseButtonText = "Ýptal",
-                            XamlRoot = this.Content.XamlRoot,
-                            RequestedTheme = ElementTheme.Dark
-                        };
-
-                        var confirmResult = await confirmDialog.ShowAsync();
-
-                        if (confirmResult == ContentDialogResult.Primary)
-                        {
-                            // Deðiþkenleri deðiþtir
-                            PLCVariables.Clear();
-                            foreach (var variable in loadedVariables)
-                            {
-                                PLCVariables.Add(variable);
-                            }
-                            RefreshPLCVariablesUI();
-                            SaveVariables(); // Yüklenen verileri kaydet
-
-                            // Baþarý mesajý
-                            var successDialog = new ContentDialog
-                            {
-                                Title = "? Ýçe Aktarma Baþarýlý",
-                                Content = $"{loadedVariables.Count} deðiþken baþarýyla içe aktarýldý!",
-                                CloseButtonText = "Tamam",
-                                XamlRoot = this.Content.XamlRoot,
-                                RequestedTheme = ElementTheme.Dark
-                            };
-                            _ = await successDialog.ShowAsync();
-
-                            System.Diagnostics.Debug.WriteLine($"? Dosya baþarýyla yüklendi: {selectedFile}");
-                        }
-                    }
-                    else
-                    {
-                        var emptyDialog = new ContentDialog
-                        {
-                            Title = "?? Uyarý",
-                            Content = "Dosya boþ veya geçersiz!",
-                            CloseButtonText = "Tamam",
-                            XamlRoot = this.Content.XamlRoot,
-                            RequestedTheme = ElementTheme.Dark
-                        };
-                        _ = await emptyDialog.ShowAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"? Hata - Ýçe aktarma baþarýsýz: {ex.Message}");
-
-                var errorDialog = new ContentDialog
-                {
-                    Title = "? Hata",
-                    Content = $"Ýçe aktarma sýrasýnda hata oluþtu:\n\n{ex.Message}",
-                    CloseButtonText = "Tamam",
-                    XamlRoot = this.Content.XamlRoot,
-                    RequestedTheme = ElementTheme.Dark
-                };
-                _ = errorDialog.ShowAsync();
-            }
-        }
-
-        /// <summary>
-        /// PLC Deðiþkenlerini baþlat ve kontrol tablosunu oluþtur
-        /// </summary>
         private void InitializePLCVariables()
         {
-            // Kayýtlý verileri yüklemeye çalýþ
-            if (!LoadVariables())
-            {
-                // Eðer kayýtlý veri yoksa default deðerleri ekle
-                var variables = new List<(string Name, string Type, object CurrentValue, object MinValue, object MaxValue)>
-                {
-                    ("D0 - Baþlat Sinyali", "BOOL", false, false, true),
-                    ("D1 - Ýþletim Modu", "DWORD", 0, 0, 3),
-                    ("D2 - Robot Hýzý", "INT", 75, 0, 100),
-                    ("D3 - Sýcaklýk Setpoint", "REAL", 42.5, 20.0, 80.0),
-                    ("M0 - Acil Durdur", "BOOL", false, false, true),
-                    ("M1 - Sistem Ready", "BOOL", true, false, true),
-                    ("Y0 - Çýkýþ 1", "BOOL", false, false, true),
-                    ("Y1 - Çýkýþ 2", "BOOL", true, false, true),
-                };
+            // Default INPUT variables
+            InputVariables.Add(new PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+            InputVariables.Add(new PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
+            InputVariables.Add(new PLCVariable { Name = "D0 - Durum Kodu", Type = "INT", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 100 });
 
-                foreach (var variable in variables)
-                {
-                    PLCVariables.Add(new PLCVariable
-                    {
-                        Name = variable.Name,
-                        Type = variable.Type,
-                        CurrentValue = variable.CurrentValue,
-                        MinValue = variable.MinValue,
-                        MaxValue = variable.MaxValue
-                    });
-                }
-                
-                // Yeni eklenen default deðerleri kaydet
-                SaveVariables();
-            }
+            // Default OUTPUT variables
+            OutputVariables.Add(new PLCVariable { Name = "D0 - Baþlat Sinyali", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            OutputVariables.Add(new PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
+            OutputVariables.Add(new PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
+            OutputVariables.Add(new PLCVariable { Name = "D3 - Sýcaklýk Setpoint", Type = "REAL", Direction = "Output", CurrentValue = 42.5, MinValue = 20.0, MaxValue = 80.0 });
 
             RefreshPLCVariablesUI();
         }
 
-        /// <summary>
-        /// Deðiþkenleri JSON dosyasýna kaydet
-        /// </summary>
-        private void SaveVariables()
-        {
-            try
-            {
-                // AppData klasörü oluþtur
-                var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Simbiosis", "App4");
-                Directory.CreateDirectory(appDataPath);
-
-                var filePath = Path.Combine(appDataPath, "plc_variables.json");
-
-                // JSON options
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                // JSON'a serialize et
-                var json = JsonSerializer.Serialize(PLCVariables, options);
-                
-                // Dosyaya yaz
-                File.WriteAllText(filePath, json);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Hata - Deðiþkenler kaydedilemedi: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Deðiþkenleri JSON dosyasýndan yükle
-        /// </summary>
-        private bool LoadVariables()
-        {
-            try
-            {
-                var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Simbiosis", "App4");
-                var filePath = Path.Combine(appDataPath, "plc_variables.json");
-
-                // Dosya yoksa false döndür
-                if (!File.Exists(filePath))
-                    return false;
-
-                // Dosyayý oku
-                var json = File.ReadAllText(filePath);
-
-                // JSON options
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                // JSON'dan deserialize et
-                var loadedVariables = JsonSerializer.Deserialize<List<PLCVariable>>(json, options);
-
-                if (loadedVariables != null && loadedVariables.Count > 0)
-                {
-                    PLCVariables.Clear();
-                    foreach (var variable in loadedVariables)
-                    {
-                        PLCVariables.Add(variable);
-                    }
-                    return true;
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Hata - Deðiþkenler yüklenemedi: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// PLC Deðiþkenleri UI'ý yenile
-        /// </summary>
         private void RefreshPLCVariablesUI()
         {
-            PLCVariablesContainer.Children.Clear();
+            InputVariablesContainer.Children.Clear();
+            OutputVariablesContainer.Children.Clear();
 
-            for (int i = 0; i < PLCVariables.Count; i++)
+            for (int i = 0; i < InputVariables.Count; i++)
             {
-                var variable = PLCVariables[i];
-                var row = CreatePLCVariableRow(i, variable);
-                PLCVariablesContainer.Children.Add(row);
+                InputVariablesContainer.Children.Add(CreateCompactVariableRow(i + 1, InputVariables[i]));
+            }
+
+            for (int i = 0; i < OutputVariables.Count; i++)
+            {
+                OutputVariablesContainer.Children.Add(CreateCompactVariableRow(i + 1, OutputVariables[i]));
             }
         }
 
-        /// <summary>
-        /// PLC Deðiþkeni kontrol satýrý oluþtur
-        /// </summary>
-        private Border CreatePLCVariableRow(int index, PLCVariable variable)
+        private Border CreateCompactVariableRow(int index, PLCVariable variable)
         {
             var border = new Border
             {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 28)),
-                CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(12),
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 35, 35, 40)),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6),
+                Margin = new Thickness(0, 2, 0, 2),
                 BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 0, 164, 239)),
-                Margin = new Thickness(0, 2, 0, 2)
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(80, 0, 164, 239))
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(65) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-            grid.ColumnSpacing = 8;
-            grid.Padding = new Thickness(4, 0, 4, 0);
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(45) });
 
-            // Index Numarasý
-            var indexBlock = new TextBlock
-            {
-                Text = (index + 1).ToString(),
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)),
-                FontSize = 11,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Center,
-                FontFamily = new FontFamily("Cascadia Mono")
-            };
-            Grid.SetColumn(indexBlock, 0);
-            grid.Children.Add(indexBlock);
+            // Index
+            var indexTb = new TextBlock { Text = index.ToString(), FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(indexTb, 0);
+            grid.Children.Add(indexTb);
 
-            // Deðiþken Adý (Editlenebilir)
-            var nameBox = new TextBox
-            {
-                Text = variable.Name,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 164, 239)),
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 0, 164, 239)),
-                Padding = new Thickness(6),
-                Height = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 10,
-                FontFamily = new FontFamily("Cascadia Mono")
-            };
-            nameBox.LostFocus += (s, e) => 
-            { 
-                variable.Name = nameBox.Text;
-                SaveVariables(); // Veri kaydet
-            };
-            Grid.SetColumn(nameBox, 1);
-            grid.Children.Add(nameBox);
+            // Name
+            var nameTb = new TextBlock { Text = variable.Name, FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 200, 200, 200)), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(nameTb, 1);
+            grid.Children.Add(nameTb);
 
-            // Tip (ComboBox - Dropdown) ve TextBlock Container
-            var typeContainer = new Grid();
-            typeContainer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            typeContainer.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 60, 60, 65));
-            typeContainer.CornerRadius = new CornerRadius(4);
-            typeContainer.BorderThickness = new Thickness(1);
-            typeContainer.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(150, 255, 184, 28));
-            typeContainer.Height = 32;
+            // Type
+            var typeTb = new TextBlock { Text = variable.Type, FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            Grid.SetColumn(typeTb, 2);
+            grid.Children.Add(typeTb);
 
-            // Seçili Tip'i gösteren TextBlock (ön planda)
-            var typeLabel = new TextBlock
-            {
-                Text = variable.Type,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)),
-                FontSize = 10,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                Padding = new Thickness(8, 0, 0, 0),
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold
-            };
-            Grid.SetColumn(typeLabel, 0);
-            typeContainer.Children.Add(typeLabel);
+            // Value
+            var valueTb = new TextBlock { Text = variable.CurrentValue?.ToString() ?? "0", FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            Grid.SetColumn(valueTb, 3);
+            grid.Children.Add(valueTb);
 
-            // ComboBox (arka planda, transparent)
-            var typeCombo = new ComboBox
-            {
-                SelectedItem = variable.Type,
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 60, 60, 65)), // Transparent
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 255, 255, 255)), // Transparent text
-                Height = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 10,
-                BorderThickness = new Thickness(0)
-            };
-            typeCombo.Items.Add("BOOL");
-            typeCombo.Items.Add("INT");
-            typeCombo.Items.Add("DWORD");
-            typeCombo.Items.Add("REAL");
-            
-            typeCombo.SelectionChanged += (s, e) =>
-            {
-                if (typeCombo.SelectedItem != null)
-                {
-                    var newType = typeCombo.SelectedItem.ToString();
-                    variable.Type = newType;
-                    
-                    // TextBlock'u güncelle
-                    typeLabel.Text = newType;
-                    
-                    // Min/Max deðerlerini tipe göre güncelle
-                    (variable.MinValue, variable.MaxValue) = GetDefaultMinMaxForType(newType);
-                    
-                    // Deðer tipini de güncelle
-                    try
-                    {
-                        variable.CurrentValue = Convert.ChangeType(variable.CurrentValue ?? "0", GetTypeFromString(newType));
-                    }
-                    catch
-                    {
-                        variable.CurrentValue = GetDefaultValueForType(newType);
-                    }
-                    
-                    // UI'ý güncelle ve kaydet
-                    RefreshPLCVariablesUI();
-                    SaveVariables();
-                }
-            };
-            
-            Grid.SetColumn(typeCombo, 0);
-            typeContainer.Children.Add(typeCombo);
+            // Min/Max
+            var minMaxTb = new TextBlock { Text = $"{variable.MinValue}..{variable.MaxValue}", FontSize = 8, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 120, 120, 120)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(minMaxTb, 4);
+            grid.Children.Add(minMaxTb);
 
-            // Grid'e typeContainer'ý ekle
-            Grid.SetColumn(typeContainer, 2);
-            grid.Children.Add(typeContainer);
+            // Force Button
+            var forceBtn = new Button { Content = "Force", Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), CornerRadius = new CornerRadius(3), Height = 24, Padding = new Thickness(4, 0, 4, 0), FontSize = 8, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            Grid.SetColumn(forceBtn, 5);
+            grid.Children.Add(forceBtn);
 
-            // Þu Anki Deðer (Editlenebilir)
-            var valueBox = new TextBox
-            {
-                Text = variable.CurrentValue?.ToString() ?? "0",
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)),
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 76, 175, 80)),
-                Padding = new Thickness(6),
-                Height = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 10,
-                FontFamily = new FontFamily("Cascadia Mono"),
-                TextAlignment = TextAlignment.Center
-            };
-            valueBox.LostFocus += (s, e) =>
-            {
-                try
-                {
-                    variable.CurrentValue = Convert.ChangeType(valueBox.Text, GetTypeFromString(variable.Type));
-                    valueBox.Text = variable.CurrentValue.ToString();
-                    SaveVariables(); // Veri kaydet
-                }
-                catch 
-                { 
-                    valueBox.Text = variable.CurrentValue?.ToString() ?? "0";
-                }
-            };
-            Grid.SetColumn(valueBox, 3);
-            grid.Children.Add(valueBox);
-
-            // Min/Max Range Label
-            var rangeBlock = new TextBlock
-            {
-                Text = $"{variable.MinValue}..{variable.MaxValue}",
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(200, 136, 136, 136)),
-                FontSize = 9,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontFamily = new FontFamily("Cascadia Mono"),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextAlignment = TextAlignment.Center
-            };
-            Grid.SetColumn(rangeBlock, 4);
-            grid.Children.Add(rangeBlock);
-
-            // Yeni Deðer Input (Force için)
-            var inputBox = new TextBox
-            {
-                PlaceholderText = "Yeni deðer",
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 255, 255, 255)),
-                Padding = new Thickness(6),
-                Height = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 9
-            };
-            Grid.SetColumn(inputBox, 5);
-            grid.Children.Add(inputBox);
-
-            // Force Et Butonu
-            var forceButton = new Button
-            {
-                Content = "Force",
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)),
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                CornerRadius = new CornerRadius(4),
-                Height = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                FontSize = 9,
-                Padding = new Thickness(4)
-            };
-
-            forceButton.Click += (s, e) =>
-            {
-                ForceVariable(variable.Name, variable.Type, inputBox.Text, variable, valueBox);
-                inputBox.Text = "";
-            };
-
-            Grid.SetColumn(forceButton, 6);
-            grid.Children.Add(forceButton);
-
-            // Sil Butonu
-            var deleteButton = new Button
-            {
-                Content = "Sil",
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)),
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                CornerRadius = new CornerRadius(4),
-                Height = 32,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                FontSize = 9,
-                Padding = new Thickness(4)
-            };
-
-            deleteButton.Click += (s, e) =>
-            {
-                PLCVariables.Remove(variable);
-                RefreshPLCVariablesUI();
-                SaveVariables(); // Veri kaydet
-            };
-
-            Grid.SetColumn(deleteButton, 7);
-            grid.Children.Add(deleteButton);
+            // Delete Button
+            var deleteBtn = new Button { Content = "Sil", Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), CornerRadius = new CornerRadius(3), Height = 24, Padding = new Thickness(4, 0, 4, 0), FontSize = 8, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            Grid.SetColumn(deleteBtn, 6);
+            grid.Children.Add(deleteBtn);
 
             border.Child = grid;
             return border;
         }
 
-        /// <summary>
-        /// Tipe göre default Min/Max deðerlerini döndür
-        /// </summary>
-        private (object minValue, object maxValue) GetDefaultMinMaxForType(string type)
+        private void AddVariableBtn_Click(object sender, RoutedEventArgs e)
         {
-            return type switch
-            {
-                "BOOL" => (false, true),
-                "INT" => (0, 32767),
-                "DWORD" => (0u, 4294967295u),
-                "REAL" => (0.0, 1000.0),
-                _ => (0, 100)
-            };
+            OutputVariables.Add(new PLCVariable { Name = $"D{OutputVariables.Count} - Yeni", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            RefreshPLCVariablesUI();
         }
 
-        /// <summary>
-        /// Tipe göre default deðer döndür
-        /// </summary>
-        private object GetDefaultValueForType(string type)
+        private void AddInputVariableBtn_Click(object sender, RoutedEventArgs e)
         {
-            return type switch
-            {
-                "BOOL" => false,
-                "INT" => 0,
-                "DWORD" => 0u,
-                "REAL" => 0.0,
-                _ => "0"
-            };
+            InputVariables.Add(new PLCVariable { Name = $"M{InputVariables.Count} - Yeni Input", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+            RefreshPLCVariablesUI();
+            SaveVariablesToFile();
         }
 
-        /// <summary>
-        /// String tipini Type'a çevir
-        /// </summary>
-        private Type GetTypeFromString(string typeString)
+        private void AddOutputVariableBtn_Click(object sender, RoutedEventArgs e)
         {
-            return typeString switch
-            {
-                "BOOL" => typeof(bool),
-                "INT" => typeof(int),
-                "DWORD" => typeof(uint),
-                "REAL" => typeof(double),
-                _ => typeof(string)
-            };
+            OutputVariables.Add(new PLCVariable { Name = $"D{OutputVariables.Count} - Yeni Output", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            RefreshPLCVariablesUI();
+            SaveVariablesToFile();
         }
 
-        /// <summary>
-        /// PLC deðiþkenine force iþlemi yap
-        /// </summary>
-        private void ForceVariable(string variableName, string type, string newValue, PLCVariable variable, TextBox valueBox)
+        private void ExportVariablesBtn_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(newValue))
-                    return;
-
-                object convertedValue = type switch
-                {
-                    "BOOL" => bool.Parse(newValue),
-                    "INT" => int.Parse(newValue),
-                    "DWORD" => uint.Parse(newValue),
-                    "REAL" => double.Parse(newValue),
-                    _ => newValue
-                };
-
-                // Þu anki deðeri güncelle
-                variable.CurrentValue = convertedValue;
-                valueBox.Text = convertedValue.ToString();
-                SaveVariables(); // Veri kaydet
-
-                // TODO: Gerçek PLC baðlantýsý burada yapýlýr
-                // Örn: _plcConnection.WriteVariable(variableName, convertedValue);
-
-                // Baþarý mesajý göster
-                var dialog = new ContentDialog
-                {
-                    Title = "Force Baþarýlý",
-                    Content = $"{variableName} deðiþkeni {convertedValue} olarak PLC'ye gönderildi.",
-                    CloseButtonText = "Tamam",
-                    XamlRoot = this.Content.XamlRoot,
-                    RequestedTheme = ElementTheme.Dark
-                };
-                _ = dialog.ShowAsync();
+                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "PLC_Exports");
+                Directory.CreateDirectory(path);
+                var file = Path.Combine(path, $"PLC_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json");
+                var json = JsonSerializer.Serialize(InputVariables.Concat(OutputVariables).ToList(), new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(file, json);
+                AddLog("[SUCCESS] Tüm deðiþkenler dýþa aktarýldý!");
             }
             catch (Exception ex)
             {
-                var errorDialog = new ContentDialog
-                {
-                    Title = "Hata",
-                    Content = $"Deðer dönüþtürülemedi: {ex.Message}",
-                    CloseButtonText = "Tamam",
-                    XamlRoot = this.Content.XamlRoot,
-                    RequestedTheme = ElementTheme.Dark
-                };
-                _ = errorDialog.ShowAsync();
+                AddLog($"[ERROR] {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Yeni PLC deðiþkeni ekle
-        /// </summary>
-        private void AddNewPLCVariable()
+        private async void ConnectPLCBtn_Click(object sender, RoutedEventArgs e)
         {
-            // Yeni boþ deðiþken ekle
-            var newVariable = new PLCVariable
-            {
-                Name = $"D{PLCVariables.Count} - Yeni Deðiþken",
-                Type = "BOOL",
-                CurrentValue = false,
-                MinValue = false,
-                MaxValue = true
-            };
+            if (_isConnected) DisconnectPLC();
+            else await ConnectToPLC();
+        }
 
-            PLCVariables.Add(newVariable);
-            RefreshPLCVariablesUI();
-            SaveVariables(); // Veri kaydet
+        private async Task ConnectToPLC()
+        {
+            try
+            {
+                _plcClient = new TcpClient();
+                await _plcClient.ConnectAsync(PLCIPAddressBox.Text, int.Parse(PLCPortBox.Text));
+                _isConnected = true;
+                UpdateConnectionStatus(true);
+                AddLog("[SUCCESS] PLC'ye baðlanýldý!");
+                ConnectPLCBtn.Content = "?? Baðlantýyý Kes";
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[ERROR] {ex.Message}");
+            }
+        }
+
+        private void DisconnectPLC()
+        {
+            _plcStream?.Close();
+            _plcClient?.Close();
+            _isConnected = false;
+            UpdateConnectionStatus(false);
+            ConnectPLCBtn.Content = "?? Baðlan";
+            AddLog("[INFO] Baðlantý kesildi");
+        }
+
+        private void ClearLogBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _logBuilder.Clear();
+            LogTextBlock.Text = "";
+        }
+
+        private void SaveVariablesToFile()
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(_variablesFilePath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                var data = new
+                {
+                    Input = InputVariables.ToList(),
+                    Output = OutputVariables.ToList()
+                };
+
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_variablesFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[ERROR] Deðiþkenler kaydedilirken hata: {ex.Message}");
+            }
+        }
+
+        private void LoadVariablesFromFile()
+        {
+            try
+            {
+                if (File.Exists(_variablesFilePath))
+                {
+                    var json = File.ReadAllText(_variablesFilePath);
+                    var data = JsonSerializer.Deserialize<JsonElement>(json);
+
+                    if (data.TryGetProperty("Input", out var inputArray))
+                    {
+                        InputVariables.Clear();
+                        foreach (var item in inputArray.EnumerateArray())
+                        {
+                            var variable = JsonSerializer.Deserialize<PLCVariable>(item.GetRawText());
+                            if (variable != null)
+                                InputVariables.Add(variable);
+                        }
+                    }
+
+                    if (data.TryGetProperty("Output", out var outputArray))
+                    {
+                        OutputVariables.Clear();
+                        foreach (var item in outputArray.EnumerateArray())
+                        {
+                            var variable = JsonSerializer.Deserialize<PLCVariable>(item.GetRawText());
+                            if (variable != null)
+                                OutputVariables.Add(variable);
+                        }
+                    }
+
+                    RefreshPLCVariablesUI();
+                    AddLog($"[INFO] Deðiþkenler dosyadan yüklendi: {InputVariables.Count} INPUT + {OutputVariables.Count} OUTPUT");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[ERROR] Deðiþkenler yüklenirken hata: {ex.Message}");
+            }
+        }
+
+        private void AddLog(string message)
+        {
+            _logBuilder.AppendLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+            DispatcherQueue.TryEnqueue(() => LogTextBlock.Text = _logBuilder.ToString());
+        }
+
+        private void UpdateConnectionStatus(bool isConnected)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (isConnected)
+                {
+                    ConnectionStatusIndicator.Fill = new SolidColorBrush(Color.FromArgb(255, 76, 175, 80));
+                    ConnectionStatusLabel.Text = "Baðlý";
+                }
+                else
+                {
+                    ConnectionStatusIndicator.Fill = new SolidColorBrush(Color.FromArgb(255, 255, 82, 82));
+                    ConnectionStatusLabel.Text = "Baðlý Deðil";
+                }
+            });
         }
     }
 
-    /// <summary>
-    /// PLC Deðiþkeni Model Sýnýfý
-    /// </summary>
     public class PLCVariable
     {
         [JsonPropertyName("name")]
@@ -952,6 +375,9 @@ namespace App4.PAGES
 
         [JsonPropertyName("type")]
         public string Type { get; set; }
+
+        [JsonPropertyName("direction")]
+        public string Direction { get; set; } = "Output";
 
         [JsonPropertyName("currentValue")]
         public object CurrentValue { get; set; }
