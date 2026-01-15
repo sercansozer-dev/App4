@@ -13,92 +13,160 @@ namespace App4.PAGES
         public PLC_Page()
         {
             this.InitializeComponent();
-            InitializeTags();
+            InitializeIOMapping();
+            InitializeSystemMonitor();
+            InitializeStatistics();
         }
 
-        private void InitializeTags()
+        /// <summary>
+        /// Ýstatistikleri baþlat
+        /// </summary>
+        private void InitializeStatistics()
         {
-            var tags = new List<(string Name, string Type, string Value, string Status)>
+            // Örnek veriler - gerçek veriler veritabanýndan çekilebilir
+            TotalTestsLabel.Text = "1,247";
+            SuccessTestsLabel.Text = "1,186";
+            FailedTestsLabel.Text = "61";
+            LastTestLabel.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            UptimeLabel.Text = "47.3h";
+            AvgDurationLabel.Text = "2.36 sn";
+            TodayTestsLabel.Text = "47 Test";
+            SystemQualityLabel.Text = "A+";
+        }
+
+        /// <summary>
+        /// I/O Mapping verilerini dinamik olarak yükle
+        /// </summary>
+        private void InitializeIOMapping()
+        {
+            var ioMappings = new List<(string Source, string Channel, string Destination, string Status, string Value)>
             {
-                ("Temperature_Sensor_01", "Float", "45.8 °C", "Aktif"),
-                ("Pressure_Gauge_01", "Float", "2.5 Bar", "Aktif"),
-                ("Motor_Speed", "Int32", "1500 RPM", "Aktif"),
-                ("System_Alarm", "Bool", "False", "Deaktif"),
-                ("Flow_Rate", "Float", "125.3 L/min", "Aktif"),
-                ("Valve_Position", "Int32", "75%", "Aktif"),
+                ("PLC", "DI01", "Robot.Input.StartSignal", "Aktif", "HIGH"),
+                ("Robot", "DO01", "Camera.Trigger", "Aktif", "PULSE"),
+                ("Camera", "AI01", "PLC.Data.PointCloud", "Aktif", "2048 Points"),
+                ("PLC", "DI02", "Robot.Input.SafetyStop", "Pasif", "LOW"),
+                ("Robot", "DO02", "Camera.Record", "Aktif", "ON"),
+                ("Camera", "AI02", "PLC.Data.Coordinates", "Aktif", "X:125mm"),
+                ("PLC", "DO03", "Robot.LED.Status", "Aktif", "GREEN"),
+                ("Robot", "AI03", "PLC.Position.X", "Aktif", "125.5mm"),
             };
 
-            foreach (var tag in tags)
+            foreach (var mapping in ioMappings)
             {
-                var tagRow = CreateTagRow(tag.Name, tag.Type, tag.Value, tag.Status);
-                TagsContainer.Children.Add(tagRow);
+                var row = CreateIORow(mapping.Source, mapping.Channel, mapping.Destination, mapping.Status, mapping.Value);
+                IOMapContainer.Children.Add(row);
             }
         }
 
-        private Grid CreateTagRow(string tagName, string dataType, string value, string status)
+        /// <summary>
+        /// I/O Mapping satýrý oluþtur
+        /// </summary>
+        private Grid CreateIORow(string source, string channel, string destination, string status, string value)
         {
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+
             grid.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 28));
-            grid.Padding = new Thickness(15, 12, 15, 12);
+            grid.Padding = new Thickness(12, 8, 12, 8);
             grid.CornerRadius = new CornerRadius(4);
-            grid.Margin = new Thickness(0, 4, 0, 4);
+            grid.Margin = new Thickness(0, 2, 0, 2);
+            grid.BorderThickness = new Thickness(0, 0, 0, 1);
+            grid.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 0, 164, 239));
 
-            // Tag Adý
-            var nameBlock = new TextBlock
+            // Kaynak
+            var sourceBlock = new TextBlock
             {
-                Text = tagName,
-                Foreground = new SolidColorBrush(Colors.White),
-                FontSize = 12,
+                Text = source,
+                Foreground = GetSourceColor(source),
+                FontSize = 10,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            Grid.SetColumn(nameBlock, 0);
-            grid.Children.Add(nameBlock);
+            Grid.SetColumn(sourceBlock, 0);
+            grid.Children.Add(sourceBlock);
 
-            // Veri Tipi
-            var typeBlock = new TextBlock
+            // Kanal
+            var channelBlock = new TextBlock
             {
-                Text = dataType,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 170, 170, 170)),
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(typeBlock, 1);
-            grid.Children.Add(typeBlock);
-
-            // Deðer
-            var valueBlock = new TextBlock
-            {
-                Text = value,
+                Text = channel,
                 Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 255, 136)),
-                FontSize = 12,
+                FontSize = 10,
                 FontFamily = new FontFamily("Cascadia Mono"),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold
+            };
+            Grid.SetColumn(channelBlock, 1);
+            grid.Children.Add(channelBlock);
+
+            // Oklar (Veri Akýþý)
+            var arrowBlock = new TextBlock
+            {
+                Text = "?",
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 100, 200, 255)),
+                FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold
+            };
+            Grid.SetColumn(arrowBlock, 2);
+            grid.Children.Add(arrowBlock);
+
+            // Hedef
+            var destinationBlock = new TextBlock
+            {
+                Text = destination,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                FontSize = 10,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            Grid.SetColumn(valueBlock, 2);
-            grid.Children.Add(valueBlock);
+            Grid.SetColumn(destinationBlock, 3);
+            grid.Children.Add(destinationBlock);
 
-            // Durum
+            // Durum Badge
             var statusColor = status == "Aktif" 
-                ? Windows.UI.Color.FromArgb(255, 76, 175, 80)  // Yeþil
-                : Windows.UI.Color.FromArgb(255, 255, 107, 107); // Kýrmýzý
+                ? Windows.UI.Color.FromArgb(255, 76, 175, 80)
+                : Windows.UI.Color.FromArgb(255, 170, 170, 170);
 
             var statusBlock = new TextBlock
             {
-                Text = status,
+                Text = value,
                 Foreground = new SolidColorBrush(statusColor),
-                FontSize = 11,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                FontSize = 9,
+                FontFamily = new FontFamily("Cascadia Mono"),
                 VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Center
+                TextAlignment = TextAlignment.Right
             };
-            Grid.SetColumn(statusBlock, 3);
+            Grid.SetColumn(statusBlock, 4);
             grid.Children.Add(statusBlock);
 
             return grid;
+        }
+
+        /// <summary>
+        /// Kaynak rengini belirle (PLC, Robot, Camera)
+        /// </summary>
+        private SolidColorBrush GetSourceColor(string source)
+        {
+            return source switch
+            {
+                "PLC" => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0)), // Orange
+                "Robot" => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 33, 150, 243)), // Blue
+                "Camera" => new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)), // Green
+                _ => new SolidColorBrush(Microsoft.UI.Colors.White)
+            };
+        }
+
+        /// <summary>
+        /// Sistem monitörünü baþlat
+        /// </summary>
+        private void InitializeSystemMonitor()
+        {
+            // Burada timer baþlatýp real-time veri güncellenebilir
+            // Þimdilik örnek veriler sabit
         }
     }
 }
