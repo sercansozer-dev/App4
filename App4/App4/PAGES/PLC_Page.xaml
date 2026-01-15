@@ -16,6 +16,7 @@
                 <RowDefinition Height="200"/>
                 <RowDefinition Height="280"/>
                 <RowDefinition Height="300"/>
+                <RowDefinition Height="280"/>
                 <RowDefinition Height="50"/>
             </Grid.RowDefinitions>
 
@@ -337,9 +338,45 @@
             </Border>
 
             <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- PLC DEĞİŞKENLERİ VE FORCE KONTROL -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="5" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                                <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
+                                <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" x:Name="AddVariableBtn" Content="➕ Yeni Değişken Ekle" 
+                                    Background="#00A4EF" Foreground="White" CornerRadius="4" 
+                                    Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
+                                    Click="AddVariableBtn_Click" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden" MaxHeight="800">
+                            <StackPanel x:Name="PLCVariablesContainer" Spacing="6"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <!-- FOOTER -->
             <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <Border Grid.Row="5" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
+            <Border Grid.Row="6" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
                 <Grid VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
                         <Ellipse Width="10" Height="10" Fill="#4CAF50" VerticalAlignment="Center"/>
