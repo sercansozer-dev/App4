@@ -15,7 +15,6 @@
                 Background="#1C1C1C"
                 IsSettingsVisible="True"
                 IsBackButtonVisible="Collapsed" 
-                Header="Simbiosis Mekatronik Leak Test App"
                 OpenPaneLength="280">
 
             <NavigationView.Resources>

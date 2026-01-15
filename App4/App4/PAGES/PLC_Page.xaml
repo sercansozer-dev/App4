@@ -24,13 +24,21 @@
             <!-- ═══════════════════════════════════════════════════════════════════ -->
             <!-- BAŞLIK BÖLÜMÜ - Header -->
             <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,2" BorderBrush="#00A4EF" Padding="25,0">
+            <Border Grid.Row="0" Background="#252526" BorderThickness="0,0,0,2" BorderBrush="#00A4EF" Padding="20,0">
                 <Grid VerticalAlignment="Center">
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="ENTEGRE SİSTEM KONTROL PANELİ" FontSize="22" FontWeight="Bold" Foreground="White"/>
-                        <TextBlock Text="3D Kamera + Robot + PLC Senkronizasyon Sistemi" FontSize="11" Foreground="#00A4EF" Margin="0,3,0,0"/>
+                    <!-- Sol Taraf: Logo + Başlık -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                        <!-- Logo (Simgesi) -->
+                        <FontIcon Glyph="&#xE71A;" Foreground="#00A4EF" FontSize="36"/>
+                        
+                        <!-- Başlık Bilgisi -->
+                        <StackPanel VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Text="Simbiosis Mekatronik Leak Test App" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock x:Name="PageTitleLabel" Text="PLC KONTROL" FontSize="10" Foreground="#00A4EF" FontWeight="SemiBold"/>
+                        </StackPanel>
                     </StackPanel>
 
+                    <!-- Sağ Taraf: Sistem Durumu -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20" VerticalAlignment="Center">
                         <StackPanel VerticalAlignment="Center" Spacing="5">
                             <TextBlock Text="SİSTEM DURUMU" FontSize="9" Foreground="#888888" HorizontalAlignment="Right"/>
@@ -446,6 +454,7 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="35"/>
+                                    <RowDefinition Height="26"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
@@ -461,8 +470,26 @@
                                     </Grid>
                                 </Border>
 
+                                <!-- Column Headers -->
+                                <Border Grid.Row="1" Background="#1A1A1C" Padding="4,3" BorderThickness="0,0,0,1" BorderBrush="#333333">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="40"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="#" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="İsim" FontSize="7" Foreground="#555555" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="Tip" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="Değer" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="Sil" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
                                 <!-- Input Data -->
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
                                     <StackPanel x:Name="InputVariablesContainer" Spacing="3" Padding="4"/>
                                 </ScrollViewer>
                             </Grid>
@@ -473,6 +500,7 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="35"/>
+                                    <RowDefinition Height="26"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
@@ -488,8 +516,28 @@
                                     </Grid>
                                 </Border>
 
+                                <!-- Column Headers -->
+                                <Border Grid.Row="1" Background="#1A1A1C" Padding="4,3" BorderThickness="0,0,0,1" BorderBrush="#333333">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="65"/>
+                                            <ColumnDefinition Width="40"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="#" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="İsim" FontSize="7" Foreground="#555555" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="Tip" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="Değer" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="Force" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="5" Text="Sil" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
                                 <!-- Output Data -->
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
                                     <StackPanel x:Name="OutputVariablesContainer" Spacing="3" Padding="4"/>
                                 </ScrollViewer>
                             </Grid>

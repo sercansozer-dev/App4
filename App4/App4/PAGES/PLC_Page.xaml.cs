@@ -133,73 +133,251 @@ namespace App4.PAGES
 
             for (int i = 0; i < InputVariables.Count; i++)
             {
-                InputVariablesContainer.Children.Add(CreateCompactVariableRow(i + 1, InputVariables[i]));
+                InputVariablesContainer.Children.Add(CreateInputVariableRow(i + 1, InputVariables[i]));
             }
 
             for (int i = 0; i < OutputVariables.Count; i++)
             {
-                OutputVariablesContainer.Children.Add(CreateCompactVariableRow(i + 1, OutputVariables[i]));
+                OutputVariablesContainer.Children.Add(CreateOutputVariableRow(i + 1, OutputVariables[i]));
             }
         }
 
-        private Border CreateCompactVariableRow(int index, PLCVariable variable)
+        private Border CreateInputVariableRow(int index, PLCVariable variable)
         {
             var border = new Border
             {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 35, 35, 40)),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(6),
-                Margin = new Thickness(0, 2, 0, 2),
-                BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(80, 0, 164, 239))
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 30, 35)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 4, 0, 4),
+                BorderThickness = new Thickness(1.5),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 76, 175, 80))
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(65) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(45) });
 
             // Index
-            var indexTb = new TextBlock { Text = index.ToString(), FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var indexTb = new TextBlock { Text = index.ToString(), FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
             Grid.SetColumn(indexTb, 0);
             grid.Children.Add(indexTb);
 
-            // Name
-            var nameTb = new TextBlock { Text = variable.Name, FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 200, 200, 200)), VerticalAlignment = VerticalAlignment.Center };
+            // Name (Editable TextBox)
+            var nameTb = new TextBox 
+            { 
+                Text = variable.Name, 
+                FontSize = 9, 
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 210, 210, 210)),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(80, 76, 175, 80)),
+                Padding = new Thickness(6, 4, 6, 4),
+                Height = 28,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            nameTb.TextChanged += (s, e) => { variable.Name = nameTb.Text; SaveVariablesToFile(); };
             Grid.SetColumn(nameTb, 1);
             grid.Children.Add(nameTb);
 
-            // Type
-            var typeTb = new TextBlock { Text = variable.Type, FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
-            Grid.SetColumn(typeTb, 2);
-            grid.Children.Add(typeTb);
+            // Type (Dropdown ComboBox)
+            var typeCombo = new ComboBox 
+            { 
+                SelectedItem = variable.Type,
+                FontSize = 9,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)),
+                Height = 28,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            
+            var dataTypes = new[] { "BOOL", "INT", "DWORD", "REAL", "STRING", "WORD", "BYTE", "SINT" };
+            foreach (var dt in dataTypes)
+                typeCombo.Items.Add(dt);
+            
+            typeCombo.SelectedItem = variable.Type;
+            typeCombo.SelectionChanged += (s, e) => 
+            { 
+                variable.Type = typeCombo.SelectedItem?.ToString() ?? "BOOL";
+                SaveVariablesToFile();
+            };
+            Grid.SetColumn(typeCombo, 2);
+            grid.Children.Add(typeCombo);
 
-            // Value
-            var valueTb = new TextBlock { Text = variable.CurrentValue?.ToString() ?? "0", FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            // Value (Editable TextBox)
+            var valueTb = new TextBox 
+            { 
+                Text = variable.CurrentValue?.ToString() ?? "0", 
+                FontSize = 9, 
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 100, 200, 100)),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 76, 175, 80)),
+                TextAlignment = TextAlignment.Center,
+                Padding = new Thickness(6, 4, 6, 4),
+                Height = 28,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold
+            };
+            valueTb.TextChanged += (s, e) => 
+            { 
+                if (double.TryParse(valueTb.Text, out var val))
+                    variable.CurrentValue = val;
+                SaveVariablesToFile();
+            };
             Grid.SetColumn(valueTb, 3);
             grid.Children.Add(valueTb);
 
-            // Min/Max
-            var minMaxTb = new TextBlock { Text = $"{variable.MinValue}..{variable.MaxValue}", FontSize = 8, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 120, 120, 120)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetColumn(minMaxTb, 4);
-            grid.Children.Add(minMaxTb);
-
-            // Force Button
-            var forceBtn = new Button { Content = "Force", Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), CornerRadius = new CornerRadius(3), Height = 24, Padding = new Thickness(4, 0, 4, 0), FontSize = 8, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
-            Grid.SetColumn(forceBtn, 5);
-            grid.Children.Add(forceBtn);
-
             // Delete Button
-            var deleteBtn = new Button { Content = "Sil", Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), CornerRadius = new CornerRadius(3), Height = 24, Padding = new Thickness(4, 0, 4, 0), FontSize = 8, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
-            Grid.SetColumn(deleteBtn, 6);
+            var deleteBtn = new Button 
+            { 
+                Content = "×", 
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 220, 70, 70)), 
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), 
+                CornerRadius = new CornerRadius(4), 
+                Height = 28, 
+                Width = 32,
+                Padding = new Thickness(0), 
+                FontSize = 16,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold 
+            };
+            deleteBtn.Click += (s, e) => DeleteVariable(variable);
+            Grid.SetColumn(deleteBtn, 4);
             grid.Children.Add(deleteBtn);
 
             border.Child = grid;
             return border;
+        }
+
+        private Border CreateOutputVariableRow(int index, PLCVariable variable)
+        {
+            var border = new Border
+            {
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 30, 35)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 4, 0, 4),
+                BorderThickness = new Thickness(1.5),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 255, 152, 0))
+            };
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(35) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(65) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(45) });
+
+            // Index
+            var indexTb = new TextBlock { Text = index.ToString(), FontSize = 9, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)), TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
+            Grid.SetColumn(indexTb, 0);
+            grid.Children.Add(indexTb);
+
+            // Name (Editable TextBox)
+            var nameTb = new TextBox 
+            { 
+                Text = variable.Name, 
+                FontSize = 9, 
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 210, 210, 210)),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(80, 255, 152, 0)),
+                Padding = new Thickness(6, 4, 6, 4),
+                Height = 28,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            nameTb.TextChanged += (s, e) => { variable.Name = nameTb.Text; SaveVariablesToFile(); };
+            Grid.SetColumn(nameTb, 1);
+            grid.Children.Add(nameTb);
+
+            // Type (Dropdown ComboBox)
+            var typeCombo = new ComboBox 
+            { 
+                SelectedItem = variable.Type,
+                FontSize = 9,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28)),
+                Height = 28,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            
+            var dataTypes = new[] { "BOOL", "INT", "DWORD", "REAL", "STRING", "WORD", "BYTE", "SINT" };
+            foreach (var dt in dataTypes)
+                typeCombo.Items.Add(dt);
+            
+            typeCombo.SelectedItem = variable.Type;
+            typeCombo.SelectionChanged += (s, e) => 
+            { 
+                variable.Type = typeCombo.SelectedItem?.ToString() ?? "BOOL";
+                SaveVariablesToFile();
+            };
+            Grid.SetColumn(typeCombo, 2);
+            grid.Children.Add(typeCombo);
+
+            // Value (Editable TextBox)
+            var valueTb = new TextBox 
+            { 
+                Text = variable.CurrentValue?.ToString() ?? "0", 
+                FontSize = 9, 
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 50)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 100, 200, 100)),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 255, 152, 0)),
+                TextAlignment = TextAlignment.Center,
+                Padding = new Thickness(6, 4, 6, 4),
+                Height = 28,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold
+            };
+            valueTb.TextChanged += (s, e) => 
+            { 
+                if (double.TryParse(valueTb.Text, out var val))
+                    variable.CurrentValue = val;
+                SaveVariablesToFile();
+            };
+            Grid.SetColumn(valueTb, 3);
+            grid.Children.Add(valueTb);
+
+            // Force Button (Only for OUTPUT)
+            var forceBtn = new Button { Content = "Force", Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 100, 200, 100)), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), CornerRadius = new CornerRadius(4), Height = 28, Width = 60, Padding = new Thickness(0), FontSize = 9, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            Grid.SetColumn(forceBtn, 4);
+            grid.Children.Add(forceBtn);
+
+            // Delete Button
+            var deleteBtn = new Button 
+            { 
+                Content = "×", 
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 220, 70, 70)), 
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), 
+                CornerRadius = new CornerRadius(4), 
+                Height = 28, 
+                Width = 32,
+                Padding = new Thickness(0), 
+                FontSize = 16,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold 
+            };
+            deleteBtn.Click += (s, e) => DeleteVariable(variable);
+            Grid.SetColumn(deleteBtn, 5);
+            grid.Children.Add(deleteBtn);
+
+            border.Child = grid;
+            return border;
+        }
+
+        private void DeleteVariable(PLCVariable variable)
+        {
+            if (InputVariables.Contains(variable))
+            {
+                InputVariables.Remove(variable);
+                AddLog($"[INFO] INPUT deðiþkeni silindi: {variable.Name}");
+            }
+            else if (OutputVariables.Contains(variable))
+            {
+                OutputVariables.Remove(variable);
+                AddLog($"[INFO] OUTPUT deðiþkeni silindi: {variable.Name}");
+            }
+            RefreshPLCVariablesUI();
+            SaveVariablesToFile();
         }
 
         private void AddVariableBtn_Click(object sender, RoutedEventArgs e)
