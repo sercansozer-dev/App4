@@ -8,11 +8,11 @@
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d">
 
-    <Grid Background="#0D0D0D">
+        <Grid Background="#0D0D0D">
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="180"/>
+            <RowDefinition Height="110"/>
             <RowDefinition Height="50"/>
         </Grid.RowDefinitions>
 
@@ -53,7 +53,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="50"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="70"/>
+                        <RowDefinition Height="45"/>
                     </Grid.RowDefinitions>
 
                     <!-- Başlık -->
@@ -71,14 +71,21 @@
                             <Path Stroke="White" StrokeThickness="0.5" Data="M0,50 H2000 M0,100 H2000 M50,0 V2000 M100,0 V2000"/>
                         </Canvas>
 
+                        <!-- Varsayılan Metin (Görüntü gelmediğinde göster) -->
+                        <TextBlock x:Name="NoDataText" Text="🖼️ GÖRÜNTÜ BEKLENİYOR" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#555555" FontWeight="Bold" Opacity="0.6" FontSize="13" TextAlignment="Center"/>
+
                         <!-- Görüntü -->
-                        <Image x:Name="SensorDisplay" Stretch="UniformToFill" Margin="0"/>
+                        <Image x:Name="SensorDisplay" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="25,25,25,25" RenderTransformOrigin="0.5,0.5">
+                            <Image.RenderTransform>
+                                <TransformGroup>
+                                    <RotateTransform Angle="90"/>
+                                    <ScaleTransform ScaleX="-0.75" ScaleY="0.75"/>
+                                </TransformGroup>
+                            </Image.RenderTransform>
+                        </Image>
 
                         <!-- Yükleme Halka -->
                         <ProgressRing x:Name="LoadingRing" IsActive="False" Width="70" Height="70" Foreground="#00A4EF" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-
-                        <!-- Varsayılan Metin -->
-                        <TextBlock x:Name="NoDataText" Text="🖼️ GÖRÜNTÜ BEKLENİYOR" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#555555" FontWeight="Bold" Opacity="0.6" FontSize="13" TextAlignment="Center"/>
                     </Grid>
 
                     <!-- Durum ve Buton -->
@@ -93,15 +100,15 @@
                                     Click="RunButton_Click" 
                                     HorizontalAlignment="Right" 
                                     VerticalAlignment="Center"
-                                    Width="120" 
-                                    Height="50" 
+                                    Width="110" 
+                                    Height="40" 
                                     Background="#00A4EF" 
                                     CornerRadius="8" 
                                     FontWeight="Bold" 
-                                    FontSize="14"
+                                    FontSize="12"
                                     Foreground="White">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE722;" FontSize="16"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE722;" FontSize="14"/>
                                     <TextBlock Text="ÇEK"/>
                                 </StackPanel>
                             </Button>
@@ -118,7 +125,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="50"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="70"/>
+                        <RowDefinition Height="45"/>
                     </Grid.RowDefinitions>
 
                     <!-- Başlık -->
@@ -133,20 +140,6 @@
                     <Grid Grid.Row="1" Background="#0D0D0D" x:Name="WebViewContainer">
                         <controls:WebView2
                             x:Name="PointCloudWebView"/>
-
-                        <!-- Yükleme Göstergesi -->
-                        <StackPanel x:Name="WebViewStatusPanel" 
-                            VerticalAlignment="Center" 
-                            HorizontalAlignment="Center" 
-                            Spacing="10">
-                            <ProgressRing IsActive="True" Width="40" Height="40" Foreground="#00A4EF"/>
-                            <TextBlock x:Name="WebViewStatus" 
-                                Text="🔄 WebView Yükleniyor..." 
-                                Foreground="#888888" 
-                                FontWeight="Bold" 
-                                FontSize="12"
-                                TextAlignment="Center"/>
-                        </StackPanel>
                     </Grid>
 
                     <!-- Buton Paneli -->
@@ -161,15 +154,15 @@
                                 Click="SurfaceButton_Click"
                                 HorizontalAlignment="Right" 
                                 VerticalAlignment="Center"
-                                Width="140" 
-                                Height="50" 
+                                Width="130" 
+                                Height="40" 
                                 Background="#00A4EF" 
                                 CornerRadius="8" 
                                 FontWeight="Bold" 
-                                FontSize="14"
+                                FontSize="12"
                                 Foreground="White">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE71D;" FontSize="16"/>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE71D;" FontSize="14"/>
                                     <TextBlock Text="SURFACE"/>
                                 </StackPanel>
                             </Button>

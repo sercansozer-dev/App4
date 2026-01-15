@@ -217,13 +217,7 @@ namespace App4.PAGES
             {
                 SurfaceButton.IsEnabled = true;
                 // Status panelini kapat
-                this.DispatcherQueue.TryEnqueue(() =>
-                {
-                    if (WebViewStatusPanel != null)
-                    {
-                        WebViewStatusPanel.Visibility = Visibility.Collapsed;
-                    }
-                });
+              
             }
         }
 
@@ -379,6 +373,9 @@ namespace App4.PAGES
                 var bitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
                 await bitmap.SetSourceAsync(stream);
                 targetImage.Source = bitmap;
+                
+                // Görüntü yüklendikten sonra "Görüntü bekleniyor" yazısını gizle
+                NoDataText.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -417,12 +414,7 @@ namespace App4.PAGES
                     Cloud3DStatus.Foreground = new SolidColorBrush(color);
                 }
 
-                if (WebViewStatusPanel != null)
-                {
-                    WebViewStatusPanel.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
-                    if (WebViewStatus != null) 
-                        WebViewStatus.Text = message;
-                }
+               
             });
         }
 
