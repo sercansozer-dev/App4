@@ -354,16 +354,26 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                                 <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
                                 <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
                                 <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
                             </StackPanel>
-                            <Button Grid.Column="1" x:Name="AddVariableBtn" Content="➕ Yeni Değişken Ekle" 
+                            <Button Grid.Column="1" x:Name="ImportVariablesBtn" Content="📤 İçe Aktar" 
+                                    Background="#FF9800" Foreground="White" CornerRadius="4" 
+                                    Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
+                                    Click="ImportVariablesBtn_Click" VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" x:Name="ExportVariablesBtn" Content="📥 Dışa Aktar" 
+                                    Background="#4CAF50" Foreground="White" CornerRadius="4" 
+                                    Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
+                                    Click="ExportVariablesBtn_Click" VerticalAlignment="Center"/>
+                            <Button Grid.Column="3" x:Name="AddVariableBtn" Content="➕ Yeni Değişken Ekle" 
                                     Background="#00A4EF" Foreground="White" CornerRadius="4" 
                                     Height="32" FontWeight="Bold" FontSize="10" Padding="12,0"
-                                    Click="AddVariableBtn_Click" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                    Click="AddVariableBtn_Click" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
 

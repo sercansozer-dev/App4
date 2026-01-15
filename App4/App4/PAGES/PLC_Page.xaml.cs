@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Windows.UI;
@@ -184,6 +186,263 @@ namespace App4.PAGES
         private void AddVariableBtn_Click(object sender, RoutedEventArgs e)
         {
             AddNewPLCVariable();
+        }
+
+        /// <summary>
+        /// Dýþa Aktar butonu týklandý
+        /// </summary>
+        private void ExportVariablesBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ExportVariablesToFile();
+        }
+
+        /// <summary>
+        /// Ýçe Aktar butonu týklandý
+        /// </summary>
+        private void ImportVariablesBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ImportVariablesFromFile();
+        }
+
+        /// <summary>
+        /// Deðiþkenleri JSON dosyasýna dýþa aktar
+        /// </summary>
+        private async void ExportVariablesToFile()
+        {
+            try
+            {
+                // Kaydedilecek klasör: Masaüstü (Desktop)
+                var exportPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    "PLC_Exports"
+                );
+                Directory.CreateDirectory(exportPath);
+
+                // Dosya adý: PLC_Variables_[timestamp].json
+                var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+                var fileName = $"PLC_Variables_{timestamp}.json";
+                var filePath = Path.Combine(exportPath, fileName);
+
+                // JSON options
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+
+                // JSON'a serialize et
+                var json = JsonSerializer.Serialize(PLCVariables, options);
+                
+                // Dosyaya yaz
+                File.WriteAllText(filePath, json, Encoding.UTF8);
+
+                System.Diagnostics.Debug.WriteLine($"? Dosya baþarýyla kaydedildi: {filePath}");
+
+                // Baþarý mesajý - Tam path'i göster
+                var successDialog = new ContentDialog
+                {
+                    Title = "? Dýþa Aktarma Baþarýlý",
+                    Content = $"Deðiþkenler JSON formatýnda masaüstüne dýþa aktarýldý!\n\n" +
+                              $"?? Dosya: {fileName}\n" +
+                              $"?? Konum: Masaüstü\\PLC_Exports\\\n\n" +
+                              $"? {PLCVariables.Count} deðiþken kaydedildi.",
+                    PrimaryButtonText = "?? Klasörü Aç",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.Content.XamlRoot,
+                    RequestedTheme = ElementTheme.Dark
+                };
+
+                var result = await successDialog.ShowAsync();
+                
+                // Eðer "Klasörü Aç" týklanýrsa
+                if (result == ContentDialogResult.Primary)
+                {
+                    // Windows Explorer'da klasörü aç
+                    try
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "explorer.exe",
+                            Arguments = exportPath,
+                            UseShellExecute = true
+                        };
+                        System.Diagnostics.Process.Start(psi);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"? Klasör açýlamadý: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"? Hata - Dýþa aktarma baþarýsýz: {ex.Message}");
+
+                var errorDialog = new ContentDialog
+                {
+                    Title = "? Hata",
+                    Content = $"Dýþa aktarma sýrasýnda hata oluþtu:\n\n{ex.Message}",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.Content.XamlRoot,
+                    RequestedTheme = ElementTheme.Dark
+                };
+                _ = errorDialog.ShowAsync();
+            }
+        }
+
+        /// <summary>
+        /// JSON dosyasýndan deðiþkenleri içe aktar
+        /// </summary>
+        private async void ImportVariablesFromFile()
+        {
+            try
+            {
+                // Dosya seçici dialog'u aç
+                var exportsPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    "PLC_Exports"
+                );
+
+                if (!Directory.Exists(exportsPath))
+                {
+                    var warningDialog = new ContentDialog
+                    {
+                        Title = "?? Uyarý",
+                        Content = $"PLC_Exports klasörü bulunamadý!\n\nKonum: Masaüstü\\PLC_Exports",
+                        CloseButtonText = "Tamam",
+                        XamlRoot = this.Content.XamlRoot,
+                        RequestedTheme = ElementTheme.Dark
+                    };
+                    _ = await warningDialog.ShowAsync();
+                    return;
+                }
+
+                // Mevcut JSON dosyalarýný listele
+                var jsonFiles = Directory.GetFiles(exportsPath, "*.json")
+                    .OrderByDescending(f => File.GetLastWriteTime(f))
+                    .ToList();
+
+                if (jsonFiles.Count == 0)
+                {
+                    var noFilesDialog = new ContentDialog
+                    {
+                        Title = "?? Bilgi",
+                        Content = $"Ýçe aktarýlacak JSON dosyasý bulunamadý!\n\nKonum: Masaüstü\\PLC_Exports",
+                        CloseButtonText = "Tamam",
+                        XamlRoot = this.Content.XamlRoot,
+                        RequestedTheme = ElementTheme.Dark
+                    };
+                    _ = await noFilesDialog.ShowAsync();
+                    return;
+                }
+
+                // Dosya seçim listesi oluþtur
+                var stackPanel = new StackPanel { Spacing = 10 };
+                var listBox = new ListBox { Height = 300 };
+                foreach (var file in jsonFiles)
+                {
+                    var fileInfo = new FileInfo(file);
+                    listBox.Items.Add($"{fileInfo.Name} ({fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss})");
+                }
+                listBox.SelectedIndex = 0;
+                stackPanel.Children.Add(listBox);
+
+                var importDialog = new ContentDialog
+                {
+                    Title = "?? Dosya Seç",
+                    Content = stackPanel,
+                    PrimaryButtonText = "Ýçe Aktar",
+                    CloseButtonText = "Ýptal",
+                    XamlRoot = this.Content.XamlRoot,
+                    RequestedTheme = ElementTheme.Dark
+                };
+
+                var result = await importDialog.ShowAsync();
+
+                if (result == ContentDialogResult.Primary && listBox.SelectedIndex >= 0)
+                {
+                    var selectedFile = jsonFiles[listBox.SelectedIndex];
+                    
+                    // JSON dosyasýný oku
+                    var json = File.ReadAllText(selectedFile, Encoding.UTF8);
+                    
+                    // JSON options
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+
+                    // JSON'dan deserialize et
+                    var loadedVariables = JsonSerializer.Deserialize<List<PLCVariable>>(json, options);
+
+                    if (loadedVariables != null && loadedVariables.Count > 0)
+                    {
+                        // Onay dialog'u
+                        var confirmDialog = new ContentDialog
+                        {
+                            Title = "?? Onay",
+                            Content = $"{loadedVariables.Count} deðiþken içe aktarýlacak.\n\nMevcut deðiþkenler silinecektir. Devam et?",
+                            PrimaryButtonText = "Evet",
+                            CloseButtonText = "Ýptal",
+                            XamlRoot = this.Content.XamlRoot,
+                            RequestedTheme = ElementTheme.Dark
+                        };
+
+                        var confirmResult = await confirmDialog.ShowAsync();
+
+                        if (confirmResult == ContentDialogResult.Primary)
+                        {
+                            // Deðiþkenleri deðiþtir
+                            PLCVariables.Clear();
+                            foreach (var variable in loadedVariables)
+                            {
+                                PLCVariables.Add(variable);
+                            }
+                            RefreshPLCVariablesUI();
+                            SaveVariables(); // Yüklenen verileri kaydet
+
+                            // Baþarý mesajý
+                            var successDialog = new ContentDialog
+                            {
+                                Title = "? Ýçe Aktarma Baþarýlý",
+                                Content = $"{loadedVariables.Count} deðiþken baþarýyla içe aktarýldý!",
+                                CloseButtonText = "Tamam",
+                                XamlRoot = this.Content.XamlRoot,
+                                RequestedTheme = ElementTheme.Dark
+                            };
+                            _ = await successDialog.ShowAsync();
+
+                            System.Diagnostics.Debug.WriteLine($"? Dosya baþarýyla yüklendi: {selectedFile}");
+                        }
+                    }
+                    else
+                    {
+                        var emptyDialog = new ContentDialog
+                        {
+                            Title = "?? Uyarý",
+                            Content = "Dosya boþ veya geçersiz!",
+                            CloseButtonText = "Tamam",
+                            XamlRoot = this.Content.XamlRoot,
+                            RequestedTheme = ElementTheme.Dark
+                        };
+                        _ = await emptyDialog.ShowAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"? Hata - Ýçe aktarma baþarýsýz: {ex.Message}");
+
+                var errorDialog = new ContentDialog
+                {
+                    Title = "? Hata",
+                    Content = $"Ýçe aktarma sýrasýnda hata oluþtu:\n\n{ex.Message}",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.Content.XamlRoot,
+                    RequestedTheme = ElementTheme.Dark
+                };
+                _ = errorDialog.ShowAsync();
+            }
         }
 
         /// <summary>
