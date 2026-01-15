@@ -6,9 +6,593 @@
     xmlns:local="using:App4.Pages"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d">
 
-    <Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+        <Grid Background="#0D0D0D">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
+                <RowDefinition Height="400"/>
+                <RowDefinition Height="420"/>
+                <RowDefinition Height="380"/>
+                <RowDefinition Height="420"/>
+                <RowDefinition Height="350"/>
+                <RowDefinition Height="50"/>
+            </Grid.RowDefinitions>
 
-    </Grid>
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- BAŞLIK BÖLÜMÜ -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="0" Background="#252526" BorderThickness="0,0,0,2" BorderBrush="#E74C3C" Padding="20,0">
+                <Grid VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                        <FontIcon Glyph="&#xE8FB;" Foreground="#E74C3C" FontSize="36"/>
+                        <StackPanel VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Text="Simbiosis Mekatronik Leak Test App" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="ROBOT ENTEGRASYONu - GOCATOR 3D" FontSize="10" Foreground="#E74C3C" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20" VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center" Spacing="5">
+                            <TextBlock Text="ROBOT DURUMU" FontSize="9" Foreground="#888888" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="RobotStatusLabel" Text="ÇALIŞIYOR" FontSize="13" FontWeight="Bold" Foreground="#2ECC71"/>
+                        </StackPanel>
+                        <FontIcon Glyph="&#xE957;" Foreground="#2ECC71" FontSize="24"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- 3D GÖRSELLEŞTİRME + GOCATOR OFSET VERİLERİ -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#E74C3C" Padding="0" Margin="20,20,20,20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#2C1810" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#E74C3C">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                            <FontIcon Glyph="&#xE90C;" Foreground="#E74C3C" FontSize="18"/>
+                            <TextBlock Text="3D GÖRSELLEŞTIRME + GOCATOR SENSÖR VERİLERİ" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                            <Ellipse Width="8" Height="8" Fill="#2ECC71" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <TextBlock Text="Gerçek Zaman" FontSize="9" Foreground="#2ECC71" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 3D Görselleştirme Alanı -->
+                        <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="10" BorderThickness="2" BorderBrush="#444444" Margin="0,0,8,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="35"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="10" BorderThickness="0,0,0,1" BorderBrush="#333333">
+                                    <TextBlock Text="📐 3D ÇALIŞMA ORTAMI" FontSize="10" FontWeight="Bold" Foreground="#E74C3C" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <Grid Grid.Row="1" Background="#000000">
+                                    <!-- WebView veya canvas alanı -->
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+                                        <FontIcon Glyph="&#xE90C;" FontSize="64" Foreground="#444444"/>
+                                        <TextBlock Text="3D Çalışma Alanı Görselleştirmesi" FontSize="12" Foreground="#888888" TextAlignment="Center"/>
+                                        <TextBlock Text="Robot Konumu • Ürün Pozisyonu • Sensör Noktaları" FontSize="9" Foreground="#555555" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- GOCATOR Ofset Verileri -->
+                        <StackPanel Grid.Column="1" Spacing="12" Margin="8,0,0,0">
+                            <!-- GOCATOR İstatistikleri Başlık -->
+                            <Border Background="#2C1810" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#E74C3C">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="🎯 GOCATOR 3D SENSÖR OKUMALARı" FontSize="11" FontWeight="Bold" Foreground="#E74C3C"/>
+                                    <TextBlock Text="En Son Ofset Verisi" FontSize="9" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- X Ofset -->
+                            <Border Background="#1A1A1C" CornerRadius="6" Padding="10" BorderThickness="1" BorderBrush="#333333">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="X OFSET" FontSize="9" FontWeight="Bold" Foreground="#00A4EF"/>
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressBar Grid.Column="0" Value="68" Maximum="100" Background="#333333" Foreground="#00A4EF" Height="6" CornerRadius="3"/>
+                                        <TextBlock Grid.Column="1" x:Name="XOffsetLabel" Text="+2.35mm" FontSize="10" Foreground="#00FF88" FontFamily="Cascadia Mono" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <TextBlock Text="Hedef: 0.00mm  |  Tolerans: ±5mm" FontSize="7" Foreground="#555555"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Y Ofset -->
+                            <Border Background="#1A1A1C" CornerRadius="6" Padding="10" BorderThickness="1" BorderBrush="#333333">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Y OFSET" FontSize="9" FontWeight="Bold" Foreground="#00A4EF"/>
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressBar Grid.Column="0" Value="52" Maximum="100" Background="#333333" Foreground="#00A4EF" Height="6" CornerRadius="3"/>
+                                        <TextBlock Grid.Column="1" x:Name="YOffsetLabel" Text="-1.84mm" FontSize="10" Foreground="#00FF88" FontFamily="Cascadia Mono" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <TextBlock Text="Hedef: 0.00mm  |  Tolerans: ±5mm" FontSize="7" Foreground="#555555"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Z Ofset -->
+                            <Border Background="#1A1A1C" CornerRadius="6" Padding="10" BorderThickness="1" BorderBrush="#333333">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Z OFSET (YÜKSEKLIK)" FontSize="9" FontWeight="Bold" Foreground="#00A4EF"/>
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressBar Grid.Column="0" Value="95" Maximum="100" Background="#333333" Foreground="#2ECC71" Height="6" CornerRadius="3"/>
+                                        <TextBlock Grid.Column="1" x:Name="ZOffsetLabel" Text="+0.12mm" FontSize="10" Foreground="#2ECC71" FontFamily="Cascadia Mono" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <TextBlock Text="Hedef: 0.00mm  |  Tolerans: ±2mm" FontSize="7" Foreground="#555555"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Ofset Durumu İndikasyonu -->
+                            <Border Background="#1A3A2E" CornerRadius="6" Padding="10" BorderThickness="1" BorderBrush="#2ECC71">
+                                <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Ellipse Width="10" Height="10" Fill="#2ECC71" VerticalAlignment="Center"/>
+                                        <TextBlock Text="OFSET DURUMU" FontSize="9" FontWeight="Bold" Foreground="#2ECC71" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="OffsetStatusLabel" Text="✓ Tolerans İçinde - Çalışmaya Hazır" FontSize="9" Foreground="#2ECC71" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- ROBOT ADIMLARI TİMELİNE -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#9B59B6" Padding="0" Margin="20,0,20,20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#3D1F4D" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#9B59B6">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                            <FontIcon Glyph="&#xE81E;" Foreground="#9B59B6" FontSize="18"/>
+                            <TextBlock Text="ROBOT İŞLEM ADIMLARI TİMELİNE" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock x:Name="CurrentStepLabel" Text="(Adım 3 / 8)" FontSize="10" Foreground="#9B59B6" Margin="8,0,0,0"/>
+                            <Ellipse Width="8" Height="8" Fill="#2ECC71" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <TextBlock Text="Devam Ediyor" FontSize="9" Foreground="#2ECC71" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
+                        <StackPanel Background="#0D0D0D" Padding="15" Orientation="Horizontal" Spacing="12">
+                            <!-- ADIM 1 - Tamamlandı -->
+                            <Border Background="#1A4D2E" CornerRadius="10" Padding="12" BorderThickness="2" BorderBrush="#2ECC71" MinWidth="180" MinHeight="140">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="20" Height="20" Fill="#2ECC71" VerticalAlignment="Center"/>
+                                        <TextBlock Text="ADIM 1" FontSize="10" FontWeight="Bold" Foreground="#2ECC71" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Başlangıç Konumu" FontSize="11" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                    <TextBlock Text="✓ Tamamlandı" FontSize="9" Foreground="#2ECC71"/>
+                                    <TextBlock Text="Süre: 0.5s" FontSize="8" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ADIM 2 - Tamamlandı -->
+                            <Border Background="#1A4D2E" CornerRadius="10" Padding="12" BorderThickness="2" BorderBrush="#2ECC71" MinWidth="180" MinHeight="140">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="20" Height="20" Fill="#2ECC71" VerticalAlignment="Center"/>
+                                        <TextBlock Text="ADIM 2" FontSize="10" FontWeight="Bold" Foreground="#2ECC71" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Ürünü Alma" FontSize="11" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                    <TextBlock Text="✓ Tamamlandı" FontSize="9" Foreground="#2ECC71"/>
+                                    <TextBlock Text="Süre: 1.2s" FontSize="8" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ADIM 3 - Çalışıyor (Aktif) -->
+                            <Border Background="#3D2F1F" CornerRadius="10" Padding="12" BorderThickness="3" BorderBrush="#E74C3C" MinWidth="180" MinHeight="140">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <ProgressRing Width="20" Height="20" Foreground="#E74C3C" VerticalAlignment="Center" IsActive="True"/>
+                                        <TextBlock Text="ADIM 3" FontSize="10" FontWeight="Bold" Foreground="#E74C3C" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Kamera Okuma" FontSize="11" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                    <TextBlock Text="⟳ Devam Ediyor..." FontSize="9" Foreground="#E74C3C" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Geçen: 2.1s" FontSize="8" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ADIM 4 - Bekleme -->
+                            <Border Background="#1A1A1C" CornerRadius="10" Padding="12" BorderThickness="2" BorderBrush="#555555" MinWidth="180" MinHeight="140">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="20" Height="20" Fill="#888888" VerticalAlignment="Center"/>
+                                        <TextBlock Text="ADIM 4" FontSize="10" FontWeight="Bold" Foreground="#888888" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Ofset Hesaplama" FontSize="11" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                    <TextBlock Text="⧖ Bekleniyor..." FontSize="9" Foreground="#888888"/>
+                                    <TextBlock Text="Tahmini: 1.5s" FontSize="8" Foreground="#555555"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ADIM 5 - Bekleme -->
+                            <Border Background="#1A1A1C" CornerRadius="10" Padding="12" BorderThickness="2" BorderBrush="#555555" MinWidth="180" MinHeight="140">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="20" Height="20" Fill="#888888" VerticalAlignment="Center"/>
+                                        <TextBlock Text="ADIM 5" FontSize="10" FontWeight="Bold" Foreground="#888888" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Robot Hareket" FontSize="11" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                    <TextBlock Text="⧖ Bekleniyor..." FontSize="9" Foreground="#888888"/>
+                                    <TextBlock Text="Tahmini: 3.2s" FontSize="8" Foreground="#555555"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ADIM 6-8 (Özet olarak) -->
+                            <Border Background="#1A1A1C" CornerRadius="10" Padding="12" BorderThickness="2" BorderBrush="#555555" MinWidth="180" MinHeight="140">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="20" Height="20" Fill="#888888" VerticalAlignment="Center"/>
+                                        <TextBlock Text="ADIM 6-8" FontSize="10" FontWeight="Bold" Foreground="#888888" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Test Yürütme" FontSize="11" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                    <TextBlock Text="⧖ Bekleniyor..." FontSize="9" Foreground="#888888"/>
+                                    <TextBlock Text="Tahmini: 8.5s" FontSize="8" Foreground="#555555"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- ROBOT KONTROL DURUMU VE ANALİTİKS -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="3" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#F39C12" Padding="0" Margin="20,0,20,20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#4D3A1A" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#F39C12">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                            <FontIcon Glyph="&#xE7E8;" Foreground="#F39C12" FontSize="18"/>
+                            <TextBlock Text="ROBOT KONTROL DURUMU" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
+                        <Grid ColumnSpacing="12" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Robot Konumu -->
+                            <Border Grid.Column="0" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#F39C12">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="📍 ROBOT KONUMU" FontSize="10" FontWeight="Bold" Foreground="#F39C12"/>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="X: 125.45 mm" FontSize="9" Foreground="#00FF88" FontFamily="Cascadia Mono"/>
+                                        <TextBlock Text="Y: 245.32 mm" FontSize="9" Foreground="#00FF88" FontFamily="Cascadia Mono"/>
+                                        <TextBlock Text="Z: 450.78 mm" FontSize="9" Foreground="#00FF88" FontFamily="Cascadia Mono"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Eksen Durumu -->
+                            <Border Grid.Column="1" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#3498DB">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="⚙️ EKSEN DURUMU" FontSize="10" FontWeight="Bold" Foreground="#3498DB"/>
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="Eksen 1: ✓ OK" FontSize="9" Foreground="#2ECC71"/>
+                                        <TextBlock Text="Eksen 2: ✓ OK" FontSize="9" Foreground="#2ECC71"/>
+                                        <TextBlock Text="Eksen 3-6: ✓ OK" FontSize="9" Foreground="#2ECC71"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Sürükleme (Torque) -->
+                            <Border Grid.Column="2" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#E74C3C">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="💪 MOTOR YÜKÜ" FontSize="10" FontWeight="Bold" Foreground="#E74C3C"/>
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressBar Grid.Column="0" Value="45" Maximum="100" Background="#333333" Foreground="#F39C12" Height="6" CornerRadius="3" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="45%" FontSize="9" Foreground="#F39C12" FontWeight="Bold"/>
+                                    </Grid>
+                                    <TextBlock Text="Normal Aralık" FontSize="8" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Sıcaklık -->
+                            <Border Grid.Column="3" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#E67E22">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="🌡️ MOTOR SICAKLIĞI" FontSize="10" FontWeight="Bold" Foreground="#E67E22"/>
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ProgressBar Grid.Column="0" Value="52" Maximum="100" Background="#333333" Foreground="#2ECC71" Height="6" CornerRadius="3" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="52°C" FontSize="9" Foreground="#2ECC71" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                    </Grid>
+                                    <TextBlock Text="Max: 85°C" FontSize="8" Foreground="#888888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Son Hata / Uyarı -->
+                            <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Background="#1A4D2E" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#2ECC71">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="✓ HATA / UYARI" FontSize="10" FontWeight="Bold" Foreground="#2ECC71"/>
+                                    <TextBlock x:Name="ErrorWarningLabel" Text="Hata Yok - Sistem Sağlıklı" FontSize="9" Foreground="#2ECC71" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Acil Durdurma Butonu -->
+                            <Button Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="1" Background="#C0392B" CornerRadius="8" Foreground="White" VerticalAlignment="Stretch">
+                                <StackPanel Orientation="Vertical" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE71E;" FontSize="24" Foreground="White"/>
+                                    <TextBlock Text="ACİL DURDUR" TextAlignment="Center" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="E-STOP" TextAlignment="Center" FontSize="9" Opacity="0.8"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- SISTEM DURUMU DETAYLARI VE ARıZA LOGLARı -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="4" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#16A085" Padding="0" Margin="20,0,20,20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#1A3D34" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#16A085">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                            <FontIcon Glyph="&#xE7F8;" Foreground="#16A085" FontSize="18"/>
+                            <TextBlock Text="SISTEM SAĞLIĞI VE HATA LOGLARı" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
+                        <Grid ColumnSpacing="15" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Sistem Durumu Özeti -->
+                            <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
+                                <StackPanel Spacing="12">
+                                    <!-- PLC -->
+                                    <Border Background="#1A4D2E" CornerRadius="6" Padding="10">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="🎛️ PLC SİSTEMİ" FontSize="10" FontWeight="Bold" Foreground="#2ECC71"/>
+                                            <TextBlock Text="✓ Bağlı" FontSize="9" Foreground="#2ECC71"/>
+                                            <TextBlock Text="CPU: 62%" FontSize="8" Foreground="#888888"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- GOCATOR Kamera -->
+                                    <Border Background="#1A4D2E" CornerRadius="6" Padding="10">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="📷 GOCATOR 3D" FontSize="10" FontWeight="Bold" Foreground="#2ECC71"/>
+                                            <TextBlock Text="✓ Bağlı" FontSize="9" Foreground="#2ECC71"/>
+                                            <TextBlock Text="FPS: 30 | Latency: 12ms" FontSize="8" Foreground="#888888"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Robot Kontrolü -->
+                                    <Border Background="#1A4D2E" CornerRadius="6" Padding="10">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="🤖 ROBOT KUKA" FontSize="10" FontWeight="Bold" Foreground="#2ECC71"/>
+                                            <TextBlock Text="✓ Hazır" FontSize="9" Foreground="#2ECC71"/>
+                                            <TextBlock Text="Durum: Çalışıyor" FontSize="8" Foreground="#888888"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Ağ Bağlantısı -->
+                                    <Border Background="#1A4D2E" CornerRadius="6" Padding="10">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="🌐 İLETİŞİM" FontSize="10" FontWeight="Bold" Foreground="#2ECC71"/>
+                                            <TextBlock Text="✓ Sağlam" FontSize="9" Foreground="#2ECC71"/>
+                                            <TextBlock Text="Ping: 1ms | Bant: 100Mbps" FontSize="8" Foreground="#888888"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Hata / Uyarı Geçmişi -->
+                            <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="📋 HATA / UYARI LOGLARı" FontSize="10" FontWeight="Bold" Foreground="#16A085" Margin="0,0,0,8"/>
+
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Spacing="8">
+                                            <!-- İyi Durum -->
+                                            <Border Background="#1A4D2E" CornerRadius="4" Padding="8" BorderThickness="1" BorderBrush="#2ECC71">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="✓ 2025-01-15 14:32:15" FontSize="8" Foreground="#2ECC71" FontFamily="Cascadia Mono"/>
+                                                    <TextBlock Text="Sistem Başlatıldı - Tüm Bileşenler Hazır" FontSize="8" Foreground="#2ECC71"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Uyarı Örneği -->
+                                            <Border Background="#4D3A1A" CornerRadius="4" Padding="8" BorderThickness="1" BorderBrush="#F39C12">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="⚠ 2025-01-15 14:28:42" FontSize="8" Foreground="#F39C12" FontFamily="Cascadia Mono"/>
+                                                    <TextBlock Text="Motor Sıcaklığı Uyarı Seviyesi Yakında" FontSize="8" Foreground="#F39C12"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Çözülen Hata -->
+                                            <Border Background="#3D2F1F" CornerRadius="4" Padding="8" BorderThickness="1" BorderBrush="#E74C3C" Opacity="0.7">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="❌ 2025-01-15 14:15:30 [ÇÖZÜLDÜ]" FontSize="8" Foreground="#E74C3C" FontFamily="Cascadia Mono"/>
+                                                    <TextBlock Text="GOCATOR Bağlantı Kesildi - Yeniden Bağlandı" FontSize="8" Foreground="#E74C3C"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- İyi Durum -->
+                                            <Border Background="#1A4D2E" CornerRadius="4" Padding="8" BorderThickness="1" BorderBrush="#2ECC71">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="✓ 2025-01-15 14:00:01" FontSize="8" Foreground="#2ECC71" FontFamily="Cascadia Mono"/>
+                                                    <TextBlock Text="Test Kullanımı %100 Başarılı" FontSize="8" Foreground="#2ECC71"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- ROBOT MODÜL KONTROL VE PLC KOMUTLARI -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="5" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#8E44AD" Padding="0" Margin="20,0,20,20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#3D1F4D" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#8E44AD">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                            <FontIcon Glyph="&#xE8EE;" Foreground="#8E44AD" FontSize="18"/>
+                            <TextBlock Text="ROBOT MODÜL KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="Gocator Ofset Tabanlı Hareket" FontSize="10" Foreground="#8E44AD" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
+                        <Grid ColumnSpacing="12" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Ofset Kompensasyonu Butonu -->
+                            <Button Grid.Column="0" Grid.Row="0" Background="#27AE60" CornerRadius="8" Foreground="White" Height="60" FontWeight="Bold" FontSize="11" Click="OffsetCompensation_Click">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE74C;" FontSize="20"/>
+                                    <TextBlock Text="OFSET KOMPENSASYONu" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Manuel Koordinat Girişi -->
+                            <Button Grid.Column="1" Grid.Row="0" Background="#2980B9" CornerRadius="8" Foreground="White" Height="60" FontWeight="Bold" FontSize="11" Click="ManualPosition_Click">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE71E;" FontSize="20"/>
+                                    <TextBlock Text="MANUEL KONUM" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Kalibrasyonu -->
+                            <Button Grid.Column="2" Grid.Row="0" Background="#8E44AD" CornerRadius="8" Foreground="White" Height="60" FontWeight="Bold" FontSize="11" Click="Calibration_Click">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE895;" FontSize="20"/>
+                                    <TextBlock Text="KALİBRASYON" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Duraklatma / Devam Butonu -->
+                            <Button Grid.Column="0" Grid.Row="1" Background="#F39C12" CornerRadius="8" Foreground="White" Height="60" FontWeight="Bold" FontSize="11" Click="PauseResume_Click">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE71A;" FontSize="20"/>
+                                    <TextBlock Text="DURAKLAT / DEVAM" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Test Başlatma -->
+                            <Button Grid.Column="1" Grid.Row="1" Background="#E74C3C" CornerRadius="8" Foreground="White" Height="60" FontWeight="Bold" FontSize="11" Click="StartTest_Click">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE768;" FontSize="20"/>
+                                    <TextBlock Text="TEST BAŞLAT" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Oto Tekrar -->
+                            <Button Grid.Column="2" Grid.Row="1" Background="#16A085" CornerRadius="8" Foreground="White" Height="60" FontWeight="Bold" FontSize="11" Click="AutoRepeat_Click">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE72A;" FontSize="20"/>
+                                    <TextBlock Text="OTO TEKRAR" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <!-- FOOTER -->
+            <!-- ═══════════════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="6" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#E74C3C" Padding="25,0">
+                <Grid VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
+                        <Ellipse Width="10" Height="10" Fill="#2ECC71" VerticalAlignment="Center"/>
+                        <TextBlock Text="GOCATOR Senkronizasyonu:" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="SyncStatusLabel" Text="%100 SENKRON" FontSize="11" FontWeight="Bold" Foreground="#2ECC71" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <TextBlock Text="© 2025 Simbiosis Mekatronik | Robot Entegrasyon Modülü v1.0" 
+                               VerticalAlignment="Center" 
+                               HorizontalAlignment="Right" 
+                               FontSize="10" 
+                               Foreground="#555555"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
 </Page>
