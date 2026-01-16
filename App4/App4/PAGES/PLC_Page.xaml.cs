@@ -30,6 +30,7 @@ namespace App4.PAGES
         private MelsecMcNet _melsecNet;
         private bool _isConnected = false;
         private StringBuilder _logBuilder = new StringBuilder();
+        private DispatcherTimer _timer;
 
         // Kalýcýlýk için dosya yolu
         private readonly string _variablesFilePath = Path.Combine(
@@ -39,6 +40,11 @@ namespace App4.PAGES
         public PLC_Page()
         {
             this.InitializeComponent();
+            
+            _timer = new DispatcherTimer();
+            _timer.Interval = TimeSpan.FromMilliseconds(500);
+            _timer.Tick += Timer_Tick;
+
             InputVariables = new ObservableCollection<PLCVariable>();
             OutputVariables = new ObservableCollection<PLCVariable>();
             InitializeIOMapping();
@@ -113,16 +119,15 @@ namespace App4.PAGES
 
         private void InitializePLCVariables()
         {
-            // Default INPUT variables
+            // Default INPUT variables (User requested D0 at index 1)
+            InputVariables.Add(new PLCVariable { Name = "D0 - Okunan Deðer", Type = "WORD", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
             InputVariables.Add(new PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
             InputVariables.Add(new PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
-            InputVariables.Add(new PLCVariable { Name = "D0 - Durum Kodu", Type = "INT", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 100 });
 
-            // Default OUTPUT variables
-            OutputVariables.Add(new PLCVariable { Name = "D0 - Baþlat Sinyali", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            // Default OUTPUT variables (User requested D0 at index 1 for write test)
+            OutputVariables.Add(new PLCVariable { Name = "D0 - Yazýlan Deðer", Type = "WORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
             OutputVariables.Add(new PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
             OutputVariables.Add(new PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
-            OutputVariables.Add(new PLCVariable { Name = "D3 - Sýcaklýk Setpoint", Type = "REAL", Direction = "Output", CurrentValue = 42.5, MinValue = 20.0, MaxValue = 80.0 });
 
             RefreshPLCVariablesUI();
         }
@@ -341,6 +346,10 @@ namespace App4.PAGES
 
             // Force Button (Only for OUTPUT)
             var forceBtn = new Button { Content = "Force", Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 100, 200, 100)), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255)), CornerRadius = new CornerRadius(4), Height = 28, Width = 60, Padding = new Thickness(0), FontSize = 9, FontWeight = Microsoft.UI.Text.FontWeights.Bold };
+            forceBtn.Click += async (s, e) => 
+            { 
+               await WriteVariableToPLC(variable);
+            };
             Grid.SetColumn(forceBtn, 4);
             grid.Children.Add(forceBtn);
 
@@ -442,6 +451,7 @@ namespace App4.PAGES
                     UpdateConnectionStatus(true);
                     AddLog("[SUCCESS] PLC'ye baþarýyla baðlanýldý!");
                     ConnectPLCBtn.Content = "?? Baðlantýyý Kes";
+                    _timer.Start();
                 }
                 else
                 {
@@ -465,6 +475,7 @@ namespace App4.PAGES
             _isConnected = false;
             UpdateConnectionStatus(false);
             ConnectPLCBtn.Content = "?? Baðlan";
+            _timer.Stop();
             AddLog("[INFO] Baðlantý kullanýcý tarafýndan kesildi.");
         }
 
@@ -537,6 +548,141 @@ namespace App4.PAGES
             catch (Exception ex)
             {
                 AddLog($"[ERROR] Deðiþkenler yüklenirken hata: {ex.Message}");
+            }
+        }
+
+        private async void Timer_Tick(object sender, object e)
+        {
+            if (!_isConnected || _melsecNet == null) return;
+            await SyncVariablesWithPLC();
+        }
+
+        private async Task SyncVariablesWithPLC()
+        {
+            // Read Inputs (Poll real values from PLC)
+            for (int i = 0; i < InputVariables.Count; i++)
+            {
+                await ReadPLCValue(InputVariables[i], i, InputVariablesContainer);
+            }
+
+            // DO NOT Read Outputs automatically. 
+            // This prevents overwriting the value the user is typing before they click "Force".
+            // Users can verify the write by looking at the Input list if they map the same address.
+            
+            /*
+            for (int i = 0; i < OutputVariables.Count; i++)
+            {
+                await ReadPLCValue(OutputVariables[i], i, OutputVariablesContainer);
+            }
+            */
+        }
+
+        private async Task ReadPLCValue(PLCVariable variable, int index, StackPanel container)
+        {
+            try
+            {
+                string address = variable.Name.Split('-')[0].Trim();
+                if (string.IsNullOrEmpty(address)) return;
+
+                OperateResult readResult = new OperateResult();
+                string newValStr = "";
+
+                switch (variable.Type)
+                {
+                    case "BOOL":
+                        var b = await _melsecNet.ReadBoolAsync(address);
+                        readResult = b;
+                        newValStr = b.Content.ToString();
+                        variable.CurrentValue = b.Content;
+                        break;
+                    case "INT":
+                    case "WORD":
+                        var i = await _melsecNet.ReadInt16Async(address);
+                        readResult = i;
+                        newValStr = i.Content.ToString();
+                        variable.CurrentValue = i.Content;
+                        break;
+                    case "DWORD":
+                        var d = await _melsecNet.ReadInt32Async(address);
+                        readResult = d;
+                        newValStr = d.Content.ToString();
+                        variable.CurrentValue = d.Content;
+                        break;
+                    case "REAL":
+                        var f = await _melsecNet.ReadFloatAsync(address);
+                        readResult = f;
+                        newValStr = f.Content.ToString("F2");
+                        variable.CurrentValue = f.Content;
+                        break;
+                }
+
+                if (readResult.IsSuccess)
+                {
+                    // Update UI if exists
+                   if (container.Children.Count > index && container.Children[index] is Border b && b.Child is Grid g)
+                   {
+                        // Column 3 is Value TextBox
+                        foreach(var child in g.Children)
+                        {
+                            if (Grid.GetColumn(child as FrameworkElement) == 3 && child is TextBox tb)
+                            {
+                                if (tb.FocusState == FocusState.Unfocused) // Only update if user isn't typing
+                                    tb.Text = newValStr;
+                            }
+                        }
+                   }
+                }
+            }
+            catch { }
+        }
+
+        private async Task WriteVariableToPLC(PLCVariable variable)
+        {
+            if (!_isConnected || _melsecNet == null) 
+            {
+                AddLog("[WARN] PLC Baðlý deðil!");
+                return;
+            }
+
+            try
+            {
+                string address = variable.Name.Split('-')[0].Trim();
+                AddLog($"[INFO] Yazýlýyor: {address} = {variable.CurrentValue} ({variable.Type})");
+
+                OperateResult writeResult = new OperateResult();
+
+                switch (variable.Type)
+                {
+                    case "BOOL":
+                        bool bVal = variable.CurrentValue.ToString().ToLower() == "true";
+                        writeResult = await _melsecNet.WriteAsync(address, bVal);
+                        break;
+                    case "INT":
+                    case "WORD":
+                        short sVal = Convert.ToInt16(variable.CurrentValue);
+                        writeResult = await _melsecNet.WriteAsync(address, sVal);
+                        break;
+                    case "DWORD":
+                        int iVal = Convert.ToInt32(variable.CurrentValue);
+                        writeResult = await _melsecNet.WriteAsync(address, iVal);
+                        break;
+                    case "REAL":
+                        float fVal = Convert.ToSingle(variable.CurrentValue);
+                        writeResult = await _melsecNet.WriteAsync(address, fVal);
+                        break;
+                    default:
+                        AddLog($"[ERROR] Desteklenmeyen tip: {variable.Type}");
+                        return;
+                }
+
+                if (writeResult.IsSuccess)
+                    AddLog($"[SUCCESS] Yazma baþarýlý: {address}");
+                else
+                    AddLog($"[ERROR] Yazma hatasý: {writeResult.Message}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[ERROR] Yazma exception: {ex.Message}");
             }
         }
 
