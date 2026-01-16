@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUKA Robot 3D Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        #info-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00FF88;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Cascadia Mono', monospace;
+            font-size: 11px;
+            max-width: 280px;
+            border: 2px solid #E74C3C;
+            backdrop-filter: blur(10px);
+        }
+        #info-panel h3 {
+            color: #E74C3C;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .info-row {
+            margin: 4px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-label {
+            color: #888;
+        }
+        .info-value {
+            color: #00FF88;
+            font-weight: bold;
+        }
+        #controls-panel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00A4EF;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #00A4EF;
+            backdrop-filter: blur(10px);
+            max-width: 320px;
+        }
+        #controls-panel h3 {
+            color: #00A4EF;
+            margin-bottom: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        .control-label {
+            color: #888;
+            font-size: 10px;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .control-slider {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #00A4EF;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0088cc;
+        }
+        .control-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: #00A4EF;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0088cc;
+        }
+        .value-display {
+            font-family: 'Cascadia Mono';
+            font-size: 9px;
+            color: #00FF88;
+            margin-top: 2px;
+            text-align: right;
+        }
+        #status-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #2ECC71;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Cascadia Mono', monospace;
+            font-size: 10px;
+            border-left: 4px solid #2ECC71;
+            backdrop-filter: blur(10px);
+        }
+        .robot-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ECC71;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        #warning-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #FFB81C;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #FFB81C;
+            backdrop-filter: blur(10px);
+            max-width: 280px;
+            font-family: 'Cascadia Mono', monospace;
+            font-size: 10px;
+        }
+        #warning-panel h3 {
+            color: #FFB81C;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .warning-item {
+            margin: 6px 0;
+            padding: 6px;
+            background: rgba(255, 184, 28, 0.1);
+            border-left: 2px solid #FFB81C;
+            padding-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="info-panel">
+        <h3>?? ROBOT KONUMu</h3>
+        <div class="info-row">
+            <span class="info-label">X:</span>
+            <span class="info-value" id="pos-x">0.00 mm</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Y:</span>
+            <span class="info-value" id="pos-y">0.00 mm</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Z:</span>
+            <span class="info-value" id="pos-z">0.00 mm</span>
+        </div>
+        <hr style="margin: 10px 0; border: none; border-top: 1px solid #333;">
+        <h3>?? EKSEN A�ILARI</h3>
+        <div class="info-row">
+            <span class="info-label">A1:</span>
+            <span class="info-value" id="angle-a1">0.0�</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">A2:</span>
+            <span class="info-value" id="angle-a2">0.0�</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">A3:</span>
+            <span class="info-value" id="angle-a3">0.0�</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">A4:</span>
+            <span class="info-value" id="angle-a4">0.0�</span>
+        </div>
+    </div>
+
+    <div id="warning-panel">
+        <h3>?? S�STEM UYARILARI</h3>
+        <div id="warning-container">
+            <div class="warning-item">? Sistem Normal �al���yor</div>
+        </div>
+    </div>
+
+    <div id="status-bar">
+        <div class="robot-status">
+            <span class="status-indicator"></span>
+            <span>KUKA Robot: Aktif | FPS: <span id="fps">60</span></span>
+        </div>
+    </div>
+
+    <div id="controls-panel">
+        <h3>?? ROBOT KONTROL</h3>
+        
+        <div class="control-group">
+            <label class="control-label">A1 (Baz Rotasyonu)</label>
+            <input type="range" id="slider-a1" class="control-slider" min="-180" max="180" value="0">
+            <div class="value-display" id="display-a1">0.0�</div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">A2 (Omuz)</label>
+            <input type="range" id="slider-a2" class="control-slider" min="-90" max="90" value="0">
+            <div class="value-display" id="display-a2">0.0�</div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">A3 (Dirsek)</label>
+            <input type="range" id="slider-a3" class="control-slider" min="-180" max="180" value="0">
+            <div class="value-display" id="display-a3">0.0�</div>
+        </div>
+        
+        <div class="control-group">
+            <label class="control-label">A4 (Bilek)</label>
+            <input type="range" id="slider-a4" class="control-slider" min="-360" max="360" value="0">
+            <div class="value-display" id="display-a4">0.0�</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@r128/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // De�i�kenler
+        let scene, camera, renderer, robotGroup;
+        let joints = { a1: 0, a2: 0, a3: 0, a4: 0 };
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        
+        // �nitialize
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0e27);
+            scene.fog = new THREE.Fog(0x0a0e27, 1000, 100);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(500, 400, 600);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // OrbitControls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2;
+
+            // I��kland�rma
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(300, 400, 300);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.far = 1500;
+            directionalLight.shadow.camera.left = -500;
+            directionalLight.shadow.camera.right = 500;
+            directionalLight.shadow.camera.top = 500;
+            directionalLight.shadow.camera.bottom = -500;
+            scene.add(directionalLight);
+
+            // I��k yard�mc�s� (debug)
+            // scene.add(new THREE.CameraHelper(directionalLight.shadow.camera));
+
+            // Yer
+            const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+            const groundMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Grid
+            const gridHelper = new THREE.GridHelper(600, 30, 0x444444, 0x222222);
+            gridHelper.position.y = 0.1;
+            scene.add(gridHelper);
+
+            // Eksen
+            const axisHelper = new THREE.AxesHelper(150);
+            scene.add(axisHelper);
+
+            // Robot olu�tur
+            createRobot();
+
+            // Gocator Sens�r�
+            createGocatorSensor();
+
+            // �r�n B�lgesi
+            createWorkpiece();
+
+            // Event listeners
+            setupSliders();
+            window.addEventListener('resize', onWindowResize);
+
+            // Animasyon ba�lat
+            animate();
+        }
+
+        function createRobot() {
+            robotGroup = new THREE.Group();
+
+            // Base (Taban)
+            const baseGeometry = new THREE.CylinderGeometry(80, 100, 20, 32);
+            const baseMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xFF6B35, 
+                metalness: 0.7, 
+                roughness: 0.2 
+            });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.castShadow = true;
+            base.receiveShadow = true;
+            base.position.y = 10;
+            robotGroup.add(base);
+
+            // A1 (Baz - d�nen k�s�m)
+            const a1Group = new THREE.Group();
+            
+            // A1 ekseni
+            const a1AxisGeometry = new THREE.CylinderGeometry(50, 50, 40, 32);
+            const a1Material = new THREE.MeshStandardMaterial({ 
+                color: 0xFFA500, 
+                metalness: 0.8, 
+                roughness: 0.2 
+            });
+            const a1Axis = new THREE.Mesh(a1AxisGeometry, a1Material);
+            a1Axis.castShadow = true;
+            a1Axis.receiveShadow = true;
+            a1Axis.position.y = 30;
+            a1Group.add(a1Axis);
+
+            // A2 (Omuz) grubu
+            const a2Group = new THREE.Group();
+            a2Group.position.y = 50;
+
+            // A2 kolu
+            const a2GeometryBox = new THREE.BoxGeometry(40, 150, 40);
+            const a2Material = new THREE.MeshStandardMaterial({ 
+                color: 0xFF8C00, 
+                metalness: 0.7, 
+                roughness: 0.3 
+            });
+            const a2Body = new THREE.Mesh(a2GeometryBox, a2Material);
+            a2Body.castShadow = true;
+            a2Body.receiveShadow = true;
+            a2Body.position.y = 75;
+            a2Group.add(a2Body);
+
+            // A3 (Dirsek) grubu
+            const a3Group = new THREE.Group();
+            a3Group.position.y = 150;
+
+            // A3 kolu
+            const a3GeometryBox = new THREE.BoxGeometry(35, 140, 35);
+            const a3Material = new THREE.MeshStandardMaterial({ 
+                color: 0xFF7F50, 
+                metalness: 0.7, 
+                roughness: 0.3 
+            });
+            const a3Body = new THREE.Mesh(a3GeometryBox, a3Material);
+            a3Body.castShadow = true;
+            a3Body.receiveShadow = true;
+            a3Body.position.y = 70;
+            a3Group.add(a3Body);
+
+            // A4 (Bilek) grubu
+            const a4Group = new THREE.Group();
+            a4Group.position.y = 140;
+
+            // A4 kolu
+            const a4GeometryBox = new THREE.BoxGeometry(30, 80, 30);
+            const a4Material = new THREE.MeshStandardMaterial({ 
+                color: 0xFF6347, 
+                metalness: 0.8, 
+                roughness: 0.2 
+            });
+            const a4Body = new THREE.Mesh(a4GeometryBox, a4Material);
+            a4Body.castShadow = true;
+            a4Body.receiveShadow = true;
+            a4Body.position.y = 40;
+            a4Group.add(a4Body);
+
+            // End Effector (Tutucu)
+            const eeGeometry = new THREE.BoxGeometry(25, 60, 25);
+            const eeMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xE74C3C, 
+                metalness: 0.9, 
+                roughness: 0.1 
+            });
+            const ee = new THREE.Mesh(eeGeometry, eeMaterial);
+            ee.castShadow = true;
+            ee.receiveShadow = true;
+            ee.position.y = 80;
+            a4Group.add(ee);
+
+            // Pivot noktalar�n� ayarla
+            a2Group.position.z = 0;
+            a3Group.position.z = 0;
+            a4Group.position.z = 0;
+
+            // Hiyerar�i olu�tur
+            a3Group.add(a4Group);
+            a2Group.add(a3Group);
+            a1Group.add(a2Group);
+            robotGroup.add(a1Group);
+
+            robotGroup.userData.a1Group = a1Group;
+            robotGroup.userData.a2Group = a2Group;
+            robotGroup.userData.a3Group = a3Group;
+            robotGroup.userData.a4Group = a4Group;
+
+            scene.add(robotGroup);
+        }
+
+        function createGocatorSensor() {
+            const sensorGeometry = new THREE.BoxGeometry(80, 30, 80);
+            const sensorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x00A4EF, 
+                metalness: 0.8, 
+                roughness: 0.2,
+                emissive: 0x0088BB
+            });
+            const sensor = new THREE.Mesh(sensorGeometry, sensorMaterial);
+            sensor.position.set(300, 400, 200);
+            sensor.castShadow = true;
+            sensor.receiveShadow = true;
+            scene.add(sensor);
+
+            // Sens�r �����
+            const sensorLight = new THREE.PointLight(0x00A4EF, 0.5, 500);
+            sensorLight.position.set(300, 400, 200);
+            scene.add(sensorLight);
+
+            // Sens�r alan� (g�rselle�tirme)
+            const sensorAreaGeometry = new THREE.BoxGeometry(200, 100, 200);
+            const sensorAreaMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00A4EF,
+                transparent: true,
+                opacity: 0.05,
+                wireframe: false
+            });
+            const sensorArea = new THREE.Mesh(sensorAreaGeometry, sensorAreaMaterial);
+            sensorArea.position.set(300, 400, 200);
+            scene.add(sensorArea);
+        }
+
+        function createWorkpiece() {
+            // �r�n konumu
+            const workpieceGeometry = new THREE.BoxGeometry(80, 50, 80);
+            const workpieceMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2ECC71, 
+                metalness: 0.5, 
+                roughness: 0.4 
+            });
+            const workpiece = new THREE.Mesh(workpieceGeometry, workpieceMaterial);
+            workpiece.position.set(0, 25, 250);
+            workpiece.castShadow = true;
+            workpiece.receiveShadow = true;
+            scene.add(workpiece);
+
+            // �r�n �����
+            const workpieceLight = new THREE.PointLight(0x2ECC71, 0.4, 300);
+            workpieceLight.position.set(0, 80, 250);
+            scene.add(workpieceLight);
+        }
+
+        function setupSliders() {
+            const sliders = {
+                'slider-a1': 'a1',
+                'slider-a2': 'a2',
+                'slider-a3': 'a3',
+                'slider-a4': 'a4'
+            };
+
+            Object.entries(sliders).forEach(([sliderId, jointName]) => {
+                const slider = document.getElementById(sliderId);
+                const display = document.getElementById(`display-${jointName}`);
+                
+                slider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    joints[jointName] = value;
+                    display.textContent = value.toFixed(1) + '�';
+                    updateRobotPosition();
+                });
+            });
+        }
+
+        function updateRobotPosition() {
+            const a1Group = robotGroup.userData.a1Group;
+            const a2Group = robotGroup.userData.a2Group;
+            const a3Group = robotGroup.userData.a3Group;
+            const a4Group = robotGroup.userData.a4Group;
+
+            if (a1Group) a1Group.rotation.y = THREE.MathUtils.degToRad(joints.a1);
+            if (a2Group) a2Group.rotation.z = THREE.MathUtils.degToRad(joints.a2);
+            if (a3Group) a3Group.rotation.z = THREE.MathUtils.degToRad(joints.a3);
+            if (a4Group) a4Group.rotation.z = THREE.MathUtils.degToRad(joints.a4);
+
+            updateEndEffectorPosition();
+        }
+
+        function updateEndEffectorPosition() {
+            // Forward kinematics (basitle�tirilmi�)
+            const a1Rad = THREE.MathUtils.degToRad(joints.a1);
+            const a2Rad = THREE.MathUtils.degToRad(joints.a2);
+            const a3Rad = THREE.MathUtils.degToRad(joints.a3);
+
+            let x = 0;
+            let y = 50;
+            let z = 0;
+
+            // A1 d�nd�rme
+            const tempX = Math.cos(a1Rad);
+            const tempZ = Math.sin(a1Rad);
+
+            // A2 ve A3 ile konum hesapla (basitle�tirilmi�)
+            const xyOffset = Math.cos(a2Rad) * 75 + Math.cos(a2Rad + a3Rad) * 70;
+            const yOffset = Math.sin(a2Rad) * 75 + Math.sin(a2Rad + a3Rad) * 70;
+
+            x = tempX * xyOffset;
+            z = tempZ * xyOffset;
+            y += yOffset;
+
+            // Info panel g�ncelle
+            document.getElementById('pos-x').textContent = x.toFixed(2) + ' mm';
+            document.getElementById('pos-y').textContent = y.toFixed(2) + ' mm';
+            document.getElementById('pos-z').textContent = z.toFixed(2) + ' mm';
+            document.getElementById('angle-a1').textContent = joints.a1.toFixed(1) + '�';
+            document.getElementById('angle-a2').textContent = joints.a2.toFixed(1) + '�';
+            document.getElementById('angle-a3').textContent = joints.a3.toFixed(1) + '�';
+            document.getElementById('angle-a4').textContent = joints.a4.toFixed(1) + '�';
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // FPS hesapla
+            const now = performance.now();
+            frameCount++;
+            if (now >= lastFrameTime + 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Global fonksiyonlar (C# taraf�ndan �a�r�labilir)
+        window.setRobotPosition = function(a1, a2, a3, a4) {
+            joints.a1 = a1;
+            joints.a2 = a2;
+            joints.a3 = a3;
+            joints.a4 = a4;
+            
+            document.getElementById('slider-a1').value = a1;
+            document.getElementById('slider-a2').value = a2;
+            document.getElementById('slider-a3').value = a3;
+            document.getElementById('slider-a4').value = a4;
+            
+            updateRobotPosition();
+        };
+
+        window.addWarning = function(message) {
+            const container = document.getElementById('warning-container');
+            const warningItem = document.createElement('div');
+            warningItem.className = 'warning-item';
+            warningItem.textContent = '? ' + message;
+            container.insertBefore(warningItem, container.firstChild);
+            
+            if (container.children.length > 5) {
+                container.removeChild(container.lastChild);
+            }
+        };
+
+        window.clearWarnings = function() {
+            document.getElementById('warning-container').innerHTML = '<div class="warning-item">? Sistem Normal �al���yor</div>';
+        };
+
+        window.getRobotPosition = function() {
+            return {
+                a1: joints.a1,
+                a2: joints.a2,
+                a3: joints.a3,
+                a4: joints.a4
+            };
+        };
+
+        // �nitialize ediyor
+        init();
+    </script>
+</body>
+</html>

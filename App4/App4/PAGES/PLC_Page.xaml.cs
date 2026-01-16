@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using Windows.Storage.Pickers;
 using Windows.Storage;
 using Windows.UI;
+using HslCommunication;
+using HslCommunication.Profinet.Melsec;
 
 namespace App4.PAGES
 {
@@ -25,8 +27,7 @@ namespace App4.PAGES
         private ObservableCollection<PLCVariable> OutputVariables { get; set; }
 
         // PLC Baðlantý Deðiþkenleri
-        private TcpClient _plcClient;
-        private NetworkStream _plcStream;
+        private MelsecMcNet _melsecNet;
         private bool _isConnected = false;
         private StringBuilder _logBuilder = new StringBuilder();
 
@@ -427,12 +428,25 @@ namespace App4.PAGES
         {
             try
             {
-                _plcClient = new TcpClient();
-                await _plcClient.ConnectAsync(PLCIPAddressBox.Text, int.Parse(PLCPortBox.Text));
-                _isConnected = true;
-                UpdateConnectionStatus(true);
-                AddLog("[SUCCESS] PLC'ye baðlanýldý!");
-                ConnectPLCBtn.Content = "?? Baðlantýyý Kes";
+                AddLog($"[INFO] Baðlanýlýyor: {PLCIPAddressBox.Text}:{PLCPortBox.Text}...");
+                
+                // Mitsubishi PLC (R Serisi) için MC Protocol Baðlantýsý
+                _melsecNet = new MelsecMcNet(PLCIPAddressBox.Text, int.Parse(PLCPortBox.Text));
+                
+                // Baðlantý iþlemini asenkron olarak gerçekleþtir
+                var connect = await _melsecNet.ConnectServerAsync();
+
+                if (connect.IsSuccess)
+                {
+                    _isConnected = true;
+                    UpdateConnectionStatus(true);
+                    AddLog("[SUCCESS] PLC'ye baþarýyla baðlanýldý!");
+                    ConnectPLCBtn.Content = "?? Baðlantýyý Kes";
+                }
+                else
+                {
+                    AddLog($"[ERROR] Baðlantý Baþarýsýz: {connect.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -442,12 +456,16 @@ namespace App4.PAGES
 
         private void DisconnectPLC()
         {
-            _plcStream?.Close();
-            _plcClient?.Close();
+            if (_melsecNet != null)
+            {
+                _melsecNet.ConnectClose();
+                _melsecNet = null;
+            }
+
             _isConnected = false;
             UpdateConnectionStatus(false);
             ConnectPLCBtn.Content = "?? Baðlan";
-            AddLog("[INFO] Baðlantý kesildi");
+            AddLog("[INFO] Baðlantý kullanýcý tarafýndan kesildi.");
         }
 
         private void ClearLogBtn_Click(object sender, RoutedEventArgs e)

@@ -376,7 +376,7 @@
                             <!-- IP Adresi -->
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                                 <TextBlock Text="IP:" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                                <TextBox x:Name="PLCIPAddressBox" Text="192.168.1.100" Width="120" Height="28" 
+                                <TextBox x:Name="PLCIPAddressBox" Text="192.168.251.100" Width="120" Height="28" 
                                          Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" 
                                          FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
                             </StackPanel>
@@ -384,7 +384,7 @@
                             <!-- Port -->
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                                 <TextBlock Text="Port:" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                                <TextBox x:Name="PLCPortBox" Text="2000" Width="70" Height="28" 
+                                <TextBox x:Name="PLCPortBox" Text="5007" Width="70" Height="28" 
                                          Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" 
                                          FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
                             </StackPanel>
