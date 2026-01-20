@@ -87,7 +87,8 @@ namespace App4
                     {
                         if (station.StatusTag == plcVar.Name)
                         {
-                            station.ProcessStatus = plcVar.Value;
+                            // Map integer status to text if possible
+                            station.ProcessStatus = MapStatusCode(plcVar.Value);
                         }
                         else if (station.AlarmTag == plcVar.Name)
                         {
@@ -122,6 +123,17 @@ namespace App4
              if (string.IsNullOrEmpty(value)) return false;
              value = value.ToUpper();
              return value == "TRUE" || value == "1" || value == "ON";
+        }
+
+        private string MapStatusCode(string value)
+        {
+            if (value == "1") return "3D TARAMA";
+            if (value == "2") return "GAZ KAÇAK TESTÝ";
+            if (value == "3") return "TEST TAMAMLANDI";
+            if (value == "4") return "OK ÜRÜN";
+            if (value == "5") return "NOK ÜRÜN";
+            if (value == "6") return "HAZIRLANIYOR";
+            return value; // Return original if no match
         }
 
         private void UpdateSliderPosition(string value)
@@ -352,15 +364,40 @@ namespace App4
             {
                 BorderColor = new SolidColorBrush(Color.FromArgb(255, 85, 85, 85)); // Gray
                 
-                if (IsProducing)
+                // Determine Text & Color based on explicitly mapped ProcessStatus OR IsProducing flag
+                string status = ProcessStatus;
+                
+                bool isSpecificStatus = !string.IsNullOrEmpty(status) && 
+                                      (status == "3D TARAMA" || status == "GAZ KAÇAK TESTÝ" || 
+                                       status == "TEST TAMAMLANDI" || status == "OK ÜRÜN" || 
+                                       status == "NOK ÜRÜN" || status == "HAZIRLANIYOR" ||
+                                       status == "3" || status == "4" || status == "5"); 
+
+                if (isSpecificStatus)
                 {
-                    StateText = !string.IsNullOrEmpty(ProcessStatus) ? ProcessStatus : "ÜRETÝMDE";
-                    StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); // LimeGreen
+                     StateText = status;
+                     if (status == "OK ÜRÜN")
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); // LimeGreen
+                     else if (status == "NOK ÜRÜN")
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60)); // Red
+                     else if (status == "HAZIRLANIYOR")
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 241, 196, 15)); // Yellow
+                     else
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 52, 152, 219)); // Blue (Process)
                 }
                 else
                 {
-                    StateText = "BEKLÝYOR";
-                    StateColor = new SolidColorBrush(Color.FromArgb(255, 136, 136, 136)); // Gray
+                    // Fallback to IsProducing logic if no specific mapped status is active
+                    if (IsProducing)
+                    {
+                        StateText = !string.IsNullOrEmpty(status) ? status : "ÜRETÝMDE";
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); // LimeGreen (Default active)
+                    }
+                    else
+                    {
+                        StateText = "BEKLÝYOR";
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 136, 136, 136)); // Gray
+                    }
                 }
             }
             

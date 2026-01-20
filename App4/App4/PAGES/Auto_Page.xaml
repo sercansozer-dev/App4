@@ -582,6 +582,133 @@
                         </Grid>
                     </Border>
                 </Grid>
+
+                <!-- Status Map Table -->
+                <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333" Margin="0,20,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Background="#252526" Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#333">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon Glyph="&#xE909;" Foreground="#FFF" FontSize="14"/>
+                                <TextBlock Text="İSTASYON DURUM KODLARI VE RENKLERİ" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
+                             </StackPanel>
+                        </Border>
+                         <Grid Grid.Row="1" Background="#202020" BorderThickness="0,0,0,1" BorderBrush="#333" Height="30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="3*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="KOD" VerticalAlignment="Center" Margin="15,0" Foreground="#888" FontWeight="SemiBold" FontSize="10"/>
+                            <TextBlock Grid.Column="1" Text="DURUM" VerticalAlignment="Center" Margin="15,0" Foreground="#888" FontWeight="SemiBold" FontSize="10"/>
+                            <TextBlock Grid.Column="2" Text="RENK - GÖRÜNÜM" VerticalAlignment="Center" Margin="15,0" Foreground="#888" FontWeight="SemiBold" FontSize="10"/>
+                            <TextBlock Grid.Column="3" Text="AÇIKLAMA" VerticalAlignment="Center" Margin="15,0" Foreground="#888" FontWeight="SemiBold" FontSize="10"/>
+                        </Grid>
+                        <StackPanel Grid.Row="2">
+                             <!-- 1 -->
+                             <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="1" Foreground="#0078D4" FontWeight="Bold" Margin="15,0"/>
+                                <TextBlock Grid.Column="1" Text="3D TARAMA" Foreground="White" Margin="15,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" Margin="15,0">
+                                    <Ellipse Width="10" Height="10" Fill="#0078D4"/>
+                                    <TextBlock Text="MAVİ (PROCESS)" Foreground="#CCC" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="Kamera ile 3D tarama işlemi yapılıyor." Foreground="#888" Margin="15,0"/>
+                             </Grid>
+                              <!-- 2 -->
+                             <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="2" Foreground="#0078D4" FontWeight="Bold" Margin="15,0"/>
+                                <TextBlock Grid.Column="1" Text="GAZ KAÇAK TESTİ" Foreground="White" Margin="15,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" Margin="15,0">
+                                    <Ellipse Width="10" Height="10" Fill="#0078D4"/>
+                                    <TextBlock Text="MAVİ (PROCESS)" Foreground="#CCC" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="Basınç ve sızdırmazlık testleri uygulanıyor." Foreground="#888" Margin="15,0"/>
+                             </Grid>
+                             <!-- 3 -->
+                             <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="3" Foreground="#0078D4" FontWeight="Bold" Margin="15,0"/>
+                                <TextBlock Grid.Column="1" Text="TEST TAMAMLANDI" Foreground="White" Margin="15,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" Margin="15,0">
+                                    <Ellipse Width="10" Height="10" Fill="#0078D4"/>
+                                    <TextBlock Text="MAVİ (PROCESS)" Foreground="#CCC" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="Ölçüm ve test işlemleri bitti, sonuç bekleniyor." Foreground="#888" Margin="15,0"/>
+                             </Grid>
+                             <!-- 4 -->
+                             <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="4" Foreground="#4CAF50" FontWeight="Bold" Margin="15,0"/>
+                                <TextBlock Grid.Column="1" Text="OK ÜRÜN" Foreground="White" Margin="15,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" Margin="15,0">
+                                    <Ellipse Width="10" Height="10" Fill="#4CAF50"/>
+                                    <TextBlock Text="YEŞİL (BAŞARILI)" Foreground="#CCC" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="Ürün tüm testlerden başarıyla geçti." Foreground="#888" Margin="15,0"/>
+                             </Grid>
+                             <!-- 5 -->
+                             <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="5" Foreground="#E74C3C" FontWeight="Bold" Margin="15,0"/>
+                                <TextBlock Grid.Column="1" Text="NOK ÜRÜN" Foreground="White" Margin="15,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" Margin="15,0">
+                                    <Ellipse Width="10" Height="10" Fill="#E74C3C"/>
+                                    <TextBlock Text="KIRMIZI (HATALI)" Foreground="#CCC" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="Ürün testlerden geçemedi, hatalı." Foreground="#888" Margin="15,0"/>
+                             </Grid>
+                             <!-- 6 -->
+                             <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="6" Foreground="#F1C40F" FontWeight="Bold" Margin="15,0"/>
+                                <TextBlock Grid.Column="1" Text="HAZIRLANIYOR" Foreground="White" Margin="15,0"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" Margin="15,0">
+                                    <Ellipse Width="10" Height="10" Fill="#F1C40F"/>
+                                    <TextBlock Text="SARI (BEKLİYOR)" Foreground="#CCC" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="İstasyon giriş/çıkış yapıyor veya hazırlanıyor." Foreground="#888" Margin="15,0"/>
+                             </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
