@@ -9,6 +9,129 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <DataTemplate x:Key="StationCardTemplate" x:DataType="local:StationViewModel">
+            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="60"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
+                        <Grid>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
+                            </StackPanel>
+                            
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
+                                <Button Background="Transparent" Padding="4" ToolTipService.ToolTip="PLC Tag Ayarları">
+                                    <FontIcon Glyph="&#xE713;" FontSize="12" Foreground="#888888"/>
+                                    <Button.Flyout>
+                                        <Flyout>
+                                            <StackPanel Width="200" Spacing="8">
+                                                <TextBlock Text="PLC Tag Bağlantıları" FontWeight="Bold"/>
+                                                <TextBox Header="Durum Tag" Text="{x:Bind StatusTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBox Header="Alarm Tag" Text="{x:Bind AlarmTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                                <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Status / Visual -->
+                    <Grid Grid.Row="1" Background="#151515">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="15">
+                            <!-- Mode Badge -->
+                            <Border Background="#252526" CornerRadius="15" Padding="15,5" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#444">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <FontIcon Glyph="&#xE90C;" FontSize="12" Foreground="{x:Bind ModeColor, Mode=OneWay}"/>
+                                    <TextBlock Text="{x:Bind ModeText, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- State Large Icon -->
+                            <FontIcon Glyph="&#xE9F5;" FontSize="50" Foreground="{x:Bind StateColor, Mode=OneWay}"/>
+                            
+                            <!-- State Text -->
+                            <TextBlock Text="{x:Bind StateText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{x:Bind StateColor, Mode=OneWay}" TextAlignment="Center"/>
+
+                            <!-- Alarm Warning -->
+                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
+                                <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="16"/>
+                                <TextBlock Text="{x:Bind AlarmText, Mode=OneWay}" Foreground="Red" FontSize="12" FontWeight="Bold"/>
+                            </StackPanel>
+
+                            <!-- RFID Control -->
+                            <Border Background="#202020" CornerRadius="6" Padding="10" Margin="0,5,0,0" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Stretch" Width="220">
+                                <StackPanel Spacing="8">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/> 
+                                            <TextBlock Text="RFID KONTROL" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Mode Selection -->
+                                    <ComboBox ItemsSource="{Binding RfidOpModes}" SelectedItem="{Binding RfidOpMode, Mode=TwoWay}" 
+                                                FontSize="11" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515"/>
+
+                                    <!-- Target Selection (Visible if Specific) -->
+                                    <StackPanel Visibility="{Binding IsSpecificRfidVisible}">
+                                        <TextBlock Text="Beklenen ID :" FontSize="10" Foreground="#888" Margin="0,0,0,2"/>
+                                        <ComboBox ItemsSource="{Binding RefRfids}" SelectedValue="{Binding TargetRfid, Mode=TwoWay}"
+                                                    SelectedValuePath="Id" DisplayMemberPath="Id"
+                                                    PlaceholderText="Seçiniz..."
+                                                    FontSize="11" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515"/>
+                                    </StackPanel>
+
+                                    <!-- Current Status -->
+                                    <Grid ColumnSpacing="5" Margin="0,5,0,0" Background="#151515" Padding="5" CornerRadius="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/> 
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Okunan:" FontSize="9" Foreground="#888"/>
+                                            <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <FontIcon Grid.Column="1" Glyph="{x:Bind RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" FontSize="16" VerticalAlignment="Center" Margin="5,0"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- BYPASS BUTTON -->
+                            <Button Click="{x:Bind ToggleBypass}" Background="{x:Bind BypassButtonColor, Mode=OneWay}" CornerRadius="15" Padding="20,5" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <FontIcon Glyph="&#xE7E8;" FontSize="12" Foreground="White"/>
+                                    <TextBlock Text="{x:Bind BypassButtonText, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Footer Stats -->
+                    <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
+                        <Grid VerticalAlignment="Center">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
+                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                            </StackPanel>
+                            <StackPanel Spacing="2" HorizontalAlignment="Right">
+                                <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
+                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
     <Grid Background="#101010">
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
@@ -43,402 +166,26 @@
 
             <!-- Station 1 -->
             <Grid Grid.Column="0" Grid.Row="0" Margin="5">
-                <ContentControl Content="{x:Bind Stations[0], Mode=OneWay}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                    <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="local:StationViewModel">
-                            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" Padding="0">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="50"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="60"/>
-                                    </Grid.RowDefinitions>
-
-                                     <!-- Header -->
-                                     <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
-                                         <Grid>
-                                              <StackPanel VerticalAlignment="Center">
-                                                  <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                                  <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
-                                              </StackPanel>
-                                             
-                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
-                                                 <Button Background="Transparent" Padding="4" ToolTipService.ToolTip="PLC Tag Ayarları">
-                                                     <FontIcon Glyph="&#xE713;" FontSize="12" Foreground="#888888"/>
-                                                     <Button.Flyout>
-                                                         <Flyout>
-                                                             <StackPanel Width="200" Spacing="8">
-                                                                 <TextBlock Text="PLC Tag Bağlantıları" FontWeight="Bold"/>
-                                                                 <TextBox Header="Durum Tag" Text="{x:Bind StatusTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                 <TextBox Header="Alarm Tag" Text="{x:Bind AlarmTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                                             </StackPanel>
-                                                         </Flyout>
-                                                     </Button.Flyout>
-                                                 </Button>
-                                                 <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}"/>
-                                             </StackPanel>
-                                         </Grid>
-                                     </Border>
-
-                                    <!-- Status / Visual -->
-                                    <Grid Grid.Row="1" Background="#151515">
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="15">
-                                            <!-- Mode Badge -->
-                                            <Border Background="#252526" CornerRadius="15" Padding="15,5" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#444">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE90C;" FontSize="12" Foreground="{x:Bind ModeColor, Mode=OneWay}"/>
-                                                    <TextBlock Text="{x:Bind ModeText, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Border>
-                                            
-                                            <!-- State Large Icon -->
-                                            <FontIcon Glyph="&#xE9F5;" FontSize="50" Foreground="{x:Bind StateColor, Mode=OneWay}"/>
-                                            
-                                            <!-- State Text -->
-                                            <TextBlock Text="{x:Bind StateText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{x:Bind StateColor, Mode=OneWay}" TextAlignment="Center"/>
-
-                                            <!-- Alarm Warning -->
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
-                                                <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="16"/>
-                                                <TextBlock Text="{x:Bind AlarmText, Mode=OneWay}" Foreground="Red" FontSize="12" FontWeight="Bold"/>
-                                            </StackPanel>
-
-                                            <!-- RFID Control -->
-                                            <Border Background="#202020" CornerRadius="6" Padding="10" Margin="0,5,0,0" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Stretch" Width="200">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                         <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/> 
-                                                         <TextBlock Text="RFID KONTROL" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="30"/> 
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Spacing="2">
-                                                            <TextBlock Text="Beklenen ID :" FontSize="10" Foreground="#888"/>
-                                                            <TextBox Text="{x:Bind AllowedRfid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                                     PlaceholderText="Manuel ID" 
-                                                                     FontSize="12" Padding="4" Background="#111" BorderBrush="#444" Foreground="White" CornerRadius="4"/>
-                                                        </StackPanel>
-                                                        <Viewbox Grid.Column="1" Height="20" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5">
-                                                             <FontIcon Glyph="{x:Bind RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind CurrentRfid, Mode=OneWay}"/>
-                                                        </Viewbox>
-                                                    </Grid>
-                                                     <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <TextBlock Text="Okunan:" FontSize="10" Foreground="#888"/>
-                                                         <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="10" Foreground="#AAA" FontWeight="SemiBold"/>
-                                                     </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <!-- BYPASS BUTTON -->
-                                            <Button Click="{x:Bind ToggleBypass}" Background="{x:Bind BypassButtonColor, Mode=OneWay}" CornerRadius="15" Padding="20,5" HorizontalAlignment="Center" Margin="0,10,0,0">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE7E8;" FontSize="12" Foreground="White"/>
-                                                    <TextBlock Text="{x:Bind BypassButtonText, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <!-- Footer Stats -->
-                                    <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
-                                        <Grid VerticalAlignment="Center">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            </StackPanel>
-                                            <StackPanel Spacing="2" HorizontalAlignment="Right">
-                                                <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                <ContentControl Content="{x:Bind Stations[0], Mode=OneWay}" ContentTemplate="{StaticResource StationCardTemplate}"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
             </Grid>
 
             <!-- Station 2 -->
             <Grid Grid.Column="1" Grid.Row="0" Margin="5">
-                <ContentControl Content="{x:Bind Stations[1], Mode=OneWay}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                     <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="local:StationViewModel">
-                            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" Padding="0">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="50"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="60"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
-                                        <Grid>
-                                             <StackPanel VerticalAlignment="Center">
-                                                 <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                                 <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
-                                             </StackPanel>
-                                            <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                    <Grid Grid.Row="1" Background="#151515">
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="15">
-                                            <Border Background="#252526" CornerRadius="15" Padding="15,5" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#444">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE90C;" FontSize="12" Foreground="{x:Bind ModeColor, Mode=OneWay}"/>
-                                                    <TextBlock Text="{x:Bind ModeText, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <FontIcon Glyph="&#xE9F5;" FontSize="50" Foreground="{x:Bind StateColor, Mode=OneWay}"/>
-                                            <TextBlock Text="{x:Bind StateText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{x:Bind StateColor, Mode=OneWay}" TextAlignment="Center"/>
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
-                                                <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="16"/>
-                                                <TextBlock Text="{x:Bind AlarmText, Mode=OneWay}" Foreground="Red" FontSize="12" FontWeight="Bold"/>
-                                            </StackPanel>
-                                            
-                                            <!-- RFID Control -->
-                                            <Border Background="#202020" CornerRadius="6" Padding="10" Margin="0,5,0,0" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Stretch" Width="200">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                         <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/> 
-                                                         <TextBlock Text="RFID KONTROL" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="30"/> 
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Spacing="2">
-                                                            <TextBlock Text="Beklenen ID :" FontSize="10" Foreground="#888"/>
-                                                            <TextBox Text="{x:Bind AllowedRfid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                                     PlaceholderText="Manuel ID" 
-                                                                     FontSize="12" Padding="4" Background="#111" BorderBrush="#444" Foreground="White" CornerRadius="4"/>
-                                                        </StackPanel>
-                                                        <Viewbox Grid.Column="1" Height="20" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5">
-                                                             <FontIcon Glyph="{x:Bind RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind CurrentRfid, Mode=OneWay}"/>
-                                                        </Viewbox>
-                                                    </Grid>
-                                                     <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <TextBlock Text="Okunan:" FontSize="10" Foreground="#888"/>
-                                                         <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="10" Foreground="#AAA" FontWeight="SemiBold"/>
-                                                     </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <!-- BYPASS BUTTON -->
-                                            <Button Click="{x:Bind ToggleBypass}" Background="{x:Bind BypassButtonColor, Mode=OneWay}" CornerRadius="15" Padding="20,5" HorizontalAlignment="Center" Margin="0,10,0,0">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE7E8;" FontSize="12" Foreground="White"/>
-                                                    <TextBlock Text="{x:Bind BypassButtonText, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-                                    <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
-                                        <Grid VerticalAlignment="Center">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            </StackPanel>
-                                            <StackPanel Spacing="2" HorizontalAlignment="Right">
-                                                <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                <ContentControl Content="{x:Bind Stations[1], Mode=OneWay}" ContentTemplate="{StaticResource StationCardTemplate}"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
             </Grid>
 
             <!-- Station 3 -->
             <Grid Grid.Column="2" Grid.Row="0" Margin="5">
-                <ContentControl Content="{x:Bind Stations[2], Mode=OneWay}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                     <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="local:StationViewModel">
-                            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" Padding="0">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="50"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="60"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
-                                        <Grid>
-                                             <StackPanel VerticalAlignment="Center">
-                                                 <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                                 <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
-                                             </StackPanel>
-                                            <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                    <Grid Grid.Row="1" Background="#151515">
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="15">
-                                            <Border Background="#252526" CornerRadius="15" Padding="15,5" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#444">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE90C;" FontSize="12" Foreground="{x:Bind ModeColor, Mode=OneWay}"/>
-                                                    <TextBlock Text="{x:Bind ModeText, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <FontIcon Glyph="&#xE9F5;" FontSize="50" Foreground="{x:Bind StateColor, Mode=OneWay}"/>
-                                            <TextBlock Text="{x:Bind StateText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{x:Bind StateColor, Mode=OneWay}" TextAlignment="Center"/>
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
-                                                <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="16"/>
-                                                <TextBlock Text="{x:Bind AlarmText, Mode=OneWay}" Foreground="Red" FontSize="12" FontWeight="Bold"/>
-                                            </StackPanel>
-
-                                            <!-- RFID Control -->
-                                            <Border Background="#202020" CornerRadius="6" Padding="10" Margin="0,5,0,0" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Stretch" Width="200">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                         <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/> 
-                                                         <TextBlock Text="RFID KONTROL" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="30"/> 
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Spacing="2">
-                                                            <TextBlock Text="Beklenen ID :" FontSize="10" Foreground="#888"/>
-                                                            <TextBox Text="{x:Bind AllowedRfid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                                     PlaceholderText="Manuel ID" 
-                                                                     FontSize="12" Padding="4" Background="#111" BorderBrush="#444" Foreground="White" CornerRadius="4"/>
-                                                        </StackPanel>
-                                                        <Viewbox Grid.Column="1" Height="20" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5">
-                                                             <FontIcon Glyph="{x:Bind RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind CurrentRfid, Mode=OneWay}"/>
-                                                        </Viewbox>
-                                                    </Grid>
-                                                     <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <TextBlock Text="Okunan:" FontSize="10" Foreground="#888"/>
-                                                         <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="10" Foreground="#AAA" FontWeight="SemiBold"/>
-                                                     </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <!-- BYPASS BUTTON -->
-                                            <Button Click="{x:Bind ToggleBypass}" Background="{x:Bind BypassButtonColor, Mode=OneWay}" CornerRadius="15" Padding="20,5" HorizontalAlignment="Center" Margin="0,10,0,0">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE7E8;" FontSize="12" Foreground="White"/>
-                                                    <TextBlock Text="{x:Bind BypassButtonText, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-                                    <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
-                                        <Grid VerticalAlignment="Center">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            </StackPanel>
-                                            <StackPanel Spacing="2" HorizontalAlignment="Right">
-                                                <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="Gray" HorizontalAlignment="Right"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                <ContentControl Content="{x:Bind Stations[2], Mode=OneWay}" ContentTemplate="{StaticResource StationCardTemplate}"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
             </Grid>
 
             <!-- Station 4 -->
             <Grid Grid.Column="3" Grid.Row="0" Margin="5">
-                <ContentControl Content="{x:Bind Stations[3], Mode=OneWay}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                     <ContentControl.ContentTemplate>
-                        <DataTemplate x:DataType="local:StationViewModel">
-                            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" Padding="0">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="50"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="60"/>
-                                    </Grid.RowDefinitions>
-                                    <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
-                                        <Grid>
-                                             <StackPanel VerticalAlignment="Center">
-                                                 <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                                 <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
-                                             </StackPanel>
-                                            <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                    <Grid Grid.Row="1" Background="#151515">
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="15">
-                                            <Border Background="#252526" CornerRadius="15" Padding="15,5" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#444">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE90C;" FontSize="12" Foreground="{x:Bind ModeColor, Mode=OneWay}"/>
-                                                    <TextBlock Text="{x:Bind ModeText, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <FontIcon Glyph="&#xE9F5;" FontSize="50" Foreground="{x:Bind StateColor, Mode=OneWay}"/>
-                                            <TextBlock Text="{x:Bind StateText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="{x:Bind StateColor, Mode=OneWay}" TextAlignment="Center"/>
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="{x:Bind AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
-                                                <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="16"/>
-                                                <TextBlock Text="{x:Bind AlarmText, Mode=OneWay}" Foreground="Red" FontSize="12" FontWeight="Bold"/>
-                                            </StackPanel>
-                                            
-                                            <!-- RFID Control -->
-                                            <Border Background="#202020" CornerRadius="6" Padding="10" Margin="0,5,0,0" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Stretch" Width="200">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                         <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/> 
-                                                         <TextBlock Text="RFID KONTROL" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="30"/> 
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Spacing="2">
-                                                            <TextBlock Text="Beklenen ID :" FontSize="10" Foreground="#888"/>
-                                                            <TextBox Text="{x:Bind AllowedRfid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                                                     PlaceholderText="Manuel ID" 
-                                                                     FontSize="12" Padding="4" Background="#111" BorderBrush="#444" Foreground="White" CornerRadius="4"/>
-                                                        </StackPanel>
-                                                        <Viewbox Grid.Column="1" Height="20" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5">
-                                                             <FontIcon Glyph="{x:Bind RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind CurrentRfid, Mode=OneWay}"/>
-                                                        </Viewbox>
-                                                    </Grid>
-                                                     <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <TextBlock Text="Okunan:" FontSize="10" Foreground="#888"/>
-                                                         <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="10" Foreground="#AAA" FontWeight="SemiBold"/>
-                                                     </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <!-- BYPASS BUTTON -->
-                                            <Button Click="{x:Bind ToggleBypass}" Background="{x:Bind BypassButtonColor, Mode=OneWay}" CornerRadius="15" Padding="20,5" HorizontalAlignment="Center" Margin="0,10,0,0">
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <FontIcon Glyph="&#xE7E8;" FontSize="12" Foreground="White"/>
-                                                    <TextBlock Text="{x:Bind BypassButtonText, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-                                    </Grid>
-                                    <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
-                                        <Grid VerticalAlignment="Center">
-                                            <StackPanel Spacing="2">
-                                                <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            </StackPanel>
-                                            <StackPanel Spacing="2" HorizontalAlignment="Right">
-                                                <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Right"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                <ContentControl Content="{x:Bind Stations[3], Mode=OneWay}" ContentTemplate="{StaticResource StationCardTemplate}"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
             </Grid>
         
             <!-- TRACK & ROBOT VISUALIZATION -->

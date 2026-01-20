@@ -43,6 +43,13 @@ namespace App4
                     ext.ProductionCountTag = item.ProductionCountTag;
                     ext.EfficiencyTag = item.EfficiencyTag;
                     ext.CurrentRfidTag = item.CurrentRfidTag;
+
+                    // Fix for missing tag in Station 1 initialization
+                    if (string.IsNullOrEmpty(ext.CurrentRfidTag) && i == 0)
+                    {
+                        ext.CurrentRfidTag = "ST1_RFID_ACT";
+                    }
+
                     ext.AllowedRfid = item.AllowedRfid;
                     ext.CurrentRfid = item.CurrentRfid;
                     ext.Mode = item.Mode;
