@@ -77,14 +77,14 @@
                                     </StackPanel>
                                     
                                     <!-- Mode Selection -->
-                                    <ComboBox ItemsSource="{Binding RfidOpModes}" SelectedItem="{Binding RfidOpMode, Mode=TwoWay}" 
+                                    <ComboBox ItemsSource="{Binding RfidOpModes}" SelectedItem="{Binding RfidOpMode, Mode=TwoWay}" Foreground="White"
                                                 FontSize="11" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515"/>
 
                                     <!-- Target Selection (Visible if Specific) -->
                                     <StackPanel Visibility="{Binding IsSpecificRfidVisible}">
                                         <TextBlock Text="Beklenen ID :" FontSize="10" Foreground="#888" Margin="0,0,0,2"/>
                                         <ComboBox ItemsSource="{Binding RefRfids}" SelectedValue="{Binding TargetRfid, Mode=TwoWay}"
-                                                    SelectedValuePath="Id" DisplayMemberPath="Id"
+                                                    SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White"
                                                     PlaceholderText="Seçiniz..."
                                                     FontSize="11" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515"/>
                                     </StackPanel>
@@ -97,7 +97,7 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
                                             <TextBlock Text="Okunan:" FontSize="9" Foreground="#888"/>
-                                            <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind CurrentRfid, Mode=OneWay}" FontSize="14" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                         <FontIcon Grid.Column="1" Glyph="{x:Bind RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind RfidMatchColor, Mode=OneWay}" FontSize="16" VerticalAlignment="Center" Margin="5,0"/>
                                     </Grid>
@@ -345,7 +345,7 @@
                     </Grid.Resources>
 
                     <!-- Station 1 Config -->
-                    <Border Grid.Row="0" Grid.Column="0" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333">
+                    <Border Grid.Row="0" Grid.Column="0" Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="#666">
                          <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -386,7 +386,7 @@
                     </Border>
 
                     <!-- Station 2 Config -->
-                    <Border Grid.Row="0" Grid.Column="1" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333">
+                    <Border Grid.Row="0" Grid.Column="1" Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="#666">
                          <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -425,7 +425,7 @@
                     </Border>
 
                     <!-- Station 3 Config -->
-                    <Border Grid.Row="1" Grid.Column="0" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333">
+                    <Border Grid.Row="1" Grid.Column="0" Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="#666">
                          <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -464,7 +464,7 @@
                     </Border>
 
                     <!-- Station 4 Config -->
-                    <Border Grid.Row="1" Grid.Column="1" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333">
+                    <Border Grid.Row="1" Grid.Column="1" Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="#666">
                          <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
