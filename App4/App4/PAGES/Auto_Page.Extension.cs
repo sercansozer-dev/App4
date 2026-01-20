@@ -29,6 +29,69 @@ namespace App4
             
             ReplaceStationsWithExtended();
             InitializeOutputVariables();
+            SubscribeStationEvents();
+        }
+
+        private void SubscribeStationEvents()
+        {
+            foreach (var s in Stations)
+            {
+                s.PropertyChanged -= Station_PropertyChanged;
+                s.PropertyChanged += Station_PropertyChanged;
+            }
+        }
+
+        private void Station_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (sender is ExtendedStationViewModel station)
+            {
+                int index = Stations.IndexOf(station);
+                if (index < 0) return;
+                
+                ObservableCollection<PlcVariable> outputs = null;
+                switch (index)
+                {
+                    case 0: outputs = Station1Outputs; break;
+                    case 1: outputs = Station2Outputs; break;
+                    case 2: outputs = Station3Outputs; break;
+                    case 3: outputs = Station4Outputs; break;
+                }
+
+                if (outputs != null)
+                {
+                    if (e.PropertyName == nameof(StationViewModel.CurrentRfid) || 
+                        e.PropertyName == nameof(StationViewModel.AllowedRfid) ||
+                        e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
+                    {
+                        var isMatch = station.IsRfidMatch;
+                        UpdatePlcVar(outputs, $"ST{index + 1}_ID_MATCHED", isMatch ? "TRUE" : "FALSE");
+                        UpdatePlcVar(outputs, $"ST{index + 1}_CONVEYOR_PERM", isMatch ? "TRUE" : "FALSE");
+                        
+                        // Update target RFID output text
+                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) || e.PropertyName == nameof(StationViewModel.AllowedRfid))
+                        {
+                             UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", station.TargetRfid);
+                        }
+                    }
+                    else if (e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode))
+                    {
+                        UpdatePlcVar(outputs, $"ST{index + 1}_RFID_MODE", station.RfidOpMode.ToString());
+                    }
+                    else if (e.PropertyName == nameof(StationViewModel.Mode))
+                    {
+                        UpdatePlcVar(outputs, $"ST{index + 1}_MODE_CMD", station.Mode == StationMode.Auto ? "AUTO" : "MANUAL");
+                    }
+                }
+            }
+        }
+
+        private void UpdatePlcVar(ObservableCollection<PlcVariable> collection, string partialName, string newValue)
+        {
+            var v = System.Linq.Enumerable.FirstOrDefault(collection, x => x.Name == partialName);
+            if (v != null && v.Value != newValue)
+            {
+                v.Value = newValue;
+            }
         }
 
         private void InitializeOutputVariables()
@@ -47,6 +110,7 @@ namespace App4
             outputs.Add(CreateVarExt($"ST{stationId}_ID_MATCHED", "FALSE", $"ID Eþleþti (1=OK)", true, $"DB10.DBX{(stationId-1)*20}.20"));
             outputs.Add(CreateVarExt($"ST{stationId}_PROCESS_RESULT", "0", $"Ýþlem Sonucu", true, $"DB10.DBX{(stationId-1)*20}.22"));
             outputs.Add(CreateVarExt($"ST{stationId}_CONVEYOR_PERM", "FALSE", $"Konveyör Ýzni", true, $"DB10.DBX{(stationId-1)*20}.24"));
+            outputs.Add(CreateVarExt($"ST{stationId}_MODE_CMD", "AUTO", $"Mod (AUTO/MANUAL)", true, $"DB10.DBX{(stationId-1)*20}.26"));
         }
 
         private PlcVariable CreateVarExt(string name, string value, string description, bool isEditable, string tag)
@@ -164,5 +228,50 @@ namespace App4
         }
 
         public Visibility IsSpecificRfidVisible => RfidOpMode == RfidOperationMode.Specific ? Visibility.Visible : Visibility.Collapsed;
+
+        public ExtendedStationViewModel()
+        {
+            this.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(Mode)) 
+                {
+                    OnPropertyChanged(nameof(IsAutoMode));
+                    OnPropertyChanged(nameof(IsManualMode));
+                    OnPropertyChanged(nameof(AutoBtnBg));
+                    OnPropertyChanged(nameof(AutoBtnFg));
+                    OnPropertyChanged(nameof(ManualBtnBg));
+                    OnPropertyChanged(nameof(ManualBtnFg));
+                }
+            };
+        }
+
+        public bool IsAutoMode
+        {
+            get => Mode == StationMode.Auto;
+            set 
+            {
+                 Mode = value ? StationMode.Auto : StationMode.Manual;
+                 // Notifications handled by PropertyChanged event above
+            }
+        }
+
+        // Button Visuals
+        public SolidColorBrush AutoBtnBg => Mode == StationMode.Auto ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+        public SolidColorBrush AutoBtnFg => Mode == StationMode.Auto ? new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)) : new SolidColorBrush(Color.FromArgb(255, 128, 128, 128));
+        
+        public SolidColorBrush ManualBtnBg => Mode == StationMode.Manual ? new SolidColorBrush(Color.FromArgb(255, 255, 165, 0)) : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+        public SolidColorBrush ManualBtnFg => Mode == StationMode.Manual ? new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)) : new SolidColorBrush(Color.FromArgb(255, 128, 128, 128));
+
+        public bool IsManualMode
+        {
+             get => Mode != StationMode.Auto; // Simple toggle logic
+             set
+             {
+                 if(value) Mode = StationMode.Manual;
+                 else Mode = StationMode.Auto;
+                 OnPropertyChanged(nameof(IsAutoMode));
+                 OnPropertyChanged(nameof(IsManualMode));
+             }
+        }
     }
 }

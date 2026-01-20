@@ -48,14 +48,21 @@
                     <!-- Status / Visual -->
                     <Grid Grid.Row="1" Background="#151515">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="15">
-                            <!-- Mode Badge -->
-                            <Border Background="#252526" CornerRadius="15" Padding="15,5" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#444">
-                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <FontIcon Glyph="&#xE90C;" FontSize="12" Foreground="{x:Bind ModeColor, Mode=OneWay}"/>
-                                    <TextBlock Text="{x:Bind ModeText, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+                            <!-- Mode Switch (Segmented Control Look) -->
+                            <Border CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2">
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton IsChecked="{Binding IsAutoMode, Mode=TwoWay}" 
+                                                  Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26"
+                                                  Background="{Binding AutoBtnBg}" 
+                                                  Foreground="{Binding AutoBtnFg}"/>
+
+                                    <ToggleButton IsChecked="{Binding IsManualMode, Mode=TwoWay}"
+                                                  Content="MANUEL" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26"
+                                                  Background="{Binding ManualBtnBg}"
+                                                  Foreground="{Binding ManualBtnFg}"/>
                                 </StackPanel>
                             </Border>
-                            
+
                             <!-- State Large Icon -->
                             <FontIcon Glyph="&#xE9F5;" FontSize="50" Foreground="{x:Bind StateColor, Mode=OneWay}"/>
                             
