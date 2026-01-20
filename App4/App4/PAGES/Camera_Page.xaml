@@ -232,15 +232,25 @@
                             
                             <!-- Başlık -->
                             <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
-                                    <FontIcon Glyph="&#xE975;" Foreground="#00A4EF" FontSize="16"/>
-                                    <TextBlock Text="PLCYE AKTARIM ALANI" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                </StackPanel>
+                                <Grid>
+                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                                        <FontIcon Glyph="&#xE975;" Foreground="#00A4EF" FontSize="16"/>
+                                        <TextBlock Text="PLCYE AKTARIM ALANI" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Add Button -->
+                                    <Button x:Name="BtnAddPlcRow" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="5">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="#4CAF50"/>
+                                            <TextBlock Text="EKLE" FontSize="10" Foreground="#4CAF50" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
                             </Border>
 
                             <!-- Tablo Verileri -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
-                                 <StackPanel Spacing="5">
+                                 <StackPanel x:Name="PlcTransferList" Spacing="5">
                                      <!-- Header -->
                                      <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
                                          <Grid.ColumnDefinitions>
@@ -250,15 +260,34 @@
                                          </Grid.ColumnDefinitions>
                                          <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
                                          <TextBlock Grid.Column="1" Text="PLC ADRESİ" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
-                                         <TextBlock Grid.Column="2" Text="DURUM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                         <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
                                      </Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="1" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="DB100.DBW0" VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="SENT" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#141414" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="DB100.DBW2" VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="SENT" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="DB100.DBW4" VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="SENT" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#141414" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="DB100.DBW6" VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="FAIL" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#FF5252" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="5" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="DB100.DBW8" VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="WAIT" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#FFC107" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#141414" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="6" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="DB100.DBW10" VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="WAIT" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#FFC107" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="7" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="..." VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="..." VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#666"/></Grid>
+                                     
+                                     <!-- 4 Rows -->
+                                     <Grid Background="#0F0F0F" Height="40">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="1" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                        <TextBox Grid.Column="1" Text="DB100.DBW0" VerticalAlignment="Center" Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" Foreground="White" PlaceholderText="Adres..."/>
+                                        <TextBlock Grid.Column="2" Text="12845" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
+                                     <Grid Background="#141414" Height="40">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                        <TextBox Grid.Column="1" Text="DB100.DBW2" VerticalAlignment="Center" Margin="5,0" Background="#2A2A2C" BorderThickness="1" BorderBrush="#444" CornerRadius="4" Foreground="White" PlaceholderText="Adres..."/>
+                                        <TextBlock Grid.Column="2" Text="4520" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
+                                     <Grid Background="#0F0F0F" Height="40">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                        <TextBox Grid.Column="1" Text="DB100.DBW4" VerticalAlignment="Center" Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" Foreground="White" PlaceholderText="Adres..."/>
+                                        <TextBlock Grid.Column="2" Text="1205" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
+                                     <Grid Background="#141414" Height="40">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                        <TextBox Grid.Column="1" Text="DB100.DBW6" VerticalAlignment="Center" Margin="5,0" Background="#2A2A2C" BorderThickness="1" BorderBrush="#444" CornerRadius="4" Foreground="White" PlaceholderText="Adres..."/>
+                                        <TextBlock Grid.Column="2" Text="0" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
                                  </StackPanel>
                             </ScrollViewer>
                         </Grid>
