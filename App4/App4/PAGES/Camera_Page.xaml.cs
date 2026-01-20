@@ -17,11 +17,26 @@ using Windows.ApplicationModel;
 using Windows.Storage;
 using Windows.Storage.Streams;
 using static GoPxLSdkSamplesCommon.Utilities;
+using System.Collections.ObjectModel;
+using Windows.UI;
 
 namespace App4.PAGES
 {
+    public class PlcTransferItem
+    {
+        public int Index { get; set; }
+        public string SelectedTag { get; set; }
+        public string Value { get; set; }
+        public string Status { get; set; } // SENT, WAIT, FAIL
+        public SolidColorBrush StatusColor { get; set; }
+        public SolidColorBrush BackgroundColor { get; set; }
+    }
+
     public sealed partial class Camera_Page : Page
     {
+        public ObservableCollection<string> PlcOutputTags { get; set; } = new();
+        public ObservableCollection<PlcTransferItem> PlcTransferRows { get; set; } = new();
+
         private List<string> _logHistory = new();
         private bool _isWebViewInitialized = false;
 
@@ -34,13 +49,103 @@ namespace App4.PAGES
         public Camera_Page()
         {
             this.InitializeComponent();
+            this.DataContext = this;
             this.Loaded += Camera_Page_Loaded;
+        }
+
+        private void LoadPlcTags()
+        {
+            try
+            {
+                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "PLC_Variables.json");
+                if (File.Exists(path))
+                {
+                    var json = File.ReadAllText(path);
+                    var obj = JObject.Parse(json);
+                    var outputs = obj["Output"] as JArray;
+                    PlcOutputTags.Clear();
+                    if (outputs != null)
+                    {
+                        foreach (var item in outputs)
+                        {
+                             PlcOutputTags.Add(item["Name"]?.ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog("PLC Tagleri yüklenemedi: " + ex.Message);
+            }
+        }
+
+        private void InitializeDefaultPlcRows()
+        {
+            if (PlcTransferRows.Count > 0) return;
+
+            PlcTransferRows.Add(new PlcTransferItem 
+            { 
+                Index = 1, 
+                SelectedTag = PlcOutputTags.FirstOrDefault(), 
+                Value = "12845", 
+                Status = "SENT", 
+                StatusColor = BrushGreen, 
+                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
+            });
+            PlcTransferRows.Add(new PlcTransferItem 
+            { 
+                Index = 2, 
+                SelectedTag = PlcOutputTags.Skip(1).FirstOrDefault(), 
+                Value = "4520", 
+                Status = "SENT", 
+                StatusColor = BrushGreen, 
+                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20)) 
+            });
+             PlcTransferRows.Add(new PlcTransferItem 
+            { 
+                Index = 3, 
+                SelectedTag = PlcOutputTags.Skip(2).FirstOrDefault(), 
+                Value = "1205", 
+                Status = "SENT", 
+                StatusColor = BrushGreen, 
+                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
+            });
+             PlcTransferRows.Add(new PlcTransferItem 
+            { 
+                Index = 4, 
+                SelectedTag = PlcOutputTags.Skip(3).FirstOrDefault(), 
+                Value = "0", 
+                Status = "WAIT", 
+                StatusColor = BrushOrange, 
+                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20)) 
+            });
+        }
+
+        private void BtnAddPlcRow_Click(object sender, RoutedEventArgs e)
+        {
+            var index = PlcTransferRows.Count + 1;
+            var color = (index % 2 == 1) 
+                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
+                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+
+            PlcTransferRows.Add(new PlcTransferItem
+            {
+                Index = index,
+                SelectedTag = PlcOutputTags.FirstOrDefault(),
+                Value = "0",
+                Status = "WAIT", 
+                StatusColor = BrushOrange, // Default status
+                BackgroundColor = color
+            });
         }
 
         #region ═══ WebView2 Initialization (Modern Approach) ═══
 
         private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
+            LoadPlcTags();
+            InitializeDefaultPlcRows();
+
             if (_isWebViewInitialized) return;
 
             try
