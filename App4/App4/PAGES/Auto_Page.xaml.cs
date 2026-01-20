@@ -384,6 +384,9 @@ namespace App4
                         StateColor = new SolidColorBrush(Color.FromArgb(255, 241, 196, 15)); // Yellow
                      else
                         StateColor = new SolidColorBrush(Color.FromArgb(255, 52, 152, 219)); // Blue (Process)
+
+                     // Sync Border Color with State Color
+                     BorderColor = StateColor;
                 }
                 else
                 {
@@ -392,11 +395,13 @@ namespace App4
                     {
                         StateText = !string.IsNullOrEmpty(status) ? status : "ÜRETÝMDE";
                         StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); // LimeGreen (Default active)
+                        BorderColor = StateColor;
                     }
                     else
                     {
                         StateText = "BEKLÝYOR";
                         StateColor = new SolidColorBrush(Color.FromArgb(255, 136, 136, 136)); // Gray
+                        BorderColor = new SolidColorBrush(Color.FromArgb(255, 85, 85, 85)); // Gray
                     }
                 }
             }
