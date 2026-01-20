@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="App4.Auto_Page"
+    Loaded="Page_Loaded"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:App4"
@@ -828,6 +829,134 @@
                         </StackPanel>
                     </Grid>
                 </Border>
+
+                <!-- RFID Management & Configuration -->
+                <Grid Margin="0,20,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- RFID Definitions List (Editable) -->
+                    <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#252526" Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon Glyph="&#xE8F1;" Foreground="#FFF" FontSize="14"/>
+                                    <TextBlock Text="RFID TANIMLAMA LİSTESİ" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Add New Item Row -->
+                            <Grid Grid.Row="1" Background="#222" Padding="10" ColumnSpacing="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtNewRfidId" Grid.Column="0" PlaceholderText="ID Gr" FontSize="11"/>
+                                <TextBox x:Name="TxtNewRfidDesc" Grid.Column="1" PlaceholderText="Açıklama" FontSize="11"/>
+                                <Button Grid.Column="2" Content="Ekle" Click="BtnAddRfid_Click" FontSize="11" Background="#0078D4" Foreground="White"/>
+                            </Grid>
+
+                            <!-- List -->
+                            <ListView Grid.Row="2" ItemsSource="{x:Bind KnownRfids}" SelectionMode="None">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="local:RfidDef">
+                                        <Grid Padding="10,5" BorderBrush="#333" BorderThickness="0,0,0,1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{x:Bind Id}" FontWeight="Bold" Foreground="#0078D4" FontSize="12" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="#BBB" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+                    </Border>
+
+                    <!-- Station RFID Configuration Table -->
+                    <Border Grid.Column="2" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#252526" Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon Glyph="&#xE9A1;" Foreground="#FFF" FontSize="14"/>
+                                    <TextBlock Text="İSTASYON RFID &amp; PLC AKTARIM AYARLARI" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Table Header -->
+                            <Grid Grid.Row="1" Background="#222" Height="30" >
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="İSTASYON" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="1" Text="ÇALIŞMA MODU" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="2" Text="HEDEF RFID" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="3" Text="PLC TAG: MOD ÇIKIŞ" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Grid.Column="4" Text="PLC TAG: HEDEF ID ÇIKIŞ" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
+                            </Grid>
+
+                            <!-- Table Body -->
+                            <ListView Grid.Row="2" ItemsSource="{x:Bind Stations}" SelectionMode="None">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="local:StationViewModel">
+                                        <Grid Padding="0,5" BorderBrush="#333" BorderThickness="0,0,0,1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="0" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="10,0" Foreground="White" FontWeight="Bold" FontSize="11"/>
+                                            
+                                            <!-- Mode Combobox -->
+                                            <ComboBox Grid.Column="1" SelectedItem="{Binding RfidOpMode, Mode=TwoWay}" ItemsSource="{Binding RfidOpModes}" 
+                                                      HorizontalAlignment="Stretch" Margin="5,0"/>
+
+                                            <!-- Target RFID Combobox (Visible only if Specific) -->
+                                            <ComboBox Grid.Column="2" SelectedValue="{Binding TargetRfid, Mode=TwoWay}" 
+                                                      ItemsSource="{Binding RefRfids, Mode=OneWay}"
+                                                      SelectedValuePath="Id" DisplayMemberPath="Id"
+                                                      PlaceholderText="Hedef ID" Margin="5,0"
+                                                      Visibility="{Binding IsSpecificRfidVisible, Mode=OneWay}"
+                                                      HorizontalAlignment="Stretch"/>
+                                            
+                                            <!-- Tags -->
+                                            <TextBox Grid.Column="3" Text="{Binding PlcTagRfidMode, Mode=TwoWay}" PlaceholderText="DB10.DBX..." 
+                                                     Background="#202020" BorderBrush="#333" Foreground="White" Margin="5,0" FontSize="11"/>
+                                            <TextBox Grid.Column="4" Text="{Binding PlcTagTargetRfid, Mode=TwoWay}" PlaceholderText="DB10.STR..." 
+                                                     Background="#202020" BorderBrush="#333" Foreground="White" Margin="5,0" FontSize="11"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+                    </Border>
+                </Grid>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
