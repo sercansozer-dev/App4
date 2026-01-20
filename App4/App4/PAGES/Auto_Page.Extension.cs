@@ -13,6 +13,11 @@ namespace App4
         public static ObservableCollection<RfidDef> GlobalKnownRfids { get; private set; } = new();
         public ObservableCollection<RfidDef> KnownRfids => GlobalKnownRfids;
 
+        public ObservableCollection<PlcVariable> Station1Outputs { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station2Outputs { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station3Outputs { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station4Outputs { get; set; } = new();
+
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             if (GlobalKnownRfids.Count == 0)
@@ -23,6 +28,30 @@ namespace App4
             }
             
             ReplaceStationsWithExtended();
+            InitializeOutputVariables();
+        }
+
+        private void InitializeOutputVariables()
+        {
+            if (Station1Outputs.Count > 0) return;
+            AddStationOutputs(Station1Outputs, 1);
+            AddStationOutputs(Station2Outputs, 2);
+            AddStationOutputs(Station3Outputs, 3);
+            AddStationOutputs(Station4Outputs, 4);
+        }
+
+        private void AddStationOutputs(ObservableCollection<PlcVariable> outputs, int stationId)
+        {
+            outputs.Add(CreateVarExt($"ST{stationId}_RFID_MODE", "Mixed", $"RFID Çalýþma Modu", true, $"DB10.DBX{(stationId-1)*20}.0")); 
+            outputs.Add(CreateVarExt($"ST{stationId}_RFID_TARGET", "", $"Hedef RFID", true, $"DB10.STR{(stationId-1)*20}.4"));
+            outputs.Add(CreateVarExt($"ST{stationId}_ID_MATCHED", "FALSE", $"ID Eþleþti (1=OK)", true, $"DB10.DBX{(stationId-1)*20}.20"));
+            outputs.Add(CreateVarExt($"ST{stationId}_PROCESS_RESULT", "0", $"Ýþlem Sonucu", true, $"DB10.DBX{(stationId-1)*20}.22"));
+            outputs.Add(CreateVarExt($"ST{stationId}_CONVEYOR_PERM", "FALSE", $"Konveyör Ýzni", true, $"DB10.DBX{(stationId-1)*20}.24"));
+        }
+
+        private PlcVariable CreateVarExt(string name, string value, string description, bool isEditable, string tag)
+        {
+            return new PlcVariable { Name = name, Value = value, Description = description, IsEditable = isEditable, PlcTag = tag };
         }
 
         private void ReplaceStationsWithExtended()
