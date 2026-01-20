@@ -68,7 +68,12 @@ namespace App4.PAGES
                     {
                         foreach (var item in outputs)
                         {
-                             PlcOutputTags.Add(item["Name"]?.ToString());
+                             // PLC_Page uses [JsonPropertyName("name")] so the key is lowercase "name"
+                             var name = item["name"]?.ToString() ?? item["Name"]?.ToString();
+                             if (!string.IsNullOrEmpty(name))
+                             {
+                                 PlcOutputTags.Add(name);
+                             }
                         }
                     }
                 }
