@@ -53,16 +53,31 @@
                                         <RowDefinition Height="60"/>
                                     </Grid.RowDefinitions>
 
-                                    <!-- Header -->
-                                    <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
-                                        <Grid>
-                                             <StackPanel VerticalAlignment="Center">
-                                                 <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                                 <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
+                                     <!-- Header -->
+                                     <Border Grid.Row="0" Background="#252526" CornerRadius="6,6,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333333">
+                                         <Grid>
+                                              <StackPanel VerticalAlignment="Center">
+                                                  <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                                  <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#888888"/>
+                                              </StackPanel>
+                                             
+                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
+                                                 <Button Background="Transparent" Padding="4" ToolTipService.ToolTip="PLC Tag Ayarları">
+                                                     <FontIcon Glyph="&#xE713;" FontSize="12" Foreground="#888888"/>
+                                                     <Button.Flyout>
+                                                         <Flyout>
+                                                             <StackPanel Width="200" Spacing="8">
+                                                                 <TextBlock Text="PLC Tag Bağlantıları" FontWeight="Bold"/>
+                                                                 <TextBox Header="Durum Tag" Text="{x:Bind StatusTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                                 <TextBox Header="Alarm Tag" Text="{x:Bind AlarmTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                             </StackPanel>
+                                                         </Flyout>
+                                                     </Button.Flyout>
+                                                 </Button>
+                                                 <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}"/>
                                              </StackPanel>
-                                            <Ellipse Width="12" Height="12" Fill="{x:Bind ModeColor, Mode=OneWay}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
+                                         </Grid>
+                                     </Border>
 
                                     <!-- Status / Visual -->
                                     <Grid Grid.Row="1" Background="#151515">
@@ -380,9 +395,10 @@
             <!-- PLC Variables Table -->
             <StackPanel Spacing="10" Margin="0,30,0,20">
                 <StackPanel Orientation="Horizontal" Spacing="10">
-                    <FontIcon Glyph="&#xE8FD;" Foreground="#E67E22" FontSize="20"/>
-                    <TextBlock Text="PLC KONFİGÜRASYON &amp; SİMÜLASYON" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                     <FontIcon Glyph="&#xE8FD;" Foreground="#E67E22" FontSize="20"/>
+                     <TextBlock Text="PLC KONFİGÜRASYON &amp; SİMÜLASYON" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                 </StackPanel>
+                
                 <TextBlock Text="Aşağıdaki tablodan simülasyon veya manual ayar değerleri girebilirsiniz." FontSize="12" Foreground="#888888"/>
 
                 <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333" Margin="0,10,0,0">
@@ -396,12 +412,14 @@
                         <Grid Grid.Row="0" Background="#252526" BorderThickness="0,0,0,1" BorderBrush="#333333">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="2*"/>
                                 <ColumnDefinition Width="1.5*"/>
                                 <ColumnDefinition Width="3*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="DEĞİŞKEN ADI" VerticalAlignment="Center" Margin="15,0" Foreground="#AAAAAA" FontWeight="SemiBold" FontSize="11"/>
-                            <TextBlock Grid.Column="1" Text="DEĞER" VerticalAlignment="Center" Margin="15,0" Foreground="#AAAAAA" FontWeight="SemiBold" FontSize="11"/>
-                            <TextBlock Grid.Column="2" Text="AÇIKLAMA" VerticalAlignment="Center" Margin="15,0" Foreground="#AAAAAA" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Grid.Column="1" Text="PLC TAG EŞLEŞMESİ" VerticalAlignment="Center" Margin="15,0" Foreground="#AAAAAA" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Grid.Column="2" Text="DEĞER" VerticalAlignment="Center" Margin="15,0" Foreground="#AAAAAA" FontWeight="SemiBold" FontSize="11"/>
+                            <TextBlock Grid.Column="3" Text="AÇIKLAMA" VerticalAlignment="Center" Margin="15,0" Foreground="#AAAAAA" FontWeight="SemiBold" FontSize="11"/>
                         </Grid>
 
                         <!-- Table Items -->
@@ -410,6 +428,7 @@
                                 <DataTemplate x:DataType="local:PlcVariable">
                                     <Grid Padding="0,8" BorderBrush="#222" BorderThickness="0,0,0,1">
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*"/>
                                             <ColumnDefinition Width="2*"/>
                                             <ColumnDefinition Width="1.5*"/>
                                             <ColumnDefinition Width="3*"/>
@@ -421,13 +440,19 @@
                                             <TextBlock Text="{x:Bind Name}" Foreground="White" FontWeight="SemiBold"/>
                                         </StackPanel>
 
+                                        <!-- PLC Tag (Mapped) -->
+                                        <TextBox Grid.Column="1" Text="{x:Bind PlcTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                 PlaceholderText="Örn: DB10.DBD20 veya M10.0"
+                                                 Background="#202020" BorderBrush="#333"
+                                                 Margin="5,0,20,0"/>
+
                                         <!-- Value -->
-                                        <TextBox Grid.Column="1" Text="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                        <TextBox Grid.Column="2" Text="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                                  IsEnabled="{x:Bind IsEditable}"
                                                  Margin="5,0,20,0"/>
 
                                         <!-- Description -->
-                                        <TextBlock Grid.Column="2" Text="{x:Bind Description}" VerticalAlignment="Center" Margin="15,0" Foreground="#888888"/>
+                                        <TextBlock Grid.Column="3" Text="{x:Bind Description}" VerticalAlignment="Center" Margin="15,0" Foreground="#888888"/>
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>

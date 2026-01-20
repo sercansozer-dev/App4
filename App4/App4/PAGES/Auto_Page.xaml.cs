@@ -42,14 +42,15 @@ namespace App4
                 Name = "SLIDER_POS_ACT", 
                 Value = "0", 
                 Description = "Robot Slider Aktif Ýstasyon No (1-4)",
-                IsEditable = true
+                IsEditable = true,
+                PlcTag = "DB300.DBD10"
             };
             sliderVar.PropertyChanged += PlcVariable_PropertyChanged;
             PlcVariables.Add(sliderVar);
 
-            PlcVariables.Add(new PlcVariable { Name = "ROBOT_SPEED", Value = "100", Description = "Robot Hýzý %", IsEditable = true });
-            PlcVariables.Add(new PlcVariable { Name = "GOCATOR_STATUS", Value = "READY", Description = "Kamera Durumu", IsEditable = false });
-            PlcVariables.Add(new PlcVariable { Name = "SAFETY_OK", Value = "TRUE", Description = "Güvenlik Devresi", IsEditable = false });
+            PlcVariables.Add(new PlcVariable { Name = "ROBOT_SPEED", Value = "100", Description = "Robot Hýzý %", IsEditable = true, PlcTag = "DB300.DBD14" });
+            PlcVariables.Add(new PlcVariable { Name = "GOCATOR_STATUS", Value = "READY", Description = "Kamera Durumu", IsEditable = false, PlcTag = "DB300.DBD20" });
+            PlcVariables.Add(new PlcVariable { Name = "SAFETY_OK", Value = "TRUE", Description = "Güvenlik Devresi", IsEditable = false, PlcTag = "I10.0" });
         }
 
         private void PlcVariable_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -78,6 +79,11 @@ namespace App4
             }
         }
 
+        private void RemovePlcVariable_Click(object sender, RoutedEventArgs e)
+        {
+             // Deprecated functionality
+        }
+
         private void InitializeStations()
         {
             Stations.Add(new StationViewModel 
@@ -87,7 +93,9 @@ namespace App4
                 Mode = StationMode.Auto, 
                 IsProducing = true, 
                 ProcessStatus = "3D TARAMA",
-                HasAlarm = false 
+                HasAlarm = false,
+                StatusTag = "ST1_STATUS",
+                AlarmTag = "ST1_ALARM"
             });
 
             Stations.Add(new StationViewModel 
@@ -98,7 +106,9 @@ namespace App4
                 IsProducing = true, 
                 ProcessStatus = "GAZ TESTÝ",
                 IsRobotPresent = true,
-                HasAlarm = false 
+                HasAlarm = false,
+                StatusTag = "ST2_STATUS",
+                AlarmTag = "ST2_ALARM" 
             });
 
             Stations.Add(new StationViewModel 
@@ -107,7 +117,9 @@ namespace App4
                 Description = "Boþ Ýstasyon",
                 Mode = StationMode.Manual, 
                 IsProducing = false, 
-                HasAlarm = false 
+                HasAlarm = false,
+                StatusTag = "ST3_STATUS",
+                AlarmTag = "ST3_ALARM"
             });
 
             Stations.Add(new StationViewModel 
@@ -116,7 +128,9 @@ namespace App4
                 Description = "Klima Dýþ Ünite - Hatalý",
                 Mode = StationMode.Bypass, 
                 IsProducing = false, 
-                HasAlarm = true 
+                HasAlarm = true,
+                StatusTag = "ST4_STATUS",
+                AlarmTag = "ST4_ALARM"
             });
         }
     }
@@ -133,6 +147,9 @@ namespace App4
         public string Name { get; set; }
         public string Description { get; set; }
         
+        public string StatusTag { get; set; }
+        public string AlarmTag { get; set; }
+
         private StationMode _mode;
         public StationMode Mode
         {
@@ -279,6 +296,13 @@ namespace App4
         public string Description { get; set; }
         public bool IsEditable { get; set; }
         public bool IsReadOnly => !IsEditable;
+        
+        private string _plcTag;
+        public string PlcTag
+        {
+             get => _plcTag;
+             set { _plcTag = value; OnPropertyChanged(); }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
