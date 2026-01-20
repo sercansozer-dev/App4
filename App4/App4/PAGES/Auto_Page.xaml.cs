@@ -26,7 +26,11 @@ namespace App4
     public sealed partial class Auto_Page : Page
     {
         public ObservableCollection<StationViewModel> Stations { get; set; } = new();
-        public ObservableCollection<PlcVariable> PlcVariables { get; set; } = new();
+        public ObservableCollection<PlcVariable> GeneralVars { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station1Vars { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station2Vars { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station3Vars { get; set; } = new();
+        public ObservableCollection<PlcVariable> Station4Vars { get; set; } = new();
 
         public Auto_Page()
         {
@@ -37,20 +41,33 @@ namespace App4
 
         private void InitializePlcVariables()
         {
-            var sliderVar = new PlcVariable 
-            { 
-                Name = "SLIDER_POS_ACT", 
-                Value = "0", 
-                Description = "Robot Slider Aktif Ýstasyon No (1-4)",
-                IsEditable = true,
-                PlcTag = "DB300.DBD10"
-            };
-            sliderVar.PropertyChanged += PlcVariable_PropertyChanged;
-            PlcVariables.Add(sliderVar);
+            var sliderVar = CreateVar("SLIDER_POS_ACT", "0", "Robot Slider Aktif Ýstasyon No (1-4)", true, "DB300.DBD10");
+            GeneralVars.Add(sliderVar);
 
-            PlcVariables.Add(new PlcVariable { Name = "ROBOT_SPEED", Value = "100", Description = "Robot Hýzý %", IsEditable = true, PlcTag = "DB300.DBD14" });
-            PlcVariables.Add(new PlcVariable { Name = "GOCATOR_STATUS", Value = "READY", Description = "Kamera Durumu", IsEditable = false, PlcTag = "DB300.DBD20" });
-            PlcVariables.Add(new PlcVariable { Name = "SAFETY_OK", Value = "TRUE", Description = "Güvenlik Devresi", IsEditable = false, PlcTag = "I10.0" });
+            GeneralVars.Add(CreateVar("ROBOT_SPEED", "100", "Robot Hýzý %", true, "DB300.DBD14"));
+            GeneralVars.Add(CreateVar("GOCATOR_STATUS", "READY", "Kamera Durumu", false, "DB300.DBD20"));
+            GeneralVars.Add(CreateVar("SAFETY_OK", "TRUE", "Güvenlik Devresi", false, "I10.0"));
+
+            // Helper to add station vars
+            void AddStationVars(ObservableCollection<PlcVariable> targetCollection, int stationId, string status, string alarm, string mode, string producing)
+            {
+                 targetCollection.Add(CreateVar($"ST{stationId}_STATUS", status, $"Ýstasyon {stationId} Durum", true, $"DB10.DBD{(stationId-1)*20}"));
+                 targetCollection.Add(CreateVar($"ST{stationId}_ALARM", alarm, $"Ýstasyon {stationId} Alarm", true, $"DB10.DBX{((stationId-1)*20)+4}.0"));
+                 targetCollection.Add(CreateVar($"ST{stationId}_MODE", mode, $"Ýstasyon {stationId} Mod", true, $"DB10.DBG{((stationId-1)*20)+6}"));
+                 targetCollection.Add(CreateVar($"ST{stationId}_PRODUCING", producing, $"Ýstasyon {stationId} Üretim", true, $"DB10.DBX{((stationId-1)*20)+8}.0"));
+            }
+
+            AddStationVars(Station1Vars, 1, "3D TARAMA", "FALSE", "AUTO", "TRUE");
+            AddStationVars(Station2Vars, 2, "GAZ TESTÝ", "FALSE", "AUTO", "TRUE");
+            AddStationVars(Station3Vars, 3, "BEKLÝYOR", "FALSE", "MANUAL", "FALSE");
+            AddStationVars(Station4Vars, 4, "STOP", "TRUE", "BYPASS", "FALSE");
+        }
+
+        private PlcVariable CreateVar(string name, string value, string description, bool isEditable, string tag)
+        {
+            var v = new PlcVariable { Name = name, Value = value, Description = description, IsEditable = isEditable, PlcTag = tag };
+            v.PropertyChanged += PlcVariable_PropertyChanged;
+            return v;
         }
 
         private void PlcVariable_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -61,7 +78,38 @@ namespace App4
                 {
                     UpdateSliderPosition(plcVar.Value);
                 }
+                else
+                {
+                    // Update Stations based on Tag match
+                    foreach (var station in Stations)
+                    {
+                        if (station.StatusTag == plcVar.Name)
+                        {
+                            station.ProcessStatus = plcVar.Value;
+                        }
+                        else if (station.AlarmTag == plcVar.Name)
+                        {
+                            station.HasAlarm = ParseBool(plcVar.Value);
+                        }
+                        else if (station.ModeTag == plcVar.Name)
+                        {
+                            if (Enum.TryParse<StationMode>(plcVar.Value, true, out var mode))
+                                station.Mode = mode;
+                        }
+                        else if (station.ProducingTag == plcVar.Name)
+                        {
+                             station.IsProducing = ParseBool(plcVar.Value);
+                        }
+                    }
+                }
             }
+        }
+
+        private bool ParseBool(string value)
+        {
+             if (string.IsNullOrEmpty(value)) return false;
+             value = value.ToUpper();
+             return value == "TRUE" || value == "1" || value == "ON";
         }
 
         private void UpdateSliderPosition(string value)
@@ -95,7 +143,9 @@ namespace App4
                 ProcessStatus = "3D TARAMA",
                 HasAlarm = false,
                 StatusTag = "ST1_STATUS",
-                AlarmTag = "ST1_ALARM"
+                AlarmTag = "ST1_ALARM",
+                ModeTag = "ST1_MODE",
+                ProducingTag = "ST1_PRODUCING"
             });
 
             Stations.Add(new StationViewModel 
@@ -108,7 +158,9 @@ namespace App4
                 IsRobotPresent = true,
                 HasAlarm = false,
                 StatusTag = "ST2_STATUS",
-                AlarmTag = "ST2_ALARM" 
+                AlarmTag = "ST2_ALARM",
+                ModeTag = "ST2_MODE",
+                ProducingTag = "ST2_PRODUCING" 
             });
 
             Stations.Add(new StationViewModel 
@@ -119,7 +171,9 @@ namespace App4
                 IsProducing = false, 
                 HasAlarm = false,
                 StatusTag = "ST3_STATUS",
-                AlarmTag = "ST3_ALARM"
+                AlarmTag = "ST3_ALARM",
+                ModeTag = "ST3_MODE",
+                ProducingTag = "ST3_PRODUCING"
             });
 
             Stations.Add(new StationViewModel 
@@ -130,7 +184,9 @@ namespace App4
                 IsProducing = false, 
                 HasAlarm = true,
                 StatusTag = "ST4_STATUS",
-                AlarmTag = "ST4_ALARM"
+                AlarmTag = "ST4_ALARM",
+                ModeTag = "ST4_MODE",
+                ProducingTag = "ST4_PRODUCING"
             });
         }
     }
@@ -149,6 +205,8 @@ namespace App4
         
         public string StatusTag { get; set; }
         public string AlarmTag { get; set; }
+        public string ModeTag { get; set; }
+        public string ProducingTag { get; set; }
 
         private StationMode _mode;
         public StationMode Mode
