@@ -185,19 +185,38 @@
                                          <Grid.ColumnDefinitions>
                                              <ColumnDefinition Width="50"/>
                                              <ColumnDefinition Width="*"/>
-                                             <ColumnDefinition Width="100"/>
+                                             <ColumnDefinition Width="*"/>
                                          </Grid.ColumnDefinitions>
                                          <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                         <TextBlock Grid.Column="1" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
-                                         <TextBlock Grid.Column="2" Text="DURUM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                         <TextBlock Grid.Column="1" Text="DEĞİŞKEN ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
+                                         <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" FontWeight="Bold"/>
                                      </Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="1" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="128.45 mm" VerticalAlignment="Center" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/><TextBlock Grid.Column="2" Text="OK" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#141414" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="128.42 mm" VerticalAlignment="Center" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/><TextBlock Grid.Column="2" Text="OK" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="128.48 mm" VerticalAlignment="Center" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/><TextBlock Grid.Column="2" Text="OK" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#141414" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="125.01 mm" VerticalAlignment="Center" Margin="10,0" Foreground="#FF5252" FontWeight="Bold"/><TextBlock Grid.Column="2" Text="NOK" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#FF5252" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="5" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="128.44 mm" VerticalAlignment="Center" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/><TextBlock Grid.Column="2" Text="OK" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#141414" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="6" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="128.46 mm" VerticalAlignment="Center" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/><TextBlock Grid.Column="2" Text="OK" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#4CAF50" FontWeight="Bold"/></Grid>
-                                     <Grid Background="#0F0F0F" Height="30"><Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/></Grid.ColumnDefinitions><TextBlock Text="7" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/><TextBlock Grid.Column="1" Text="..." VerticalAlignment="Center" Margin="10,0" Foreground="White"/><TextBlock Grid.Column="2" Text="..." VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#666"/></Grid>
+                                     
+                                     <!-- 4 Rows -->
+                                     <Grid Background="#0F0F0F" Height="30">
+                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                         <TextBlock Text="1" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                         <TextBlock Grid.Column="1" Text="X Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
+                                         <TextBlock Grid.Column="2" Text="128.45 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
+                                     <Grid Background="#141414" Height="30">
+                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                         <TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                         <TextBlock Grid.Column="1" Text="Y Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
+                                         <TextBlock Grid.Column="2" Text="45.20 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
+                                     <Grid Background="#0F0F0F" Height="30">
+                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                         <TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                         <TextBlock Grid.Column="1" Text="Z Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
+                                         <TextBlock Grid.Column="2" Text="12.05 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
+                                     <Grid Background="#141414" Height="30">
+                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                         <TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                                         <TextBlock Grid.Column="1" Text="A Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
+                                         <TextBlock Grid.Column="2" Text="0.00 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
+                                     </Grid>
                                  </StackPanel>
                             </ScrollViewer>
                         </Grid>
