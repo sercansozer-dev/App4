@@ -193,25 +193,25 @@
                                      </Grid>
                                      
                                      <!-- 4 Rows -->
-                                     <Grid Background="#0F0F0F" Height="30">
+                                     <Grid Background="#0F0F0F" Height="40">
                                          <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                          <TextBlock Text="1" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
                                          <TextBlock Grid.Column="1" Text="X Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
                                          <TextBlock Grid.Column="2" Text="128.45 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
                                      </Grid>
-                                     <Grid Background="#141414" Height="30">
+                                     <Grid Background="#141414" Height="40">
                                          <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                          <TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
                                          <TextBlock Grid.Column="1" Text="Y Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
                                          <TextBlock Grid.Column="2" Text="45.20 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
                                      </Grid>
-                                     <Grid Background="#0F0F0F" Height="30">
+                                     <Grid Background="#0F0F0F" Height="40">
                                          <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                          <TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
                                          <TextBlock Grid.Column="1" Text="Z Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
                                          <TextBlock Grid.Column="2" Text="12.05 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
                                      </Grid>
-                                     <Grid Background="#141414" Height="30">
+                                     <Grid Background="#141414" Height="40">
                                          <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                          <TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
                                          <TextBlock Grid.Column="1" Text="A Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
@@ -233,18 +233,10 @@
                             <!-- Başlık -->
                             <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                                 <Grid>
-                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
                                         <FontIcon Glyph="&#xE975;" Foreground="#00A4EF" FontSize="16"/>
                                         <TextBlock Text="PLCYE AKTARIM ALANI" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    
-                                    <!-- Add Button -->
-                                    <Button x:Name="BtnAddPlcRow" Click="BtnAddPlcRow_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="5">
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="#4CAF50"/>
-                                            <TextBlock Text="EKLE" FontSize="10" Foreground="#4CAF50" FontWeight="Bold"/>
-                                        </StackPanel>
-                                    </Button>
                                 </Grid>
                             </Border>
 
