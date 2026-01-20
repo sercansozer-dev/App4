@@ -49,18 +49,20 @@ namespace App4
             GeneralVars.Add(CreateVar("SAFETY_OK", "TRUE", "Güvenlik Devresi", false, "I10.0"));
 
             // Helper to add station vars
-            void AddStationVars(ObservableCollection<PlcVariable> targetCollection, int stationId, string status, string alarm, string mode, string producing)
+            void AddStationVars(ObservableCollection<PlcVariable> targetCollection, int stationId, string status, string alarm, string mode, string producing, string prodCount, string efficiency)
             {
                  targetCollection.Add(CreateVar($"ST{stationId}_STATUS", status, $"Ýstasyon {stationId} Durum", true, $"DB10.DBD{(stationId-1)*20}"));
                  targetCollection.Add(CreateVar($"ST{stationId}_ALARM", alarm, $"Ýstasyon {stationId} Alarm", true, $"DB10.DBX{((stationId-1)*20)+4}.0"));
                  targetCollection.Add(CreateVar($"ST{stationId}_MODE", mode, $"Ýstasyon {stationId} Mod", true, $"DB10.DBG{((stationId-1)*20)+6}"));
                  targetCollection.Add(CreateVar($"ST{stationId}_PRODUCING", producing, $"Ýstasyon {stationId} Üretim", true, $"DB10.DBX{((stationId-1)*20)+8}.0"));
+                 targetCollection.Add(CreateVar($"ST{stationId}_PROD_COUNT", prodCount, $"Ýstasyon {stationId} Üretim Adedi", true, $"DB10.DBD{((stationId-1)*20)+12}"));
+                 targetCollection.Add(CreateVar($"ST{stationId}_EFFICIENCY", efficiency, $"Ýstasyon {stationId} Verimlilik", true, $"DB10.DBD{((stationId-1)*20)+16}"));
             }
 
-            AddStationVars(Station1Vars, 1, "3D TARAMA", "FALSE", "AUTO", "TRUE");
-            AddStationVars(Station2Vars, 2, "GAZ TESTÝ", "FALSE", "AUTO", "TRUE");
-            AddStationVars(Station3Vars, 3, "BEKLÝYOR", "FALSE", "MANUAL", "FALSE");
-            AddStationVars(Station4Vars, 4, "STOP", "TRUE", "BYPASS", "FALSE");
+            AddStationVars(Station1Vars, 1, "3D TARAMA", "FALSE", "AUTO", "TRUE", "1,245", "92");
+            AddStationVars(Station2Vars, 2, "GAZ TESTÝ", "FALSE", "AUTO", "TRUE", "845", "95");
+            AddStationVars(Station3Vars, 3, "BEKLÝYOR", "FALSE", "MANUAL", "FALSE", "0", "0");
+            AddStationVars(Station4Vars, 4, "STOP", "TRUE", "BYPASS", "FALSE", "0", "0");
         }
 
         private PlcVariable CreateVar(string name, string value, string description, bool isEditable, string tag)
@@ -99,6 +101,16 @@ namespace App4
                         else if (station.ProducingTag == plcVar.Name)
                         {
                              station.IsProducing = ParseBool(plcVar.Value);
+                        }
+                        else if (station.ProductionCountTag == plcVar.Name)
+                        {
+                             station.ProductionCount = plcVar.Value;
+                        }
+                        else if (station.EfficiencyTag == plcVar.Name)
+                        {
+                             // Append % if not present, but usually better to have it in VM logic or UI conversion
+                             // For now direct assignment
+                             station.Efficiency = plcVar.Value.Contains("%") ? plcVar.Value : "%" + plcVar.Value;
                         }
                     }
                 }
@@ -145,7 +157,11 @@ namespace App4
                 StatusTag = "ST1_STATUS",
                 AlarmTag = "ST1_ALARM",
                 ModeTag = "ST1_MODE",
-                ProducingTag = "ST1_PRODUCING"
+                ProducingTag = "ST1_PRODUCING",
+                ProductionCountTag = "ST1_PROD_COUNT",
+                EfficiencyTag = "ST1_EFFICIENCY",
+                ProductionCount = "1,245",
+                Efficiency = "%92"
             });
 
             Stations.Add(new StationViewModel 
@@ -160,7 +176,11 @@ namespace App4
                 StatusTag = "ST2_STATUS",
                 AlarmTag = "ST2_ALARM",
                 ModeTag = "ST2_MODE",
-                ProducingTag = "ST2_PRODUCING" 
+                ProducingTag = "ST2_PRODUCING",
+                ProductionCountTag = "ST2_PROD_COUNT",
+                EfficiencyTag = "ST2_EFFICIENCY",
+                ProductionCount = "845",
+                Efficiency = "%95"
             });
 
             Stations.Add(new StationViewModel 
@@ -173,7 +193,11 @@ namespace App4
                 StatusTag = "ST3_STATUS",
                 AlarmTag = "ST3_ALARM",
                 ModeTag = "ST3_MODE",
-                ProducingTag = "ST3_PRODUCING"
+                ProducingTag = "ST3_PRODUCING",
+                ProductionCountTag = "ST3_PROD_COUNT",
+                EfficiencyTag = "ST3_EFFICIENCY",
+                ProductionCount = "0",
+                Efficiency = "-"
             });
 
             Stations.Add(new StationViewModel 
@@ -186,7 +210,11 @@ namespace App4
                 StatusTag = "ST4_STATUS",
                 AlarmTag = "ST4_ALARM",
                 ModeTag = "ST4_MODE",
-                ProducingTag = "ST4_PRODUCING"
+                ProducingTag = "ST4_PRODUCING",
+                ProductionCountTag = "ST4_PROD_COUNT",
+                EfficiencyTag = "ST4_EFFICIENCY",
+                ProductionCount = "0",
+                Efficiency = "STOP"
             });
         }
     }
@@ -207,6 +235,8 @@ namespace App4
         public string AlarmTag { get; set; }
         public string ModeTag { get; set; }
         public string ProducingTag { get; set; }
+        public string ProductionCountTag { get; set; }
+        public string EfficiencyTag { get; set; }
 
         private StationMode _mode;
         public StationMode Mode
@@ -241,6 +271,20 @@ namespace App4
         {
             get => _processStatus;
             set { _processStatus = value; OnPropertyChanged(); UpdateVisuals(); }
+        }
+
+        private string _productionCount = "0";
+        public string ProductionCount
+        {
+             get => _productionCount;
+             set { _productionCount = value; OnPropertyChanged(); }
+        }
+
+        private string _efficiency = "0";
+        public string Efficiency
+        {
+             get => _efficiency;
+             set { _efficiency = value; OnPropertyChanged(); }
         }
 
         // Computed Properties for UI Binding

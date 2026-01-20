@@ -117,11 +117,11 @@
                                         <Grid VerticalAlignment="Center">
                                             <StackPanel Spacing="2">
                                                 <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="1,245" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                             </StackPanel>
                                             <StackPanel Spacing="2" HorizontalAlignment="Right">
                                                 <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="%92" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -180,11 +180,11 @@
                                         <Grid VerticalAlignment="Center">
                                             <StackPanel Spacing="2">
                                                 <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="845" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                             </StackPanel>
                                             <StackPanel Spacing="2" HorizontalAlignment="Right">
                                                 <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="%95" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -243,11 +243,11 @@
                                         <Grid VerticalAlignment="Center">
                                             <StackPanel Spacing="2">
                                                 <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="0" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                             </StackPanel>
                                             <StackPanel Spacing="2" HorizontalAlignment="Right">
                                                 <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="-" FontSize="14" FontWeight="Bold" Foreground="Gray" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="Gray" HorizontalAlignment="Right"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -306,11 +306,11 @@
                                         <Grid VerticalAlignment="Center">
                                             <StackPanel Spacing="2">
                                                 <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
-                                                <TextBlock Text="0" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                                <TextBlock Text="{x:Bind ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                             </StackPanel>
                                             <StackPanel Spacing="2" HorizontalAlignment="Right">
                                                 <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="STOP" FontSize="14" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{x:Bind Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Right"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
