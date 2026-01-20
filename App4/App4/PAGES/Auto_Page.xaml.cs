@@ -49,7 +49,7 @@ namespace App4
             GeneralVars.Add(CreateVar("SAFETY_OK", "TRUE", "Güvenlik Devresi", false, "I10.0"));
 
             // Helper to add station vars
-            void AddStationVars(ObservableCollection<PlcVariable> targetCollection, int stationId, string status, string alarm, string mode, string producing, string prodCount, string efficiency)
+            void AddStationVars(ObservableCollection<PlcVariable> targetCollection, int stationId, string status, string alarm, string mode, string producing, string prodCount, string efficiency, string rfid)
             {
                  targetCollection.Add(CreateVar($"ST{stationId}_STATUS", status, $"Ýstasyon {stationId} Durum", true, $"DB10.DBD{(stationId-1)*20}"));
                  targetCollection.Add(CreateVar($"ST{stationId}_ALARM", alarm, $"Ýstasyon {stationId} Alarm", true, $"DB10.DBX{((stationId-1)*20)+4}.0"));
@@ -57,12 +57,13 @@ namespace App4
                  targetCollection.Add(CreateVar($"ST{stationId}_PRODUCING", producing, $"Ýstasyon {stationId} Üretim", true, $"DB10.DBX{((stationId-1)*20)+8}.0"));
                  targetCollection.Add(CreateVar($"ST{stationId}_PROD_COUNT", prodCount, $"Ýstasyon {stationId} Üretim Adedi", true, $"DB10.DBD{((stationId-1)*20)+12}"));
                  targetCollection.Add(CreateVar($"ST{stationId}_EFFICIENCY", efficiency, $"Ýstasyon {stationId} Verimlilik", true, $"DB10.DBD{((stationId-1)*20)+16}"));
+                 targetCollection.Add(CreateVar($"ST{stationId}_RFID_ACT", rfid, $"Ýstasyon {stationId} Okunan RFID", true, $"DB10.STR{((stationId-1)*20)+20}"));
             }
 
-            AddStationVars(Station1Vars, 1, "3D TARAMA", "FALSE", "AUTO", "TRUE", "1,245", "92");
-            AddStationVars(Station2Vars, 2, "GAZ TESTÝ", "FALSE", "AUTO", "TRUE", "845", "95");
-            AddStationVars(Station3Vars, 3, "BEKLÝYOR", "FALSE", "MANUAL", "FALSE", "0", "0");
-            AddStationVars(Station4Vars, 4, "STOP", "TRUE", "BYPASS", "FALSE", "0", "0");
+            AddStationVars(Station1Vars, 1, "3D TARAMA", "FALSE", "AUTO", "TRUE", "1,245", "92", "RF123");
+            AddStationVars(Station2Vars, 2, "GAZ TESTÝ", "FALSE", "AUTO", "TRUE", "845", "95", "RF123");
+            AddStationVars(Station3Vars, 3, "BEKLÝYOR", "FALSE", "MANUAL", "FALSE", "0", "0", "");
+            AddStationVars(Station4Vars, 4, "STOP", "TRUE", "BYPASS", "FALSE", "0", "0", "ERR01");
         }
 
         private PlcVariable CreateVar(string name, string value, string description, bool isEditable, string tag)
@@ -112,6 +113,10 @@ namespace App4
                              // Append % if not present, but usually better to have it in VM logic or UI conversion
                              // For now direct assignment
                              station.Efficiency = plcVar.Value.Contains("%") ? plcVar.Value : "%" + plcVar.Value;
+                        }
+                        else if (station.CurrentRfidTag == plcVar.Name)
+                        {
+                             station.CurrentRfid = plcVar.Value;
                         }
                     }
                 }
@@ -173,7 +178,9 @@ namespace App4
                 ProductionCountTag = "ST1_PROD_COUNT",
                 EfficiencyTag = "ST1_EFFICIENCY",
                 ProductionCount = "1,245",
-                Efficiency = "%92"
+                Efficiency = "%92",
+                AllowedRfid = "RF123",
+                CurrentRfid = "RF123"
             });
 
             Stations.Add(new StationViewModel 
@@ -191,8 +198,11 @@ namespace App4
                 ProducingTag = "ST2_PRODUCING",
                 ProductionCountTag = "ST2_PROD_COUNT",
                 EfficiencyTag = "ST2_EFFICIENCY",
+                CurrentRfidTag = "ST2_RFID_ACT",
                 ProductionCount = "845",
-                Efficiency = "%95"
+                Efficiency = "%95",
+                AllowedRfid = "RF123",
+                CurrentRfid = "RF123"
             });
 
             Stations.Add(new StationViewModel 
@@ -208,8 +218,11 @@ namespace App4
                 ProducingTag = "ST3_PRODUCING",
                 ProductionCountTag = "ST3_PROD_COUNT",
                 EfficiencyTag = "ST3_EFFICIENCY",
+                CurrentRfidTag = "ST3_RFID_ACT",
                 ProductionCount = "0",
-                Efficiency = "-"
+                Efficiency = "-",
+                AllowedRfid = "RF123",
+                CurrentRfid = ""
             });
 
             Stations.Add(new StationViewModel 
@@ -225,8 +238,11 @@ namespace App4
                 ProducingTag = "ST4_PRODUCING",
                 ProductionCountTag = "ST4_PROD_COUNT",
                 EfficiencyTag = "ST4_EFFICIENCY",
+                CurrentRfidTag = "ST4_RFID_ACT",
                 ProductionCount = "0",
-                Efficiency = "STOP"
+                Efficiency = "STOP",
+                AllowedRfid = "RF123",
+                CurrentRfid = "ERR01"
             });
         }
     }
@@ -249,6 +265,21 @@ namespace App4
         public string ProducingTag { get; set; }
         public string ProductionCountTag { get; set; }
         public string EfficiencyTag { get; set; }
+        public string CurrentRfidTag { get; set; }
+
+        private string _allowedRfid;
+        public string AllowedRfid
+        {
+            get => _allowedRfid;
+            set { _allowedRfid = value; OnPropertyChanged(); UpdateVisuals(); }
+        }
+
+        private string _currentRfid;
+        public string CurrentRfid
+        {
+            get => _currentRfid;
+            set { _currentRfid = value; OnPropertyChanged(); UpdateVisuals(); }
+        }
 
         private StationMode _mode;
         public StationMode Mode
@@ -309,6 +340,12 @@ namespace App4
         public Visibility AlarmVisibility => HasAlarm ? Visibility.Visible : Visibility.Collapsed;
         public Visibility RobotVisibility => IsRobotPresent ? Visibility.Visible : Visibility.Collapsed;
         public float RobotOpacity => IsRobotPresent ? 1.0f : 0.0f;
+        
+        public bool IsRfidMatch => !string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid == CurrentRfid;
+        public string RfidMatchIcon => IsRfidMatch ? "\uE73E" : "\uE711"; // Checkmark vs Cancel
+        public SolidColorBrush RfidMatchColor => IsRfidMatch 
+             ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) 
+             : new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
 
         public string BypassButtonText => Mode == StationMode.Bypass ? "ETKÝNLEÞTÝR" : "BYPASS ET";
         public SolidColorBrush BypassButtonColor => Mode == StationMode.Bypass 
@@ -417,6 +454,8 @@ namespace App4
             OnPropertyChanged(nameof(RobotOpacity));
             OnPropertyChanged(nameof(BypassButtonText));
             OnPropertyChanged(nameof(BypassButtonColor));
+            OnPropertyChanged(nameof(RfidMatchIcon));
+            OnPropertyChanged(nameof(RfidMatchColor));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
