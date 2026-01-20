@@ -26,11 +26,56 @@ namespace App4
     public sealed partial class Auto_Page : Page
     {
         public ObservableCollection<StationViewModel> Stations { get; set; } = new();
+        public ObservableCollection<PlcVariable> PlcVariables { get; set; } = new();
 
         public Auto_Page()
         {
             this.InitializeComponent();
             InitializeStations();
+            InitializePlcVariables();
+        }
+
+        private void InitializePlcVariables()
+        {
+            var sliderVar = new PlcVariable 
+            { 
+                Name = "SLIDER_POS_ACT", 
+                Value = "0", 
+                Description = "Robot Slider Aktif Ýstasyon No (1-4)",
+                IsEditable = true
+            };
+            sliderVar.PropertyChanged += PlcVariable_PropertyChanged;
+            PlcVariables.Add(sliderVar);
+
+            PlcVariables.Add(new PlcVariable { Name = "ROBOT_SPEED", Value = "100", Description = "Robot Hýzý %", IsEditable = true });
+            PlcVariables.Add(new PlcVariable { Name = "GOCATOR_STATUS", Value = "READY", Description = "Kamera Durumu", IsEditable = false });
+            PlcVariables.Add(new PlcVariable { Name = "SAFETY_OK", Value = "TRUE", Description = "Güvenlik Devresi", IsEditable = false });
+        }
+
+        private void PlcVariable_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (sender is PlcVariable plcVar && e.PropertyName == nameof(PlcVariable.Value))
+            {
+                if (plcVar.Name == "SLIDER_POS_ACT")
+                {
+                    UpdateSliderPosition(plcVar.Value);
+                }
+            }
+        }
+
+        private void UpdateSliderPosition(string value)
+        {
+            // Reset all
+            foreach (var station in Stations)
+            {
+                station.IsRobotPresent = false;
+            }
+
+            if (int.TryParse(value, out int pos) && pos >= 1 && pos <= 4)
+            {
+                // pos 1 -> Index 0
+                Stations[pos - 1].IsRobotPresent = true;
+            }
         }
 
         private void InitializeStations()
@@ -52,6 +97,7 @@ namespace App4
                 Mode = StationMode.Auto, 
                 IsProducing = true, 
                 ProcessStatus = "GAZ TESTÝ",
+                IsRobotPresent = true,
                 HasAlarm = false 
             });
 
@@ -108,6 +154,13 @@ namespace App4
             set { _hasAlarm = value; OnPropertyChanged(); UpdateVisuals(); }
         }
 
+        private bool _isRobotPresent;
+        public bool IsRobotPresent
+        {
+            get => _isRobotPresent;
+            set { _isRobotPresent = value; OnPropertyChanged(); UpdateVisuals(); }
+        }
+
         private string _processStatus;
         public string ProcessStatus
         {
@@ -123,6 +176,8 @@ namespace App4
         public SolidColorBrush StateColor { get; private set; }
         public string AlarmText => HasAlarm ? "ALARM VAR" : "NORMAL";
         public Visibility AlarmVisibility => HasAlarm ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility RobotVisibility => IsRobotPresent ? Visibility.Visible : Visibility.Collapsed;
+        public float RobotOpacity => IsRobotPresent ? 1.0f : 0.0f;
 
         public string BypassButtonText => Mode == StationMode.Bypass ? "ETKÝNLEÞTÝR" : "BYPASS ET";
         public SolidColorBrush BypassButtonColor => Mode == StationMode.Bypass 
@@ -197,12 +252,36 @@ namespace App4
             OnPropertyChanged(nameof(StateColor));
             OnPropertyChanged(nameof(AlarmText));
             OnPropertyChanged(nameof(AlarmVisibility));
+            OnPropertyChanged(nameof(RobotVisibility));
+            OnPropertyChanged(nameof(RobotOpacity));
             OnPropertyChanged(nameof(BypassButtonText));
             OnPropertyChanged(nameof(BypassButtonColor));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class PlcVariable : INotifyPropertyChanged
+    {
+        public string Name { get; set; }
+        
+        private string _value;
+        public string Value 
+        { 
+            get => _value;
+            set { _value = value; OnPropertyChanged(); }
+        }
+        
+        public string Description { get; set; }
+        public bool IsEditable { get; set; }
+        public bool IsReadOnly => !IsEditable;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
