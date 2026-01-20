@@ -19,16 +19,43 @@ using Windows.Storage.Streams;
 using static GoPxLSdkSamplesCommon.Utilities;
 using System.Collections.ObjectModel;
 using Windows.UI;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
 
 namespace App4.PAGES
 {
-    public class PlcTransferItem
+    public class PlcTransferItem : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public int Index { get; set; }
-        public string SelectedTag { get; set; }
+
+        private string _selectedTag;
+        public string SelectedTag
+        {
+            get => _selectedTag;
+            set
+            {
+                if (_selectedTag != value)
+                {
+                    _selectedTag = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public string Value { get; set; }
         public string Status { get; set; } // SENT, WAIT, FAIL
+        
+        [JsonIgnore]
         public SolidColorBrush StatusColor { get; set; }
+        
+        [JsonIgnore]
         public SolidColorBrush BackgroundColor { get; set; }
     }
 
@@ -39,6 +66,7 @@ namespace App4.PAGES
 
         private List<string> _logHistory = new();
         private bool _isWebViewInitialized = false;
+        private readonly string _transferRowsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Camera_PlcTransfer.json");
 
         // Cached brushes for better performance
         private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.Colors.Orange);
@@ -51,6 +79,81 @@ namespace App4.PAGES
             this.InitializeComponent();
             this.DataContext = this;
             this.Loaded += Camera_Page_Loaded;
+        }
+
+        private void LoadTransferRows()
+        {
+            try
+            {
+                if (File.Exists(_transferRowsFilePath))
+                {
+                    var json = File.ReadAllText(_transferRowsFilePath);
+                    var items = JsonConvert.DeserializeObject<List<PlcTransferItem>>(json);
+                    
+                    if (items != null && items.Count > 0)
+                    {
+                        PlcTransferRows.Clear();
+                        foreach (var item in items)
+                        {
+                            // Restore brushes based on status/index
+                            if (item.Status == "SENT") item.StatusColor = BrushGreen;
+                            else if (item.Status == "WAIT") item.StatusColor = BrushOrange;
+                            else item.StatusColor = BrushRed;
+
+                            item.BackgroundColor = (item.Index % 2 == 1) 
+                                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
+                                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+
+                            PlcTransferRows.Add(item);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog("Tablo yüklenemedi: " + ex.Message);
+            }
+        }
+
+        private void SaveTransferRows()
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(_transferRowsFilePath);
+                if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
+
+                var json = JsonConvert.SerializeObject(PlcTransferRows, Formatting.Indented);
+                File.WriteAllText(_transferRowsFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Save Error: " + ex.Message);
+            }
+        }
+
+        private void PlcTransferItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PlcTransferItem.SelectedTag))
+            {
+                SaveTransferRows();
+            }
+        }
+
+        private void PlcTransferRows_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+            {
+                foreach (PlcTransferItem item in e.NewItems)
+                    item.PropertyChanged += PlcTransferItem_PropertyChanged;
+            }
+
+            if (e.OldItems != null)
+            {
+                foreach (PlcTransferItem item in e.OldItems)
+                    item.PropertyChanged -= PlcTransferItem_PropertyChanged;
+            }
+            
+            SaveTransferRows();
         }
 
         private void LoadPlcTags()
@@ -149,7 +252,18 @@ namespace App4.PAGES
         private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
             LoadPlcTags();
-            InitializeDefaultPlcRows();
+            LoadTransferRows(); // Load saved rows first
+            InitializeDefaultPlcRows(); // Only if empty
+
+            // Hook change events
+            PlcTransferRows.CollectionChanged -= PlcTransferRows_CollectionChanged; // Prevent double hook
+            PlcTransferRows.CollectionChanged += PlcTransferRows_CollectionChanged;
+            
+            foreach (var item in PlcTransferRows)
+            {
+                item.PropertyChanged -= PlcTransferItem_PropertyChanged;
+                item.PropertyChanged += PlcTransferItem_PropertyChanged;
+            }
 
             if (_isWebViewInitialized) return;
 
