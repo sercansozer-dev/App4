@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using App4.PAGES;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -25,12 +26,43 @@ namespace App4
 
     public sealed partial class Auto_Page : Page
     {
+        private readonly string _autoPageVariablesFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "Auto_Page_Variables.json");
+
         public ObservableCollection<StationViewModel> Stations { get; set; } = new();
         public ObservableCollection<PlcVariable> GeneralVars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station1Vars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station2Vars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station3Vars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station4Vars { get; set; } = new();
+
+        public ObservableCollection<string> AvailablePlcTags { get; set; } = new();
+        public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
+        public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
+
+        static Auto_Page()
+        {
+            // PLC_Page'in global koleksiyonlarýný initialize et (uygulama baþladýðýnda)
+            InitializeGlobalPlcVariables();
+        }
+
+        private static void InitializeGlobalPlcVariables()
+        {
+            // Eðer zaten dolu ise, tekrar yapma
+            if (PAGES.PLC_Page.GlobalInputVariables.Count > 0 || PAGES.PLC_Page.GlobalOutputVariables.Count > 0)
+                return;
+
+            // Default INPUT variables
+            PAGES.PLC_Page.GlobalInputVariables.Add(new PAGES.PLCVariable { Name = "D0 - Okunan Deðer", Type = "WORD", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
+            PAGES.PLC_Page.GlobalInputVariables.Add(new PAGES.PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+            PAGES.PLC_Page.GlobalInputVariables.Add(new PAGES.PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
+
+            // Default OUTPUT variables
+            PAGES.PLC_Page.GlobalOutputVariables.Add(new PAGES.PLCVariable { Name = "D0 - Yazýlan Deðer", Type = "WORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
+            PAGES.PLC_Page.GlobalOutputVariables.Add(new PAGES.PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
+            PAGES.PLC_Page.GlobalOutputVariables.Add(new PAGES.PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
+        }
 
         public Auto_Page()
         {
@@ -484,7 +516,14 @@ namespace App4
         public string PlcTag
         {
              get => _plcTag;
-             set { _plcTag = value; OnPropertyChanged(); }
+             set 
+             { 
+                 if (_plcTag != value)  // Only update if value actually changed
+                 {
+                     _plcTag = value; 
+                     OnPropertyChanged(); 
+                 }
+             }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

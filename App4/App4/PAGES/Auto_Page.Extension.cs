@@ -1,10 +1,15 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Windows.UI; 
 using Microsoft.UI.Xaml.Media;
+using App4.PAGES;
+using System.Text.Json;
+using System.IO;
 
 namespace App4
 {
@@ -27,9 +32,55 @@ namespace App4
                 GlobalKnownRfids.Add(new RfidDef { Id = "RF789", Description = "Klima C Tipi" });
             }
             
+            LoadPlcTagsFromPage();
+            LoadPlcVariableTagsFromFile();
             ReplaceStationsWithExtended();
             InitializeOutputVariables();
             SubscribeStationEvents();
+        }
+
+        private void LoadPlcTagsFromPage()
+        {
+            // PLC_Page'in global koleksiyonlarýný initialize et (eðer boþsa)
+            if (PLC_Page.GlobalInputVariables.Count == 0 || PLC_Page.GlobalOutputVariables.Count == 0)
+            {
+                // PLC_Page constructor'ýný tetiklemek için yeni instance oluþtur (veya InitializePLCVariables özel method çaðýr)
+                // Bu durumda, global koleksiyonlarý doðrudan doldur
+                PLC_Page.GlobalInputVariables.Clear();
+                PLC_Page.GlobalOutputVariables.Clear();
+
+                // Default INPUT variables
+                PLC_Page.GlobalInputVariables.Add(new App4.PAGES.PLCVariable { Name = "D0 - Okunan Deðer", Type = "WORD", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
+                PLC_Page.GlobalInputVariables.Add(new App4.PAGES.PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+                PLC_Page.GlobalInputVariables.Add(new App4.PAGES.PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
+
+                // Default OUTPUT variables
+                PLC_Page.GlobalOutputVariables.Add(new App4.PAGES.PLCVariable { Name = "D0 - Yazýlan Deðer", Type = "WORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
+                PLC_Page.GlobalOutputVariables.Add(new App4.PAGES.PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
+                PLC_Page.GlobalOutputVariables.Add(new App4.PAGES.PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
+            }
+
+            // Koleksiyonlarý ComboBox'lar için doldur
+            AvailableInputPlcTags.Clear();
+            AvailableOutputPlcTags.Clear();
+            AvailablePlcTags.Clear();
+            
+            foreach (var plcVar in PLC_Page.GlobalInputVariables)
+            {
+                AvailableInputPlcTags.Add(plcVar.Name);
+            }
+            
+            foreach (var plcVar in PLC_Page.GlobalOutputVariables)
+            {
+                AvailableOutputPlcTags.Add(plcVar.Name);
+            }
+            
+            // Tüm tags için fallback
+            foreach (var tag in AvailableInputPlcTags)
+                AvailablePlcTags.Add(tag);
+            foreach (var tag in AvailableOutputPlcTags)
+                if (!AvailablePlcTags.Contains(tag))
+                    AvailablePlcTags.Add(tag);
         }
 
         private void SubscribeStationEvents()
@@ -186,6 +237,103 @@ namespace App4
                 
                 TxtNewRfidId.Text = "";
                 if(TxtNewRfidDesc != null) TxtNewRfidDesc.Text = "";
+            }
+        }
+
+        private void PlcTagComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox comboBox && comboBox.DataContext is PlcVariable plcVar)
+            {
+                plcVar.PlcTag = comboBox.SelectedItem as string;
+                SavePlcVariableTagsToFile();
+            }
+        }
+
+        private void LoadPlcVariableTagsFromFile()
+        {
+            try
+            {
+                if (File.Exists(_autoPageVariablesFilePath))
+                {
+                    var json = File.ReadAllText(_autoPageVariablesFilePath);
+                    var data = JsonSerializer.Deserialize<JsonElement>(json);
+
+                    if (data.TryGetProperty("GeneralVars", out var generalVarsArray))
+                    {
+                        foreach (var item in generalVarsArray.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("name", out var nameElem) && item.TryGetProperty("plcTag", out var tagElem))
+                            {
+                                var name = nameElem.GetString();
+                                var tag = tagElem.GetString();
+                                var variable = GeneralVars.FirstOrDefault(v => v.Name == name);
+                                if (variable != null)
+                                    variable.PlcTag = tag;
+                            }
+                        }
+                    }
+
+                    LoadStationVariableTags(data, "Station1Vars", Station1Vars);
+                    LoadStationVariableTags(data, "Station2Vars", Station2Vars);
+                    LoadStationVariableTags(data, "Station3Vars", Station3Vars);
+                    LoadStationVariableTags(data, "Station4Vars", Station4Vars);
+                    LoadStationVariableTags(data, "Station1Outputs", Station1Outputs);
+                    LoadStationVariableTags(data, "Station2Outputs", Station2Outputs);
+                    LoadStationVariableTags(data, "Station3Outputs", Station3Outputs);
+                    LoadStationVariableTags(data, "Station4Outputs", Station4Outputs);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERROR] Tag verileri yüklenirken hata: {ex.Message}");
+            }
+        }
+
+        private void LoadStationVariableTags(JsonElement data, string propertyName, ObservableCollection<PlcVariable> targetCollection)
+        {
+            if (data.TryGetProperty(propertyName, out var varsArray))
+            {
+                foreach (var item in varsArray.EnumerateArray())
+                {
+                    if (item.TryGetProperty("name", out var nameElem) && item.TryGetProperty("plcTag", out var tagElem))
+                    {
+                        var name = nameElem.GetString();
+                        var tag = tagElem.GetString();
+                        var variable = targetCollection.FirstOrDefault(v => v.Name == name);
+                        if (variable != null)
+                            variable.PlcTag = tag;
+                    }
+                }
+            }
+        }
+
+        private void SavePlcVariableTagsToFile()
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(_autoPageVariablesFilePath);
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory);
+
+                var data = new
+                {
+                    GeneralVars = GeneralVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station1Vars = Station1Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station2Vars = Station2Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station3Vars = Station3Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station4Vars = Station4Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station1Outputs = Station1Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station2Outputs = Station2Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station3Outputs = Station3Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    Station4Outputs = Station4Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList()
+                };
+
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_autoPageVariablesFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERROR] Tag verileri kaydedilirken hata: {ex.Message}");
             }
         }
     }

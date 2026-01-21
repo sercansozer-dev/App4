@@ -23,6 +23,9 @@ namespace App4.PAGES
     public sealed partial class PLC_Page : Page
     {
         // PLC Deðiþkenleri Koleksiyonu
+        public static ObservableCollection<PLCVariable> GlobalInputVariables { get; private set; } = new();
+        public static ObservableCollection<PLCVariable> GlobalOutputVariables { get; private set; } = new();
+
         private ObservableCollection<PLCVariable> InputVariables { get; set; }
         private ObservableCollection<PLCVariable> OutputVariables { get; set; }
 
@@ -45,8 +48,8 @@ namespace App4.PAGES
             _timer.Interval = TimeSpan.FromMilliseconds(500);
             _timer.Tick += Timer_Tick;
 
-            InputVariables = new ObservableCollection<PLCVariable>();
-            OutputVariables = new ObservableCollection<PLCVariable>();
+            InputVariables = GlobalInputVariables;
+            OutputVariables = GlobalOutputVariables;
             InitializeIOMapping();
             InitializeSystemMonitor();
             InitializeStatistics();
@@ -119,15 +122,23 @@ namespace App4.PAGES
 
         private void InitializePLCVariables()
         {
+            // GlobalInputVariables'ý temizle ve doldur
+            GlobalInputVariables.Clear();
+            GlobalOutputVariables.Clear();
+
             // Default INPUT variables (User requested D0 at index 1)
-            InputVariables.Add(new PLCVariable { Name = "D0 - Okunan Deðer", Type = "WORD", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
-            InputVariables.Add(new PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
-            InputVariables.Add(new PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
+            GlobalInputVariables.Add(new PLCVariable { Name = "D0 - Okunan Deðer", Type = "WORD", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
+            GlobalInputVariables.Add(new PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+            GlobalInputVariables.Add(new PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
 
             // Default OUTPUT variables (User requested D0 at index 1 for write test)
-            OutputVariables.Add(new PLCVariable { Name = "D0 - Yazýlan Deðer", Type = "WORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
-            OutputVariables.Add(new PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
-            OutputVariables.Add(new PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
+            GlobalOutputVariables.Add(new PLCVariable { Name = "D0 - Yazýlan Deðer", Type = "WORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
+            GlobalOutputVariables.Add(new PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
+            GlobalOutputVariables.Add(new PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
+
+            // LocalInputVariables ve OutputVariables referansýný güncelle
+            InputVariables = GlobalInputVariables;
+            OutputVariables = GlobalOutputVariables;
 
             RefreshPLCVariablesUI();
         }
@@ -376,14 +387,16 @@ namespace App4.PAGES
 
         private void DeleteVariable(PLCVariable variable)
         {
-            if (InputVariables.Contains(variable))
+            if (GlobalInputVariables.Contains(variable))
             {
-                InputVariables.Remove(variable);
+                GlobalInputVariables.Remove(variable);
+                InputVariables = GlobalInputVariables;
                 AddLog($"[INFO] INPUT deðiþkeni silindi: {variable.Name}");
             }
-            else if (OutputVariables.Contains(variable))
+            else if (GlobalOutputVariables.Contains(variable))
             {
-                OutputVariables.Remove(variable);
+                GlobalOutputVariables.Remove(variable);
+                OutputVariables = GlobalOutputVariables;
                 AddLog($"[INFO] OUTPUT deðiþkeni silindi: {variable.Name}");
             }
             RefreshPLCVariablesUI();
@@ -392,20 +405,23 @@ namespace App4.PAGES
 
         private void AddVariableBtn_Click(object sender, RoutedEventArgs e)
         {
-            OutputVariables.Add(new PLCVariable { Name = $"D{OutputVariables.Count} - Yeni", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            GlobalOutputVariables.Add(new PLCVariable { Name = $"D{GlobalOutputVariables.Count} - Yeni", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            OutputVariables = GlobalOutputVariables;
             RefreshPLCVariablesUI();
         }
 
         private void AddInputVariableBtn_Click(object sender, RoutedEventArgs e)
         {
-            InputVariables.Add(new PLCVariable { Name = $"M{InputVariables.Count} - Yeni Input", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+            GlobalInputVariables.Add(new PLCVariable { Name = $"M{GlobalInputVariables.Count} - Yeni Input", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
+            InputVariables = GlobalInputVariables;
             RefreshPLCVariablesUI();
             SaveVariablesToFile();
         }
 
         private void AddOutputVariableBtn_Click(object sender, RoutedEventArgs e)
         {
-            OutputVariables.Add(new PLCVariable { Name = $"D{OutputVariables.Count} - Yeni Output", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            GlobalOutputVariables.Add(new PLCVariable { Name = $"D{GlobalOutputVariables.Count} - Yeni Output", Type = "BOOL", Direction = "Output", CurrentValue = false, MinValue = false, MaxValue = true });
+            OutputVariables = GlobalOutputVariables;
             RefreshPLCVariablesUI();
             SaveVariablesToFile();
         }
@@ -495,10 +511,11 @@ namespace App4.PAGES
                     Directory.CreateDirectory(directory);
                 }
 
+                // Global koleksiyonlarý kullan
                 var data = new
                 {
-                    Input = InputVariables.ToList(),
-                    Output = OutputVariables.ToList()
+                    Input = GlobalInputVariables.ToList(),
+                    Output = GlobalOutputVariables.ToList()
                 };
 
                 var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
@@ -521,28 +538,30 @@ namespace App4.PAGES
 
                     if (data.TryGetProperty("Input", out var inputArray))
                     {
-                        InputVariables.Clear();
+                        GlobalInputVariables.Clear();
                         foreach (var item in inputArray.EnumerateArray())
                         {
                             var variable = JsonSerializer.Deserialize<PLCVariable>(item.GetRawText());
                             if (variable != null)
-                                InputVariables.Add(variable);
+                                GlobalInputVariables.Add(variable);
                         }
                     }
 
                     if (data.TryGetProperty("Output", out var outputArray))
                     {
-                        OutputVariables.Clear();
+                        GlobalOutputVariables.Clear();
                         foreach (var item in outputArray.EnumerateArray())
                         {
                             var variable = JsonSerializer.Deserialize<PLCVariable>(item.GetRawText());
                             if (variable != null)
-                                OutputVariables.Add(variable);
+                                GlobalOutputVariables.Add(variable);
                         }
                     }
 
+                    InputVariables = GlobalInputVariables;
+                    OutputVariables = GlobalOutputVariables;
                     RefreshPLCVariablesUI();
-                    AddLog($"[INFO] Deðiþkenler dosyadan yüklendi: {InputVariables.Count} INPUT + {OutputVariables.Count} OUTPUT");
+                    AddLog($"[INFO] Deðiþkenler dosyadan yüklendi: {GlobalInputVariables.Count} INPUT + {GlobalOutputVariables.Count} OUTPUT");
                 }
             }
             catch (Exception ex)
