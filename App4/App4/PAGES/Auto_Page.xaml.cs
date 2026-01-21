@@ -69,6 +69,99 @@ namespace App4
             this.InitializeComponent();
             InitializeStations();
             InitializePlcVariables();
+            
+            // Page açýlýr açýlmaz tag listelerini doldur (Page_Loaded'ý beklemeden)
+            InitializeAvailablePlcTags();
+        }
+
+        private void InitializeAvailablePlcTags()
+        {
+            try
+            {
+                // Dosyadan direkt oku (hýzlý yükleme)
+                var filePath = PAGES.PLC_Page.GetVariablesFilePath();
+                if (File.Exists(filePath))
+                {
+                    var json = File.ReadAllText(filePath);
+                    var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+
+                    AvailableInputPlcTags.Clear();
+                    AvailableOutputPlcTags.Clear();
+                    AvailablePlcTags.Clear();
+
+                    // Input tags
+                    if (data.TryGetProperty("Input", out var inputArray))
+                    {
+                        foreach (var item in inputArray.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("name", out var nameElem))
+                            {
+                                var name = nameElem.GetString();
+                                if (name != null)
+                                    AvailableInputPlcTags.Add(name);
+                            }
+                        }
+                    }
+
+                    // Output tags
+                    if (data.TryGetProperty("Output", out var outputArray))
+                    {
+                        foreach (var item in outputArray.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("name", out var nameElem))
+                            {
+                                var name = nameElem.GetString();
+                                if (name != null)
+                                    AvailableOutputPlcTags.Add(name);
+                            }
+                        }
+                    }
+
+                    // Tüm tags
+                    foreach (var tag in AvailableInputPlcTags)
+                        AvailablePlcTags.Add(tag);
+                    foreach (var tag in AvailableOutputPlcTags)
+                        if (!AvailablePlcTags.Contains(tag))
+                            AvailablePlcTags.Add(tag);
+
+                    System.Diagnostics.Debug.WriteLine($"[SUCCESS] PLC taglarý dosyadan yüklendi: {AvailableInputPlcTags.Count} input + {AvailableOutputPlcTags.Count} output");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WARNING] PLC taglarý dosyadan yüklenemedi: {ex.Message}. Default deðerler kullanýlýyor.");
+            }
+
+            // Fallback: Dosya yoksa veya hata ise, default values kullan
+            LoadDefaultPlcTags();
+        }
+
+        private void LoadDefaultPlcTags()
+        {
+            // PLC_Page'i initialize etmeden default values kullan (hýzlý)
+            AvailableInputPlcTags.Clear();
+            AvailableOutputPlcTags.Clear();
+            AvailablePlcTags.Clear();
+
+            // Default INPUT variables
+            AvailableInputPlcTags.Add("D0 - Okunan Deðer");
+            AvailableInputPlcTags.Add("M0 - Acil Durdur");
+            AvailableInputPlcTags.Add("M1 - Sistem Ready");
+
+            // Default OUTPUT variables
+            AvailableOutputPlcTags.Add("D0 - Yazýlan Deðer");
+            AvailableOutputPlcTags.Add("D1 - Ýþletim Modu");
+            AvailableOutputPlcTags.Add("D2 - Robot Hýzý");
+
+            // Tüm tags
+            foreach (var tag in AvailableInputPlcTags)
+                AvailablePlcTags.Add(tag);
+            foreach (var tag in AvailableOutputPlcTags)
+                if (!AvailablePlcTags.Contains(tag))
+                    AvailablePlcTags.Add(tag);
+
+            System.Diagnostics.Debug.WriteLine($"[INFO] Default PLC taglarý yüklendi (dosya yok veya hata)");
         }
 
         private void InitializePlcVariables()

@@ -32,56 +32,20 @@ namespace App4
                 GlobalKnownRfids.Add(new RfidDef { Id = "RF789", Description = "Klima C Tipi" });
             }
             
-            LoadPlcTagsFromPage();
-            LoadPlcVariableTagsFromFile();
+            // Tag listesi zaten constructor'da yüklendi, burada sadece sayfa konfigürasyonunu yapýyoruz
             ReplaceStationsWithExtended();
             InitializeOutputVariables();
+            LoadPlcVariableTagsFromFile();  // Dosyadan eski tag seçimleri yükle
             SubscribeStationEvents();
+            
+            // Ýlk açýlýþta dosya yoksa veya boþsa, mevcut verileri kaydet
+            if (!File.Exists(_autoPageVariablesFilePath))
+            {
+                SavePlcVariableTagsToFile();
+                System.Diagnostics.Debug.WriteLine($"[INFO] Ýlk açýlýþ: Mevcut tag verileri kaydedildi.");
+            }
         }
 
-        private void LoadPlcTagsFromPage()
-        {
-            // PLC_Page'in global koleksiyonlarýný initialize et (eðer boþsa)
-            if (PLC_Page.GlobalInputVariables.Count == 0 || PLC_Page.GlobalOutputVariables.Count == 0)
-            {
-                // PLC_Page constructor'ýný tetiklemek için yeni instance oluþtur (veya InitializePLCVariables özel method çaðýr)
-                // Bu durumda, global koleksiyonlarý doðrudan doldur
-                PLC_Page.GlobalInputVariables.Clear();
-                PLC_Page.GlobalOutputVariables.Clear();
-
-                // Default INPUT variables
-                PLC_Page.GlobalInputVariables.Add(new App4.PAGES.PLCVariable { Name = "D0 - Okunan Deðer", Type = "WORD", Direction = "Input", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
-                PLC_Page.GlobalInputVariables.Add(new App4.PAGES.PLCVariable { Name = "M0 - Acil Durdur", Type = "BOOL", Direction = "Input", CurrentValue = false, MinValue = false, MaxValue = true });
-                PLC_Page.GlobalInputVariables.Add(new App4.PAGES.PLCVariable { Name = "M1 - Sistem Ready", Type = "BOOL", Direction = "Input", CurrentValue = true, MinValue = false, MaxValue = true });
-
-                // Default OUTPUT variables
-                PLC_Page.GlobalOutputVariables.Add(new App4.PAGES.PLCVariable { Name = "D0 - Yazýlan Deðer", Type = "WORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 65535 });
-                PLC_Page.GlobalOutputVariables.Add(new App4.PAGES.PLCVariable { Name = "D1 - Ýþletim Modu", Type = "DWORD", Direction = "Output", CurrentValue = 0, MinValue = 0, MaxValue = 3 });
-                PLC_Page.GlobalOutputVariables.Add(new App4.PAGES.PLCVariable { Name = "D2 - Robot Hýzý", Type = "INT", Direction = "Output", CurrentValue = 75, MinValue = 0, MaxValue = 100 });
-            }
-
-            // Koleksiyonlarý ComboBox'lar için doldur
-            AvailableInputPlcTags.Clear();
-            AvailableOutputPlcTags.Clear();
-            AvailablePlcTags.Clear();
-            
-            foreach (var plcVar in PLC_Page.GlobalInputVariables)
-            {
-                AvailableInputPlcTags.Add(plcVar.Name);
-            }
-            
-            foreach (var plcVar in PLC_Page.GlobalOutputVariables)
-            {
-                AvailableOutputPlcTags.Add(plcVar.Name);
-            }
-            
-            // Tüm tags için fallback
-            foreach (var tag in AvailableInputPlcTags)
-                AvailablePlcTags.Add(tag);
-            foreach (var tag in AvailableOutputPlcTags)
-                if (!AvailablePlcTags.Contains(tag))
-                    AvailablePlcTags.Add(tag);
-        }
 
         private void SubscribeStationEvents()
         {
@@ -256,6 +220,7 @@ namespace App4
                 if (File.Exists(_autoPageVariablesFilePath))
                 {
                     var json = File.ReadAllText(_autoPageVariablesFilePath);
+                    System.Diagnostics.Debug.WriteLine($"[INFO] Auto_Page verileri dosyadan okundu: {json}");
                     var data = JsonSerializer.Deserialize<JsonElement>(json);
 
                     if (data.TryGetProperty("GeneralVars", out var generalVarsArray))
@@ -268,7 +233,10 @@ namespace App4
                                 var tag = tagElem.GetString();
                                 var variable = GeneralVars.FirstOrDefault(v => v.Name == name);
                                 if (variable != null)
+                                {
                                     variable.PlcTag = tag;
+                                    System.Diagnostics.Debug.WriteLine($"[INFO] Loaded GeneralVar: {name} = {tag}");
+                                }
                             }
                         }
                     }
@@ -281,6 +249,12 @@ namespace App4
                     LoadStationVariableTags(data, "Station2Outputs", Station2Outputs);
                     LoadStationVariableTags(data, "Station3Outputs", Station3Outputs);
                     LoadStationVariableTags(data, "Station4Outputs", Station4Outputs);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[INFO] Tüm tag verileri yüklendi!");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WARNING] Auto_Page variables dosyasý bulunamadý: {_autoPageVariablesFilePath}");
                 }
             }
             catch (Exception ex)
@@ -301,9 +275,16 @@ namespace App4
                         var tag = tagElem.GetString();
                         var variable = targetCollection.FirstOrDefault(v => v.Name == name);
                         if (variable != null)
+                        {
                             variable.PlcTag = tag;
+                            System.Diagnostics.Debug.WriteLine($"[INFO] Loaded {propertyName}: {name} = {tag}");
+                        }
                     }
                 }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[WARNING] {propertyName} property dosyada bulunamadý");
             }
         }
 
@@ -330,6 +311,8 @@ namespace App4
 
                 var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_autoPageVariablesFilePath, json);
+                System.Diagnostics.Debug.WriteLine($"[SUCCESS] Auto_Page verileri kaydedildi: {_autoPageVariablesFilePath}");
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] JSON content: {json}");
             }
             catch (Exception ex)
             {

@@ -26,6 +26,11 @@ namespace App4.PAGES
         public static ObservableCollection<PLCVariable> GlobalInputVariables { get; private set; } = new();
         public static ObservableCollection<PLCVariable> GlobalOutputVariables { get; private set; } = new();
 
+        // Kalýcýlýk için dosya yolu
+        public static string GetVariablesFilePath() => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "PLC_Variables.json");
+
         private ObservableCollection<PLCVariable> InputVariables { get; set; }
         private ObservableCollection<PLCVariable> OutputVariables { get; set; }
 
@@ -34,11 +39,6 @@ namespace App4.PAGES
         private bool _isConnected = false;
         private StringBuilder _logBuilder = new StringBuilder();
         private DispatcherTimer _timer;
-
-        // Kalýcýlýk için dosya yolu
-        private readonly string _variablesFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "PLC_Variables.json");
 
         public PLC_Page()
         {
@@ -505,7 +505,8 @@ namespace App4.PAGES
         {
             try
             {
-                var directory = Path.GetDirectoryName(_variablesFilePath);
+                var filePath = GetVariablesFilePath();
+                var directory = Path.GetDirectoryName(filePath);
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
@@ -519,7 +520,7 @@ namespace App4.PAGES
                 };
 
                 var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_variablesFilePath, json);
+                File.WriteAllText(filePath, json);
             }
             catch (Exception ex)
             {
@@ -531,9 +532,10 @@ namespace App4.PAGES
         {
             try
             {
-                if (File.Exists(_variablesFilePath))
+                var filePath = GetVariablesFilePath();
+                if (File.Exists(filePath))
                 {
-                    var json = File.ReadAllText(_variablesFilePath);
+                    var json = File.ReadAllText(filePath);
                     var data = JsonSerializer.Deserialize<JsonElement>(json);
 
                     if (data.TryGetProperty("Input", out var inputArray))
