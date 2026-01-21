@@ -109,13 +109,29 @@ namespace App4
             }
         }
 
-        private void InitializeOutputVariables()
+         private void InitializeOutputVariables()
         {
             if (Station1Outputs.Count > 0) return;
+            
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] InitializeOutputVariables baþladý");
+            
+            // Güvenlik için temizle
+            Station1Outputs.Clear();
+            Station2Outputs.Clear();
+            Station3Outputs.Clear();
+            Station4Outputs.Clear();
+            
             AddStationOutputs(Station1Outputs, 1);
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Station1Outputs dolduruldu, count = {Station1Outputs.Count}");
+            
             AddStationOutputs(Station2Outputs, 2);
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Station2Outputs dolduruldu, count = {Station2Outputs.Count}");
+            
             AddStationOutputs(Station3Outputs, 3);
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Station3Outputs dolduruldu, count = {Station3Outputs.Count}");
+            
             AddStationOutputs(Station4Outputs, 4);
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Station4Outputs dolduruldu, count = {Station4Outputs.Count}");
         }
 
         private void AddStationOutputs(ObservableCollection<PlcVariable> outputs, int stationId)
@@ -265,19 +281,31 @@ namespace App4
 
         private void LoadStationVariableTags(JsonElement data, string propertyName, ObservableCollection<PlcVariable> targetCollection)
         {
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] LoadStationVariableTags baþladý: {propertyName}, targetCollection.Count = {targetCollection.Count}");
+            
             if (data.TryGetProperty(propertyName, out var varsArray))
             {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] {propertyName} property bulundu, array count = {varsArray.GetArrayLength()}");
+                
                 foreach (var item in varsArray.EnumerateArray())
                 {
                     if (item.TryGetProperty("name", out var nameElem) && item.TryGetProperty("plcTag", out var tagElem))
                     {
                         var name = nameElem.GetString();
                         var tag = tagElem.GetString();
+                        
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG] Aranan variable: {name} = {tag}");
+                        
                         var variable = targetCollection.FirstOrDefault(v => v.Name == name);
                         if (variable != null)
                         {
                             variable.PlcTag = tag;
-                            System.Diagnostics.Debug.WriteLine($"[INFO] Loaded {propertyName}: {name} = {tag}");
+                            System.Diagnostics.Debug.WriteLine($"[SUCCESS] Loaded {propertyName}: {name} = {tag}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[WARNING] {name} bulunamadý targetCollection'da!");
+                            System.Diagnostics.Debug.WriteLine($"[DEBUG] Available variables: {string.Join(", ", targetCollection.Select(v => v.Name))}");
                         }
                     }
                 }
@@ -296,6 +324,12 @@ namespace App4
                 if (!Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
 
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] SavePlcVariableTagsToFile baþladý");
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Station1Outputs.Count = {Station1Outputs.Count}");
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Station2Outputs.Count = {Station2Outputs.Count}");
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Station3Outputs.Count = {Station3Outputs.Count}");
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Station4Outputs.Count = {Station4Outputs.Count}");
+
                 var data = new
                 {
                     GeneralVars = GeneralVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
@@ -312,7 +346,7 @@ namespace App4
                 var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_autoPageVariablesFilePath, json);
                 System.Diagnostics.Debug.WriteLine($"[SUCCESS] Auto_Page verileri kaydedildi: {_autoPageVariablesFilePath}");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] JSON content: {json}");
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] JSON Output variable örneði:\n{json.Substring(0, Math.Min(500, json.Length))}...");
             }
             catch (Exception ex)
             {

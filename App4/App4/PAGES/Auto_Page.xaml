@@ -398,7 +398,7 @@ mc:Ignorable="d">
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
                                         <TextBlock Text="AKTARILAN VERİ (OUTPUT)" Foreground="#888" FontSize="10" Margin="10,5" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station1Outputs}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
+                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station1Outputs, Mode=OneWay}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -437,7 +437,7 @@ mc:Ignorable="d">
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
                                         <TextBlock Text="AKTARILAN VERİ (OUTPUT)" Foreground="#888" FontSize="10" Margin="10,5" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station2Outputs}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
+                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station2Outputs, Mode=OneWay}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -476,7 +476,7 @@ mc:Ignorable="d">
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
                                         <TextBlock Text="AKTARILAN VERİ (OUTPUT)" Foreground="#888" FontSize="10" Margin="10,5" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station3Outputs}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
+                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station3Outputs, Mode=OneWay}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -515,7 +515,7 @@ mc:Ignorable="d">
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
                                         <TextBlock Text="AKTARILAN VERİ (OUTPUT)" Foreground="#888" FontSize="10" Margin="10,5" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station4Outputs}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
+                                        <ListView Grid.Row="1" ItemsSource="{x:Bind Station4Outputs, Mode=OneWay}" SelectionMode="None" ItemTemplate="{StaticResource StationOutputVarTemplate}"/>
                                     </Grid>
                                 </Border>
                             </Grid>

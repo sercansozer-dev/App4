@@ -656,7 +656,7 @@ namespace App4.PAGES
         private const string GOCATOR_ADD_OUTPUT_PATH = GOCATOR_OUTPUT_PATH + "/commands/add";
         private const string REPLAY_PATH = "/replay/playback";
         private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000;
-        private const string SENSOR_IP = "192.168.251.40";
+        private const string SENSOR_IP = "192.168.251.30";
         private const int CONTROL_PORT = 3600;
 
         public static async Task<int> ReceiveImageNet(Action<string>? log = null)
@@ -755,7 +755,7 @@ namespace App4.PAGES
         private const string GOCATOR_ADD_OUTPUT_PATH = GOCATOR_OUTPUT_PATH + "/commands/add";
         private const string REPLAY_PATH = "/replay/playback";
         private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000;
-        private const string SENSOR_IP = "192.168.251.40";
+        private const string SENSOR_IP = "192.168.251.30";
         private const int CONTROL_PORT = 3600;
 
         public static async Task<(int status, string pointCloudJson)> ReceiveSurfacePointCloudNet(Action<string>? log = null)
@@ -783,19 +783,19 @@ namespace App4.PAGES
                                 log?.Invoke("Mod değiştiriliyor: SURFACE");
                                 JObject payload = new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["scanMode"] = SURFACE_MODE } } };
                                 system.Client().Update(SCANNER_PATH, payload).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                                await Task.Delay(1000);
+                                
                             }
                         }
 
                         system.Client().Update(SCANNER_PATH, new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["intensityEnabled"] = true } } }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
 
                         system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                        await Task.Delay(1000);
+                        
 
                         if (system.RunningState() == GoSystem.State.Ready)
                         {
                             system.Start();
-                            await Task.Delay(2000);
+                           
                         }
 
                         string dataSourceKey = "UniformSurface";
