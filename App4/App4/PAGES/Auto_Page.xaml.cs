@@ -148,21 +148,46 @@ namespace App4
         private void ConnectToPlcVariable(PlcVariable localVar)
         {
             if (string.IsNullOrEmpty(localVar.PlcTag)) return;
+
+            // 1. Gerçek PLC değişkenini havuzdan bul
             var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag)
                              ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
+
             if (sourceRealVar != null)
             {
-                localVar.Value = sourceRealVar.CurrentValue?.ToString();
-                sourceRealVar.PropertyChanged += (s, args) =>
+                // 2. İlk değeri hemen eşitle (Başlangıç senkronizasyonu)
+                // Dispatcher kullanarak UI thread'de yapıyoruz ki hata vermesin
+                this.DispatcherQueue.TryEnqueue(() =>
                 {
-                    if (args.PropertyName == "CurrentValue")
+                    localVar.Value = sourceRealVar.CurrentValue?.ToString();
+                });
+
+                // 3. Canlı Değişiklikleri Dinle (Event Subscription)
+                // Önce eski event'i çıkaralım ki üst üste binmesin (Safety)
+                sourceRealVar.PropertyChanged -= LocalVar_SourceChanged;
+
+                // Yeni event'i ekle
+                sourceRealVar.PropertyChanged += (s, e) =>
+                {
+                    // Sadece değer değiştiyse işlem yap
+                    if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
                     {
-                        var dispatcher = Windows.System.DispatcherQueue.GetForCurrentThread();
-                        dispatcher?.TryEnqueue(() => { if (localVar.PlcTag == sourceRealVar.Name) localVar.Value = sourceRealVar.CurrentValue?.ToString(); });
+                        // UI Thread'e geçiş yap (Kritik nokta burası)
+                        this.DispatcherQueue.TryEnqueue(() =>
+                        {
+                            // Etiket hala aynıysa güncelle (Kullanıcı bu sırada değiştirmemişse)
+                            if (localVar.PlcTag == sourceRealVar.Name)
+                            {
+                                localVar.Value = sourceRealVar.CurrentValue?.ToString();
+                            }
+                        });
                     }
                 };
             }
         }
+
+        // Event handler'ı temizlemek için boş bir referans metodu (Lambda kullandığımız için opsiyonel ama iyi pratik)
+        private void LocalVar_SourceChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) { }
 
         private void LoadPlcVariableTagsFromFile()
         {
