@@ -1,12 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="App4.PAGES.PLC_Page"
+    xmlns:utils="using:App4.Utilities"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d">
+
+    <Page.Resources>
+
+        <DataTemplate x:Key="PlcInputVariableTemplate" x:DataType="utils:PlcVariable">
+            <Grid Margin="0,2" Background="#1A1A1C" Padding="5" CornerRadius="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="40"/>
+                </Grid.ColumnDefinitions>
+
+                <FontIcon Grid.Column="0" Glyph="&#xE9D2;" FontSize="10" Foreground="#555" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <TextBox Grid.Column="1" 
+                         Text="{x:Bind Name, Mode=TwoWay}" 
+                         PlaceholderText="Adres - Açıklama"
+                         LostFocus="Variable_Edited_LostFocus" 
+                         KeyDown="Variable_TextBox_KeyDown"
+                         BorderThickness="0" Background="Transparent" Foreground="White" FontSize="10" VerticalAlignment="Center" Margin="0,0,5,0"/>
+
+                <TextBox Grid.Column="2" 
+                         Text="{x:Bind Type, Mode=TwoWay}" 
+                         LostFocus="Variable_Edited_LostFocus" 
+                         KeyDown="Variable_TextBox_KeyDown"
+                         BorderThickness="0" Background="Transparent" Foreground="#00A4EF" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
+
+                <TextBox Grid.Column="3" 
+                         Text="{x:Bind Value, Mode=TwoWay}" 
+                         IsReadOnly="True"
+                         BorderThickness="0" Background="Transparent" Foreground="#4CAF50" FontWeight="Bold" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
+
+                <Button Grid.Column="4" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" 
+                        Click="DeleteVariable_Click" 
+                        Background="Transparent" Foreground="#FF5252" BorderThickness="0" Padding="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PlcOutputVariableTemplate" x:DataType="utils:PlcVariable">
+            <Grid Margin="0,2" Background="#1A1A1C" Padding="5" CornerRadius="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="65"/>
+                    <ColumnDefinition Width="40"/>
+                </Grid.ColumnDefinitions>
+
+                <FontIcon Grid.Column="0" Glyph="&#xE7E8;" FontSize="10" Foreground="#FF9800" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                <TextBox Grid.Column="1" 
+                         Text="{x:Bind Name, Mode=TwoWay}" 
+                         LostFocus="Variable_Edited_LostFocus" 
+                         KeyDown="Variable_TextBox_KeyDown"
+                         BorderThickness="0" Background="Transparent" Foreground="White" FontSize="10" VerticalAlignment="Center" Margin="0,0,5,0"/>
+
+                <TextBox Grid.Column="2" 
+                         Text="{x:Bind Type, Mode=TwoWay}" 
+                         LostFocus="Variable_Edited_LostFocus" 
+                         KeyDown="Variable_TextBox_KeyDown"
+                         BorderThickness="0" Background="Transparent" Foreground="#00A4EF" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
+
+                <TextBox Grid.Column="3" 
+                         Text="{x:Bind Value, Mode=TwoWay}" 
+                         LostFocus="Variable_Edited_LostFocus" 
+                         KeyDown="Variable_TextBox_KeyDown"
+                         BorderThickness="1" BorderBrush="#333" Background="#252526" Foreground="#4CAF50" FontWeight="Bold" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center" CornerRadius="2"/>
+
+                <Button Grid.Column="4" Content="YAZ" FontSize="8" FontWeight="Bold" Background="#FF9800" Foreground="White" Padding="4,2" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" Click="ForceWrite_Click"/>
+
+                <Button Grid.Column="5" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" 
+                        Click="DeleteVariable_Click" 
+                        Background="Transparent" Foreground="#FF5252" BorderThickness="0" Padding="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
         <Grid Background="#0D0D0D">
@@ -21,24 +100,15 @@
                 <RowDefinition Height="50"/>
             </Grid.RowDefinitions>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- BAŞLIK BÖLÜMÜ - Header -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="0" Background="#252526" BorderThickness="0,0,0,2" BorderBrush="#00A4EF" Padding="20,0">
                 <Grid VerticalAlignment="Center">
-                    <!-- Sol Taraf: Logo + Başlık -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
-                        <!-- Logo (Simgesi) -->
                         <FontIcon Glyph="&#xE71A;" Foreground="#00A4EF" FontSize="36"/>
-                        
-                        <!-- Başlık Bilgisi -->
                         <StackPanel VerticalAlignment="Center" Spacing="3">
                             <TextBlock Text="Simbiosis Mekatronik Leak Test App" FontSize="14" FontWeight="Bold" Foreground="White"/>
                             <TextBlock x:Name="PageTitleLabel" Text="PLC KONTROL" FontSize="10" Foreground="#00A4EF" FontWeight="SemiBold"/>
                         </StackPanel>
                     </StackPanel>
-
-                    <!-- Sağ Taraf: Sistem Durumu -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20" VerticalAlignment="Center">
                         <StackPanel VerticalAlignment="Center" Spacing="5">
                             <TextBlock Text="SİSTEM DURUMU" FontSize="9" Foreground="#888888" HorizontalAlignment="Right"/>
@@ -49,16 +119,12 @@
                 </Grid>
             </Border>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- ÜSTKISIM: İSTATİSTİKLER/DASHBOARD (TAM GENİŞLİK) -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0" Margin="20,20,20,20">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-
                     <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                             <FontIcon Glyph="&#xE71C;" Foreground="#00A4EF" FontSize="18"/>
@@ -67,7 +133,6 @@
                             <TextBlock Text="Aktif" FontSize="9" Foreground="#4CAF50" FontWeight="Bold"/>
                         </StackPanel>
                     </Border>
-
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
                         <Grid ColumnSpacing="12" RowSpacing="12">
                             <Grid.ColumnDefinitions>
@@ -80,8 +145,6 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-
-                            <!-- Toplam Test Sayısı -->
                             <Border Grid.Column="0" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#00A4EF">
                                 <Grid RowSpacing="8">
                                     <Grid.RowDefinitions>
@@ -94,8 +157,6 @@
                                     <TextBlock Grid.Row="2" Text="Tümü" FontSize="9" Foreground="#888888"/>
                                 </Grid>
                             </Border>
-
-                            <!-- Başarılı Testler -->
                             <Border Grid.Column="1" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#4CAF50">
                                 <Grid RowSpacing="8">
                                     <Grid.RowDefinitions>
@@ -108,8 +169,6 @@
                                     <TextBlock Grid.Row="2" Text="95.1% Başarı Oranı" FontSize="9" Foreground="#888888"/>
                                 </Grid>
                             </Border>
-
-                            <!-- Başarısız Testler -->
                             <Border Grid.Column="2" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#FF5252">
                                 <Grid RowSpacing="8">
                                     <Grid.RowDefinitions>
@@ -122,8 +181,6 @@
                                     <TextBlock Grid.Row="2" Text="4.9% Hata Oranı" FontSize="9" Foreground="#888888"/>
                                 </Grid>
                             </Border>
-
-                            <!-- Çalışma Süresi -->
                             <Border Grid.Column="3" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#FFB81C">
                                 <Grid RowSpacing="8">
                                     <Grid.RowDefinitions>
@@ -136,8 +193,6 @@
                                     <TextBlock Grid.Row="2" Text="Kesintisiz Çalışma" FontSize="9" Foreground="#888888"/>
                                 </Grid>
                             </Border>
-
-                            <!-- Son Test Tarihi -->
                             <Border Grid.Column="0" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="🕐 Son Test" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -145,8 +200,6 @@
                                     <TextBlock Text="5 dakika önce" FontSize="9" Foreground="#888888"/>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Ortalama Süre -->
                             <Border Grid.Column="1" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="⏲️ Ort. Test Süresi" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -154,8 +207,6 @@
                                     <TextBlock Text="Hedef: 2.50 sn" FontSize="9" Foreground="#4CAF50"/>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Bugünkü Test -->
                             <Border Grid.Column="2" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="📅 Bugün" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -163,8 +214,6 @@
                                     <TextBlock Text="45 Başarılı, 2 Başarısız" FontSize="9" Foreground="#888888"/>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Sistem Kalitesi -->
                             <Border Grid.Column="3" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="⭐ Sistem Kalitesi" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -176,16 +225,13 @@
                     </Grid>
                 </Grid>
             </Border>
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- ROBOT KONTROL PANELİ -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
+
             <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0" Margin="20,0,20,20">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-
                     <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                             <FontIcon Glyph="&#xE71A;" Foreground="#00A4EF" FontSize="18"/>
@@ -194,7 +240,6 @@
                             <TextBlock Text="Bekleme" FontSize="9" Foreground="#FFB81C" FontWeight="Bold"/>
                         </StackPanel>
                     </Border>
-
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="15" ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -202,8 +247,6 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- Robot Koordinatları X -->
                         <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
                             <StackPanel Spacing="6">
                                 <TextBlock Text="📍 X KOORDİNATI" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -211,8 +254,6 @@
                                 <TextBlock Text="mm" FontSize="9" Foreground="#888888"/>
                             </StackPanel>
                         </Border>
-
-                        <!-- Robot Koordinatları Y -->
                         <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
                             <StackPanel Spacing="6">
                                 <TextBlock Text="📍 Y KOORDİNATI" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -220,8 +261,6 @@
                                 <TextBlock Text="mm" FontSize="9" Foreground="#888888"/>
                             </StackPanel>
                         </Border>
-
-                        <!-- Robot Koordinatları Z -->
                         <Border Grid.Column="2" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
                             <StackPanel Spacing="6">
                                 <TextBlock Text="📍 Z KOORDİNATI" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
@@ -229,8 +268,6 @@
                                 <TextBlock Text="mm" FontSize="9" Foreground="#888888"/>
                             </StackPanel>
                         </Border>
-
-                        <!-- Acil Durdur Butonu -->
                         <Button Grid.Column="3" Background="#FF5252" CornerRadius="6" FontWeight="Bold" Foreground="White" VerticalAlignment="Stretch">
                             <StackPanel Orientation="Vertical" Spacing="4">
                                 <FontIcon Glyph="&#xE71E;" FontSize="18"/>
@@ -242,16 +279,12 @@
                 </Grid>
             </Border>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- I/O MAPPING TABLOSU (PLC ↔ Robot ↔ Camera) -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="3" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                             <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
@@ -259,7 +292,6 @@
                             <TextBlock Text="PLC ↔ Robot ↔ 3D Kamera Veri Akışı" FontSize="10" Foreground="#888888" Margin="0,0,0,0" HorizontalAlignment="Right"/>
                         </StackPanel>
                     </Border>
-
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="12">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
                             <StackPanel x:Name="IOMapContainer" Spacing="6"/>
@@ -268,23 +300,18 @@
                 </Grid>
             </Border>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- SİSTEM MONİTÖRÜ (GERÇEK ZAMANLI HASTALAT) -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="4" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                             <FontIcon Glyph="&#xE7F8;" Foreground="#00A4EF" FontSize="16"/>
-                            <TextBlock Text="SİSTEM SAĞ LIKI MONİTÖRÜ" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="SİSTEM SAĞLIK MONİTÖRÜ" FontSize="12" FontWeight="Bold" Foreground="White"/>
                         </StackPanel>
                     </Border>
-
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
                         <Grid ColumnSpacing="15">
                             <Grid.ColumnDefinitions>
@@ -293,8 +320,6 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-
-                            <!-- PLC Durumu -->
                             <StackPanel Grid.Column="0" Spacing="8">
                                 <TextBlock Text="🎛️ PLC SİSTEMİ" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
                                 <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
@@ -305,8 +330,6 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
-                            <!-- Robot Durumu -->
                             <StackPanel Grid.Column="1" Spacing="8">
                                 <TextBlock Text="🤖 ROBOT KONTROL" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
                                 <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
@@ -317,8 +340,6 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
-                            <!-- Kamera Durumu -->
                             <StackPanel Grid.Column="2" Spacing="8">
                                 <TextBlock Text="📷 3D KAMERA" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
                                 <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
@@ -329,8 +350,6 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
-                            <!-- Ağ Durumu -->
                             <StackPanel Grid.Column="3" Spacing="8">
                                 <TextBlock Text="🌐 İLETİŞİM" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
                                 <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
@@ -346,17 +365,12 @@
                 </Grid>
             </Border>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- PLC BAĞLANTI AYARLARI VE LOG -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="5" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-
-                    <!-- Header -->
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <Grid ColumnSpacing="10">
                             <Grid.ColumnDefinitions>
@@ -367,65 +381,34 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                                 <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
                                 <TextBlock Text="PLC BAĞLANTI AYARLARI" FontSize="12" FontWeight="Bold" Foreground="White"/>
                             </StackPanel>
-
-                            <!-- IP Adresi -->
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                                 <TextBlock Text="IP:" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                                <TextBox x:Name="PLCIPAddressBox" Text="192.168.251.100" Width="120" Height="28" 
-                                         Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" 
-                                         FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
+                                <TextBox x:Name="PLCIPAddressBox" Text="192.168.251.100" Width="120" Height="28" Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
                             </StackPanel>
-
-                            <!-- Port -->
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                                 <TextBlock Text="Port:" FontSize="10" FontWeight="Bold" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                                <TextBox x:Name="PLCPortBox" Text="5007" Width="70" Height="28" 
-                                         Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" 
-                                         FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
+                                <TextBox x:Name="PLCPortBox" Text="5007" Width="70" Height="28" Background="#2D2D30" Foreground="White" BorderBrush="#00A4EF" FontSize="10" Padding="6,0" VerticalAlignment="Center"/>
                             </StackPanel>
-
-                            <!-- Bağlan Butonu -->
-                            <Button Grid.Column="3" x:Name="ConnectPLCBtn" Content="🔗 Bağlan" 
-                                    Background="#4CAF50" Foreground="White" CornerRadius="4" 
-                                    Height="28" FontWeight="Bold" FontSize="9" Padding="10,0"
-                                    Click="ConnectPLCBtn_Click" VerticalAlignment="Center"/>
-
-                            <!-- Bağlantı Durumu -->
+                            <Button Grid.Column="3" x:Name="ConnectPLCBtn" Content="🔗 Bağlan" Background="#4CAF50" Foreground="White" CornerRadius="4" Height="28" FontWeight="Bold" FontSize="9" Padding="10,0" Click="ConnectPLCBtn_Click" VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
-                                <Ellipse x:Name="ConnectionStatusIndicator" Width="12" Height="12" 
-                                         Fill="#FF5252" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="ConnectionStatusLabel" Text="Bağlı Değil" 
-                                          FontSize="10" Foreground="#FF5252" FontWeight="Bold" 
-                                          VerticalAlignment="Center"/>
+                                <Ellipse x:Name="ConnectionStatusIndicator" Width="12" Height="12" Fill="#FF5252" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ConnectionStatusLabel" Text="Bağlı Değil" FontSize="10" Foreground="#FF5252" FontWeight="Bold" VerticalAlignment="Center"/>
                             </StackPanel>
-
-                            <!-- Temizle Log Butonu -->
-                            <Button Grid.Column="5" x:Name="ClearLogBtn" Content="🗑️ Logları Temizle" 
-                                    Background="#FF9800" Foreground="White" CornerRadius="4" 
-                                    Height="28" FontWeight="Bold" FontSize="9" Padding="10,0"
-                                    Click="ClearLogBtn_Click" VerticalAlignment="Center"/>
+                            <Button Grid.Column="5" x:Name="ClearLogBtn" Content="🗑️ Logları Temizle" Background="#FF9800" Foreground="White" CornerRadius="4" Height="28" FontWeight="Bold" FontSize="9" Padding="10,0" Click="ClearLogBtn_Click" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
-
-                    <!-- Log Gösterimi -->
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                            <TextBlock x:Name="LogTextBlock" Text="[INFO] PLC Sistemi başlatıldı&#x0a;[INFO] Bağlantı ayarları yapılandırıldı&#x0a;[INFO] Mitsubishi PLC R08 için hazır&#x0a;" 
-                                      Foreground="#00FF88" FontSize="9" FontFamily="Cascadia Mono" 
-                                      TextWrapping="Wrap" Padding="8"/>
+                            <TextBlock x:Name="LogTextBlock" Text="[INFO] Hazır..." Foreground="#00FF88" FontSize="9" FontFamily="Cascadia Mono" TextWrapping="Wrap" Padding="8"/>
                         </ScrollViewer>
                     </Grid>
                 </Grid>
             </Border>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- PLC DEĞİŞKENLERİ VE FORCE KONTROL -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="6" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -433,7 +416,6 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Header -->
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                             <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
@@ -442,14 +424,12 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Content Area - Input ve Output Yan Yana -->
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- INPUT VARİABLELERİ -->
                         <Border Grid.Column="0" Background="#0D0D0D" Margin="0,0,4,0" CornerRadius="6">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -458,7 +438,6 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Input Header with Add Button -->
                                 <Border Grid.Row="0" Background="#1A4D2E" CornerRadius="6,6,0,0" Padding="8" BorderThickness="1" BorderBrush="#4CAF50">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -470,7 +449,6 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Column Headers -->
                                 <Border Grid.Row="1" Background="#1A1A1C" Padding="4,3" BorderThickness="0,0,0,1" BorderBrush="#333333">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -488,14 +466,14 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Input Data -->
-                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                                    <StackPanel x:Name="InputVariablesContainer" Spacing="3" Padding="4"/>
-                                </ScrollViewer>
+                                <ListView Grid.Row="2" 
+                                          ItemsSource="{x:Bind InputVariables}"
+                                          ItemTemplate="{StaticResource PlcInputVariableTemplate}"
+                                          SelectionMode="None"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                             </Grid>
                         </Border>
 
-                        <!-- OUTPUT VARİABLELERİ -->
                         <Border Grid.Column="1" Background="#0D0D0D" Margin="4,0,0,0" CornerRadius="6">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -504,7 +482,6 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Output Header with Add Button -->
                                 <Border Grid.Row="0" Background="#4D3A1A" CornerRadius="6,6,0,0" Padding="8" BorderThickness="1" BorderBrush="#FF9800">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -516,7 +493,6 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Column Headers -->
                                 <Border Grid.Row="1" Background="#1A1A1C" Padding="4,3" BorderThickness="0,0,0,1" BorderBrush="#333333">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -536,19 +512,17 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Output Data -->
-                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                                    <StackPanel x:Name="OutputVariablesContainer" Spacing="3" Padding="4"/>
-                                </ScrollViewer>
+                                <ListView Grid.Row="2" 
+                                          ItemsSource="{x:Bind OutputVariables}"
+                                          ItemTemplate="{StaticResource PlcOutputVariableTemplate}"
+                                          SelectionMode="None"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"/>
                             </Grid>
                         </Border>
                     </Grid>
                 </Grid>
             </Border>
 
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
-            <!-- FOOTER -->
-            <!-- ═══════════════════════════════════════════════════════════════════ -->
             <Border Grid.Row="7" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
                 <Grid VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
@@ -556,12 +530,7 @@
                         <TextBlock Text="Senkronizasyon:" FontSize="11" Foreground="#888888" VerticalAlignment="Center"/>
                         <TextBlock x:Name="SyncStatusLabel" Text="%100 SENKRON" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
                     </StackPanel>
-
-                    <TextBlock Text="© 2025 Simbiosis Mekatronik | Entegre Sistem Kontrol v2.0" 
-                               VerticalAlignment="Center" 
-                               HorizontalAlignment="Right" 
-                               FontSize="10" 
-                               Foreground="#555555"/>
+                    <TextBlock Text="© 2025 Simbiosis Mekatronik | Entegre Sistem Kontrol v2.0" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="10" Foreground="#555555"/>
                 </Grid>
             </Border>
         </Grid>

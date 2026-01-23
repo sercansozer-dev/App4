@@ -1,5 +1,6 @@
-using App4.Pages;
+ï»¿using App4.Pages;
 using App4.PAGES;
+using App4.Utilities; // PlcService iÃ§in namespace
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -31,64 +32,96 @@ namespace App4
     public sealed partial class MainWindow : Window
     {
         private AppWindow m_AppWindow;
-        private string currentUserRole = "Operatör";
+        private string currentUserRole = "OperatÃ¶r";
 
-        // Bu deðiþken simülasyonun sadece 1 kere çalýþmasýný garanti eder
+        // Bu deÄŸiÅŸken simÃ¼lasyonun sadece 1 kere Ã§alÄ±ÅŸmasÄ±nÄ± garanti eder
         private bool _hasRunStartup = false;
 
         public MainWindow()
         {
             this.InitializeComponent();
 
-            // Pencere Ayarlarý (WindowID ile AppWindow alma)
+            // Pencere AyarlarÄ± (WindowID ile AppWindow alma)
             IntPtr hWnd = WindowNative.GetWindowHandle(this);
             WindowId windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             m_AppWindow = AppWindow.GetFromWindowId(windowId);
 
             ConfigureWindow();
 
-            // AÇILIÞ SÝMÜLASYONU TETÝKLEYÝCÝSÝ
+            // AÃ‡ILIÅž SÄ°MÃœLASYONU TETÄ°KLEYÄ°CÄ°SÄ°
             this.Activated += MainWindow_Activated;
+
+            PlcService.Instance.Initialize((action) =>
+            {
+                this.DispatcherQueue.TryEnqueue(() => action());
+            });
+
+
+
         }
 
         private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
         {
-            // Eðer daha önce çalýþmadýysa çalýþtýr
+            // EÄŸer daha Ã¶nce Ã§alÄ±ÅŸmadÄ±ysa Ã§alÄ±ÅŸtÄ±r
             if (!_hasRunStartup)
             {
                 _hasRunStartup = true; // Kilidi kapat
-                NavigateToTag("auto"); // Arka planda ana sayfayý aç
-                await SimulateStartup(); // Simülasyonu baþlat
+                NavigateToTag("auto"); // Arka planda ana sayfayÄ± aÃ§
+                await SimulateStartup(); // SimÃ¼lasyonu baÅŸlat
             }
         }
 
+        // --- GÃœNCELLENEN BAÅžLANGIÃ‡ SENARYOSU ---
         private async Task SimulateStartup()
         {
-            // Animasyonu baþlat
+            // Animasyonu baÅŸlat
             PulseLogoAnim.Begin();
 
             try
             {
-                // 1. BAÞLANGIÇ: Her þey görünür
+                // 0. BAÅžLANGIÃ‡: Her ÅŸey gÃ¶rÃ¼nÃ¼r
                 AppSplashScreen.Visibility = Visibility.Visible;
                 AppSplashScreen.Opacity = 1;
                 SplashContent.Opacity = 1;
                 SplashContent.Visibility = Visibility.Visible;
 
-                // 2. YÜKLEME AÞAMALARI
-                SplashStatusText.Text = "Sistem yapýlandýrmasý okunuyor...";
+                // 1. YÃœKLEME AÅžAMALARI
+                SplashStatusText.Text = "Sistem yapÄ±landÄ±rmasÄ± okunuyor...";
                 await Task.Delay(800);
 
-                SplashStatusText.Text = "Gocator 3D Sensör baðlantýsý kuruluyor...";
+                // --- 2. PLC BAÄžLANTISINI GERÃ‡EKLEÅžTÄ°R (Burada yapÄ±yoruz) ---
+                SplashStatusText.Text = "PLC BaÄŸlantÄ±sÄ± kuruluyor (192.168.251.100)...";
+                SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange); // Dikkat Ã§ekmesi iÃ§in renk deÄŸiÅŸimi
+
+                // GLOBAL SERVÄ°S ÃœZERÄ°NDEN BAÄžLAN (Bekleme sÃ¼resi baÄŸlantÄ± hÄ±zÄ±na baÄŸlÄ±)
+                bool connected = await PlcService.Instance.ConnectAsync("192.168.251.100", 5007);
+
+                if (connected)
+                {
+                    SplashStatusText.Text = "âœ“ PLC BaÄŸlantÄ±sÄ± BaÅŸarÄ±lÄ±!";
+                    SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+                }
+                else
+                {
+                    SplashStatusText.Text = "âš  PLC BaÄŸlantÄ±sÄ± BaÅŸarÄ±sÄ±z! (Offline Mod)";
+                    SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
+                }
+
+                await Task.Delay(1500); // KullanÄ±cÄ± sonucu okuyabilsin diye bekleme
+
+                // Rengi normale dÃ¶ndÃ¼r
+                SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray);
+
+                SplashStatusText.Text = "Gocator 3D SensÃ¶r baÄŸlantÄ±sÄ± kuruluyor...";
                 await Task.Delay(1000);
 
-                SplashStatusText.Text = "KUKA Robot arayüzü baþlatýlýyor...";
+                SplashStatusText.Text = "KUKA Robot arayÃ¼zÃ¼ baÅŸlatÄ±lÄ±yor...";
                 await Task.Delay(800);
 
-                SplashStatusText.Text = "Arayüz hazýrlanýyor...";
+                SplashStatusText.Text = "ArayÃ¼z hazÄ±rlanÄ±yor...";
                 await Task.Delay(500);
 
-                // 3. LOGOYU VE YAZILARI SÝL (Fade Out)
+                // 3. LOGOYU VE YAZILARI SÄ°L (Fade Out)
                 for (double i = 1.0; i >= 0; i -= 0.1)
                 {
                     SplashContent.Opacity = i;
@@ -96,7 +129,7 @@ namespace App4
                 }
                 SplashContent.Visibility = Visibility.Collapsed;
 
-                // --- HAYALET GEÇÝÞ (Pencere Boyutlandýrma) ---
+                // --- HAYALET GEÃ‡Ä°Åž (Pencere BoyutlandÄ±rma) ---
                 if (m_AppWindow != null)
                 {
                     m_AppWindow.Hide();
@@ -106,7 +139,7 @@ namespace App4
                     m_AppWindow.Show(true);
                 }
 
-                // 4. SÝYAH PERDEYÝ KALDIR (Fade Out)
+                // 4. SÄ°YAH PERDEYÄ° KALDIR (Fade Out)
                 for (double i = 1.0; i >= 0; i -= 0.1)
                 {
                     AppSplashScreen.Opacity = i;
@@ -116,8 +149,9 @@ namespace App4
             }
             catch (Exception ex)
             {
-                // Hata durumunda ekraný temizle
+                // Hata durumunda ekranÄ± temizle
                 AppSplashScreen.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine("Startup HatasÄ±: " + ex.Message);
             }
         }
 
@@ -127,14 +161,14 @@ namespace App4
             {
                 m_AppWindow.Title = "Simbiosis Mekatronik";
 
-                // Splash Ekraný Boyutu (Küçük Baþlasýn)
+                // Splash EkranÄ± Boyutu (KÃ¼Ã§Ã¼k BaÅŸlasÄ±n)
                 int splashWidth = 900;
                 int splashHeight = 600;
 
                 m_AppWindow.SetPresenter(AppWindowPresenterKind.Default);
                 m_AppWindow.Resize(new Windows.Graphics.SizeInt32(splashWidth, splashHeight));
 
-                // Ekraný Ortala
+                // EkranÄ± Ortala
                 var displayArea = DisplayArea.GetFromWindowId(m_AppWindow.Id, DisplayAreaFallback.Primary);
                 if (displayArea != null)
                 {
@@ -159,9 +193,9 @@ namespace App4
                 ContentDialog exitDialog = new ContentDialog
                 {
                     Title = "Sistemi Kapat",
-                    Content = "Uygulamadan çýkýþ yapmak üzeresiniz. Onaylýyor musunuz?",
+                    Content = "Uygulamadan Ã§Ä±kÄ±ÅŸ yapmak Ã¼zeresiniz. OnaylÄ±yor musunuz?",
                     PrimaryButtonText = "Evet, Kapat",
-                    CloseButtonText = "Ýptal",
+                    CloseButtonText = "Ä°ptal",
                     DefaultButton = ContentDialogButton.Close,
                     XamlRoot = this.Content.XamlRoot,
                     RequestedTheme = ElementTheme.Dark
@@ -203,7 +237,7 @@ namespace App4
             }
         }
 
-        // --- GÝRÝÞ SÝSTEMÝ ---
+        // --- GÄ°RÄ°Åž SÄ°STEMÄ° ---
 
         private void LoginTrigger_Click(object sender, RoutedEventArgs e)
         {
@@ -237,13 +271,13 @@ namespace App4
         {
             if (UserRoleCombo.SelectedItem is ComboBoxItem selectedItem)
             {
-                string role = selectedItem.Content?.ToString() ?? "Operatör";
+                string role = selectedItem.Content?.ToString() ?? "OperatÃ¶r";
                 string pin = PasswordInput.Password;
 
                 bool authorized = false;
                 if (role == "Admin" && pin == "1234") authorized = true;
                 else if (role == "Expert" && pin == "0000") authorized = true;
-                else if (role == "Operatör") authorized = true;
+                else if (role == "OperatÃ¶r") authorized = true;
 
                 if (authorized)
                 {
@@ -254,7 +288,7 @@ namespace App4
                 }
                 else
                 {
-                    LoginStatusText.Text = "? HATALI PIN! TEKRAR DENEYÝN.";
+                    LoginStatusText.Text = "? HATALI PIN! TEKRAR DENEYÄ°N.";
                     PasswordInput.Password = "";
                 }
             }
@@ -263,8 +297,8 @@ namespace App4
         private void ApplyUserRole(string role)
         {
             currentUserRole = role;
-            CurrentUserText.Text = "Kullanýcý: " + role;
-            CurrentRoleText.Text = role == "Admin" ? "Tam Yetkili Eriþim" : "Sýnýrlý Eriþim";
+            CurrentUserText.Text = "KullanÄ±cÄ±: " + role;
+            CurrentRoleText.Text = role == "Admin" ? "Tam Yetkili EriÅŸim" : "SÄ±nÄ±rlÄ± EriÅŸim";
             UserStatusLed.Fill = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
             MainNav.IsSettingsVisible = (role == "Admin" || role == "Expert");
         }
