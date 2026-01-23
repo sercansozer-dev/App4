@@ -278,6 +278,38 @@ namespace App4.PAGES
             return grid;
         }
 
+        private async void ValueTextBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            // Sadece Enter tuşuna basıldığında tetiklenir
+            if (e.Key == Windows.System.VirtualKey.Enter)
+            {
+                var textBox = sender as TextBox;
+
+                // TextBox'ın veri kaynağı olan PlcVariable nesnesine erişiyoruz
+                var variable = textBox?.DataContext as PlcVariable;
+
+                if (variable != null && !string.IsNullOrEmpty(textBox.Text))
+                {
+                    try
+                    {
+                        // PLC Servisindeki WriteAsync metodunu çağırıyoruz
+                        await PlcService.Instance.WriteAsync(variable, textBox.Text);
+
+                        // Opsiyonel: Yazma başarılıysa imleci kutudan çıkararak görsel geri bildirim verelim
+                        // Bu sayede kullanıcının yazdığının gittiğini anlaması kolaylaşır.
+                        this.Focus(FocusState.Programmatic);
+
+                        System.Diagnostics.Debug.WriteLine($"PLC Yazıldı ({variable.Name}): {textBox.Text}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"PLC Yazma Hatası: {ex.Message}");
+                    }
+                }
+            }
+        }
+
+
         private TextBlock CreateTextCell(string text, int col, Color color)
         {
             var tb = new TextBlock

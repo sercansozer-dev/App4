@@ -149,38 +149,40 @@ namespace App4
         {
             if (string.IsNullOrEmpty(localVar.PlcTag)) return;
 
-            // 1. Gerçek PLC değişkenini havuzdan bul
+            // 1. PLC Havuzundaki (merkezi) değişkeni bul
             var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag)
                              ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
 
             if (sourceRealVar != null)
             {
-                // 2. İlk değeri hemen eşitle (Başlangıç senkronizasyonu)
-                // Dispatcher kullanarak UI thread'de yapıyoruz ki hata vermesin
-                this.DispatcherQueue.TryEnqueue(() =>
-                {
+                // --- OKUMA TARAFI (PLC -> UI) ---
+                this.DispatcherQueue.TryEnqueue(() => {
                     localVar.Value = sourceRealVar.CurrentValue?.ToString();
                 });
 
-                // 3. Canlı Değişiklikleri Dinle (Event Subscription)
-                // Önce eski event'i çıkaralım ki üst üste binmesin (Safety)
-                sourceRealVar.PropertyChanged -= LocalVar_SourceChanged;
+                sourceRealVar.PropertyChanged += (s, e) => {
+                    if (e.PropertyName == "CurrentValue")
+                    {
+                        this.DispatcherQueue.TryEnqueue(() => {
+                            if (localVar.PlcTag == sourceRealVar.Name)
+                                localVar.Value = sourceRealVar.CurrentValue?.ToString();
+                        });
+                    }
+                };
 
-                // Yeni event'i ekle
-                sourceRealVar.PropertyChanged += (s, e) =>
-                {
-                    // Sadece değer değiştiyse işlem yap
+                // --- YAZMA TARAFI (UI -> PLC) --- [cite: 6, 7]
+                            // Eğer değişken bir Output ise, arayüzdeki değişimi dinle ve PLC'ye yaz
+                localVar.PropertyChanged += async (s, e) => {
                     if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
                     {
-                        // UI Thread'e geçiş yap (Kritik nokta burası)
-                        this.DispatcherQueue.TryEnqueue(() =>
+                        // Kullanıcının girdiği yeni değeri merkezi havuza aktar
+                        if (sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
                         {
-                            // Etiket hala aynıysa güncelle (Kullanıcı bu sırada değiştirmemişse)
-                            if (localVar.PlcTag == sourceRealVar.Name)
-                            {
-                                localVar.Value = sourceRealVar.CurrentValue?.ToString();
-                            }
-                        });
+                            sourceRealVar.CurrentValue = localVar.CurrentValue;
+
+                            // Gerçek PLC yazma işlemini tetikle
+                            await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue);
+                        }
                     }
                 };
             }
