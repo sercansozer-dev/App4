@@ -636,9 +636,15 @@
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="80"/>
                                                     <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
+
                                                 <TextBlock Grid.Column="0" Text="{x:Bind Id}" FontWeight="Bold" Foreground="#0078D4" FontSize="12" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="#BBB" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                                                <Button Grid.Column="2" Click="BtnDeleteRfid_Click" Background="Transparent" BorderThickness="0" Padding="5" Margin="5,0,0,0" ToolTipService.ToolTip="Listeden Sil">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#E74C3C"/>
+                                                </Button>
                                             </Grid>
                                         </DataTemplate>
                                     </ListView.ItemTemplate>
@@ -646,70 +652,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="2" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-
-                                <Border Grid.Row="0" Background="#252526" Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <FontIcon Glyph="&#xE9A1;" Foreground="#FFF" FontSize="14"/>
-                                        <TextBlock Text="İSTASYON RFID &amp; PLC AKTARIM AYARLARI" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Grid Grid.Row="1" Background="#222" Height="30" >
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="100"/>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="İSTASYON" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
-                                    <TextBlock Grid.Column="1" Text="ÇALIŞMA MODU" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
-                                    <TextBlock Grid.Column="2" Text="HEDEF RFID" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
-                                    <TextBlock Grid.Column="3" Text="PLC TAG: MOD ÇIKIŞ" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
-                                    <TextBlock Grid.Column="4" Text="PLC TAG: HEDEF ID ÇIKIŞ" VerticalAlignment="Center" Margin="10,0" Foreground="#888" FontSize="10" FontWeight="Bold"/>
-                                </Grid>
-
-                                <ListView Grid.Row="2" ItemsSource="{x:Bind Stations}" SelectionMode="None">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="utils:StationViewModel">
-                                            <Grid Padding="0,5" BorderBrush="#333" BorderThickness="0,0,0,1">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-
-                                                <TextBlock Grid.Column="0" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="10,0" Foreground="White" FontWeight="Bold" FontSize="11"/>
-
-                                                <ComboBox Grid.Column="1" SelectedItem="{Binding RfidOpMode, Mode=TwoWay}" ItemsSource="{Binding RfidOpModes}" 
-                                                          HorizontalAlignment="Stretch" Margin="5,0"/>
-
-                                                <ComboBox Grid.Column="2" SelectedValue="{Binding TargetRfid, Mode=TwoWay}" 
-                                                          ItemsSource="{Binding RefRfids, Mode=OneWay}"
-                                                          SelectedValuePath="Id" DisplayMemberPath="Id"
-                                                          PlaceholderText="Hedef ID" Margin="5,0"
-                                                          Visibility="{Binding IsSpecificRfidVisible, Mode=OneWay}"
-                                                          HorizontalAlignment="Stretch"/>
-
-                                                <TextBox Grid.Column="3" Text="{Binding PlcTagRfidMode, Mode=TwoWay}" PlaceholderText="DB10.DBX..." 
-                                                          Background="#202020" BorderBrush="#333" Foreground="White" Margin="5,0" FontSize="11"/>
-                                                <TextBox Grid.Column="4" Text="{Binding PlcTagTargetRfid, Mode=TwoWay}" PlaceholderText="DB10.STR..." 
-                                                          Background="#202020" BorderBrush="#333" Foreground="White" Margin="5,0" FontSize="11"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
-                            </Grid>
-                        </Border>
+                       
                     </Grid>
                 </StackPanel>
             </StackPanel>

@@ -378,6 +378,20 @@ namespace App4
                 TxtNewRfidDesc.Text = "";
             }
         }
+
+        // Listeden silme işlemini yapan fonksiyon
+        private void BtnDeleteRfid_Click(object sender, RoutedEventArgs e)
+        {
+            // Tıklanan butonun hangi satıra ait olduğunu buluyoruz
+            if (sender is Button btn && btn.DataContext is App4.Utilities.RfidDef itemToDelete)
+            {
+                // Global listeden siliyoruz
+                // GlobalData içindeki yapı sayesinde otomatik olarak dosyaya da kaydedilecek
+                KnownRfids.Remove(itemToDelete);
+            }
+        }
+
+
         private void UpdateSliderPosition(string value) { foreach (var station in Stations) station.IsRobotPresent = false; if (int.TryParse(value, out int pos) && pos >= 1 && pos <= 4) Stations[pos - 1].IsRobotPresent = true; }
         private void UpdateStationStatus(string varName, string value) { foreach (var station in Stations) { if (station.StatusTag == varName) station.ProcessStatus = MapStatusCode(value); else if (station.AlarmTag == varName) station.HasAlarm = ParseBool(value); else if (station.ProducingTag == varName) station.IsProducing = ParseBool(value); else if (station.ProductionCountTag == varName) station.ProductionCount = value; else if (station.EfficiencyTag == varName) station.Efficiency = value.Contains("%") ? value : "%" + value; else if (station.CurrentRfidTag == varName) station.CurrentRfid = value; } }
         private bool ParseBool(string value) { if (string.IsNullOrEmpty(value)) return false; value = value.ToUpper(); return value == "TRUE" || value == "1" || value == "ON"; }
