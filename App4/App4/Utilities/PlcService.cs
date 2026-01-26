@@ -204,6 +204,16 @@ namespace App4.Utilities
                             if (fRes.IsSuccess) { newValue = Math.Round(fRes.Content, 2); readSuccess = true; } // 2 hane yuvarla
                             break;
 
+                        case "STRING":
+                            // 10 karakter uzunluğunda metin oku (Uzunluğa göre 10'u PLC programına göre değiştirebilirsin)
+                            var sRes = await _melsecNet.ReadStringAsync(address, 10);
+                            if (sRes.IsSuccess)
+                            {
+                                newValue = sRes.Content.Trim('\0', ' '); // Boşlukları ve null karakterleri temizle
+                                readSuccess = true;
+                            }
+                            break;
+
                         default: // Tanımsızsa INT16 dene
                             var defRes = await _melsecNet.ReadInt16Async(address);
                             if (defRes.IsSuccess) { newValue = defRes.Content; readSuccess = true; }
@@ -256,6 +266,9 @@ namespace App4.Utilities
                     case "REAL":
                     case "FLOAT":
                         await _melsecNet.WriteAsync(address, Convert.ToSingle(value));
+                        break;
+                    case "STRING":
+                        await _melsecNet.WriteAsync(address, Convert.ToString(value));
                         break;
                     default:
                         await _melsecNet.WriteAsync(address, Convert.ToInt16(value));

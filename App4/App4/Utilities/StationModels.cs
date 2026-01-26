@@ -70,7 +70,10 @@ namespace App4.Utilities  // <--- DÜZELTME: .Utilities EKLENDİ
         public Visibility AlarmVisibility => HasAlarm ? Visibility.Visible : Visibility.Collapsed;
         public Visibility RobotVisibility => IsRobotPresent ? Visibility.Visible : Visibility.Collapsed;
         public float RobotOpacity => IsRobotPresent ? 1.0f : 0.0f;
-        public bool IsRfidMatch => !string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid == CurrentRfid;
+        public bool IsRfidMatch => !string.IsNullOrEmpty(AllowedRfid) &&
+                               !string.IsNullOrEmpty(CurrentRfid) &&
+                               AllowedRfid.Trim() == CurrentRfid.Trim();
+
 
         public string RfidMatchIcon => IsRfidMatch ? "\uE73E" : "\uE711";
         public SolidColorBrush RfidMatchColor => IsRfidMatch ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) : new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));

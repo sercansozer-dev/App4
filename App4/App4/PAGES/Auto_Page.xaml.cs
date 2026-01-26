@@ -132,12 +132,23 @@ namespace App4
 
         private void AddStationOutputs(ObservableCollection<PlcVariable> outputs, int stationId)
         {
-            outputs.Add(CreateVarExt($"ST{stationId}_RFID_MODE", "Mixed", "RFID Mod", true, $"DB10.DBX{(stationId - 1) * 20}.0"));
-            outputs.Add(CreateVarExt($"ST{stationId}_RFID_TARGET", "", "Hedef RFID", true, $"DB10.STR{(stationId - 1) * 20}.4"));
-            outputs.Add(CreateVarExt($"ST{stationId}_ID_MATCHED", "FALSE", "ID Eşleşti", true, $"DB10.DBX{(stationId - 1) * 20}.20"));
-            outputs.Add(CreateVarExt($"ST{stationId}_PROCESS_RESULT", "0", "Sonuç", true, $"DB10.DBX{(stationId - 1) * 20}.22"));
-            outputs.Add(CreateVarExt($"ST{stationId}_CONVEYOR_PERM", "FALSE", "Konveyör", true, $"DB10.DBX{(stationId - 1) * 20}.24"));
-            outputs.Add(CreateVarExt($"ST{stationId}_MODE_CMD", "AUTO", "Mod Cmd", true, $"DB10.DBX{(stationId - 1) * 20}.26"));
+            // RFID MODU: "Mixed" yerine "0" (0: Mixed, 1: Specific) [cite: 133, 145]
+            outputs.Add(CreateVarExt($"ST{stationId}_RFID_MODE", "0", "RFID Mod", true, $"DB10.W{(stationId - 1) * 20}.0"));
+
+            // HEDEF RFID: Boş metin yerine "0" ve adres tipi .STR (String) yerine .W (Word) yapıldı 
+            outputs.Add(CreateVarExt($"ST{stationId}_RFID_TARGET", "0", "Hedef RFID", true, $"DB10.W{(stationId - 1) * 20}.4"));
+
+            // EŞLEŞME DURUMU: "FALSE" yerine "0" [cite: 135]
+            outputs.Add(CreateVarExt($"ST{stationId}_ID_MATCHED", "0", "ID Eşleşti", true, $"DB10.W{(stationId - 1) * 20}.20"));
+
+            // İŞLEM SONUCU: Sayısal olarak "0" kalmaya devam ediyor [cite: 136]
+            outputs.Add(CreateVarExt($"ST{stationId}_PROCESS_RESULT", "0", "Sonuç", true, $"DB10.W{(stationId - 1) * 20}.22"));
+
+            // KONVEYÖR İZNİ: "FALSE" yerine "0" [cite: 137]
+            outputs.Add(CreateVarExt($"ST{stationId}_CONVEYOR_PERM", "0", "Konveyör", true, $"DB10.W{(stationId - 1) * 20}.24"));
+
+            // MOD KOMUTU: "AUTO" yerine "1" (1: Auto, 0: Manual) [cite: 138]
+            outputs.Add(CreateVarExt($"ST{stationId}_MODE_CMD", "1", "Mod Cmd", true, $"DB10.W{(stationId - 1) * 20}.26"));
         }
 
         private PlcVariable CreateVarExt(string name, string value, string description, bool isEditable, string tag)
@@ -264,17 +275,47 @@ namespace App4
             {
                 int index = Stations.IndexOf(station); if (index < 0) return;
                 ObservableCollection<PlcVariable> outputs = null;
-                switch (index) { case 0: outputs = Station1Outputs; break; case 1: outputs = Station2Outputs; break; case 2: outputs = Station3Outputs; break; case 3: outputs = Station4Outputs; break; }
+                switch (index) { 
+                    case 0: outputs = Station1Outputs; break;
+                    case 1: outputs = Station2Outputs; break;
+                    case 2: outputs = Station3Outputs; break; 
+                    case 3: outputs = Station4Outputs; break; }
+
                 if (outputs != null)
                 {
-                    if (e.PropertyName == nameof(StationViewModel.CurrentRfid) || e.PropertyName == nameof(StationViewModel.AllowedRfid) || e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
+                    // 1. RFID Eşleşme ve Konveyör İzni (0 veya 1)
+                    if (e.PropertyName == nameof(StationViewModel.CurrentRfid) ||
+                        e.PropertyName == nameof(StationViewModel.AllowedRfid) ||
+                        e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
                     {
-                        UpdatePlcVar(outputs, $"ST{index + 1}_ID_MATCHED", station.IsRfidMatch ? "TRUE" : "FALSE");
-                        UpdatePlcVar(outputs, $"ST{index + 1}_CONVEYOR_PERM", station.IsRfidMatch ? "TRUE" : "FALSE");
-                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) || e.PropertyName == nameof(StationViewModel.AllowedRfid)) UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", station.TargetRfid);
+                        // IsRfidMatch true ise "1", false ise "0" gönderir
+                        string matchVal = station.IsRfidMatch ? "1" : "0";
+
+                        UpdatePlcVar(outputs, $"ST{index + 1}_ID_MATCHED", matchVal);
+                        UpdatePlcVar(outputs, $"ST{index + 1}_CONVEYOR_PERM", matchVal);
+
+                        // Hedef RFID değerini zaten int yapmıştık, stringe çevirip gönderiyoruz
+                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) ||
+                            e.PropertyName == nameof(StationViewModel.AllowedRfid))
+                        {
+                            UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", station.TargetRfid.ToString());
+                        }
                     }
-                    else if (e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode)) UpdatePlcVar(outputs, $"ST{index + 1}_RFID_MODE", station.RfidOpMode.ToString());
-                    else if (e.PropertyName == nameof(StationViewModel.Mode)) UpdatePlcVar(outputs, $"ST{index + 1}_MODE_CMD", station.Mode == StationMode.Auto ? "AUTO" : "MANUAL");
+
+                    // 2. RFID Çalışma Modu (Mixed = 0, Specific = 1)
+                    else if (e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode))
+                    {
+                        // Enum int cast edildiğinde Mixed=0, Specific=1 olur
+                        string modeVal = ((int)station.RfidOpMode).ToString();
+                        UpdatePlcVar(outputs, $"ST{index + 1}_RFID_MODE", modeVal);
+                    }
+
+                    // 3. İstasyon Çalışma Komutu (Auto = 1, Manual = 0)
+                    else if (e.PropertyName == nameof(StationViewModel.Mode))
+                    {
+                        string cmdVal = (station.Mode == StationMode.Auto) ? "1" : "0";
+                        UpdatePlcVar(outputs, $"ST{index + 1}_MODE_CMD", cmdVal);
+                    }
                 }
             }
         }
@@ -316,7 +357,27 @@ namespace App4
         }
 
         private void UpdatePlcVar(ObservableCollection<PlcVariable> collection, string partialName, string newValue) { var v = collection.FirstOrDefault(x => x.Name == partialName); if (v != null && v.Value != newValue) v.Value = newValue; }
-        private void BtnAddRfid_Click(object sender, RoutedEventArgs e) { }
+        private void BtnAddRfid_Click(object sender, RoutedEventArgs e)
+        {
+            // Arayüzdeki TextBox'lardan yeni ürün bilgilerini al
+            string newId = TxtNewRfidId.Text?.Trim();
+            string newDesc = TxtNewRfidDesc.Text?.Trim();
+
+            if (!string.IsNullOrEmpty(newId))
+            {
+                // GlobalData içindeki merkezi listeye ekleme yap
+                // Bu liste tüm sayfalardan erişilebilir durumdadır.
+                KnownRfids.Add(new App4.Utilities.RfidDef
+                {
+                    Id = newId,
+                    Description = newDesc
+                });
+
+                // Giriş alanlarını temizle
+                TxtNewRfidId.Text = "";
+                TxtNewRfidDesc.Text = "";
+            }
+        }
         private void UpdateSliderPosition(string value) { foreach (var station in Stations) station.IsRobotPresent = false; if (int.TryParse(value, out int pos) && pos >= 1 && pos <= 4) Stations[pos - 1].IsRobotPresent = true; }
         private void UpdateStationStatus(string varName, string value) { foreach (var station in Stations) { if (station.StatusTag == varName) station.ProcessStatus = MapStatusCode(value); else if (station.AlarmTag == varName) station.HasAlarm = ParseBool(value); else if (station.ProducingTag == varName) station.IsProducing = ParseBool(value); else if (station.ProductionCountTag == varName) station.ProductionCount = value; else if (station.EfficiencyTag == varName) station.Efficiency = value.Contains("%") ? value : "%" + value; else if (station.CurrentRfidTag == varName) station.CurrentRfid = value; } }
         private bool ParseBool(string value) { if (string.IsNullOrEmpty(value)) return false; value = value.ToUpper(); return value == "TRUE" || value == "1" || value == "ON"; }
