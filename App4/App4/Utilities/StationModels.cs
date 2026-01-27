@@ -190,7 +190,14 @@ namespace App4.Utilities
         public event PropertyChangedEventHandler PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+    public class SystemCheckItem
+    {
+        public string TagName { get; set; }
+        public string ErrorMessage { get; set; }
 
+        // Helper property for display binding
+        public string DisplayText => $"{TagName} -> {ErrorMessage}";
+    }
     // --- EXTENDED STATION VIEW MODEL ---
     public class ExtendedStationViewModel : StationViewModel
     {
@@ -228,6 +235,11 @@ namespace App4.Utilities
                 }
             };
         }
+
+
+        // StationModels.cs dosyasının en altına (namespace parantezinin içine) ekleyin:
+
+       
 
         public bool IsAutoMode { get => Mode == StationMode.Auto; set => Mode = value ? StationMode.Auto : StationMode.Manual; }
         public bool IsManualMode { get => Mode != StationMode.Auto; set { if (value) Mode = StationMode.Manual; else Mode = StationMode.Auto; } }

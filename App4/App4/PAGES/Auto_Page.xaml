@@ -799,7 +799,67 @@
                             </Grid>
                         </Border>
 
-                       
+                        <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0" Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="250"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0" Background="#252526" Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <FontIcon Glyph="&#xE9D9;" Foreground="#E74C3C" FontSize="14"/>
+                                        <TextBlock Text="SİSTEM START KOŞULLARI (INTERLOCK)" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Grid Grid.Row="1" Background="#222" Padding="10" RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <ComboBox x:Name="ComboCheckTag" Grid.Row="0" Grid.ColumnSpan="2"
+                      ItemsSource="{Binding AvailableInputPlcTags, ElementName=AutoPageRoot, Mode=OneWay}" 
+                      PlaceholderText="PLC Input Seçiniz..." 
+                      HorizontalAlignment="Stretch" FontSize="11"/>
+
+                                    <TextBox x:Name="TxtCheckMessage" Grid.Row="1" Grid.Column="0" 
+                     PlaceholderText="Hata Mesajı Yazın (Örn: HAVA DÜŞÜK)" 
+                     FontSize="11" Margin="0,0,5,0"/>
+
+                                    <Button Grid.Row="1" Grid.Column="1" Content="Ekle" Click="BtnAddCheck_Click" 
+                    FontSize="11" FontWeight="Bold" Background="#27AE60" Foreground="White"/>
+                                </Grid>
+
+                                <ListView Grid.Row="2" ItemsSource="{x:Bind SystemCheckList}" SelectionMode="None">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="utils:SystemCheckItem">
+                                            <Grid Padding="10,8" BorderBrush="#333" BorderThickness="0,0,0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Grid.Column="0" Spacing="2">
+                                                    <TextBlock Text="{x:Bind TagName}" Foreground="#0078D4" FontSize="10" Opacity="0.8"/>
+                                                    <TextBlock Text="{x:Bind ErrorMessage}" Foreground="#E74C3C" FontWeight="Bold" FontSize="11" TextWrapping="Wrap"/>
+                                                </StackPanel>
+
+                                                <Button Grid.Column="1" Click="BtnDeleteCheck_Click" Background="Transparent" BorderThickness="0" Padding="8" VerticalAlignment="Center">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#666"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </StackPanel>
             </StackPanel>

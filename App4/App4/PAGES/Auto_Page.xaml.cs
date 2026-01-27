@@ -19,6 +19,7 @@ namespace App4
         public ObservableCollection<App4.Utilities.RfidDef> KnownRfids => GlobalData.KnownRfids;
         public ObservableCollection<StationViewModel> Stations => GlobalData.Stations;
 
+        public ObservableCollection<App4.Utilities.SystemCheckItem> SystemCheckList => GlobalData.SystemCheckList;
         public ObservableCollection<PlcVariable> GeneralInputVars => GlobalData.GeneralInputVars;
         public ObservableCollection<PlcVariable> GeneralOutputVars => GlobalData.GeneralOutputVars;
         public ObservableCollection<PlcVariable> Station1Vars => GlobalData.Station1Vars;
@@ -101,6 +102,9 @@ namespace App4
             // 3. Hat Durum Işıklarını Yak
             UpdateLineStatusVisuals();
         }
+
+
+
 
         // --- İSTASYON DURUMU DEĞİŞİRSE KAYDET ---
         private void Station_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -200,33 +204,41 @@ namespace App4
         // --- CANLI DURUM VE ÖN KOŞUL KONTROLÜ ---
         private void UpdateLineStatusVisuals()
         {
-            // 1. Durumları Oku
-            bool isSafetyOk = IsConditionMet("SAFETY_OK", true);
             bool isRunning = IsConditionMet("LINE_RUNNING", true);
-            bool hasStationAlarm = Stations.Any(s => s.HasAlarm); // İstasyon alarmı
 
-            // 2. GÖRSEL GÜNCELLEME: SAFETY
-            if (isSafetyOk)
+            string activeErrorMessage = null;
+
+            // 1. KULLANICININ EKLEDİĞİ LİSTEYİ TARA
+            // Sizin eklediğiniz her maddeyi tek tek kontrol eder
+            foreach (var check in GlobalData.SystemCheckList)
             {
-                CheckSafetyBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkGreen);
-                CheckSafetyBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-                CheckSafetyIcon.Glyph = "\uE73E"; // Check Mark
-                CheckSafetyIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
-                CheckSafetyText.Text = "SAFETY OK";
-                CheckSafetyText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
-            }
-            else
-            {
-                CheckSafetyBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkRed);
-                CheckSafetyBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Red);
-                CheckSafetyIcon.Glyph = "\uE711"; // X Mark
-                CheckSafetyIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
-                CheckSafetyText.Text = "ACİL STOP";
-                CheckSafetyText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                // Tag'i bul
+                var variable = GeneralInputVars.FirstOrDefault(v => v.Name == check.TagName);
+
+                // Tag varsa ve değeri "1" veya "True" DEĞİLSE hata var demektir.
+                // (IsConditionMet false dönerse hata var)
+                if (!IsConditionMet(check.TagName, true))
+                {
+                    activeErrorMessage = check.ErrorMessage;
+                    break; // İlk hatayı bulup çık, ekrana onu yazalım
+                }
             }
 
-            // 3. GÖRSEL GÜNCELLEME: ALARM
-            if (!hasStationAlarm)
+            // 2. İstasyon Alarmlarına Bak (Eğer listede hata yoksa)
+            if (string.IsNullOrEmpty(activeErrorMessage))
+            {
+                if (Stations.Any(s => s.HasAlarm))
+                {
+                    activeErrorMessage = "İSTASYON ARIZA";
+                }
+            }
+
+            // --- GÖRSEL GÜNCELLEME (AYNEN KALIYOR) ---
+
+            // Buradan sonrası önceki kodla aynıdır, sadece activeErrorMessage'ı ekrana basar.
+
+            // ALARM IŞIĞI GÜNCELLEME
+            if (activeErrorMessage == null)
             {
                 CheckAlarmBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkGreen);
                 CheckAlarmBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
@@ -237,34 +249,31 @@ namespace App4
             }
             else
             {
-                CheckAlarmBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkOrange);
-                CheckAlarmBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.OrangeRed);
-                CheckAlarmIcon.Glyph = "\uE7BA"; // Warning
-                CheckAlarmIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Black);
-                CheckAlarmText.Text = "İSTASYON ARIZA";
-                CheckAlarmText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Black);
+                // HATA VAR!
+                CheckAlarmBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkRed);
+                CheckAlarmBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Red);
+                CheckAlarmIcon.Glyph = "\uE7BA";
+                CheckAlarmIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+
+                // Hatanın adını yazıyoruz (Örn: HAVA BASINCI DÜŞÜK)
+                CheckAlarmText.Text = activeErrorMessage;
+                CheckAlarmText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
             }
 
-            // 4. BAŞLAT BUTONU KİLİDİ (SAFETY YOKSA VEYA ÇALIŞIYORSA KİLİTLE)
-            // Sadece Safety OK ise ve Alarm Yoksa ve Hat Duruyorsa başlatılabilir
-            bool canStart = isSafetyOk && !hasStationAlarm && !isRunning;
-
+            // START BUTONU KİLİDİ
+            bool canStart = (activeErrorMessage == null) && !isRunning;
             BtnStart.IsEnabled = canStart;
-            BtnStart.Opacity = canStart ? 1.0 : 0.4; // Görsel olarak da sönükleşsin
+            BtnStart.Opacity = canStart ? 1.0 : 0.4;
 
-            // 5. ANA DURUM METNİ
-            if (!isSafetyOk)
+            // ANA DURUM METNİ
+            if (activeErrorMessage != null)
             {
-                SetStatus("ACİL STOP BASILI!", Microsoft.UI.Colors.Red, "\uE7BA");
-            }
-            else if (hasStationAlarm)
-            {
-                SetStatus("ARIZA BEKLİYOR", Microsoft.UI.Colors.Orange, "\uE7BA");
+                SetStatus(activeErrorMessage, Microsoft.UI.Colors.Red, "\uE7BA");
             }
             else if (isRunning)
             {
                 SetStatus("HAT ÇALIŞIYOR", Microsoft.UI.Colors.LimeGreen, "\uE768");
-                BtnReset.IsEnabled = false; // Çalışırken reset atılamaz
+                BtnReset.IsEnabled = false;
                 BtnReset.Opacity = 0.5;
             }
             else
@@ -371,7 +380,10 @@ namespace App4
         private void AddLog(string msg, string clr) => SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
         private void UpdatePlcVar(ObservableCollection<PlcVariable> c, string n, string v) { var i = c.FirstOrDefault(x => x.Name == n); if (i != null && i.Value != v) i.Value = v; }
         private void UpdateSliderPosition(string v) { foreach (var s in Stations) s.IsRobotPresent = false; if (int.TryParse(v, out int p) && p >= 1 && p <= 4) Stations[p - 1].IsRobotPresent = true; }
-        private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v); else if (s.AlarmTag == n) s.HasAlarm = IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
+        private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
+                                                                                                                                                  // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
+                                                                                                                                                  // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
+                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
         private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
         private string MapStatus(string v) => v switch
         {
@@ -383,5 +395,59 @@ namespace App4
             "6" => "HAZIRLANIYOR",
             _ => v
         };
+
+        private void BtnAddCheck_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Tag Seçili mi?
+            if (ComboCheckTag.SelectedItem is not string selectedTag)
+            {
+                AddLog("HATA: Lütfen listeden bir PLC Input seçiniz.", "Orange");
+                return;
+            }
+
+            // 2. Mesaj Yazılmış mı?
+            if (string.IsNullOrEmpty(TxtCheckMessage.Text))
+            {
+                AddLog("HATA: Lütfen bir hata mesajı yazınız.", "Orange");
+                return;
+            }
+
+            // 3. Ekleme İşlemi
+            try
+            {
+                GlobalData.SystemCheckList.Add(new App4.Utilities.SystemCheckItem
+                {
+                    TagName = selectedTag,
+                    ErrorMessage = TxtCheckMessage.Text.ToUpper()
+                });
+
+                GlobalData.SaveSystemChecks(); // Kaydet
+
+                TxtCheckMessage.Text = ""; // Kutuyu temizle
+                                           // ComboCheckTag.SelectedIndex = -1; // İsterseniz seçimi de sıfırlayabilirsiniz
+
+                // Ekler eklemez kontrol etsin
+                UpdateLineStatusVisuals();
+
+                AddLog($"Kural Eklendi: {selectedTag}", "Green");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Ekleme Hatası: {ex.Message}", "Red");
+            }
+        }
+
+        private void BtnDeleteCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.DataContext is App4.Utilities.SystemCheckItem item)
+            {
+                GlobalData.SystemCheckList.Remove(item);
+                GlobalData.SaveSystemChecks(); // Kaydet
+                UpdateLineStatusVisuals();
+            }
+        }
+
+
+
     }
 }

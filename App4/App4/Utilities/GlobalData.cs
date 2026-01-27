@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Collections.Specialized;
+using static App4.Utilities.ExtendedStationViewModel;
 
 namespace App4.Utilities
 {
@@ -43,9 +44,51 @@ namespace App4.Utilities
             LoadStationStates();    // 3. İstasyon Ayarlarını (Auto/Manual) Yükle
             InitializeVariables();  // 4. Değişkenleri Oluştur
             LoadPlcVariableTagsFromFile(); // 5. Değişken Değerlerini Yükle
-
+            LoadSystemChecks();
             _isInitialized = true;
         }
+
+
+        
+
+        // 1. Dosya Yolu
+        private static readonly string _systemChecksFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "System_Checks.json");
+
+        // 2. Global Liste
+        public static ObservableCollection<SystemCheckItem> SystemCheckList { get; private set; } = new();
+
+        // 3. Initialize Metodunun İçine Ekle (LoadSystemChecks'i çağır)
+        // public static void Initialize() metodunun içine şu satırı ekleyin:
+        // LoadSystemChecks();
+
+        // 4. Kaydetme ve Yükleme Metotları
+        public static void SaveSystemChecks()
+        {
+            try
+            {
+                string json = JsonSerializer.Serialize(SystemCheckList, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_systemChecksFilePath, json);
+            }
+            catch { }
+        }
+
+        private static void LoadSystemChecks()
+        {
+            try
+            {
+                if (File.Exists(_systemChecksFilePath))
+                {
+                    var list = JsonSerializer.Deserialize<List<SystemCheckItem>>(File.ReadAllText(_systemChecksFilePath));
+                    if (list != null) foreach (var item in list) SystemCheckList.Add(item);
+                }
+            }
+            catch { }
+        }
+
+
+
+
+
 
         // 1. RFID YÖNETİMİ
         private static void LoadRfids()
