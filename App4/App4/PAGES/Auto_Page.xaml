@@ -172,34 +172,66 @@
                 <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Margin="0,0,0,20">
                     <Grid Padding="20">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="HAT KONTROL &amp; DURUM" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                            <TextBlock Text="Genel hat komutları ve sistem durumu." FontSize="11" Foreground="#888"/>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="5">
+                            <TextBlock Text="HAT KONTROL MERKEZİ" FontSize="14" FontWeight="Bold" Foreground="White"/>
+
+                            <Border x:Name="LineStatusCard" Background="#333" CornerRadius="4" Padding="10,5" HorizontalAlignment="Left" BorderThickness="1" BorderBrush="#555">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon x:Name="LineStatusIcon" Glyph="&#xE71A;" FontSize="14" Foreground="#CCC"/>
+                                    <TextBlock x:Name="LineStatusText" Text="SİSTEM KAPALI" FontSize="12" FontWeight="Bold" Foreground="#CCC"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="15">
-                            <Button Click="BtnStart_Click" CornerRadius="4" Padding="0" Width="120" Height="40" Background="#27AE60" BorderThickness="0">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center" Margin="0,0,30,0">
+
+                            <StackPanel Orientation="Vertical" Spacing="2">
+                                <TextBlock Text="SAFETY" FontSize="9" Foreground="#888" HorizontalAlignment="Center"/>
+                                <Border x:Name="CheckSafetyBorder" Background="#333" CornerRadius="10" Padding="8,4" BorderThickness="1" BorderBrush="#555">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <FontIcon x:Name="CheckSafetyIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#999"/>
+                                        <TextBlock x:Name="CheckSafetyText" Text="BEKLİYOR" FontSize="10" FontWeight="Bold" Foreground="#999"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Vertical" Spacing="2">
+                                <TextBlock Text="ALARM" FontSize="9" Foreground="#888" HorizontalAlignment="Center"/>
+                                <Border x:Name="CheckAlarmBorder" Background="#333" CornerRadius="10" Padding="8,4" BorderThickness="1" BorderBrush="#555">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <FontIcon x:Name="CheckAlarmIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#999"/>
+                                        <TextBlock x:Name="CheckAlarmText" Text="KONTROL" FontSize="10" FontWeight="Bold" Foreground="#999"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <Button x:Name="BtnStart" Click="BtnStart_Click" CornerRadius="6" Padding="0" Width="110" Height="45" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1" Opacity="0.5" IsEnabled="False">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE768;" FontSize="16" Foreground="White"/>
-                                    <TextBlock Text="BAŞLAT" FontWeight="Bold" Foreground="White"/>
+                                    <FontIcon Glyph="&#xE768;" FontSize="16" Foreground="#2ECC71"/>
+                                    <TextBlock Text="BAŞLAT" FontWeight="Bold" Foreground="White" FontSize="12"/>
                                 </StackPanel>
                             </Button>
 
-                            <Button Click="BtnStop_Click" CornerRadius="4" Padding="0" Width="120" Height="40" Background="#C0392B" BorderThickness="0">
+                            <Button x:Name="BtnStop" Click="BtnStop_Click" CornerRadius="6" Padding="0" Width="110" Height="45" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE71A;" FontSize="16" Foreground="White"/>
-                                    <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White"/>
+                                    <FontIcon Glyph="&#xE71A;" FontSize="16" Foreground="#E74C3C"/>
+                                    <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="12"/>
                                 </StackPanel>
                             </Button>
 
-                            <Button Click="BtnReset_Click" CornerRadius="4" Padding="0" Width="120" Height="40" Background="#F39C12" BorderThickness="0">
+                            <Button x:Name="BtnReset" Click="BtnReset_Click" CornerRadius="6" Padding="0" Width="110" Height="45" Background="#7E5109" BorderBrush="#F39C12" BorderThickness="1">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE72C;" FontSize="16" Foreground="White"/>
-                                    <TextBlock Text="ARIZA RESET" FontWeight="Bold" Foreground="White"/>
+                                    <FontIcon Glyph="&#xE72C;" FontSize="16" Foreground="#F1C40F"/>
+                                    <TextBlock Text="RESET" FontWeight="Bold" Foreground="White" FontSize="12"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
