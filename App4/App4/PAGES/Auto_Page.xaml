@@ -308,7 +308,7 @@
 
                         <ListView Grid.Row="1" ItemsSource="{x:Bind SystemLogs}" SelectionMode="None" Background="#111">
                             <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="local:LogEntry">
+                                <DataTemplate x:DataType="utils:LogEntry">
                                     <Grid Padding="10,4" BorderThickness="0,0,0,1" BorderBrush="#222">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="150"/>

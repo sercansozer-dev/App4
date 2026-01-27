@@ -1,53 +1,35 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using Windows.UI;
-using App4.Utilities; // StationModels ve PlcVariable buradan geliyor
-using Windows.System;
+using System.IO; // File check için gerekebilir ama load/save Global'de
+using App4.Utilities;
 
 namespace App4
 {
     public sealed partial class Auto_Page : Page
     {
-        private readonly string _autoPageVariablesFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "Auto_Page_Variables.json");
+        // ARTIK GLOBAL DATA'YI KULLANIYORUZ
+        // Başına 'App4.Utilities.' ekliyoruz
+        public ObservableCollection<App4.Utilities.RfidDef> KnownRfids => GlobalData.KnownRfids;
+        public ObservableCollection<StationViewModel> Stations => GlobalData.Stations;
 
-        // RfidDef artık App4.Utilities altında
-        // Artık veriyi GlobalData'dan çekiyor
+        public ObservableCollection<PlcVariable> GeneralInputVars => GlobalData.GeneralInputVars;
+        public ObservableCollection<PlcVariable> GeneralOutputVars => GlobalData.GeneralOutputVars;
+        public ObservableCollection<PlcVariable> Station1Vars => GlobalData.Station1Vars;
+        public ObservableCollection<PlcVariable> Station2Vars => GlobalData.Station2Vars;
+        public ObservableCollection<PlcVariable> Station3Vars => GlobalData.Station3Vars;
+        public ObservableCollection<PlcVariable> Station4Vars => GlobalData.Station4Vars;
+        public ObservableCollection<PlcVariable> Station1Outputs => GlobalData.Station1Outputs;
+        public ObservableCollection<PlcVariable> Station2Outputs => GlobalData.Station2Outputs;
+        public ObservableCollection<PlcVariable> Station3Outputs => GlobalData.Station3Outputs;
+        public ObservableCollection<PlcVariable> Station4Outputs => GlobalData.Station4Outputs;
 
-        // --- GLOBAL RFID LİSTESİ ---
-        // BU SATIRI SİL veya DEĞİŞTİR:
-        // --- GLOBAL RFID LİSTESİ ---
-        // XAML'ın erişebilmesi için GlobalData'ya bir köprü kuruyoruz.
-        // "static" değil, normal bir property (Instance Member) olmalı.
-        // Türü açıkça "App4.Utilities.RfidDef" olarak belirtiyoruz
-        public ObservableCollection<App4.Utilities.RfidDef> KnownRfids => App4.Utilities.GlobalData.KnownRfids;
-
-        // StationViewModel artık App4.Utilities altında
-        public ObservableCollection<StationViewModel> Stations { get; set; } = new();
-
-        public ObservableCollection<PlcVariable> GeneralInputVars { get; set; } = new(); 
-        public ObservableCollection<PlcVariable> GeneralOutputVars { get; set; } = new(); 
-        public ObservableCollection<PlcVariable> Station1Vars { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station2Vars { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station3Vars { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station4Vars { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station1Outputs { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station2Outputs { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station3Outputs { get; set; } = new();
-        public ObservableCollection<PlcVariable> Station4Outputs { get; set; } = new();
-        public ObservableCollection<LogEntry> SystemLogs { get; set; } = new();
-        public ObservableCollection<string> AvailablePlcTags { get; set; } = new();
+        public ObservableCollection<App4.Utilities.LogEntry> SystemLogs { get; set; } = new();
         public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
 
@@ -55,480 +37,159 @@ namespace App4
         {
             this.InitializeComponent();
 
-            InitializeStations();
-            InitializeLocalVariables();
+            // Tag listelerini doldur
             InitializeAvailablePlcTags();
 
+            // Olayları dinlemeye başla (Sayfa her açıldığında tekrar bağlanır)
             this.Loaded += Page_Loaded;
-        }
-
-        // BAŞLAT BUTONU: Start True, Stop False yapar (Tersi çalışır)
-        private void BtnStart_Click(object sender, RoutedEventArgs e)
-        {
-            // Değişkenleri yeni listelerden buluyoruz
-            var startVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_START");
-            var stopVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_STOP");
-
-            // Simülasyon geri bildirimi için Input değişkenleri
-            var runningVar = GeneralInputVars.FirstOrDefault(v => v.Name == "LINE_RUNNING");
-            var autoModeVar = GeneralInputVars.FirstOrDefault(v => v.Name == "LINE_AUTO_MODE");
-
-            // 1. Start'ı Aktif, Stop'u Pasif yap (Birbirinin Tersi)
-            if (startVar != null) startVar.CurrentValue = true;
-            if (stopVar != null) stopVar.CurrentValue = false;
-
-            // 2. Simülasyon mantığı: Makine çalışmaya başladı görünmesi için inputları da güncelleyelim
-            if (runningVar != null) runningVar.CurrentValue = true;
-            if (autoModeVar != null) autoModeVar.CurrentValue = true;
-
-            AddLog("Hat Başlatıldı.", "Green");
-        }
-
-        // DURDUR BUTONU: Stop True, Start False yapar
-        private void BtnStop_Click(object sender, RoutedEventArgs e)
-        {
-            var startVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_START");
-            var stopVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_STOP");
-            var runningVar = GeneralInputVars.FirstOrDefault(v => v.Name == "LINE_RUNNING");
-
-            // 1. Stop'u Aktif, Start'ı Pasif yap
-            if (stopVar != null) stopVar.CurrentValue = true;
-            if (startVar != null) startVar.CurrentValue = false;
-
-            // 2. Simülasyon mantığı: Makine durdu
-            if (runningVar != null) runningVar.CurrentValue = false;
-
-            AddLog("Hat Durduruldu.", "Red");
-        }
-
-        // RESET BUTONU: Bas-Çek (Pulse) mantığı
-        private async void BtnReset_Click(object sender, RoutedEventArgs e)
-        {
-            var resetVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_RESET");
-
-            if (resetVar != null)
-            {
-                // 1. BAS (Sinyali gönder)
-                resetVar.CurrentValue = true;
-                AddLog("Reset sinyali gönderiliyor...", "Yellow");
-
-                // 2. BEKLE (Elimiz butondaymış gibi 500ms bekle)
-                await System.Threading.Tasks.Task.Delay(500);
-
-                // 3. ÇEK (Sinyali kes)
-                resetVar.CurrentValue = false;
-                AddLog("Reset tamamlandı.", "White");
-            }
-        }
-
-        // LOG TEMİZLEME (Az önce sildiğinizi fark etmiştik, bunu da ekleyin)
-        private void BtnClearLogs_Click(object sender, RoutedEventArgs e)
-        {
-            SystemLogs.Clear();
-        }
-
-        // 4. ADIM: SendPlcPulse fonksiyonunu güncelleyin
-        private async System.Threading.Tasks.Task SendPlcPulse(string varName)
-        {
-            // Pulse genellikle Output'a gönderilir
-            var variable = GeneralOutputVars.FirstOrDefault(v => v.Name == varName);
-            if (variable != null)
-            {
-                variable.CurrentValue = true;
-                await System.Threading.Tasks.Task.Delay(500);
-                variable.CurrentValue = false;
-            }
-        }
-
-        // 3. LOG EKLEME METODU (Burada olduğundan emin olun)
-        private void AddLog(string message, string color = "White")
-        {
-            this.DispatcherQueue.TryEnqueue(() =>
-            {
-                SystemLogs.Insert(0, new LogEntry
-                {
-                    TimeStr = DateTime.Now.ToString("HH:mm:ss"),
-                    Message = message,
-                    ColorCode = color
-                });
-
-                if (SystemLogs.Count > 100) SystemLogs.RemoveAt(SystemLogs.Count - 1);
-            });
-        }
-
-
-        protected override void OnNavigatedTo(NavigationEventArgs e)
-        {
-            base.OnNavigatedTo(e);
-            InitializeAvailablePlcTags();
-            if (File.Exists(_autoPageVariablesFilePath)) LoadPlcVariableTagsFromFile();
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            ReplaceStationsWithExtended();
-            InitializeOutputVariables();
-            if (!File.Exists(_autoPageVariablesFilePath)) SavePlcVariableTagsToFile();
-            else LoadPlcVariableTagsFromFile();
-            SubscribeStationEvents();
-        }
+            // İstasyon olaylarını bağla (Auto/Manual değişimi için)
+            foreach (var s in Stations) { s.PropertyChanged -= Station_PropertyChanged; s.PropertyChanged += Station_PropertyChanged; }
 
-        private void InitializeStations()
-        {
-            Stations.Add(new StationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Auto, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123" });
-            Stations.Add(new StationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Auto, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123" });
-            Stations.Add(new StationViewModel { Name = "İSTASYON 3", Description = "Boş İstasyon", Mode = StationMode.Manual, StatusTag = "ST3_STATUS", AlarmTag = "ST3_ALARM", ProducingTag = "ST3_PRODUCING", ProductionCountTag = "ST3_PROD_COUNT", EfficiencyTag = "ST3_EFFICIENCY", CurrentRfidTag = "ST3_RFID_ACT", AllowedRfid = "RF123" });
-            Stations.Add(new StationViewModel { Name = "İSTASYON 4", Description = "Klima Hatalı", Mode = StationMode.Bypass, StatusTag = "ST4_STATUS", AlarmTag = "ST4_ALARM", ProducingTag = "ST4_PRODUCING", ProductionCountTag = "ST4_PROD_COUNT", EfficiencyTag = "ST4_EFFICIENCY", CurrentRfidTag = "ST4_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "ERR01" });
-        }
-
-        private void InitializeLocalVariables()
-        {
-            PlcVariable CreateLocalVar(string name, string type, string direction, object defaultValue)
+            // Değişken olaylarını bağla (Değer değişimi için)
+            void BindVars(ObservableCollection<PlcVariable> list)
             {
-                var variable = new PlcVariable { Name = name, Type = type, Direction = direction, CurrentValue = defaultValue, IsEditable = true, PlcTag = "" };
-                variable.PropertyChanged += LocalVariable_PropertyChanged;
-                return variable;
+                foreach (var v in list) { v.PropertyChanged -= LocalVariable_PropertyChanged; v.PropertyChanged += LocalVariable_PropertyChanged; ConnectToPlcVariable(v); }
             }
-            GeneralInputVars.Add(CreateLocalVar("SLIDER_POS_ACT", "WORD", "Input", "0"));
-            GeneralInputVars.Add(CreateLocalVar("ROBOT_SPEED", "WORD", "Input", "100"));
-            GeneralInputVars.Add(CreateLocalVar("GOCATOR_STATUS", "STRING", "Input", "READY"));
-            GeneralInputVars.Add(CreateLocalVar("SAFETY_OK", "BOOL", "Input", true));
-            GeneralInputVars.Add(CreateLocalVar("LINE_RUNNING", "BOOL", "Input", false));
-            GeneralInputVars.Add(CreateLocalVar("LINE_AUTO_MODE", "BOOL", "Input", false));
-            GeneralInputVars.Add(CreateLocalVar("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
-
-            // --- OUTPUTLAR (GeneralOutputVars listesine ekleniyor) ---
-            GeneralOutputVars.Add(CreateLocalVar("CMD_LINE_START", "BOOL", "Output", false));
-            GeneralOutputVars.Add(CreateLocalVar("CMD_LINE_STOP", "BOOL", "Output", false));
-            GeneralOutputVars.Add(CreateLocalVar("CMD_LINE_RESET", "BOOL", "Output", false));
-
-            void AddStationVars(ObservableCollection<PlcVariable> collection, int stationId)
-            {
-                collection.Add(CreateLocalVar($"ST{stationId}_STATUS", "STRING", "Input", "Unknown"));
-                collection.Add(CreateLocalVar($"ST{stationId}_ALARM", "BOOL", "Input", false));
-                collection.Add(CreateLocalVar($"ST{stationId}_MODE", "STRING", "Input", "Manual"));
-                collection.Add(CreateLocalVar($"ST{stationId}_PRODUCING", "BOOL", "Input", false));
-                collection.Add(CreateLocalVar($"ST{stationId}_PROD_COUNT", "WORD", "Input", "0"));
-                collection.Add(CreateLocalVar($"ST{stationId}_EFFICIENCY", "WORD", "Input", "0"));
-                collection.Add(CreateLocalVar($"ST{stationId}_RFID_ACT", "STRING", "Input", ""));
-            }
-            AddStationVars(Station1Vars, 1); AddStationVars(Station2Vars, 2);
-            AddStationVars(Station3Vars, 3); AddStationVars(Station4Vars, 4);
+            BindVars(GeneralInputVars); BindVars(GeneralOutputVars);
+            BindVars(Station1Vars); BindVars(Station1Outputs);
+            BindVars(Station2Vars); BindVars(Station2Outputs);
+            BindVars(Station3Vars); BindVars(Station3Outputs);
+            BindVars(Station4Vars); BindVars(Station4Outputs);
         }
 
+        // --- İSTASYON DURUMU DEĞİŞİRSE KAYDET ---
+        private void Station_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (sender is ExtendedStationViewModel station)
+            {
+                if (e.PropertyName == nameof(StationViewModel.Mode) ||
+                    e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode) ||
+                    e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
+                {
+                    GlobalData.SaveStationStates(); // <-- GLOBAL KAYDET
+                }
+
+                // PLC'ye Yazma İşlemleri (Eski kodunun aynısı)
+                int index = Stations.IndexOf(station);
+                if (index < 0) return;
+                ObservableCollection<PlcVariable> outputs = index switch { 0 => Station1Outputs, 1 => Station2Outputs, 2 => Station3Outputs, 3 => Station4Outputs, _ => null };
+
+                if (outputs != null)
+                {
+                    if (e.PropertyName == nameof(StationViewModel.CurrentRfid) || e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
+                    {
+                        string matchVal = station.IsRfidMatch ? "1" : "0";
+                        UpdatePlcVar(outputs, $"ST{index + 1}_ID_MATCHED", matchVal);
+                        UpdatePlcVar(outputs, $"ST{index + 1}_CONVEYOR_PERM", matchVal);
+                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid)) UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", station.TargetRfid);
+                    }
+                    else if (e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode)) UpdatePlcVar(outputs, $"ST{index + 1}_RFID_MODE", ((int)station.RfidOpMode).ToString());
+                    else if (e.PropertyName == nameof(StationViewModel.Mode)) UpdatePlcVar(outputs, $"ST{index + 1}_MODE_CMD", (station.Mode == StationMode.Auto) ? "1" : "0");
+                }
+            }
+        }
+
+        // --- DEĞİŞKEN DEĞERİ DEĞİŞİRSE KAYDET ---
+        private void LocalVariable_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (sender is PlcVariable localVar && e.PropertyName == nameof(PlcVariable.CurrentValue))
+            {
+                GlobalData.SavePlcVariableTagsToFile(); // <-- GLOBAL KAYDET
+
+                // Slider vb. görsel güncellemeler
+                if (localVar.Name == "SLIDER_POS_ACT") UpdateSliderPosition(localVar.CurrentValue?.ToString());
+                else UpdateStationStatus(localVar.Name, localVar.CurrentValue?.ToString());
+            }
+        }
+
+        // --- DİĞER FONKSİYONLAR (AYNEN KALDI) ---
         private void InitializeAvailablePlcTags()
         {
             try
             {
-                AvailableInputPlcTags.Clear(); AvailableOutputPlcTags.Clear(); AvailablePlcTags.Clear();
-                foreach (var v in PlcService.Instance.InputVariables) { AvailableInputPlcTags.Add(v.Name); AvailablePlcTags.Add(v.Name); }
-                foreach (var v in PlcService.Instance.OutputVariables) { AvailableOutputPlcTags.Add(v.Name); if (!AvailablePlcTags.Contains(v.Name)) AvailablePlcTags.Add(v.Name); }
+                AvailableInputPlcTags.Clear(); AvailableOutputPlcTags.Clear();
+                foreach (var v in PlcService.Instance.InputVariables) AvailableInputPlcTags.Add(v.Name);
+                foreach (var v in PlcService.Instance.OutputVariables) AvailableOutputPlcTags.Add(v.Name);
             }
             catch { }
-        }
-
-        private void InitializeOutputVariables()
-        {
-            if (Station1Outputs.Count > 0) return;
-            Station1Outputs.Clear(); Station2Outputs.Clear(); Station3Outputs.Clear(); Station4Outputs.Clear();
-            AddStationOutputs(Station1Outputs, 1); AddStationOutputs(Station2Outputs, 2);
-            AddStationOutputs(Station3Outputs, 3); AddStationOutputs(Station4Outputs, 4);
-        }
-
-        private void AddStationOutputs(ObservableCollection<PlcVariable> outputs, int stationId)
-        {
-            // RFID MODU: "Mixed" yerine "0" (0: Mixed, 1: Specific) [cite: 133, 145]
-            outputs.Add(CreateVarExt($"ST{stationId}_RFID_MODE", "0", "RFID Mod", true, $"DB10.W{(stationId - 1) * 20}.0"));
-
-            // HEDEF RFID: Boş metin yerine "0" ve adres tipi .STR (String) yerine .W (Word) yapıldı 
-            outputs.Add(CreateVarExt($"ST{stationId}_RFID_TARGET", "0", "Hedef RFID", true, $"DB10.W{(stationId - 1) * 20}.4"));
-
-            // EŞLEŞME DURUMU: "FALSE" yerine "0" [cite: 135]
-            outputs.Add(CreateVarExt($"ST{stationId}_ID_MATCHED", "0", "ID Eşleşti", true, $"DB10.W{(stationId - 1) * 20}.20"));
-
-            // İŞLEM SONUCU: Sayısal olarak "0" kalmaya devam ediyor [cite: 136]
-            outputs.Add(CreateVarExt($"ST{stationId}_PROCESS_RESULT", "0", "Sonuç", true, $"DB10.W{(stationId - 1) * 20}.22"));
-
-            // KONVEYÖR İZNİ: "FALSE" yerine "0" [cite: 137]
-            outputs.Add(CreateVarExt($"ST{stationId}_CONVEYOR_PERM", "0", "Konveyör", true, $"DB10.W{(stationId - 1) * 20}.24"));
-
-            // MOD KOMUTU: "AUTO" yerine "1" (1: Auto, 0: Manual) [cite: 138]
-            outputs.Add(CreateVarExt($"ST{stationId}_MODE_CMD", "1", "Mod Cmd", true, $"DB10.W{(stationId - 1) * 20}.26"));
-        }
-
-        private PlcVariable CreateVarExt(string name, string value, string description, bool isEditable, string tag)
-        {
-            return new PlcVariable { Name = name, Value = value, Description = description, IsEditable = isEditable, PlcTag = tag };
         }
 
         private void ConnectToPlcVariable(PlcVariable localVar)
         {
             if (string.IsNullOrEmpty(localVar.PlcTag)) return;
-
-            // 1. PLC Havuzundaki (merkezi) değişkeni bul
-            var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag)
-                             ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
-
+            var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
             if (sourceRealVar != null)
             {
-                // --- OKUMA TARAFI (PLC -> UI) ---
-                this.DispatcherQueue.TryEnqueue(() => {
-                    localVar.Value = sourceRealVar.CurrentValue?.ToString();
-                });
-
-                sourceRealVar.PropertyChanged += (s, e) => {
-                    if (e.PropertyName == "CurrentValue")
-                    {
-                        this.DispatcherQueue.TryEnqueue(() => {
-                            if (localVar.PlcTag == sourceRealVar.Name)
-                                localVar.Value = sourceRealVar.CurrentValue?.ToString();
-                        });
-                    }
-                };
-
-                // --- YAZMA TARAFI (UI -> PLC) --- [cite: 6, 7]
-                            // Eğer değişken bir Output ise, arayüzdeki değişimi dinle ve PLC'ye yaz
+                // Okuma
+                localVar.Value = sourceRealVar.CurrentValue?.ToString();
+                sourceRealVar.PropertyChanged += (s, e) => { if (e.PropertyName == "CurrentValue") this.DispatcherQueue.TryEnqueue(() => localVar.Value = sourceRealVar.CurrentValue?.ToString()); };
+                // Yazma
                 localVar.PropertyChanged += async (s, e) => {
-                    if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
-                    {
-                        // Kullanıcının girdiği yeni değeri merkezi havuza aktar
-                        if (sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
-                        {
-                            sourceRealVar.CurrentValue = localVar.CurrentValue;
-
-                            // Gerçek PLC yazma işlemini tetikle
-                            await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue);
-                        }
-                    }
+                    if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
+                    { sourceRealVar.CurrentValue = localVar.CurrentValue; await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue); }
                 };
             }
-        }
-
-        // Event handler'ı temizlemek için boş bir referans metodu (Lambda kullandığımız için opsiyonel ama iyi pratik)
-        private void LocalVar_SourceChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) { }
-
-        private void LoadPlcVariableTagsFromFile()
-        {
-            try
-            {
-                if (File.Exists(_autoPageVariablesFilePath))
-                {
-                    var json = File.ReadAllText(_autoPageVariablesFilePath);
-                    var data = JsonSerializer.Deserialize<JsonElement>(json);
-                    void LoadTags(string propName, ObservableCollection<PlcVariable> target)
-                    {
-                        if (data.TryGetProperty(propName, out var arr))
-                            foreach (var item in arr.EnumerateArray())
-                                if (item.TryGetProperty("name", out var n) && item.TryGetProperty("plcTag", out var t))
-                                { var v = target.FirstOrDefault(x => x.Name == n.GetString()); if (v != null) { v.PlcTag = t.GetString(); ConnectToPlcVariable(v); } }
-                    }
-                    LoadTags("GeneralInputVars", GeneralInputVars);
-                    LoadTags("GeneralOutputVars", GeneralOutputVars);
-                    LoadTags("Station1Vars", Station1Vars);
-                    LoadTags("Station2Vars", Station2Vars);
-                    LoadTags("Station3Vars", Station3Vars); 
-                    LoadTags("Station4Vars", Station4Vars); 
-                    LoadTags("Station1Outputs", Station1Outputs);
-                    LoadTags("Station2Outputs", Station2Outputs); 
-                    LoadTags("Station3Outputs", Station3Outputs); 
-                    LoadTags("Station4Outputs", Station4Outputs);
-                }
-            }
-            catch { }
-        }
-
-        private void SavePlcVariableTagsToFile()
-        {
-            try
-            {
-                var dir = Path.GetDirectoryName(_autoPageVariablesFilePath);
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                var data = new
-                {
-                    GeneralInputVars = GeneralInputVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    GeneralOutputVars = GeneralOutputVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station1Vars = Station1Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station2Vars = Station2Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station3Vars = Station3Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station4Vars = Station4Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station1Outputs = Station1Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station2Outputs = Station2Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station3Outputs = Station3Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
-                    Station4Outputs = Station4Outputs.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList()
-                };
-                File.WriteAllText(_autoPageVariablesFilePath, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
-            }
-            catch { }
         }
 
         private void PlcTagComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is ComboBox comboBox && comboBox.DataContext is PlcVariable plcVar)
-            {
-                string selected = comboBox.SelectedItem as string;
-                if (plcVar.PlcTag != selected) { plcVar.PlcTag = selected; SavePlcVariableTagsToFile(); ConnectToPlcVariable(plcVar); }
-            }
+            if (sender is ComboBox cb && cb.DataContext is PlcVariable v) { if (v.PlcTag != cb.SelectedItem as string) { v.PlcTag = cb.SelectedItem as string; GlobalData.SavePlcVariableTagsToFile(); ConnectToPlcVariable(v); } }
         }
 
-        private void LocalVariable_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        // Butonlar Global Listeleri Kullanır
+        private void BtnStart_Click(object sender, RoutedEventArgs e) { SetBtn("CMD_LINE_START", true); SetBtn("CMD_LINE_STOP", false); SetIn("LINE_RUNNING", true); AddLog("Hat Başlatıldı", "Green"); }
+        private void BtnStop_Click(object sender, RoutedEventArgs e) { SetBtn("CMD_LINE_STOP", true); SetBtn("CMD_LINE_START", false); SetIn("LINE_RUNNING", false); AddLog("Hat Durduruldu", "Red"); }
+        private async void BtnReset_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is PlcVariable localVar && e.PropertyName == nameof(PlcVariable.CurrentValue))
-            {
-                string strValue = localVar.CurrentValue?.ToString() ?? "";
-                if (localVar.Name == "SLIDER_POS_ACT") UpdateSliderPosition(strValue);
-                else UpdateStationStatus(localVar.Name, strValue);
-            }
+            var v = GeneralOutputVars.FirstOrDefault(x => x.Name == "CMD_LINE_RESET"); if (v != null) { v.Value = "True"; AddLog("Reset...", "Yellow"); await System.Threading.Tasks.Task.Delay(500); v.Value = "False"; AddLog("Resetlendi", "White"); }
         }
 
-        private void SubscribeStationEvents() { foreach (var s in Stations) { s.PropertyChanged -= Station_PropertyChanged; s.PropertyChanged += Station_PropertyChanged; } }
+        private void SetBtn(string n, bool v) { var var = GeneralOutputVars.FirstOrDefault(x => x.Name == n); if (var != null) var.CurrentValue = v; }
+        private void SetIn(string n, bool v) { var var = GeneralInputVars.FirstOrDefault(x => x.Name == n); if (var != null) var.CurrentValue = v; }
 
-        private void Station_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (sender is ExtendedStationViewModel station)
-            {
-                int index = Stations.IndexOf(station); if (index < 0) return;
-                ObservableCollection<PlcVariable> outputs = null;
-                switch (index) { 
-                    case 0: outputs = Station1Outputs; break;
-                    case 1: outputs = Station2Outputs; break;
-                    case 2: outputs = Station3Outputs; break; 
-                    case 3: outputs = Station4Outputs; break; }
-
-                if (outputs != null)
-                {
-                    // 1. RFID Eşleşme ve Konveyör İzni (0 veya 1)
-                    if (e.PropertyName == nameof(StationViewModel.CurrentRfid) ||
-                        e.PropertyName == nameof(StationViewModel.AllowedRfid) ||
-                        e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
-                    {
-                        // IsRfidMatch true ise "1", false ise "0" gönderir
-                        string matchVal = station.IsRfidMatch ? "1" : "0";
-
-                        UpdatePlcVar(outputs, $"ST{index + 1}_ID_MATCHED", matchVal);
-                        UpdatePlcVar(outputs, $"ST{index + 1}_CONVEYOR_PERM", matchVal);
-
-                        // Hedef RFID değerini zaten int yapmıştık, stringe çevirip gönderiyoruz
-                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) ||
-                            e.PropertyName == nameof(StationViewModel.AllowedRfid))
-                        {
-                            UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", station.TargetRfid.ToString());
-                        }
-                    }
-
-                    // 2. RFID Çalışma Modu (Mixed = 0, Specific = 1)
-                    else if (e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode))
-                    {
-                        // Enum int cast edildiğinde Mixed=0, Specific=1 olur
-                        string modeVal = ((int)station.RfidOpMode).ToString();
-                        UpdatePlcVar(outputs, $"ST{index + 1}_RFID_MODE", modeVal);
-                    }
-
-                    // 3. İstasyon Çalışma Komutu (Auto = 1, Manual = 0)
-                    else if (e.PropertyName == nameof(StationViewModel.Mode))
-                    {
-                        string cmdVal = (station.Mode == StationMode.Auto) ? "1" : "0";
-                        UpdatePlcVar(outputs, $"ST{index + 1}_MODE_CMD", cmdVal);
-                    }
-                }
-            }
-        }
-
-        private void ReplaceStationsWithExtended()
-        {
-            for (int i = 0; i < Stations.Count; i++)
-            {
-                if (Stations[i] is not ExtendedStationViewModel)
-                {
-                    var item = Stations[i];
-                    var ext = new ExtendedStationViewModel
-                    {
-                        Name = item.Name,
-                        Description = item.Description,
-                        StatusTag = item.StatusTag,
-                        AlarmTag = item.AlarmTag,
-                        ModeTag = item.ModeTag,
-                        ProducingTag = item.ProducingTag,
-                        ProductionCountTag = item.ProductionCountTag,
-                        EfficiencyTag = item.EfficiencyTag,
-                        CurrentRfidTag = item.CurrentRfidTag,
-                        AllowedRfid = item.AllowedRfid,
-                        CurrentRfid = item.CurrentRfid,
-                        Mode = item.Mode,
-                        IsProducing = item.IsProducing,
-                        HasAlarm = item.HasAlarm,
-                        IsRobotPresent = item.IsRobotPresent,
-                        ProcessStatus = item.ProcessStatus,
-                        ProductionCount = item.ProductionCount,
-                        Efficiency = item.Efficiency
-                    };
-                    if (string.IsNullOrEmpty(ext.CurrentRfidTag) && i == 0) ext.CurrentRfidTag = "ST1_RFID_ACT";
-                    ext.RfidOpMode = App4.Utilities.RfidOperationMode.Mixed;
-                    if (!string.IsNullOrEmpty(ext.AllowedRfid)) { ext.TargetRfid = ext.AllowedRfid; if (ext.AllowedRfid != "") ext.RfidOpMode = App4.Utilities.RfidOperationMode.Specific; }
-                    Stations[i] = ext;
-                }
-            }
-        }
-
-        private void UpdatePlcVar(ObservableCollection<PlcVariable> collection, string partialName, string newValue) { var v = collection.FirstOrDefault(x => x.Name == partialName); if (v != null && v.Value != newValue) v.Value = newValue; }
         private void BtnAddRfid_Click(object sender, RoutedEventArgs e)
         {
-            // Arayüzdeki TextBox'lardan yeni ürün bilgilerini al
-            string newId = TxtNewRfidId.Text?.Trim();
-            string newDesc = TxtNewRfidDesc.Text?.Trim();
-
-            if (!string.IsNullOrEmpty(newId))
+            if (!string.IsNullOrEmpty(TxtNewRfidId.Text))
             {
-                // GlobalData içindeki merkezi listeye ekleme yap
-                // Bu liste tüm sayfalardan erişilebilir durumdadır.
+                // DÜZELTME: 'new' eklendi ve tam adres yazıldı
                 KnownRfids.Add(new App4.Utilities.RfidDef
                 {
-                    Id = newId,
-                    Description = newDesc
+                    Id = TxtNewRfidId.Text,
+                    Description = TxtNewRfidDesc.Text
                 });
 
-                // Giriş alanlarını temizle
                 TxtNewRfidId.Text = "";
                 TxtNewRfidDesc.Text = "";
             }
         }
-
-        // Listeden silme işlemini yapan fonksiyon
         private void BtnDeleteRfid_Click(object sender, RoutedEventArgs e)
         {
-            // Tıklanan butonun hangi satıra ait olduğunu buluyoruz
-            if (sender is Button btn && btn.DataContext is App4.Utilities.RfidDef itemToDelete)
+            // DÜZELTME: 'is RfidDef' yerine 'is App4.Utilities.RfidDef' yazıldı
+            if (sender is Button b && b.DataContext is App4.Utilities.RfidDef item)
             {
-                // Global listeden siliyoruz
-                // GlobalData içindeki yapı sayesinde otomatik olarak dosyaya da kaydedilecek
-                KnownRfids.Remove(itemToDelete);
+                KnownRfids.Remove(item);
             }
         }
+        private void BtnClearLogs_Click(object sender, RoutedEventArgs e) => SystemLogs.Clear();
 
-
-        private void UpdateSliderPosition(string value) { foreach (var station in Stations) station.IsRobotPresent = false; if (int.TryParse(value, out int pos) && pos >= 1 && pos <= 4) Stations[pos - 1].IsRobotPresent = true; }
-        private void UpdateStationStatus(string varName, string value) { foreach (var station in Stations) { if (station.StatusTag == varName) station.ProcessStatus = MapStatusCode(value); else if (station.AlarmTag == varName) station.HasAlarm = ParseBool(value); else if (station.ProducingTag == varName) station.IsProducing = ParseBool(value); else if (station.ProductionCountTag == varName) station.ProductionCount = value; else if (station.EfficiencyTag == varName) station.Efficiency = value.Contains("%") ? value : "%" + value; else if (station.CurrentRfidTag == varName) station.CurrentRfid = value; } }
-        private bool ParseBool(string value) { if (string.IsNullOrEmpty(value)) return false; value = value.ToUpper(); return value == "TRUE" || value == "1" || value == "ON"; }
-        private string MapStatusCode(string value) { return value switch { "1" => "3D TARAMA", "2" => "GAZ KAÇAK TESTİ", "3" => "TEST TAMAMLANDI", "4" => "OK ÜRÜN", "5" => "NOK ÜRÜN", "6" => "HAZIRLANIYOR", _ => value }; }
-    }
-
-    // Log verisi için basit bir model
-    public class LogEntry
-    {
-        public string TimeStr { get; set; }
-        public string Message { get; set; }
-        public string ColorCode { get; set; } // "Red", "Green", "White" vs.
-
-        public SolidColorBrush ColorBrush
+        private void AddLog(string msg, string clr) => SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
+        private void UpdatePlcVar(ObservableCollection<PlcVariable> c, string n, string v) { var i = c.FirstOrDefault(x => x.Name == n); if (i != null && i.Value != v) i.Value = v; }
+        private void UpdateSliderPosition(string v) { foreach (var s in Stations) s.IsRobotPresent = false; if (int.TryParse(v, out int p) && p >= 1 && p <= 4) Stations[p - 1].IsRobotPresent = true; }
+        private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v); else if (s.AlarmTag == n) s.HasAlarm = IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
+        private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
+        private string MapStatus(string v) => v switch
         {
-            get
-            {
-                if (ColorCode == "Red") return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 231, 76, 60));
-                if (ColorCode == "Green") return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 46, 204, 113));
-                if (ColorCode == "Yellow") return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 241, 196, 15));
-                return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 200, 200, 200));
-            }
-        }
+            "1" => "3D TARAMA",
+            "2" => "GAZ KAÇAK TESTİ", // <-- "TESTİ" kelimesinin olduğundan emin olun
+            "3" => "TEST TAMAMLANDI",
+            "4" => "OK ÜRÜN",
+            "5" => "NOK ÜRÜN",
+            "6" => "HAZIRLANIYOR",
+            _ => v
+        };
     }
-
-
 }

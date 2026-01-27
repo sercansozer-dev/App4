@@ -6,19 +6,38 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace App4.Utilities  // <--- DÜZELTME: .Utilities EKLENDİ
+namespace App4.Utilities
 {
-    // --- TEMEL SINIFLAR VE ENUMLAR ---
+    // --- TEMEL SINIFLAR ---
     public class RfidDef
     {
         public string Id { get; set; }
         public string Description { get; set; }
-
         public override string ToString() => $"{Id} ({Description})";
     }
 
     public enum RfidOperationMode { Mixed, Specific }
     public enum StationMode { Auto, Manual, Bypass }
+
+    // --- LOG ENTRY SINIFI (Hata veren eksik parça buydu) ---
+    public class LogEntry
+    {
+        public string TimeStr { get; set; }
+        public string Message { get; set; }
+        public string ColorCode { get; set; } // "Red", "Green", "White" vs.
+
+        // UI tarafında renk dönüşümü için
+        public SolidColorBrush ColorBrush
+        {
+            get
+            {
+                if (ColorCode == "Red") return new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
+                if (ColorCode == "Green") return new SolidColorBrush(Color.FromArgb(255, 46, 204, 113));
+                if (ColorCode == "Yellow") return new SolidColorBrush(Color.FromArgb(255, 241, 196, 15));
+                return new SolidColorBrush(Color.FromArgb(255, 200, 200, 200));
+            }
+        }
+    }
 
     // --- STATION VIEW MODEL ---
     public class StationViewModel : INotifyPropertyChanged
@@ -70,14 +89,9 @@ namespace App4.Utilities  // <--- DÜZELTME: .Utilities EKLENDİ
         public Visibility AlarmVisibility => HasAlarm ? Visibility.Visible : Visibility.Collapsed;
         public Visibility RobotVisibility => IsRobotPresent ? Visibility.Visible : Visibility.Collapsed;
         public float RobotOpacity => IsRobotPresent ? 1.0f : 0.0f;
-        public bool IsRfidMatch => !string.IsNullOrEmpty(AllowedRfid) &&
-                               !string.IsNullOrEmpty(CurrentRfid) &&
-                               AllowedRfid.Trim() == CurrentRfid.Trim();
-
-
+        public bool IsRfidMatch => !string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid.Trim() == CurrentRfid.Trim();
         public string RfidMatchIcon => IsRfidMatch ? "\uE73E" : "\uE711";
         public SolidColorBrush RfidMatchColor => IsRfidMatch ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) : new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
-
         public string BypassButtonText => Mode == StationMode.Bypass ? "ETKİNLEŞTİR" : "BYPASS ET";
         public SolidColorBrush BypassButtonColor => Mode == StationMode.Bypass ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) : new SolidColorBrush(Color.FromArgb(255, 147, 112, 219));
 
@@ -91,53 +105,81 @@ namespace App4.Utilities  // <--- DÜZELTME: .Utilities EKLENDİ
 
         public StationViewModel() { UpdateVisuals(); }
 
+        // StationModels.cs dosyasındaki StationViewModel sınıfının içindeki UpdateVisuals metodunu bununla değiştirin:
+
         private void UpdateVisuals()
         {
+            // 1. MOD RENGİ (OTOMATİK/MANUEL/BYPASS)
             switch (Mode)
             {
-                case StationMode.Auto: ModeColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); break;
-                case StationMode.Manual: ModeColor = new SolidColorBrush(Color.FromArgb(255, 255, 165, 0)); break;
-                case StationMode.Bypass: ModeColor = new SolidColorBrush(Color.FromArgb(255, 147, 112, 219)); break;
+                case StationMode.Auto: ModeColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); break;   // Yeşil
+                case StationMode.Manual: ModeColor = new SolidColorBrush(Color.FromArgb(255, 255, 165, 0)); break; // Turuncu
+                case StationMode.Bypass: ModeColor = new SolidColorBrush(Color.FromArgb(255, 147, 112, 219)); break; // Mor
             }
 
+            // 2. ANA DURUM KONTROLÜ
             if (HasAlarm)
             {
+                // Alarm varsa her şey kırmızı
                 StateText = "HATA";
-                StateColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
-                BorderColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
+                StateColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60)); // Kırmızı
+                BorderColor = StateColor;
             }
             else
             {
-                BorderColor = new SolidColorBrush(Color.FromArgb(255, 85, 85, 85));
+                // Alarm yoksa ProcessStatus'a bak
                 string status = ProcessStatus;
-                bool isSpecificStatus = !string.IsNullOrEmpty(status) && (status == "3D TARAMA" || status == "GAZ KAÇAK TESTİ" || status == "TEST TAMAMLANDI" || status == "OK ÜRÜN" || status == "NOK ÜRÜN" || status == "HAZIRLANIYOR");
 
-                if (isSpecificStatus)
+                // Özel Durumlar Listesi (Auto_Page.xaml.cs'deki MapStatus ile tam eşleşmeli)
+                bool isProcess = (status == "3D TARAMA" || status == "GAZ KAÇAK TESTİ" || status == "TEST TAMAMLANDI");
+                bool isOk = (status == "OK ÜRÜN" || status == "OK");
+                bool isNok = (status == "NOK ÜRÜN" || status == "NOK");
+                bool isWaiting = (status == "HAZIRLANIYOR" || status == "BEKLİYOR");
+
+                // Duruma Göre Renk ve Metin Ata
+                if (isProcess)
                 {
                     StateText = status;
-                    if (status == "OK ÜRÜN") StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113));
-                    else if (status == "NOK ÜRÜN") StateColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
-                    else if (status == "HAZIRLANIYOR") StateColor = new SolidColorBrush(Color.FromArgb(255, 241, 196, 15));
-                    else StateColor = new SolidColorBrush(Color.FromArgb(255, 52, 152, 219));
+                    StateColor = new SolidColorBrush(Color.FromArgb(255, 52, 152, 219)); // Mavi (Process)
                     BorderColor = StateColor;
+                }
+                else if (isOk)
+                {
+                    StateText = "OK ÜRÜN";
+                    StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)); // Yeşil (Başarılı)
+                    BorderColor = StateColor;
+                }
+                else if (isNok)
+                {
+                    StateText = "NOK ÜRÜN";
+                    StateColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60)); // Kırmızı (Hatalı)
+                    BorderColor = StateColor;
+                }
+                else if (isWaiting)
+                {
+                    StateText = status;
+                    StateColor = new SolidColorBrush(Color.FromArgb(255, 241, 196, 15)); // Sarı (Bekliyor/Hazırlanıyor)
+                    BorderColor = new SolidColorBrush(Color.FromArgb(255, 85, 85, 85)); // Gri Çerçeve
                 }
                 else
                 {
+                    // Tanımsız bir durum veya "ÜRETİMDE" gibi genel durumlar
                     if (IsProducing)
                     {
                         StateText = !string.IsNullOrEmpty(status) ? status : "ÜRETİMDE";
-                        StateColor = new SolidColorBrush(Color.FromArgb(255, 46, 204, 113));
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 52, 152, 219)); // Mavi
                         BorderColor = StateColor;
                     }
                     else
                     {
                         StateText = "BEKLİYOR";
-                        StateColor = new SolidColorBrush(Color.FromArgb(255, 136, 136, 136));
-                        BorderColor = new SolidColorBrush(Color.FromArgb(255, 85, 85, 85));
+                        StateColor = new SolidColorBrush(Color.FromArgb(255, 136, 136, 136)); // Gri Metin
+                        BorderColor = new SolidColorBrush(Color.FromArgb(255, 85, 85, 85));   // Gri Çerçeve
                     }
                 }
             }
 
+            // Değişiklikleri Arayüze Bildir
             OnPropertyChanged(nameof(ModeText)); OnPropertyChanged(nameof(ModeColor)); OnPropertyChanged(nameof(BorderColor));
             OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(StateColor)); OnPropertyChanged(nameof(AlarmText));
             OnPropertyChanged(nameof(AlarmVisibility)); OnPropertyChanged(nameof(RobotVisibility)); OnPropertyChanged(nameof(RobotOpacity));
@@ -155,9 +197,7 @@ namespace App4.Utilities  // <--- DÜZELTME: .Utilities EKLENDİ
         public string PlcTagRfidMode { get; set; }
         public string PlcTagTargetRfid { get; set; }
 
-        // Artık veriyi GlobalData'dan çekiyor
-        public ObservableCollection<RfidDef> RefRfids => App4.Utilities.GlobalData.KnownRfids;
-
+        public ObservableCollection<RfidDef> RefRfids => GlobalData.KnownRfids;
         public List<RfidOperationMode> RfidOpModes { get; } = new() { RfidOperationMode.Mixed, RfidOperationMode.Specific };
 
         private RfidOperationMode _rfidOpMode;

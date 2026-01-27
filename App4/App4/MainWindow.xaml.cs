@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
@@ -33,7 +34,10 @@ namespace App4
     {
         private AppWindow m_AppWindow;
         private string currentUserRole = "Operatör";
-
+        // Mevcut değişkenlerin altına ekleyin
+        private readonly string _stationStateFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "Station_States.json");
         // Bu değişken simülasyonun sadece 1 kere çalışmasını garanti eder
         private bool _hasRunStartup = false;
 
@@ -154,6 +158,12 @@ namespace App4
                 System.Diagnostics.Debug.WriteLine("Startup Hatası: " + ex.Message);
             }
         }
+
+       
+
+       
+
+
 
         private void ConfigureWindow()
         {
