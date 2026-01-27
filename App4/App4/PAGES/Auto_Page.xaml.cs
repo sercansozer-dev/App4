@@ -36,7 +36,8 @@ namespace App4
         // StationViewModel artık App4.Utilities altında
         public ObservableCollection<StationViewModel> Stations { get; set; } = new();
 
-        public ObservableCollection<PlcVariable> GeneralVars { get; set; } = new();
+        public ObservableCollection<PlcVariable> GeneralInputVars { get; set; } = new(); 
+        public ObservableCollection<PlcVariable> GeneralOutputVars { get; set; } = new(); 
         public ObservableCollection<PlcVariable> Station1Vars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station2Vars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station3Vars { get; set; } = new();
@@ -45,7 +46,7 @@ namespace App4
         public ObservableCollection<PlcVariable> Station2Outputs { get; set; } = new();
         public ObservableCollection<PlcVariable> Station3Outputs { get; set; } = new();
         public ObservableCollection<PlcVariable> Station4Outputs { get; set; } = new();
-
+        public ObservableCollection<LogEntry> SystemLogs { get; set; } = new();
         public ObservableCollection<string> AvailablePlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
@@ -60,6 +61,101 @@ namespace App4
 
             this.Loaded += Page_Loaded;
         }
+
+        // BAŞLAT BUTONU: Start True, Stop False yapar (Tersi çalışır)
+        private void BtnStart_Click(object sender, RoutedEventArgs e)
+        {
+            // Değişkenleri yeni listelerden buluyoruz
+            var startVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_START");
+            var stopVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_STOP");
+
+            // Simülasyon geri bildirimi için Input değişkenleri
+            var runningVar = GeneralInputVars.FirstOrDefault(v => v.Name == "LINE_RUNNING");
+            var autoModeVar = GeneralInputVars.FirstOrDefault(v => v.Name == "LINE_AUTO_MODE");
+
+            // 1. Start'ı Aktif, Stop'u Pasif yap (Birbirinin Tersi)
+            if (startVar != null) startVar.CurrentValue = true;
+            if (stopVar != null) stopVar.CurrentValue = false;
+
+            // 2. Simülasyon mantığı: Makine çalışmaya başladı görünmesi için inputları da güncelleyelim
+            if (runningVar != null) runningVar.CurrentValue = true;
+            if (autoModeVar != null) autoModeVar.CurrentValue = true;
+
+            AddLog("Hat Başlatıldı.", "Green");
+        }
+
+        // DURDUR BUTONU: Stop True, Start False yapar
+        private void BtnStop_Click(object sender, RoutedEventArgs e)
+        {
+            var startVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_START");
+            var stopVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_STOP");
+            var runningVar = GeneralInputVars.FirstOrDefault(v => v.Name == "LINE_RUNNING");
+
+            // 1. Stop'u Aktif, Start'ı Pasif yap
+            if (stopVar != null) stopVar.CurrentValue = true;
+            if (startVar != null) startVar.CurrentValue = false;
+
+            // 2. Simülasyon mantığı: Makine durdu
+            if (runningVar != null) runningVar.CurrentValue = false;
+
+            AddLog("Hat Durduruldu.", "Red");
+        }
+
+        // RESET BUTONU: Bas-Çek (Pulse) mantığı
+        private async void BtnReset_Click(object sender, RoutedEventArgs e)
+        {
+            var resetVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "CMD_LINE_RESET");
+
+            if (resetVar != null)
+            {
+                // 1. BAS (Sinyali gönder)
+                resetVar.CurrentValue = true;
+                AddLog("Reset sinyali gönderiliyor...", "Yellow");
+
+                // 2. BEKLE (Elimiz butondaymış gibi 500ms bekle)
+                await System.Threading.Tasks.Task.Delay(500);
+
+                // 3. ÇEK (Sinyali kes)
+                resetVar.CurrentValue = false;
+                AddLog("Reset tamamlandı.", "White");
+            }
+        }
+
+        // LOG TEMİZLEME (Az önce sildiğinizi fark etmiştik, bunu da ekleyin)
+        private void BtnClearLogs_Click(object sender, RoutedEventArgs e)
+        {
+            SystemLogs.Clear();
+        }
+
+        // 4. ADIM: SendPlcPulse fonksiyonunu güncelleyin
+        private async System.Threading.Tasks.Task SendPlcPulse(string varName)
+        {
+            // Pulse genellikle Output'a gönderilir
+            var variable = GeneralOutputVars.FirstOrDefault(v => v.Name == varName);
+            if (variable != null)
+            {
+                variable.CurrentValue = true;
+                await System.Threading.Tasks.Task.Delay(500);
+                variable.CurrentValue = false;
+            }
+        }
+
+        // 3. LOG EKLEME METODU (Burada olduğundan emin olun)
+        private void AddLog(string message, string color = "White")
+        {
+            this.DispatcherQueue.TryEnqueue(() =>
+            {
+                SystemLogs.Insert(0, new LogEntry
+                {
+                    TimeStr = DateTime.Now.ToString("HH:mm:ss"),
+                    Message = message,
+                    ColorCode = color
+                });
+
+                if (SystemLogs.Count > 100) SystemLogs.RemoveAt(SystemLogs.Count - 1);
+            });
+        }
+
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
@@ -93,10 +189,19 @@ namespace App4
                 variable.PropertyChanged += LocalVariable_PropertyChanged;
                 return variable;
             }
-            GeneralVars.Add(CreateLocalVar("SLIDER_POS_ACT", "WORD", "Input", "0"));
-            GeneralVars.Add(CreateLocalVar("ROBOT_SPEED", "WORD", "Input", "100"));
-            GeneralVars.Add(CreateLocalVar("GOCATOR_STATUS", "STRING", "Input", "READY"));
-            GeneralVars.Add(CreateLocalVar("SAFETY_OK", "BOOL", "Input", true));
+            GeneralInputVars.Add(CreateLocalVar("SLIDER_POS_ACT", "WORD", "Input", "0"));
+            GeneralInputVars.Add(CreateLocalVar("ROBOT_SPEED", "WORD", "Input", "100"));
+            GeneralInputVars.Add(CreateLocalVar("GOCATOR_STATUS", "STRING", "Input", "READY"));
+            GeneralInputVars.Add(CreateLocalVar("SAFETY_OK", "BOOL", "Input", true));
+            GeneralInputVars.Add(CreateLocalVar("LINE_RUNNING", "BOOL", "Input", false));
+            GeneralInputVars.Add(CreateLocalVar("LINE_AUTO_MODE", "BOOL", "Input", false));
+            GeneralInputVars.Add(CreateLocalVar("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
+
+            // --- OUTPUTLAR (GeneralOutputVars listesine ekleniyor) ---
+            GeneralOutputVars.Add(CreateLocalVar("CMD_LINE_START", "BOOL", "Output", false));
+            GeneralOutputVars.Add(CreateLocalVar("CMD_LINE_STOP", "BOOL", "Output", false));
+            GeneralOutputVars.Add(CreateLocalVar("CMD_LINE_RESET", "BOOL", "Output", false));
+
             void AddStationVars(ObservableCollection<PlcVariable> collection, int stationId)
             {
                 collection.Add(CreateLocalVar($"ST{stationId}_STATUS", "STRING", "Input", "Unknown"));
@@ -217,9 +322,16 @@ namespace App4
                                 if (item.TryGetProperty("name", out var n) && item.TryGetProperty("plcTag", out var t))
                                 { var v = target.FirstOrDefault(x => x.Name == n.GetString()); if (v != null) { v.PlcTag = t.GetString(); ConnectToPlcVariable(v); } }
                     }
-                    LoadTags("GeneralVars", GeneralVars); LoadTags("Station1Vars", Station1Vars); LoadTags("Station2Vars", Station2Vars);
-                    LoadTags("Station3Vars", Station3Vars); LoadTags("Station4Vars", Station4Vars); LoadTags("Station1Outputs", Station1Outputs);
-                    LoadTags("Station2Outputs", Station2Outputs); LoadTags("Station3Outputs", Station3Outputs); LoadTags("Station4Outputs", Station4Outputs);
+                    LoadTags("GeneralInputVars", GeneralInputVars);
+                    LoadTags("GeneralOutputVars", GeneralOutputVars);
+                    LoadTags("Station1Vars", Station1Vars);
+                    LoadTags("Station2Vars", Station2Vars);
+                    LoadTags("Station3Vars", Station3Vars); 
+                    LoadTags("Station4Vars", Station4Vars); 
+                    LoadTags("Station1Outputs", Station1Outputs);
+                    LoadTags("Station2Outputs", Station2Outputs); 
+                    LoadTags("Station3Outputs", Station3Outputs); 
+                    LoadTags("Station4Outputs", Station4Outputs);
                 }
             }
             catch { }
@@ -233,7 +345,8 @@ namespace App4
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 var data = new
                 {
-                    GeneralVars = GeneralVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    GeneralInputVars = GeneralInputVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
+                    GeneralOutputVars = GeneralOutputVars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
                     Station1Vars = Station1Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
                     Station2Vars = Station2Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
                     Station3Vars = Station3Vars.Select(v => new { name = v.Name, plcTag = v.PlcTag }).ToList(),
@@ -397,4 +510,25 @@ namespace App4
         private bool ParseBool(string value) { if (string.IsNullOrEmpty(value)) return false; value = value.ToUpper(); return value == "TRUE" || value == "1" || value == "ON"; }
         private string MapStatusCode(string value) { return value switch { "1" => "3D TARAMA", "2" => "GAZ KAÇAK TESTİ", "3" => "TEST TAMAMLANDI", "4" => "OK ÜRÜN", "5" => "NOK ÜRÜN", "6" => "HAZIRLANIYOR", _ => value }; }
     }
+
+    // Log verisi için basit bir model
+    public class LogEntry
+    {
+        public string TimeStr { get; set; }
+        public string Message { get; set; }
+        public string ColorCode { get; set; } // "Red", "Green", "White" vs.
+
+        public SolidColorBrush ColorBrush
+        {
+            get
+            {
+                if (ColorCode == "Red") return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 231, 76, 60));
+                if (ColorCode == "Green") return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 46, 204, 113));
+                if (ColorCode == "Yellow") return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 241, 196, 15));
+                return new SolidColorBrush(Windows.UI.Color.FromArgb(255, 200, 200, 200));
+            }
+        }
+    }
+
+
 }
