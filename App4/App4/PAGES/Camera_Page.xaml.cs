@@ -31,31 +31,45 @@ namespace App4.PAGES
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         public int Index { get; set; }
 
+        // --- TAG SEÇİMİ (Zaten Vardı) ---
         private string _selectedTag;
         public string SelectedTag
         {
             get => _selectedTag;
-            set
-            {
-                if (_selectedTag != value)
-                {
-                    _selectedTag = value;
-                    OnPropertyChanged();
-                }
-            }
+            set { if (_selectedTag != value) { _selectedTag = value; OnPropertyChanged(); } }
         }
 
-        public string Value { get; set; }
-        public string Status { get; set; } // SENT, WAIT, FAIL
-        
+        // --- DEĞER (BUNU GÜNCELLEMEMİZ GEREKİYORDU) ---
+        private string _value;
+        public string Value
+        {
+            get => _value;
+            set { if (_value != value) { _value = value; OnPropertyChanged(); } } // <-- ARTIK CANLI
+        }
+
+        // --- DURUM METNİ (SENT, WAIT) ---
+        private string _status;
+        public string Status
+        {
+            get => _status;
+            set { if (_status != value) { _status = value; OnPropertyChanged(); } }
+        }
+
+        // --- DURUM RENGİ ---
+        private SolidColorBrush _statusColor;
         [JsonIgnore]
-        public SolidColorBrush StatusColor { get; set; }
-        
+        public SolidColorBrush StatusColor
+        {
+            get => _statusColor;
+            set { if (_statusColor != value) { _statusColor = value; OnPropertyChanged(); } }
+        }
+
+        // --- ARKA PLAN RENGİ ---
         [JsonIgnore]
         public SolidColorBrush BackgroundColor { get; set; }
     }
@@ -82,7 +96,6 @@ namespace App4.PAGES
             this.Loaded += Camera_Page_Loaded;
         }
 
-        // Bu fonksiyon Camera_Page sınıfının İÇİNDE olmalı!
         private async void BtnGetMeasurement_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
@@ -90,12 +103,17 @@ namespace App4.PAGES
 
             AddLog("► Ölçüm alma isteği gönderildi...");
 
-            // DÜZELTME: İkinci parametre olarak 'this.DispatcherQueue' gönderiyoruz
-            await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+            // 1. Gocator'dan veriyi çek ve GlobalData'ya kaydet
+            int result = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+
+            // 2. Eğer işlem başarılıysa, verileri sağdaki tabloya taşı
+            if (result == 1)
+            {
+                TransferMeasurementsToPlcRows(); // <-- YENİ EKLENEN SATIR
+            }
 
             if (btn != null) btn.IsEnabled = true;
         }
-
 
 
         private void LoadTransferRows()
@@ -177,30 +195,95 @@ namespace App4.PAGES
         {
             try
             {
-                var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "PLC_Variables.json");
-                if (File.Exists(path))
+                PlcOutputTags.Clear();
+
+                // ---------------------------------------------------------
+                // 1. KAYNAK: PLC SAYFASINDA OLUŞTURULAN TAGLER (PlcService)
+                // ---------------------------------------------------------
+                // Kullanıcının PLC_Page üzerinden elle eklediği outputlar burada tutulur.
+                foreach (var v in App4.Utilities.PlcService.Instance.OutputVariables)
                 {
-                    var json = File.ReadAllText(path);
-                    var obj = JObject.Parse(json);
-                    var outputs = obj["Output"] as JArray;
-                    PlcOutputTags.Clear();
-                    if (outputs != null)
+                    if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
                     {
-                        foreach (var item in outputs)
-                        {
-                             // PLC_Page uses [JsonPropertyName("name")] so the key is lowercase "name"
-                             var name = item["name"]?.ToString() ?? item["Name"]?.ToString();
-                             if (!string.IsNullOrEmpty(name))
-                             {
-                                 PlcOutputTags.Add(name);
-                             }
-                        }
+                        PlcOutputTags.Add(v.Name);
                     }
                 }
+
+                // ---------------------------------------------------------
+                // 2. KAYNAK: GLOBAL DATA (OTOMATİK SAYFASI & GENEL TANIMLAR)
+                // ---------------------------------------------------------
+                // Eğer GlobalData'daki (Otomatik sayfası) tagleri de görmek istiyorsanız bu kısım kalmalı.
+                // İstemiyorsanız 2. Kaynak kısmını silebilirsiniz.
+
+                // A. Genel Outputlar
+                foreach (var v in App4.Utilities.GlobalData.GeneralOutputVars)
+                {
+                    if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
+                        PlcOutputTags.Add(v.Name);
+                }
+
+                // B. İstasyon Outputları
+                var allStationOutputs = new[]
+                {
+            App4.Utilities.GlobalData.Station1Outputs,
+            App4.Utilities.GlobalData.Station2Outputs,
+            App4.Utilities.GlobalData.Station3Outputs,
+            App4.Utilities.GlobalData.Station4Outputs
+        };
+
+                foreach (var stationList in allStationOutputs)
+                {
+                    foreach (var v in stationList)
+                    {
+                        if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
+                            PlcOutputTags.Add(v.Name);
+                    }
+                }
+
+                AddLog($"✓ PLC Tag listesi güncellendi. Toplam: {PlcOutputTags.Count} tag.");
             }
             catch (Exception ex)
             {
                 AddLog("PLC Tagleri yüklenemedi: " + ex.Message);
+            }
+        }
+
+
+        private void TransferMeasurementsToPlcRows()
+        {
+            try
+            {
+                var measurements = App4.Utilities.GlobalData.LastMeasurements;
+
+                if (measurements.Count == 0) return;
+
+                // Ölçüm sayısı kadar veya Tablo satır sayısı kadar (hangisi küçükse) döngü kur
+                int count = Math.Min(measurements.Count, PlcTransferRows.Count);
+
+                for (int i = 0; i < count; i++)
+                {
+                    // Soldaki ölçüm değerini al
+                    var measuredVal = measurements[i].Value.ToString();
+
+                    // Sağdaki satıra yaz
+                    PlcTransferRows[i].Value = measuredVal;
+
+                    // Görsel durumu güncelle (Yeni veri geldiği için rengi turuncu/bekliyor yapalım)
+                    PlcTransferRows[i].Status = "WAIT";
+                    PlcTransferRows[i].StatusColor = BrushOrange;
+
+                    // UI tetiklemesi için (ItemsControl bazen property değişimini kaçırabilir)
+                    // Bu yöntem PropertyChanged olayını manuel tetikler
+                    var temp = PlcTransferRows[i].SelectedTag;
+                    PlcTransferRows[i].SelectedTag = null;
+                    PlcTransferRows[i].SelectedTag = temp;
+                }
+
+                AddLog($"► {count} adet veri PLC tablosuna aktarıldı.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Veri aktarım hatası: {ex.Message}");
             }
         }
 
@@ -246,22 +329,49 @@ namespace App4.PAGES
             });
         }
 
+        // --- YENİ SATIR EKLEME ---
         private void BtnAddPlcRow_Click(object sender, RoutedEventArgs e)
         {
             var index = PlcTransferRows.Count + 1;
-            var color = (index % 2 == 1) 
-                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
+
+            // Arka plan rengini sırayla koyu/açık yap
+            var color = (index % 2 == 1)
+                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
                 : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
 
             PlcTransferRows.Add(new PlcTransferItem
             {
                 Index = index,
-                SelectedTag = PlcOutputTags.FirstOrDefault(),
+                SelectedTag = null, // Başlangıçta boş olsun, kullanıcı seçsin
                 Value = "0",
-                Status = "WAIT", 
-                StatusColor = BrushOrange, // Default status
+                Status = "WAIT",
+                StatusColor = BrushOrange,
                 BackgroundColor = color
             });
+
+            // Listeyi kaydet
+            SaveTransferRows();
+        }
+
+        // --- SATIR SİLME (YENİ EKLENECEK) ---
+        private void BtnDeletePlcRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is PlcTransferItem item)
+            {
+                PlcTransferRows.Remove(item);
+
+                // Sıra numaralarını (Index) yeniden düzenle
+                for (int i = 0; i < PlcTransferRows.Count; i++)
+                {
+                    PlcTransferRows[i].Index = i + 1;
+                    // Renkleri de düzelt
+                    PlcTransferRows[i].BackgroundColor = ((i + 1) % 2 == 1)
+                        ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
+                        : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+                }
+
+                SaveTransferRows();
+            }
         }
 
         #region ═══ WebView2 Initialization (Modern Approach) ═══
