@@ -247,11 +247,36 @@
                                 <RowDefinition Height="45"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
-                                    <FontIcon Glyph="&#xE975;" Foreground="#00A4EF" FontSize="16"/>
-                                    <TextBlock Text="PLCYE AKTARIM ALANI" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                </StackPanel>
+                            <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="10,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <FontIcon Glyph="&#xE975;" Foreground="#00A4EF" FontSize="16"/>
+                                        <TextBlock Text="PLC AKTARIM" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Right">
+
+                                        <Button Click="BtnBackup_Click" Height="26" Padding="8,0" CornerRadius="4" Background="#D35400" BorderThickness="0" ToolTipService.ToolTip="Uygulama Verilerini Yedekle">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <FontIcon Glyph="&#xE753;" Foreground="White" FontSize="10"/>
+                                                <TextBlock Text="APP YEDEK" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Click="BtnBackupGocator_Click" Height="26" Padding="8,0" CornerRadius="4" Background="#00A4EF" BorderThickness="0" ToolTipService.ToolTip="Sensör Yedeğini İndir">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <FontIcon Glyph="&#xE964;" Foreground="White" FontSize="10"/>
+                                                <TextBlock Text="GOCATOR" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                    </StackPanel>
+                                </Grid>
                             </Border>
 
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">

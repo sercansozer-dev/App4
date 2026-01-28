@@ -22,7 +22,8 @@ using Windows.UI;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Dispatching;
-
+using System.IO.Compression; // Zip dosyası yapmak için şart
+using Windows.Storage.Pickers; // Kayıt penceresi için
 
 namespace App4.PAGES
 {
@@ -352,6 +353,148 @@ namespace App4.PAGES
             // Listeyi kaydet
             SaveTransferRows();
         }
+
+        // --- SİSTEM YEDEKLEME FONKSİYONU ---
+        // --- SİSTEM YEDEKLEME FONKSİYONU (DİREKT MASAÜSTÜNE) ---
+        private async void BtnBackup_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 1. Kaynak ve Hedef Yolları Belirle
+                string sourcePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4");
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                string zipFileName = $"App4_Yedek_{DateTime.Now:yyyyMMdd_HHmm}.zip";
+                string destinationZip = Path.Combine(desktopPath, zipFileName);
+
+                // 2. Kaynak Kontrolü
+                if (!Directory.Exists(sourcePath))
+                {
+                    AddLog("⚠ Yedeklenecek veri klasörü bulunamadı (Henüz veri oluşmamış olabilir).");
+                    return;
+                }
+
+                // Butonu kilitle (Çift tıklamayı önle)
+                if (sender is Button btn) btn.IsEnabled = false;
+                AddLog("⏳ Masaüstüne yedek alınıyor, lütfen bekleyin...");
+
+                // 3. Arka Planda Sıkıştırma İşlemi
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        // Eğer aynı isimde dosya varsa sil
+                        if (File.Exists(destinationZip)) File.Delete(destinationZip);
+
+                        // Klasörü direkt ziple
+                        System.IO.Compression.ZipFile.CreateFromDirectory(sourcePath, destinationZip);
+                    }
+                    catch (Exception zipEx)
+                    {
+                        // Hata olursa (örn: dosya kullanımdayken) fırlat
+                        throw new Exception("Sıkıştırma hatası: " + zipEx.Message);
+                    }
+                });
+
+                AddLog($"✅ YEDEKLEME BAŞARILI!");
+                AddLog($"📁 Konum: Masaüstü\\{zipFileName}");
+
+                // Butonu aç
+                if (sender is Button btnRestore) btnRestore.IsEnabled = true;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ Yedekleme Hatası: {ex.Message}");
+                if (sender is Button btn) btn.IsEnabled = true;
+            }
+        }
+
+        // GOCATOR YEDEKLEME MANTIĞI
+        public class GocatorBackupLogic
+        {
+            private const string SYSTEM_BACKUP_PATH = "/system/commands/archive";
+            private const string SENSOR_IP = "192.168.251.30";
+            private const int CONTROL_PORT = 3600;
+            private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000; // Büyük dosyalar için süre
+
+            public static async Task<string> PerformBackup(Action<string> log)
+            {
+                return await Task.Run(() =>
+                {
+                    try
+                    {
+                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                        {
+                            log("Sensöre bağlanılıyor (Yedekleme)...");
+                            system.Connect();
+
+                            // Yedek içeriğini belirle (Jobs, Workspaces, Global vb.)
+                            JObject payload = new JObject
+                            {
+                                ["contents"] = new JArray {
+                            "global",
+                            "allWorkspaces",
+                            "allJobs",
+                            "replay",
+                            "liveJob"
+                        }
+                            };
+
+                            log("Yedek verisi sensörden çekiliyor (Bu işlem sürebilir)...");
+
+                            // API Çağrısı
+                            JObject response = system.Client().Call(SYSTEM_BACKUP_PATH, payload).GetResponse(RECEIVE_DATA_TIMEOUT_MSEC).Payload;
+
+                            // Byte verisini al
+                            byte[] data = response["data"].ToObject<byte[]>();
+
+                            // Dosyayı Masaüstüne Kaydet
+                            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                            string fileName = $"Gocator_Backup_{DateTime.Now:yyyyMMdd_HHmm}.gpbak";
+                            string fullPath = Path.Combine(desktopPath, fileName);
+
+                            File.WriteAllBytes(fullPath, data);
+
+                            system.Disconnect();
+                            return fullPath; // Başarılı ise dosya yolunu döndür
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log($"Gocator Yedek Hatası: {ex.Message}");
+                        return null;
+                    }
+                });
+            }
+        }
+
+
+        // --- GOCATOR YEDEKLEME BUTONU ---
+        private async void BtnBackupGocator_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            AddLog("► Gocator yedekleme işlemi başlatıldı...");
+
+            // Mantık sınıfını çağır
+            string resultPath = await GocatorBackupLogic.PerformBackup(AddLog);
+
+            if (!string.IsNullOrEmpty(resultPath))
+            {
+                AddLog("✅ GOCATOR YEDEĞİ ALINDI!");
+                AddLog($"📁 Dosya: {Path.GetFileName(resultPath)}");
+                AddLog($"📍 Konum: Masaüstü");
+            }
+            else
+            {
+                AddLog("❌ Gocator yedeği alınamadı.");
+            }
+
+            if (btn != null) btn.IsEnabled = true;
+        }
+
+
 
         // --- SATIR SİLME (YENİ EKLENECEK) ---
         private void BtnDeletePlcRow_Click(object sender, RoutedEventArgs e)
@@ -1228,4 +1371,8 @@ namespace App4.PAGES
             });
         }
     }
+
+
+
+
 }
