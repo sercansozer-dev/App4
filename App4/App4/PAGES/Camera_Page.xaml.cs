@@ -266,17 +266,12 @@ namespace App4.PAGES
                     var measuredVal = measurements[i].Value.ToString();
 
                     // Sağdaki satıra yaz
+                    // Value özelliği NotifyPropertyChanged olduğu için ekran otomatik güncellenir
                     PlcTransferRows[i].Value = measuredVal;
 
-                    // Görsel durumu güncelle (Yeni veri geldiği için rengi turuncu/bekliyor yapalım)
+                    // Görsel durumu güncelle
                     PlcTransferRows[i].Status = "WAIT";
                     PlcTransferRows[i].StatusColor = BrushOrange;
-
-                    // UI tetiklemesi için (ItemsControl bazen property değişimini kaçırabilir)
-                    // Bu yöntem PropertyChanged olayını manuel tetikler
-                    var temp = PlcTransferRows[i].SelectedTag;
-                    PlcTransferRows[i].SelectedTag = null;
-                    PlcTransferRows[i].SelectedTag = temp;
                 }
 
                 AddLog($"► {count} adet veri PLC tablosuna aktarıldı.");
@@ -677,7 +672,16 @@ namespace App4.PAGES
                 SensorJobListView.Items.Add(job); // Sol panel listesi
             }
 
-            AddLog($"✓ Job listesi güncellendi. {jobs.Count} dosya bulundu.");
+            // --- YENİ EKLENEN KISIM: KAYDET ---
+            if (jobs.Count > 0)
+            {
+                SaveCachedJobs(); // Listeyi dosyaya yaz
+                AddLog($"✓ Job listesi güncellendi ve kaydedildi. ({jobs.Count} dosya)");
+            }
+            else
+            {
+                AddLog("⚠ Job listesi boş veya çekilemedi.");
+            }
         }
 
         // 2. COMBOBOX YÜKLENDİĞİNDE İÇİNİ DOLDUR
@@ -775,6 +779,47 @@ namespace App4.PAGES
             App4.Utilities.GlobalData.SaveRfids();
         }
 
+        // --- JOB ÖNBELLEK (CACHE) DOSYA YOLU ---
+        private readonly string _jobCacheFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Gocator_Jobs_Cache.json");
+
+        // 1. ÖNBELLEĞİ YÜKLE (UYGULAMA AÇILINCA)
+        private void LoadCachedJobs()
+        {
+            try
+            {
+                if (File.Exists(_jobCacheFilePath))
+                {
+                    var json = File.ReadAllText(_jobCacheFilePath);
+                    var list = JsonConvert.DeserializeObject<List<string>>(json);
+
+                    if (list != null && list.Count > 0)
+                    {
+                        AvailableJobs.Clear();
+                        SensorJobListView.Items.Clear();
+
+                        foreach (var job in list)
+                        {
+                            AvailableJobs.Add(job);
+                            SensorJobListView.Items.Add(job);
+                        }
+                        AddLog($"✓ Önbellekten {list.Count} adet Job yüklendi.");
+                    }
+                }
+            }
+            catch (Exception ex) { AddLog("Job Cache yüklenemedi: " + ex.Message); }
+        }
+
+        // 2. ÖNBELLEĞE KAYDET (LİSTE YENİLENİNCE)
+        private void SaveCachedJobs()
+        {
+            try
+            {
+                // AvailableJobs listesini JSON'a çevirip kaydet
+                var json = JsonConvert.SerializeObject(AvailableJobs, Formatting.Indented);
+                File.WriteAllText(_jobCacheFilePath, json);
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Job Cache Save Error: " + ex.Message); }
+        }
 
 
 
@@ -807,10 +852,10 @@ namespace App4.PAGES
 
         private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
-            LoadPlcTags();
+            LoadPlcTags(); // Load PLC tags first
             LoadTransferRows(); // Load saved rows first
             InitializeDefaultPlcRows(); // Only if empty
-
+            LoadCachedJobs(); // Load cached job list
             // Hook change events
             PlcTransferRows.CollectionChanged -= PlcTransferRows_CollectionChanged; // Prevent double hook
             PlcTransferRows.CollectionChanged += PlcTransferRows_CollectionChanged;
