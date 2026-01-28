@@ -821,6 +821,69 @@ namespace App4.PAGES
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Job Cache Save Error: " + ex.Message); }
         }
 
+        // --- JOB SEQUENCE YÖNETİMİ (YENİ EKLENECEK KODLAR) ---
+
+        // 1. Reçeteye Job Ekleme
+        private void BtnAddJobToSequence_Click(object sender, RoutedEventArgs e)
+        {
+            // Butona tıklandığında hangi RFID kartındayız onu bulalım
+            var btn = sender as Button;
+            var rfidItem = btn?.DataContext as App4.Utilities.RfidDef;
+
+            if (rfidItem != null)
+            {
+                // Butonun yanındaki ComboBox'ı bulmak için Grid içinde gezmemiz lazım
+                // Veya daha kolayı: DataTemplate içinde olduğumuz için UI tree'den bulmak zor olabilir.
+                // Hile: XAML'da ComboBox ismini verdik ama DataTemplate içinde olduğu için doğrudan erişemeyiz.
+                // Çözüm: Butonun "Parent"ı olan Grid'in içindeki ComboBox'ı bulmak.
+
+                var parentGrid = VisualTreeHelper.GetParent(btn) as Grid;
+                var comboBox = parentGrid?.Children.OfType<ComboBox>().FirstOrDefault();
+
+                if (comboBox != null && comboBox.SelectedItem is string selectedJob)
+                {
+                    // Listeye ekle
+                    rfidItem.JobSequence.Add(selectedJob);
+
+                    // Kaydet
+                    App4.Utilities.GlobalData.SaveRfids();
+
+                    // Seçimi sıfırla (isteğe bağlı)
+                    comboBox.SelectedIndex = -1;
+                }
+                else
+                {
+                    AddLog("⚠ Lütfen önce bir Job seçiniz.");
+                }
+            }
+        }
+
+        // 2. Reçeteden Job Silme
+        private void BtnRemoveJobFromSequence_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            var jobName = btn?.DataContext as string; // Silinecek Job'ın adı
+
+            // Silmek için üst ebeveyn olan RfidDef'e ulaşmamız lazım. 
+            // Bu biraz trick gerektirir çünkü DataContext şu an string (JobName).
+            // Alternatif: ItemsControl yerine ListView kullanıp Selection ile yapabilirdik ama UI bozulmasın.
+
+            // FrameworkElement.Tag özelliğini kullanarak RfidDef'i XAML'dan gönderebiliriz.
+            // Ancak daha basit bir yöntem: Tüm RFID listesini gezip bu job'ı içeren listeyi bulmak (Riskli ama basit)
+
+            // EN TEMİZ YÖNTEM: XAML DÜZELTMESİ (Aşağıya bakın)
+            // C# tarafında ise şunu yapacağız:
+
+            // Butonun bulunduğu ItemsControl (JobSequence listesi) -> Onun DataContext'i RFID Def değil.
+            // Bu yüzden XAML tarafında Tag binding yapacağız.
+
+            if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
+            {
+                parentRfid.JobSequence.Remove(jobName);
+                App4.Utilities.GlobalData.SaveRfids();
+            }
+        }
+
 
 
         #endregion

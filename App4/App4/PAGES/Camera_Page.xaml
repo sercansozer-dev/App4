@@ -321,7 +321,7 @@
                     </Border>
                 </Grid>
 
-                <Border Background="#1A1A1C" Margin="20,0" CornerRadius="10" BorderThickness="2" BorderBrush="#FFB81C" Height="350">
+                <Border Grid.Row="3" Background="#1A1A1C" Margin="20,10,20,10" CornerRadius="10" BorderThickness="2" BorderBrush="#FFB81C">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="350"/>
@@ -373,47 +373,101 @@
                             <Border Grid.Row="0" Background="#252526" Padding="15,0" CornerRadius="0,8,0,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                     <FontIcon Glyph="&#xE9D5;" Foreground="#00FF88" FontSize="16"/>
-                                    <TextBlock Text="KLİMA TİPİ - JOB EŞLEŞTİRME (REÇETE)" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                    <TextBlock Text="Her model için uygun job dosyasını seçiniz." FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                                    <TextBlock Text="REÇETE YÖNETİMİ (KART GÖRÜNÜMÜ)" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Klima tipleri ve işlem adımları." FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="15,0,0,0"/>
                                 </StackPanel>
                             </Border>
 
-                            <ScrollViewer Grid.Row="1" Padding="15">
-                                <StackPanel Spacing="5">
-                                    <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="100"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="250"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="KLİMA ID" Foreground="#AAA" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="AÇIKLAMA" Foreground="#AAA" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0"/>
-                                        <TextBlock Grid.Column="2" Text="ÇALIŞACAK JOB DOSYASI" Foreground="#AAA" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                    </Grid>
+                            <GridView Grid.Row="1" Padding="10" 
+              ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}" 
+              SelectionMode="None">
 
-                                    <ItemsControl ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="utils:RfidDef">
-                                                <Grid Margin="0,0,0,5" Height="45" Background="#222" CornerRadius="4">
+                                <GridView.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="-1" HorizontalAlignment="Left"/>
+                                    </ItemsPanelTemplate>
+                                </GridView.ItemsPanel>
+
+                                <GridView.ItemContainerStyle>
+                                    <Style TargetType="GridViewItem">
+                                        <Setter Property="Margin" Value="0,0,10,10"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="VerticalAlignment" Value="Top"/>
+                                    </Style>
+                                </GridView.ItemContainerStyle>
+
+                                <GridView.ItemTemplate>
+                                    <DataTemplate x:DataType="utils:RfidDef">
+
+                                        <Border Width="360" Background="#202020" BorderBrush="#444" BorderThickness="1" CornerRadius="6" Padding="10">
+                                            <StackPanel Spacing="10">
+
+                                                <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="100"/>
+                                                        <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="250"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{x:Bind Id}" Foreground="#00A4EF" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="White" VerticalAlignment="Center" Margin="10,0"/>
-                                                    <ComboBox Grid.Column="2" 
-                                                      SelectedValue="{x:Bind LinkedJobName, Mode=TwoWay}"
-                                                      PlaceholderText="Job Seçiniz..."
-                                                      HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,5"
-                                                      Loaded="JobCombo_Loaded"
-                                                      SelectionChanged="JobSelectionChanged_Save"/>
+                                                    <Border Background="#00A4EF" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Id}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="#DDD" VerticalAlignment="Center" FontWeight="SemiBold" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
                                                 </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </ScrollViewer>
+
+                                                <Rectangle Height="1" Fill="#333"/>
+
+                                                <TextBlock Text="İşlem Sırası:" FontSize="10" Foreground="#888"/>
+
+                                                <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{x:Bind JobSequence, Mode=OneWay}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Margin="0,0,0,4" Background="#2A2A2C" CornerRadius="4" Height="28">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="30"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="30"/>
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <FontIcon Glyph="&#xE9F5;" FontSize="10" Foreground="#FFB81C" HorizontalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding}" Foreground="White" VerticalAlignment="Center" FontSize="11" Margin="5,0"/>
+
+                                                                    <Button Grid.Column="2" 
+                                                    Click="BtnRemoveJobFromSequence_Click" 
+                                                    Tag="{Binding DataContext, ElementName=CmbAddJob}" 
+                                                    Background="Transparent" Padding="0" BorderThickness="0" HorizontalAlignment="Center">
+                                                                        <FontIcon Glyph="&#xE74D;" Foreground="#E74C3C" FontSize="10"/>
+                                                                    </Button>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="70"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <ComboBox x:Name="CmbAddJob" 
+                                      PlaceholderText="Job Seç..." 
+                                      HorizontalAlignment="Stretch" 
+                                      FontSize="11" Height="28"
+                                      ItemsSource="{Binding ElementName=SensorJobListView, Path=DataContext.AvailableJobs}"
+                                      Loaded="JobCombo_Loaded"/>
+
+                                                    <Button Grid.Column="1" Content="+ EKLE" Click="BtnAddJobToSequence_Click" 
+                                    Background="#27AE60" Foreground="White" FontSize="10" FontWeight="Bold" 
+                                    Height="28" Margin="5,0,0,0" HorizontalAlignment="Stretch"/>
+                                                </Grid>
+
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </GridView.ItemTemplate>
+                            </GridView>
                         </Grid>
                     </Grid>
                 </Border>
