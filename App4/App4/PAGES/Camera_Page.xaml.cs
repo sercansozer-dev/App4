@@ -73,10 +73,26 @@ namespace App4.PAGES
         // --- ARKA PLAN RENGİ ---
         [JsonIgnore]
         public SolidColorBrush BackgroundColor { get; set; }
+
+
+
+
     }
 
-    public sealed partial class Camera_Page : Page
+    public sealed partial class Camera_Page : Page, INotifyPropertyChanged
     {
+
+
+
+       
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        // Input Tagleri için liste (Otomasyon için gerekli)
+        public ObservableCollection<string> PlcInputTags { get; set; } = new();
         public ObservableCollection<string> PlcOutputTags { get; set; } = new();
         public ObservableCollection<PlcTransferItem> PlcTransferRows { get; set; } = new();
 
@@ -196,51 +212,33 @@ namespace App4.PAGES
             try
             {
                 PlcOutputTags.Clear();
+                PlcInputTags.Clear(); // <-- YENİ: Input listesini temizle
 
-                // ---------------------------------------------------------
-                // 1. KAYNAK: PLC SAYFASINDA OLUŞTURULAN TAGLER (PlcService)
-                // ---------------------------------------------------------
-                // Kullanıcının PLC_Page üzerinden elle eklediği outputlar burada tutulur.
+                // 1. PLC Servisinden Gelenler (Outputlar ve Inputlar)
                 foreach (var v in App4.Utilities.PlcService.Instance.OutputVariables)
                 {
                     if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
-                    {
                         PlcOutputTags.Add(v.Name);
-                    }
                 }
 
-                // ---------------------------------------------------------
-                // 2. KAYNAK: GLOBAL DATA (OTOMATİK SAYFASI & GENEL TANIMLAR)
-                // ---------------------------------------------------------
-                // Eğer GlobalData'daki (Otomatik sayfası) tagleri de görmek istiyorsanız bu kısım kalmalı.
-                // İstemiyorsanız 2. Kaynak kısmını silebilirsiniz.
+                foreach (var v in App4.Utilities.PlcService.Instance.InputVariables) // <-- YENİ: Inputları doldur
+                {
+                    if (!string.IsNullOrEmpty(v.Name) && !PlcInputTags.Contains(v.Name))
+                        PlcInputTags.Add(v.Name);
+                }
 
-                // A. Genel Outputlar
+                // 2. Global Data'dan (Eğer varsa)
                 foreach (var v in App4.Utilities.GlobalData.GeneralOutputVars)
                 {
-                    if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
-                        PlcOutputTags.Add(v.Name);
+                    if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name)) PlcOutputTags.Add(v.Name);
                 }
 
-                // B. İstasyon Outputları
-                var allStationOutputs = new[]
+                foreach (var v in App4.Utilities.GlobalData.GeneralInputVars) // <-- YENİ
                 {
-            App4.Utilities.GlobalData.Station1Outputs,
-            App4.Utilities.GlobalData.Station2Outputs,
-            App4.Utilities.GlobalData.Station3Outputs,
-            App4.Utilities.GlobalData.Station4Outputs
-        };
-
-                foreach (var stationList in allStationOutputs)
-                {
-                    foreach (var v in stationList)
-                    {
-                        if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
-                            PlcOutputTags.Add(v.Name);
-                    }
+                    if (!string.IsNullOrEmpty(v.Name) && !PlcInputTags.Contains(v.Name)) PlcInputTags.Add(v.Name);
                 }
 
-                AddLog($"✓ PLC Tag listesi güncellendi. Toplam: {PlcOutputTags.Count} tag.");
+                AddLog($"✓ PLC Tag listeleri güncellendi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count})");
             }
             catch (Exception ex)
             {
@@ -885,6 +883,169 @@ namespace App4.PAGES
         }
 
 
+        // --- OTOMASYON AYARLARI ---
+        // Kullanıcının ComboBox'tan seçtiği Tag isimleri burada tutulacak
+        private string _selectedRfidTag;
+        public string SelectedRfidTag { get => _selectedRfidTag; set { _selectedRfidTag = value; OnPropertyChanged(); SaveAutomationSettings(); } }
+
+        private string _selectedIndexTag;
+        public string SelectedIndexTag { get => _selectedIndexTag; set { _selectedIndexTag = value; OnPropertyChanged(); SaveAutomationSettings(); } }
+
+        private string _selectedTriggerTag;
+        public string SelectedTriggerTag { get => _selectedTriggerTag; set { _selectedTriggerTag = value; OnPropertyChanged(); BindTriggerListener(); SaveAutomationSettings(); } }
+
+        // --- CANLI DEĞERLER (EKRANDA GÖRÜNEN) ---
+        private string _livePlcRfid = "---";
+        public string LivePlcRfid { get => _livePlcRfid; set { _livePlcRfid = value; OnPropertyChanged(); } }
+
+        private string _livePlcIndex = "0";
+        public string LivePlcIndex { get => _livePlcIndex; set { _livePlcIndex = value; OnPropertyChanged(); } }
+
+        private string _liveProcessStatus = "HAZIR";
+        public string LiveProcessStatus { get => _liveProcessStatus; set { _liveProcessStatus = value; OnPropertyChanged(); } }
+
+        private bool _isProcessRunning = false;
+        public bool IsProcessRunning { get => _isProcessRunning; set { _isProcessRunning = value; OnPropertyChanged(); } }
+
+        // --- 1. AYARLARI KAYDET & YÜKLE ---
+        private void SaveAutomationSettings()
+        {
+            // Seçilen tag isimlerini basitçe LocalSettings'e kaydedelim ki program açılınca hatırlasın
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["Auto_RfidTag"] = SelectedRfidTag;
+            localSettings.Values["Auto_IndexTag"] = SelectedIndexTag;
+            localSettings.Values["Auto_TriggerTag"] = SelectedTriggerTag;
+        }
+
+        private void LoadAutomationSettings()
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values.ContainsKey("Auto_RfidTag")) SelectedRfidTag = localSettings.Values["Auto_RfidTag"] as string;
+            if (localSettings.Values.ContainsKey("Auto_IndexTag")) SelectedIndexTag = localSettings.Values["Auto_IndexTag"] as string;
+            if (localSettings.Values.ContainsKey("Auto_TriggerTag")) SelectedTriggerTag = localSettings.Values["Auto_TriggerTag"] as string;
+        }
+
+        // --- 2. TAG DEĞİŞİNCE TETİKLEME (LISTENER) ---
+        private void BindTriggerListener()
+        {
+            // Önce eski dinleyiciyi temizle (varsa)
+            // (Burada tüm input listesini gezip PropertyChanged eventini kaldırmak karmaşık olabilir, 
+            // ama basitçe tetikleyici tag değiştiğinde onun olayına abone olacağız)
+
+            if (string.IsNullOrEmpty(SelectedTriggerTag)) return;
+
+            var triggerVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedTriggerTag);
+            if (triggerVar != null)
+            {
+                triggerVar.PropertyChanged -= TriggerVar_PropertyChanged; // Çift eklemeyi önle
+                triggerVar.PropertyChanged += TriggerVar_PropertyChanged;
+                AddLog($"Otomasyon: {SelectedTriggerTag} dinleniyor...", "Green");
+            }
+        }
+
+        private void TriggerVar_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
+            {
+                // Trigger değerini kontrol et (Sadece "1" veya "True" olduğunda çalış)
+                var triggerVar = sender as App4.Utilities.PlcVariable;
+                if (triggerVar != null && (triggerVar.Value == "1" || triggerVar.Value?.ToLower() == "true"))
+                {
+                    this.DispatcherQueue.TryEnqueue(() => RunAutomationSequence());
+                }
+            }
+        }
+
+        // --- 3. OTOMASYON MOTORU (İŞİ YAPAN KISIM) ---
+        private async void RunAutomationSequence()
+        {
+            if (IsProcessRunning) return; // Zaten çalışıyorsa çık
+            IsProcessRunning = true;
+            LiveProcessStatus = "BAŞLATILIYOR...";
+
+            try
+            {
+                // A. RFID ve INDEX Değerlerini Seçilen Taglerden Oku
+                var rfidVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedRfidTag);
+                var indexVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedIndexTag);
+
+                string currentRfid = rfidVar?.Value ?? "---";
+                string currentIndexStr = indexVar?.Value ?? "0";
+
+                // UI Güncelle
+                LivePlcRfid = currentRfid;
+                LivePlcIndex = currentIndexStr;
+
+                // B. Reçeteyi Bul
+                var recipe = App4.Utilities.GlobalData.KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
+                if (recipe == null)
+                {
+                    LiveProcessStatus = "HATA: REÇETE YOK";
+                    AddLog($"HATA: {currentRfid} tanımlı değil.", "Red");
+                    IsProcessRunning = false; return;
+                }
+
+                // C. Index Kontrolü
+                int.TryParse(currentIndexStr, out int index);
+                if (index < 0 || index >= recipe.JobSequence.Count)
+                {
+                    LiveProcessStatus = "HATA: INDEX YOK";
+                    AddLog($"HATA: Index {index} geçersiz.", "Red");
+                    IsProcessRunning = false; return;
+                }
+
+                // D. Job Yükle
+                string jobName = recipe.JobSequence[index];
+                LiveProcessStatus = $"YÜKLENİYOR: {jobName}";
+                bool loadOk = await GocatorJobLogic.LoadJob(jobName, AddLog);
+
+                if (!loadOk)
+                {
+                    LiveProcessStatus = "HATA: JOB YÜKLENEMEDİ";
+                    IsProcessRunning = false; return;
+                }
+
+                // E. Ölçüm Al
+                LiveProcessStatus = "ÖLÇÜM ALINIYOR...";
+                // Mevcut ölçüm alma fonksiyonunuzu çağırıyoruz
+                await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+
+                // F. Sonuçları PLC Tablosuna Yaz
+                TransferMeasurementsToPlcRows();
+
+                LiveProcessStatus = "TAMAMLANDI";
+            }
+            catch (Exception ex)
+            {
+                LiveProcessStatus = "SİSTEM HATASI";
+                AddLog("Oto Hata: " + ex.Message, "Red");
+            }
+            finally
+            {
+                IsProcessRunning = false;
+
+                // Opsiyonel: Trigger'ı sıfırla (PLC yapmıyorsa)
+                // var triggerVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedTriggerTag);
+                // if(triggerVar != null) PlcService.Instance.WriteAsync(triggerVar, false);
+            }
+        }
+
+        // --- 4. MANUEL BUTON & UI EVENTLERİ ---
+        private void BtnManualTrigger_Click(object sender, RoutedEventArgs e)
+        {
+            AddLog("Manuel tetikleme başlatıldı...", "Yellow");
+            RunAutomationSequence();
+        }
+
+        private void AutoProcessTag_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            // Tag seçimi değişince ayarları kaydet ve dinleyiciyi güncelle
+            SaveAutomationSettings();
+            if (sender == CmbTriggerTag) BindTriggerListener();
+        }
+
+
+
 
         #endregion
 
@@ -919,6 +1080,8 @@ namespace App4.PAGES
             LoadTransferRows(); // Load saved rows first
             InitializeDefaultPlcRows(); // Only if empty
             LoadCachedJobs(); // Load cached job list
+            LoadAutomationSettings(); // <-- BUNU EKLEYİN
+            BindTriggerListener();    // <-- VE BUNU
             // Hook change events
             PlcTransferRows.CollectionChanged -= PlcTransferRows_CollectionChanged; // Prevent double hook
             PlcTransferRows.CollectionChanged += PlcTransferRows_CollectionChanged;
@@ -1109,6 +1272,10 @@ namespace App4.PAGES
             }
         }
 
+        // BU SINIFI DOSYANIN EN ALTINA EKLEYİN
+       
+        
+
         #endregion
 
         #region ═══ Photo Capture Process ═══
@@ -1271,16 +1438,26 @@ namespace App4.PAGES
 
         #region ═══ Helper Methods (Logs, Status) ═══
 
+        // Renk parametresi eklendi (string color = null)
+        // 1. TEK PARAMETRELİ LOG (Delegeler ve Action<string> için gerekli)
         private void AddLog(string message)
+        {
+            AddLog(message, null); // Diğer fonksiyonu çağırır
+        }
+
+        // 2. İKİ PARAMETRELİ LOG (Renkli uyarılar için gerekli)
+        private void AddLog(string message, string color)
         {
             try
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss");
                 string logEntry = $"[{timestamp}] {message}";
-                _logHistory.Add(logEntry);
 
+                // Log geçmişine ekle
+                _logHistory.Add(logEntry);
                 if (_logHistory.Count > 200) _logHistory.RemoveAt(0);
 
+                // UI Güncelle (Renk şimdilik metin tabanlı logda göz ardı ediliyor ama kod kırılmıyor)
                 this.DispatcherQueue.TryEnqueue(() =>
                 {
                     if (LogOutput != null)
@@ -1306,9 +1483,11 @@ namespace App4.PAGES
             });
         }
 
+
         #endregion
     }
 
+   
     #region ═══ GOCATOR CLASSES ═══
 
     public class ReceiveImageSample
