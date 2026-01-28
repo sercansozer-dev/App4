@@ -116,7 +116,6 @@ namespace App4.PAGES
             if (btn != null) btn.IsEnabled = true;
         }
 
-
         private void LoadTransferRows()
         {
             try
@@ -408,6 +407,9 @@ namespace App4.PAGES
             }
         }
 
+
+        #region ===  GOCATOR YEDEKLEME MANTIĞI ===
+
         // GOCATOR YEDEKLEME MANTIĞI
         public class GocatorBackupLogic
         {
@@ -493,6 +495,290 @@ namespace App4.PAGES
 
             if (btn != null) btn.IsEnabled = true;
         }
+
+        // BU SINIF Camera_Page.xaml.cs EN ALTINA EKLENECEK
+        public class GocatorJobLogic
+        {
+            private const string JOB_FILES_PATH = "/jobs/files";
+            private const string JOB_LOAD_PATH = "/jobs/commands/load";
+
+            private const string SENSOR_IP = "192.168.251.30";
+            private const int CONTROL_PORT = 3600;
+
+            // 1. SENSÖRDEKİ JOB DOSYALARINI LİSTELE
+            // 1. SENSÖRDEKİ JOB DOSYALARINI LİSTELE (DÜZELTİLMİŞ VERSİYON)
+            public static async Task<List<string>> GetJobList(Action<string> log)
+            {
+                return await Task.Run(() =>
+                {
+                    var list = new List<string>();
+                    try
+                    {
+                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                        {
+                            system.Connect();
+
+                            // DÜZELTME BURADA: 'expandLevel' parametresi eklendi.
+                            // Bu parametre olmadan sensör dosya isimlerini göndermez.
+                            JObject args = new JObject { ["expandLevel"] = 1 };
+
+                            // Dosya listesini çek (args parametresini ekledik)
+                            JObject response = system.Client().Read(JOB_FILES_PATH, args: args).GetResponse().Payload;
+
+                            // Gocator API yapısına göre dosyaları ayıkla
+                            var items = response.SelectToken("_embedded.item");
+                            if (items != null)
+                            {
+                                foreach (var item in items)
+                                {
+                                    // Dosya adını al (fileName öncelikli)
+                                    string name = item.SelectToken("fileName")?.ToString() ??
+                                                  item.SelectToken("jobName")?.ToString();
+
+                                    if (!string.IsNullOrEmpty(name)) list.Add(name);
+                                }
+                            }
+                            system.Disconnect();
+                        }
+                    }
+                    catch (Exception ex) { log($"Job Liste Hatası: {ex.Message}"); }
+                    return list;
+                });
+            }
+
+            // 2. SEÇİLEN JOB'I AKTİF ET (LOAD)
+            public static async Task<bool> LoadJob(string jobName, Action<string> log)
+            {
+                return await Task.Run(() =>
+                {
+                    try
+                    {
+                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                        {
+                            log($"Sensöre bağlanılıyor ({jobName} yükle)...");
+                            system.Connect();
+
+                            // Çalışıyorsa durdur (Job değişimi için gereklidir)
+                            if (system.RunningState() == GoSystem.State.Running)
+                                system.Stop();
+
+                            // Yükleme komutunu gönder
+                            JObject payload = new JObject { ["name"] = jobName };
+                            system.Client().Call(JOB_LOAD_PATH, payload).CheckResponse(5000);
+
+                            system.Disconnect();
+                            return true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log($"Job Yükleme Hatası: {ex.Message}");
+                        return false;
+                    }
+                });
+            }
+
+            // 3. JOB İNDİR (BACKUP)
+            public static async Task<string> DownloadJob(string jobName, Action<string> log)
+            {
+                return await Task.Run(() =>
+                {
+                    try
+                    {
+                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                        {
+                            system.Connect();
+
+                            string readPath = $"{JOB_FILES_PATH}/{jobName}/data";
+                            log($"Job indiriliyor: {jobName}...");
+
+                            // Veriyi çek
+                            JObject response = system.Client().Read(readPath).GetResponse(10000).Payload;
+                            byte[] data = response["content"].ToObject<byte[]>();
+
+                            // Masaüstüne kaydet
+                            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                            string path = Path.Combine(desktop, $"{jobName}.gpjob");
+                            File.WriteAllBytes(path, data);
+
+                            system.Disconnect();
+                            return path;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log($"Job İndirme Hatası: {ex.Message}");
+                        return null;
+                    }
+                });
+            }
+
+            // 4. BİLGİSAYARDAN JOB YÜKLE (UPLOAD)
+            public static async Task<bool> UploadJob(string filePath, Action<string> log)
+            {
+                return await Task.Run(() =>
+                {
+                    try
+                    {
+                        byte[] content = File.ReadAllBytes(filePath);
+                        string fileName = Path.GetFileNameWithoutExtension(filePath); // Uzantısız isim
+
+                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                        {
+                            log($"Job yükleniyor: {fileName}...");
+                            system.Connect();
+
+                            JObject payload = new JObject
+                            {
+                                ["fromLive"] = false,
+                                ["name"] = fileName,
+                                ["content"] = content
+                            };
+
+                            system.Client().Create(JOB_FILES_PATH, payload).CheckResponse(10000);
+                            system.Disconnect();
+                            return true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log($"Upload Hatası: {ex.Message}");
+                        return false;
+                    }
+                });
+            }
+        }
+
+        // --- JOB YÖNETİM DEĞİŞKENLERİ ---
+        // Sensörden çekilen Job listesini burada tutacağız
+        public ObservableCollection<string> AvailableJobs { get; set; } = new();
+
+        // --- SAYFA YÜKLENİRKEN LİSTEYİ GÜNCELLE ---
+        // 'Camera_Page_Loaded' fonksiyonunun sonuna şu satırı ekleyin:
+        // await RefreshJobList(); 
+
+        // 1. JOB LİSTESİNİ YENİLEME FONKSİYONU
+        private async Task RefreshJobList()
+        {
+            // Listeyi temizle
+            AvailableJobs.Clear();
+            SensorJobListView.Items.Clear();
+
+            // Sensörden veriyi çek
+            var jobs = await GocatorJobLogic.GetJobList(AddLog);
+
+            foreach (var job in jobs)
+            {
+                AvailableJobs.Add(job); // ComboBox'lar için veri kaynağı
+                SensorJobListView.Items.Add(job); // Sol panel listesi
+            }
+
+            AddLog($"✓ Job listesi güncellendi. {jobs.Count} dosya bulundu.");
+        }
+
+        // 2. COMBOBOX YÜKLENDİĞİNDE İÇİNİ DOLDUR
+        // (XAML'da Loaded="JobCombo_Loaded" demiştik)
+        private void JobCombo_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ComboBox cmb)
+            {
+                cmb.ItemsSource = AvailableJobs;
+            }
+        }
+
+        // 3. JOB LİSTESİNİ YENİLEME BUTONU
+        private async void BtnRefreshJobs_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button; if (btn != null) btn.IsEnabled = false;
+            AddLog("Job listesi sensörden çekiliyor...");
+            await RefreshJobList();
+            if (btn != null) btn.IsEnabled = true;
+        }
+
+        // 4. JOB YÜKLEME (LOAD - AKTİF ETME)
+        private async void BtnLoadSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            if (SensorJobListView.SelectedItem is string jobName)
+            {
+                var btn = sender as Button; if (btn != null) btn.IsEnabled = false;
+                AddLog($"Job yükleniyor: {jobName}...");
+
+                bool success = await GocatorJobLogic.LoadJob(jobName, AddLog);
+
+                if (success) AddLog($"✅ {jobName} başarıyla aktif edildi.");
+                else AddLog("❌ Job yüklenemedi.");
+
+                if (btn != null) btn.IsEnabled = true;
+            }
+            else
+            {
+                AddLog("⚠ Lütfen listeden bir job seçiniz.");
+            }
+        }
+
+        // 5. JOB İNDİRME (DOWNLOAD - BACKUP)
+        private async void BtnDownloadSelectedJob_Click(object sender, RoutedEventArgs e)
+        {
+            if (SensorJobListView.SelectedItem is string jobName)
+            {
+                var btn = sender as Button; if (btn != null) btn.IsEnabled = false;
+
+                string path = await GocatorJobLogic.DownloadJob(jobName, AddLog);
+
+                if (path != null) AddLog($"✅ Dosya indirildi: {Path.GetFileName(path)} (Masaüstü)");
+
+                if (btn != null) btn.IsEnabled = true;
+            }
+            else
+            {
+                AddLog("⚠ Lütfen indirilecek job'ı seçiniz.");
+            }
+        }
+
+        // 6. PC'DEN JOB YÜKLEME (UPLOAD)
+        private async void BtnUploadNewJob_Click(object sender, RoutedEventArgs e)
+        {
+            // Dosya Seçici
+            var picker = new Windows.Storage.Pickers.FileOpenPicker();
+            picker.FileTypeFilter.Add(".gpjob");
+
+            // WinUI Handle Ayarı (Yedekleme kısmındaki gibi)
+            var window = (Application.Current as App)?.MainWindow;
+            if (window != null)
+            {
+                var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hWnd);
+            }
+
+            var file = await picker.PickSingleFileAsync();
+            if (file != null)
+            {
+                AddLog($"Yükleniyor: {file.Name}...");
+                bool success = await GocatorJobLogic.UploadJob(file.Path, AddLog);
+
+                if (success)
+                {
+                    AddLog($"✅ {file.Name} sensöre yüklendi.");
+                    await RefreshJobList(); // Listeyi güncelle
+                }
+            }
+        }
+
+        // 7. SEÇİM KAYDETME
+        private void JobSelectionChanged_Save(object sender, SelectionChangedEventArgs e)
+        {
+            // ComboBox değiştiğinde GlobalData'yı kaydet ki program açılıp kapandığında hatırlasın
+            App4.Utilities.GlobalData.SaveRfids();
+        }
+
+
+
+
+        #endregion
 
 
 
@@ -1280,7 +1566,7 @@ namespace App4.PAGES
             public byte intensity { get; set; }
         }
     }
-    #endregion
+   
     // BU SINIF Camera_Page.xaml.cs EN ALTINA Gelecek (Namespace içine)
     public class ReceiveMeasurementLogic
     {
@@ -1372,7 +1658,7 @@ namespace App4.PAGES
         }
     }
 
-
+ #endregion
 
 
 }

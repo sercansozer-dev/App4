@@ -43,16 +43,14 @@
         <!-- İKİ PANEL: FOTO ÇEKIMI (SOL) + 3D POINT CLOUD (SAĞ) -->
         <!-- ═══════════════════════════════════════════════════════════════════ -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Spacing="15" Padding="0,20,0,20">
-                
-                <!-- 1. KAMERA VE 3D PANELİ -->
+            <StackPanel Spacing="20" Padding="0,20,0,20">
+
                 <Grid Height="550" Padding="20,0" ColumnSpacing="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- SOL PANEL: FOTOGRAF ÇEKIMI -->
                     <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -101,7 +99,6 @@
                         </Grid>
                     </Border>
 
-                    <!-- SAĞ PANEL: 3D POINT CLOUD -->
                     <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -139,7 +136,6 @@
                     </Border>
                 </Grid>
 
-                <!-- 2. LOG KONSOLU -->
                 <Border Background="#1A1A1C" Height="150" Margin="20,0" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -158,14 +154,12 @@
                     </Grid>
                 </Border>
 
-                <!-- 3. ANALİZ TABLOSU (İKİYE BÖLÜNMÜŞ) -->
                 <Grid Height="400" Margin="20,0" ColumnSpacing="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- SOL: GOCATOR ALINANLAR -->
                     <Border Grid.Column="0" Background="#1A1A1C" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -206,16 +200,12 @@
                                                         <ColumnDefinition Width="80"/>
                                                         <ColumnDefinition Width="60"/>
                                                     </Grid.ColumnDefinitions>
-
                                                     <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5"/>
-
                                                     <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
-
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{x:Bind Value}" Foreground="#00A4EF" FontWeight="Bold"/>
                                                         <TextBlock Text="{x:Bind Unit}" Foreground="#00A4EF" Margin="4,0,0,0" FontSize="10" VerticalAlignment="Bottom"/>
                                                     </StackPanel>
-
                                                     <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="20" Width="50">
                                                         <TextBlock Text="{x:Bind Decision}" FontSize="10" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
@@ -225,7 +215,7 @@
                                     </ItemsControl>
 
                                     <TextBlock Text="Henüz ölçüm alınmadı." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0"
-                           Visibility="{x:Bind utils:GlobalData.LastMeasurements.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
+                                       Visibility="{x:Bind utils:GlobalData.LastMeasurements.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
                                 </StackPanel>
                             </ScrollViewer>
 
@@ -238,7 +228,6 @@
                         </Grid>
                     </Border>
 
-                    <!-- SAĞ: PLC AKTARIM ALANI -->
                     <Border Grid.Column="1" Background="#1A1A1C" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -253,28 +242,23 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-
                                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
                                         <FontIcon Glyph="&#xE975;" Foreground="#00A4EF" FontSize="16"/>
                                         <TextBlock Text="PLC AKTARIM" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                     </StackPanel>
-
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Right">
-
                                         <Button Click="BtnBackup_Click" Height="26" Padding="8,0" CornerRadius="4" Background="#D35400" BorderThickness="0" ToolTipService.ToolTip="Uygulama Verilerini Yedekle">
                                             <StackPanel Orientation="Horizontal" Spacing="5">
                                                 <FontIcon Glyph="&#xE753;" Foreground="White" FontSize="10"/>
                                                 <TextBlock Text="APP YEDEK" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                             </StackPanel>
                                         </Button>
-
                                         <Button Click="BtnBackupGocator_Click" Height="26" Padding="8,0" CornerRadius="4" Background="#00A4EF" BorderThickness="0" ToolTipService.ToolTip="Sensör Yedeğini İndir">
                                             <StackPanel Orientation="Horizontal" Spacing="5">
                                                 <FontIcon Glyph="&#xE964;" Foreground="White" FontSize="10"/>
                                                 <TextBlock Text="GOCATOR" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                             </StackPanel>
                                         </Button>
-
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -304,18 +288,14 @@
                                                         <ColumnDefinition Width="80"/>
                                                         <ColumnDefinition Width="40"/>
                                                     </Grid.ColumnDefinitions>
-
                                                     <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5"/>
-
                                                     <ComboBox Grid.Column="1" 
-                                          ItemsSource="{Binding ElementName=PlcTransferContainer, Path=DataContext.PlcOutputTags}"
-                                          SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
-                                          Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" 
-                                          Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"
-                                          VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
-
+                                                      ItemsSource="{Binding ElementName=PlcTransferContainer, Path=DataContext.PlcOutputTags}"
+                                                      SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
+                                                      Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" 
+                                                      Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"
+                                                      VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
                                                     <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold"/>
-
                                                     <Button Grid.Column="3" Click="BtnDeletePlcRow_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Center">
                                                         <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#E74C3C"/>
                                                     </Button>
@@ -340,6 +320,103 @@
                         </Grid>
                     </Border>
                 </Grid>
+
+                <Border Background="#1A1A1C" Margin="20,0" CornerRadius="10" BorderThickness="2" BorderBrush="#FFB81C" Height="350">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="350"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid Grid.Column="0" Margin="0,0,2,0" Background="#151515">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="45"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="50"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#252526" Padding="15,0" CornerRadius="8,0,0,0">
+                                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE8F1;" Foreground="#FFB81C" FontSize="16"/>
+                                    <TextBlock Text="SENSÖR İŞ DOSYALARI (JOBS)" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                </StackPanel>
+                            </Border>
+
+                            <ListView x:Name="SensorJobListView" Grid.Row="1" SelectionMode="Single" Background="#111">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="10">
+                                            <TextBlock Text="{Binding}" Foreground="White" FontSize="13" FontFamily="Cascadia Mono"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button Click="BtnRefreshJobs_Click" Background="#333" CornerRadius="4" ToolTipService.ToolTip="Listeyi Yenile">
+                                    <FontIcon Glyph="&#xE72C;" Foreground="White"/>
+                                </Button>
+                                <Button Content="YÜKLE (LOAD)" Click="BtnLoadSelectedJob_Click" Background="#4CAF50" Foreground="White" FontSize="11" FontWeight="Bold" CornerRadius="4" Height="30"/>
+                                <Button Content="İNDİR" Click="BtnDownloadSelectedJob_Click" Background="#00A4EF" Foreground="White" FontSize="11" FontWeight="Bold" CornerRadius="4" Height="30"/>
+                                <Button Click="BtnUploadNewJob_Click" Background="#FF9800" CornerRadius="4" ToolTipService.ToolTip="PC'den Job Yükle">
+                                    <FontIcon Glyph="&#xE896;" Foreground="White"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Column="1" Background="#1A1A1C">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="45"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#252526" Padding="15,0" CornerRadius="0,8,0,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE9D5;" Foreground="#00FF88" FontSize="16"/>
+                                    <TextBlock Text="KLİMA TİPİ - JOB EŞLEŞTİRME (REÇETE)" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Her model için uygun job dosyasını seçiniz." FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" Padding="15">
+                                <StackPanel Spacing="5">
+                                    <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="250"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="KLİMA ID" Foreground="#AAA" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="AÇIKLAMA" Foreground="#AAA" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0"/>
+                                        <TextBlock Grid.Column="2" Text="ÇALIŞACAK JOB DOSYASI" Foreground="#AAA" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="utils:RfidDef">
+                                                <Grid Margin="0,0,0,5" Height="45" Background="#222" CornerRadius="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="100"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="250"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind Id}" Foreground="#00A4EF" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="White" VerticalAlignment="Center" Margin="10,0"/>
+                                                    <ComboBox Grid.Column="2" 
+                                                      SelectedValue="{x:Bind LinkedJobName, Mode=TwoWay}"
+                                                      PlaceholderText="Job Seçiniz..."
+                                                      HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10,5"
+                                                      Loaded="JobCombo_Loaded"
+                                                      SelectionChanged="JobSelectionChanged_Save"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                </Border>
 
             </StackPanel>
         </ScrollViewer>

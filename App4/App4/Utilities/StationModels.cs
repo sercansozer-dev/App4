@@ -13,6 +13,8 @@ namespace App4.Utilities
     {
         public string Id { get; set; }
         public string Description { get; set; }
+        // YENİ EKLENEN ALAN: Bu model için hangi Job dosyası yüklenecek?
+        public string LinkedJobName { get; set; }
         public override string ToString() => $"{Id} ({Description})";
     }
 
