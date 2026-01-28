@@ -15,12 +15,14 @@ namespace App4.Utilities
         private static readonly string _rfidFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_RFID_List.json");
         private static readonly string _stationStateFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Station_States.json");
         private static readonly string _autoPageVariablesFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Auto_Page_Variables.json");
-
+        private static readonly string _measurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_Measurements.json");
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
         public static ObservableCollection<StationViewModel> Stations { get; private set; } = new();
 
         // PLC Değişken Listeleri
+        // 2. Global Liste
+        public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcVariable> GeneralInputVars { get; private set; } = new();
         public static ObservableCollection<PlcVariable> GeneralOutputVars { get; private set; } = new();
         public static ObservableCollection<PlcVariable> Station1Vars { get; private set; } = new();
@@ -54,7 +56,9 @@ namespace App4.Utilities
         // 1. Dosya Yolu
         private static readonly string _systemChecksFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "System_Checks.json");
 
-        // 2. Global Liste
+
+        // 1. Dosya Yolu
+     
         public static ObservableCollection<SystemCheckItem> SystemCheckList { get; private set; } = new();
 
         // 3. Initialize Metodunun İçine Ekle (LoadSystemChecks'i çağır)
@@ -85,7 +89,32 @@ namespace App4.Utilities
             catch { }
         }
 
+        public static void SaveMeasurements()
+        {
+            try
+            {
+                string json = JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_measurementsFilePath, json);
+            }
+            catch { }
+        }
 
+        private static void LoadMeasurements()
+        {
+            try
+            {
+                if (File.Exists(_measurementsFilePath))
+                {
+                    var list = JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath));
+                    if (list != null)
+                    {
+                        LastMeasurements.Clear();
+                        foreach (var item in list) LastMeasurements.Add(item);
+                    }
+                }
+            }
+            catch { }
+        }
 
 
 

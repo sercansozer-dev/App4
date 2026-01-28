@@ -39,6 +39,25 @@ namespace App4.Utilities
         }
     }
 
+    public class GocatorMeasurement : INotifyPropertyChanged
+    {
+        public int Id { get; set; }           // Sıra No (1, 2, 3...)
+        public string Name { get; set; }      // Ölçüm Adı (Örn: X Offset)
+        public double Value { get; set; }     // Değer (Örn: 12.45)
+        public string Unit { get; set; } = "mm";
+        public string Decision { get; set; }  // Pass / Fail
+        public int SourceId { get; set; }     // Sensördeki ID'si
+
+        // UI Rengi: Pass ise Yeşil, Fail ise Kırmızı
+        public SolidColorBrush StatusColor => (Decision == "Pass" || Decision == "OK")
+            ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80))  // Yeşil
+            : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 231, 76, 60)); // Kırmızı
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+
     // --- STATION VIEW MODEL ---
     public class StationViewModel : INotifyPropertyChanged
     {
@@ -249,4 +268,24 @@ namespace App4.Utilities
         public SolidColorBrush ManualBtnBg => Mode == StationMode.Manual ? new SolidColorBrush(Color.FromArgb(255, 255, 165, 0)) : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
         public SolidColorBrush ManualBtnFg => Mode == StationMode.Manual ? new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)) : new SolidColorBrush(Color.FromArgb(255, 128, 128, 128));
     }
+
+    public class CountToVisibilityConverter : Microsoft.UI.Xaml.Data.IValueConverter
+    {
+        public object Convert(object value, System.Type targetType, object parameter, string language)
+        {
+            int count = (value is int i) ? i : 0;
+            bool isInverse = (parameter as string) == "Inverse";
+
+            // Eğer Inverse (Ters) istenmişse: Sayı varsa GİZLE (Collapsed), yoksa GÖSTER (Visible)
+            if (isInverse)
+                return count > 0 ? Visibility.Collapsed : Visibility.Visible;
+
+            // Normal: Sayı varsa GÖSTER, yoksa GİZLE
+            return count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, System.Type targetType, object parameter, string language)
+            => throw new System.NotImplementedException();
+    }
+
 }

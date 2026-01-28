@@ -3,13 +3,16 @@
     x:Class="App4.PAGES.Camera_Page"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:utils="using:App4.Utilities"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
     NavigationCacheMode="Required">
-
-        <Grid Background="#0D0D0D">
+    <Page.Resources>
+        <utils:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+    </Page.Resources>
+    <Grid Background="#0D0D0D">
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
@@ -168,58 +171,70 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="45"/>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="40"/>
                             </Grid.RowDefinitions>
-                            
-                            <!-- Başlık -->
+
                             <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
                                     <FontIcon Glyph="&#xE8F4;" Foreground="#00A4EF" FontSize="16"/>
-                                    <TextBlock Text="GOCATOR ALINANLAR" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                    <TextBlock Text="GOCATOR ALINANLAR (ÖLÇÜMLER)" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Tablo Verileri -->
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
-                                 <StackPanel Spacing="5">
-                                     <!-- Header -->
-                                     <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
-                                         <Grid.ColumnDefinitions>
-                                             <ColumnDefinition Width="50"/>
-                                             <ColumnDefinition Width="*"/>
-                                             <ColumnDefinition Width="*"/>
-                                         </Grid.ColumnDefinitions>
-                                         <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                         <TextBlock Grid.Column="1" Text="DEĞİŞKEN ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
-                                         <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" FontWeight="Bold"/>
-                                     </Grid>
-                                     
-                                     <!-- 4 Rows -->
-                                     <Grid Background="#0F0F0F" Height="40">
-                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                         <TextBlock Text="1" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
-                                         <TextBlock Grid.Column="1" Text="X Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
-                                         <TextBlock Grid.Column="2" Text="128.45 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
-                                     </Grid>
-                                     <Grid Background="#141414" Height="40">
-                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                         <TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
-                                         <TextBlock Grid.Column="1" Text="Y Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
-                                         <TextBlock Grid.Column="2" Text="45.20 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
-                                     </Grid>
-                                     <Grid Background="#0F0F0F" Height="40">
-                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                         <TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
-                                         <TextBlock Grid.Column="1" Text="Z Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
-                                         <TextBlock Grid.Column="2" Text="12.05 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
-                                     </Grid>
-                                     <Grid Background="#141414" Height="40">
-                                         <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                         <TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
-                                         <TextBlock Grid.Column="1" Text="A Offset" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
-                                         <TextBlock Grid.Column="2" Text="0.00 mm" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0" Foreground="#4CAF50" FontWeight="Bold"/>
-                                     </Grid>
-                                 </StackPanel>
+                                <StackPanel Spacing="5">
+                                    <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="1" Text="ÖLÇÜM ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="3" Text="DURUM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{x:Bind utils:GlobalData.LastMeasurements, Mode=OneWay}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="utils:GocatorMeasurement">
+                                                <Grid Height="40" Margin="0,0,0,2" Background="#0F0F0F" CornerRadius="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="40"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="60"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5"/>
+
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
+
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Value}" Foreground="#00A4EF" FontWeight="Bold"/>
+                                                        <TextBlock Text="{x:Bind Unit}" Foreground="#00A4EF" Margin="4,0,0,0" FontSize="10" VerticalAlignment="Bottom"/>
+                                                    </StackPanel>
+
+                                                    <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="20" Width="50">
+                                                        <TextBlock Text="{x:Bind Decision}" FontSize="10" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="Henüz ölçüm alınmadı." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0"
+                           Visibility="{x:Bind utils:GlobalData.LastMeasurements.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
+                                </StackPanel>
                             </ScrollViewer>
+
+                            <Button Grid.Row="2" Click="BtnGetMeasurement_Click" Margin="10,0,10,10" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <FontIcon Glyph="&#xE916;" FontSize="12" Foreground="Orange"/>
+                                    <TextBlock Text="SENSÖRDEN YENİ ÖLÇÜM AL" FontSize="11" Foreground="White"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
                     </Border>
 

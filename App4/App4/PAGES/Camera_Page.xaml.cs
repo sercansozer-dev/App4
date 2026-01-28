@@ -21,7 +21,8 @@ using System.Collections.ObjectModel;
 using Windows.UI;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Newtonsoft.Json;
+using Microsoft.UI.Dispatching;
+
 
 namespace App4.PAGES
 {
@@ -80,6 +81,22 @@ namespace App4.PAGES
             this.DataContext = this;
             this.Loaded += Camera_Page_Loaded;
         }
+
+        // Bu fonksiyon Camera_Page sınıfının İÇİNDE olmalı!
+        private async void BtnGetMeasurement_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            AddLog("► Ölçüm alma isteği gönderildi...");
+
+            // DÜZELTME: İkinci parametre olarak 'this.DispatcherQueue' gönderiyoruz
+            await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+
+            if (btn != null) btn.IsEnabled = true;
+        }
+
+
 
         private void LoadTransferRows()
         {
@@ -1011,4 +1028,94 @@ namespace App4.PAGES
         }
     }
     #endregion
+    // BU SINIF Camera_Page.xaml.cs EN ALTINA Gelecek (Namespace içine)
+    public class ReceiveMeasurementLogic
+    {
+        private const string GOCATOR_CONTROL_PATH = "/controls/gocator";
+        private const int RECEIVE_DATA_TIMEOUT_MSEC = 5000;
+        private const string SENSOR_IP = "192.168.251.30";
+        private const int CONTROL_PORT = 3600;
+
+        // YENİ PARAMETRE EKLENDİ: DispatcherQueue dispatcher
+        public static async Task<int> ReceiveAndProcessMeasurements(Action<string> log, DispatcherQueue dispatcher)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                    {
+                        log("Sensöre bağlanılıyor (Ölçüm)...");
+                        system.Connect();
+
+                        // Gocator Protokolünü Aktif Et
+                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(5000);
+
+                        using (GoGdpClient gdpClient = new GoGdpClient())
+                        {
+                            gdpClient.Connect(system.Address, system.GdpPort());
+
+                            if (system.RunningState() == GoSystem.State.Ready)
+                                system.Start();
+
+                            log("Ölçüm verisi bekleniyor...");
+
+                            gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
+
+                            if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
+                            {
+                                // DÜZELTME: WinUI 3 Uyumlu Dispatcher Kullanımı
+                                dispatcher.TryEnqueue(() =>
+                                {
+                                    App4.Utilities.GlobalData.LastMeasurements.Clear();
+                                });
+
+                                int counter = 1;
+
+                                for (int i = 0; i < gdpClient.DataSet.Count; i++)
+                                {
+                                    var msg = gdpClient.DataSet.GdpMsgAt(i);
+
+                                    if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
+                                    {
+                                        // String -> Int Dönüşümü (Güvenli)
+                                        int.TryParse(mMsg.DataSourceId, out int parsedSourceId);
+
+                                        var newItem = new App4.Utilities.GocatorMeasurement
+                                        {
+                                            Id = counter++,
+                                            SourceId = parsedSourceId,
+                                            Name = $"Measurement {mMsg.DataSourceId}",
+                                            Value = Math.Round(mMsg.Value, 3),
+                                            Decision = mMsg.Decision.ToString(),
+                                        };
+
+                                        // DÜZELTME: WinUI 3 Uyumlu Dispatcher Kullanımı
+                                        dispatcher.TryEnqueue(() =>
+                                        {
+                                            App4.Utilities.GlobalData.LastMeasurements.Add(newItem);
+                                            App4.Utilities.GlobalData.SaveMeasurements();
+                                        });
+                                    }
+                                }
+                                log($"✓ {counter - 1} adet ölçüm alındı.");
+                            }
+                            else
+                            {
+                                log("⚠ Ölçüm verisi bulunamadı.");
+                            }
+                            system.Stop();
+                        }
+                    }
+                    return 1;
+                }
+                catch (Exception ex)
+                {
+                    log($"✗ Ölçüm Hatası: {ex.Message}");
+                    return -1;
+                }
+            });
+        }
+    }
 }
