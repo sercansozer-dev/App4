@@ -24,67 +24,64 @@ using System.Runtime.CompilerServices;
 using Microsoft.UI.Dispatching;
 using System.IO.Compression; // Zip dosyası yapmak için şart
 using Windows.Storage.Pickers; // Kayıt penceresi için
+using App4.Utilities; // <-- BU SATIRI MUTLAKA EKLEYİN
+
 
 namespace App4.PAGES
 {
-    public class PlcTransferItem : INotifyPropertyChanged
-    {
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+    
 
-        public int Index { get; set; }
-
-        // --- TAG SEÇİMİ (Zaten Vardı) ---
-        private string _selectedTag;
-        public string SelectedTag
-        {
-            get => _selectedTag;
-            set { if (_selectedTag != value) { _selectedTag = value; OnPropertyChanged(); } }
-        }
-
-        // --- DEĞER (BUNU GÜNCELLEMEMİZ GEREKİYORDU) ---
-        private string _value;
-        public string Value
-        {
-            get => _value;
-            set { if (_value != value) { _value = value; OnPropertyChanged(); } } // <-- ARTIK CANLI
-        }
-
-        // --- DURUM METNİ (SENT, WAIT) ---
-        private string _status;
-        public string Status
-        {
-            get => _status;
-            set { if (_status != value) { _status = value; OnPropertyChanged(); } }
-        }
-
-        // --- DURUM RENGİ ---
-        private SolidColorBrush _statusColor;
-        [JsonIgnore]
-        public SolidColorBrush StatusColor
-        {
-            get => _statusColor;
-            set { if (_statusColor != value) { _statusColor = value; OnPropertyChanged(); } }
-        }
-
-        // --- ARKA PLAN RENGİ ---
-        [JsonIgnore]
-        public SolidColorBrush BackgroundColor { get; set; }
-
-
-
-
-    }
+    
 
     public sealed partial class Camera_Page : Page, INotifyPropertyChanged
     {
+        public string LivePlcRfid => App4.Utilities.GlobalData.Auto_RfidTag;
+        public string LivePlcIndex => App4.Utilities.GlobalData.Auto_IndexTag;
+        public string LiveProcessStatus => App4.Utilities.GlobalData.ProcessStatus;
+        public bool IsProcessRunning => App4.Utilities.GlobalData.IsProcessRunning;
+        public string SelectedRfidTag
+        {
+            get => App4.Utilities.GlobalData.Auto_RfidTag;
+            set => App4.Utilities.GlobalData.Auto_RfidTag = value;
+        }
+        public string SelectedIndexTag
+        {
+            get => App4.Utilities.GlobalData.Auto_IndexTag;
+            set => App4.Utilities.GlobalData.Auto_IndexTag = value;
+        }
+        public string SelectedTriggerTag
+        {
+            get => App4.Utilities.GlobalData.Auto_TriggerTag;
+            set => App4.Utilities.GlobalData.Auto_TriggerTag = value;
+        }
 
+        // ▼▼▼ TAG VALUE GÖSTERME (PLC'DEN OKUNAN DEĞERLER) ▼▼▼
+        public string RfidTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_RfidTag);
+        public string IndexTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_IndexTag);
+        public string TriggerTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_TriggerTag);
 
-
-       
+        private string GetTagValue(string tagName)
+        {
+            if (string.IsNullOrEmpty(tagName)) return "---";
+            
+            // GeneralInputVars'dan değeri bul
+            var plcVar = App4.Utilities.GlobalData.GeneralInputVars
+                .FirstOrDefault(v => v.Name == tagName);
+            
+            if (plcVar != null)
+                return plcVar.Value ?? "---";
+            
+            // PlcService'den de kontrol et
+            if (App4.Utilities.PlcService.Instance != null)
+            {
+                var serviceVar = App4.Utilities.PlcService.Instance.InputVariables
+                    .FirstOrDefault(v => v.Name == tagName);
+                if (serviceVar != null)
+                    return serviceVar.Value ?? "---";
+            }
+            
+            return "---";
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
@@ -94,11 +91,12 @@ namespace App4.PAGES
         // Input Tagleri için liste (Otomasyon için gerekli)
         public ObservableCollection<string> PlcInputTags { get; set; } = new();
         public ObservableCollection<string> PlcOutputTags { get; set; } = new();
-        public ObservableCollection<PlcTransferItem> PlcTransferRows { get; set; } = new();
+        // Global listeye referans (Ok işareti => ile)
+        public ObservableCollection<PlcTransferItem> PlcTransferRows => App4.Utilities.GlobalData.PlcTransferRows;
 
         private List<string> _logHistory = new();
         private bool _isWebViewInitialized = false;
-        private readonly string _transferRowsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Camera_PlcTransfer.json");
+      
 
         // Cached brushes for better performance
         private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.Colors.Orange);
@@ -120,131 +118,133 @@ namespace App4.PAGES
 
             AddLog("► Ölçüm alma isteği gönderildi...");
 
-            // 1. Gocator'dan veriyi çek ve GlobalData'ya kaydet
-            int result = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+            // DÜZELTME: Metot artık Tuple döndürüyor (int status, List data).
+            // Deconstruction yaparak sadece status'u alıyoruz veya sonucu kontrol ediyoruz.
+            var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
 
-            // 2. Eğer işlem başarılıysa, verileri sağdaki tabloya taşı
-            if (result == 1)
+            // result.Item1 = Status (int)
+            // result.Item2 = Data List (List<GocatorMeasurement>)
+            if (result.Item1 == 1) // 1 = Başarılı
             {
-                TransferMeasurementsToPlcRows(); // <-- YENİ EKLENEN SATIR
+                TransferMeasurementsToPlcRows();
             }
 
             if (btn != null) btn.IsEnabled = true;
         }
 
-        private void LoadTransferRows()
-        {
-            try
-            {
-                if (File.Exists(_transferRowsFilePath))
-                {
-                    var json = File.ReadAllText(_transferRowsFilePath);
-                    var items = JsonConvert.DeserializeObject<List<PlcTransferItem>>(json);
-                    
-                    if (items != null && items.Count > 0)
-                    {
-                        PlcTransferRows.Clear();
-                        foreach (var item in items)
-                        {
-                            // Restore brushes based on status/index
-                            if (item.Status == "SENT") item.StatusColor = BrushGreen;
-                            else if (item.Status == "WAIT") item.StatusColor = BrushOrange;
-                            else item.StatusColor = BrushRed;
 
-                            item.BackgroundColor = (item.Index % 2 == 1) 
-                                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
-                                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
 
-                            PlcTransferRows.Add(item);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                AddLog("Tablo yüklenemedi: " + ex.Message);
-            }
-        }
 
-        private void SaveTransferRows()
-        {
-            try
-            {
-                var directory = Path.GetDirectoryName(_transferRowsFilePath);
-                if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
-                var json = JsonConvert.SerializeObject(PlcTransferRows, Formatting.Indented);
-                File.WriteAllText(_transferRowsFilePath, json);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Save Error: " + ex.Message);
-            }
-        }
 
-        private void PlcTransferItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(PlcTransferItem.SelectedTag))
-            {
-                SaveTransferRows();
-            }
-        }
 
-        private void PlcTransferRows_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            if (e.NewItems != null)
-            {
-                foreach (PlcTransferItem item in e.NewItems)
-                    item.PropertyChanged += PlcTransferItem_PropertyChanged;
-            }
-
-            if (e.OldItems != null)
-            {
-                foreach (PlcTransferItem item in e.OldItems)
-                    item.PropertyChanged -= PlcTransferItem_PropertyChanged;
-            }
-            
-            SaveTransferRows();
-        }
 
         private void LoadPlcTags()
         {
             try
             {
-                PlcOutputTags.Clear();
-                PlcInputTags.Clear(); // <-- YENİ: Input listesini temizle
+                // 1. GÜNCEL TAG LİSTELERİNİ TOPLA (GEÇİCİ LİSTE)
+                var newOutputs = new HashSet<string>();
+                var newInputs = new HashSet<string>();
 
-                // 1. PLC Servisinden Gelenler (Outputlar ve Inputlar)
-                foreach (var v in App4.Utilities.PlcService.Instance.OutputVariables)
+                // A. PLC Servisinden Gelenler
+                if (App4.Utilities.PlcService.Instance != null)
                 {
-                    if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name))
-                        PlcOutputTags.Add(v.Name);
+                    foreach (var v in App4.Utilities.PlcService.Instance.OutputVariables)
+                        if (!string.IsNullOrEmpty(v.Name)) newOutputs.Add(v.Name);
+
+                    foreach (var v in App4.Utilities.PlcService.Instance.InputVariables)
+                        if (!string.IsNullOrEmpty(v.Name)) newInputs.Add(v.Name);
                 }
 
-                foreach (var v in App4.Utilities.PlcService.Instance.InputVariables) // <-- YENİ: Inputları doldur
-                {
-                    if (!string.IsNullOrEmpty(v.Name) && !PlcInputTags.Contains(v.Name))
-                        PlcInputTags.Add(v.Name);
-                }
-
-                // 2. Global Data'dan (Eğer varsa)
+                // B. Global Data'dan Gelenler
                 foreach (var v in App4.Utilities.GlobalData.GeneralOutputVars)
-                {
-                    if (!string.IsNullOrEmpty(v.Name) && !PlcOutputTags.Contains(v.Name)) PlcOutputTags.Add(v.Name);
-                }
+                    if (!string.IsNullOrEmpty(v.Name)) newOutputs.Add(v.Name);
 
-                foreach (var v in App4.Utilities.GlobalData.GeneralInputVars) // <-- YENİ
-                {
-                    if (!string.IsNullOrEmpty(v.Name) && !PlcInputTags.Contains(v.Name)) PlcInputTags.Add(v.Name);
-                }
+                foreach (var v in App4.Utilities.GlobalData.GeneralInputVars)
+                    if (!string.IsNullOrEmpty(v.Name)) newInputs.Add(v.Name);
 
-                AddLog($"✓ PLC Tag listeleri güncellendi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count})");
+                // ---------------------------------------------------------
+                // 2. AKILLI SENKRONİZASYON (Output Tags) - Asla Clear() Yapma!
+                // ---------------------------------------------------------
+
+                // Listede olup artık var olmayanları çıkar
+                var toRemoveOut = PlcOutputTags.Where(t => !newOutputs.Contains(t)).ToList();
+                foreach (var t in toRemoveOut) PlcOutputTags.Remove(t);
+
+                // Yeni gelenleri ekle
+                foreach (var t in newOutputs)
+                    if (!PlcOutputTags.Contains(t)) PlcOutputTags.Add(t);
+
+                // ---------------------------------------------------------
+                // 3. AKILLI SENKRONİZASYON (Input Tags)
+                // ---------------------------------------------------------
+
+                var toRemoveIn = PlcInputTags.Where(t => !newInputs.Contains(t)).ToList();
+                foreach (var t in toRemoveIn) PlcInputTags.Remove(t);
+
+                foreach (var t in newInputs)
+                    if (!PlcInputTags.Contains(t)) PlcInputTags.Add(t);
+
+                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count})");
             }
             catch (Exception ex)
             {
                 AddLog("PLC Tagleri yüklenemedi: " + ex.Message);
             }
         }
+
+        // ▼▼▼ YENİ METOT: TRANSFER SATIR SEÇİMLERİNİ YENİLE ▼▼▼
+        private void RefreshTransferRowBindings()
+        {
+            try
+            {
+                // PlcTransferRows içindeki SelectedTag değerlerinin ComboBox'larda görünmesi için
+                foreach (var row in PlcTransferRows)
+                {
+                    if (!string.IsNullOrEmpty(row.SelectedTag))
+                    {
+                        // Output listesinde var mı kontrol et
+                        if (PlcOutputTags.Contains(row.SelectedTag))
+                        {
+                            // Binding'i zorla refresh et (null -> değer)
+                            string savedTag = row.SelectedTag;
+                            row.SelectedTag = null;
+                            row.SelectedTag = savedTag;
+                        }
+                    }
+                }
+
+                // ▼▼▼ KRİTİK: OTOMASYON COMBOBOX'LARINI DOĞRUDAN GÜNCELLE ▼▼▼
+                string rfid = App4.Utilities.GlobalData.Auto_RfidTag;
+                string index = App4.Utilities.GlobalData.Auto_IndexTag;
+                string trigger = App4.Utilities.GlobalData.Auto_TriggerTag;
+
+                // ComboBox'ları doğrudan kod ile set et (x:Bind yetersiz kalıyor)
+                if (!string.IsNullOrEmpty(rfid) && PlcInputTags.Contains(rfid))
+                {
+                    CmbRfidTag.SelectedItem = rfid;
+                    AddLog($"► Kayıtlı RFID Tag yüklendi: {rfid}");
+                }
+
+                if (!string.IsNullOrEmpty(index) && PlcInputTags.Contains(index))
+                {
+                    CmbIndexTag.SelectedItem = index;
+                    AddLog($"► Kayıtlı Index Tag yüklendi: {index}");
+                }
+
+                if (!string.IsNullOrEmpty(trigger) && PlcInputTags.Contains(trigger))
+                {
+                    CmbTriggerTag.SelectedItem = trigger;
+                    AddLog($"► Kayıtlı Trigger Tag yüklendi: {trigger}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"RefreshTransferRowBindings Error: {ex.Message}");
+            }
+        }
+
 
 
         private void TransferMeasurementsToPlcRows()
@@ -280,70 +280,45 @@ namespace App4.PAGES
             }
         }
 
-        private void InitializeDefaultPlcRows()
-        {
-            if (PlcTransferRows.Count > 0) return;
 
-            PlcTransferRows.Add(new PlcTransferItem 
-            { 
-                Index = 1, 
-                SelectedTag = PlcOutputTags.FirstOrDefault(), 
-                Value = "12845", 
-                Status = "SENT", 
-                StatusColor = BrushGreen, 
-                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
-            });
-            PlcTransferRows.Add(new PlcTransferItem 
-            { 
-                Index = 2, 
-                SelectedTag = PlcOutputTags.Skip(1).FirstOrDefault(), 
-                Value = "4520", 
-                Status = "SENT", 
-                StatusColor = BrushGreen, 
-                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20)) 
-            });
-             PlcTransferRows.Add(new PlcTransferItem 
-            { 
-                Index = 3, 
-                SelectedTag = PlcOutputTags.Skip(2).FirstOrDefault(), 
-                Value = "1205", 
-                Status = "SENT", 
-                StatusColor = BrushGreen, 
-                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15)) 
-            });
-             PlcTransferRows.Add(new PlcTransferItem 
-            { 
-                Index = 4, 
-                SelectedTag = PlcOutputTags.Skip(3).FirstOrDefault(), 
-                Value = "0", 
-                Status = "WAIT", 
-                StatusColor = BrushOrange, 
-                BackgroundColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20)) 
-            });
-        }
 
         // --- YENİ SATIR EKLEME ---
         private void BtnAddPlcRow_Click(object sender, RoutedEventArgs e)
         {
+            // 1. Sıra numarasını ve rengi belirle
             var index = PlcTransferRows.Count + 1;
-
-            // Arka plan rengini sırayla koyu/açık yap
             var color = (index % 2 == 1)
                 ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
                 : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
 
-            PlcTransferRows.Add(new PlcTransferItem
+            // 2. Yeni satırı oluştur
+            var newItem = new PlcTransferItem
             {
                 Index = index,
-                SelectedTag = null, // Başlangıçta boş olsun, kullanıcı seçsin
+                SelectedTag = null,
                 Value = "0",
                 Status = "WAIT",
                 StatusColor = BrushOrange,
                 BackgroundColor = color
-            });
+            };
 
-            // Listeyi kaydet
-            SaveTransferRows();
+            // ▼▼▼ KRİTİK NOKTA: DİNLEYİCİ EKLEME ▼▼▼
+            // Bu yeni satırın "SelectedTag" özelliği değişirse (yani kullanıcı listeden seçim yaparsa)
+            // hemen git GlobalData üzerindeki kayıt fonksiyonunu çalıştır diyoruz.
+            newItem.PropertyChanged += (s, ev) =>
+            {
+                if (ev.PropertyName == "SelectedTag")
+                {
+                    App4.Utilities.GlobalData.SaveTransferRows();
+                }
+            };
+            // ▲▲▲ ▲▲▲
+
+            // 3. Listeye ekle
+            PlcTransferRows.Add(newItem);
+
+            // 4. Ekleme işlemi bittiği için son durumu kaydet
+            App4.Utilities.GlobalData.SaveTransferRows();
         }
 
         // --- SİSTEM YEDEKLEME FONKSİYONU ---
@@ -490,161 +465,7 @@ namespace App4.PAGES
         }
 
         // BU SINIF Camera_Page.xaml.cs EN ALTINA EKLENECEK
-        public class GocatorJobLogic
-        {
-            private const string JOB_FILES_PATH = "/jobs/files";
-            private const string JOB_LOAD_PATH = "/jobs/commands/load";
-
-            private const string SENSOR_IP = "192.168.251.30";
-            private const int CONTROL_PORT = 3600;
-
-            // 1. SENSÖRDEKİ JOB DOSYALARINI LİSTELE
-            // 1. SENSÖRDEKİ JOB DOSYALARINI LİSTELE (DÜZELTİLMİŞ VERSİYON)
-            public static async Task<List<string>> GetJobList(Action<string> log)
-            {
-                return await Task.Run(() =>
-                {
-                    var list = new List<string>();
-                    try
-                    {
-                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
-                        {
-                            system.Connect();
-
-                            // DÜZELTME BURADA: 'expandLevel' parametresi eklendi.
-                            // Bu parametre olmadan sensör dosya isimlerini göndermez.
-                            JObject args = new JObject { ["expandLevel"] = 1 };
-
-                            // Dosya listesini çek (args parametresini ekledik)
-                            JObject response = system.Client().Read(JOB_FILES_PATH, args: args).GetResponse().Payload;
-
-                            // Gocator API yapısına göre dosyaları ayıkla
-                            var items = response.SelectToken("_embedded.item");
-                            if (items != null)
-                            {
-                                foreach (var item in items)
-                                {
-                                    // Dosya adını al (fileName öncelikli)
-                                    string name = item.SelectToken("fileName")?.ToString() ??
-                                                  item.SelectToken("jobName")?.ToString();
-
-                                    if (!string.IsNullOrEmpty(name)) list.Add(name);
-                                }
-                            }
-                            system.Disconnect();
-                        }
-                    }
-                    catch (Exception ex) { log($"Job Liste Hatası: {ex.Message}"); }
-                    return list;
-                });
-            }
-
-            // 2. SEÇİLEN JOB'I AKTİF ET (LOAD)
-            public static async Task<bool> LoadJob(string jobName, Action<string> log)
-            {
-                return await Task.Run(() =>
-                {
-                    try
-                    {
-                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
-                        {
-                            log($"Sensöre bağlanılıyor ({jobName} yükle)...");
-                            system.Connect();
-
-                            // Çalışıyorsa durdur (Job değişimi için gereklidir)
-                            if (system.RunningState() == GoSystem.State.Running)
-                                system.Stop();
-
-                            // Yükleme komutunu gönder
-                            JObject payload = new JObject { ["name"] = jobName };
-                            system.Client().Call(JOB_LOAD_PATH, payload).CheckResponse(5000);
-
-                            system.Disconnect();
-                            return true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        log($"Job Yükleme Hatası: {ex.Message}");
-                        return false;
-                    }
-                });
-            }
-
-            // 3. JOB İNDİR (BACKUP)
-            public static async Task<string> DownloadJob(string jobName, Action<string> log)
-            {
-                return await Task.Run(() =>
-                {
-                    try
-                    {
-                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
-                        {
-                            system.Connect();
-
-                            string readPath = $"{JOB_FILES_PATH}/{jobName}/data";
-                            log($"Job indiriliyor: {jobName}...");
-
-                            // Veriyi çek
-                            JObject response = system.Client().Read(readPath).GetResponse(10000).Payload;
-                            byte[] data = response["content"].ToObject<byte[]>();
-
-                            // Masaüstüne kaydet
-                            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                            string path = Path.Combine(desktop, $"{jobName}.gpjob");
-                            File.WriteAllBytes(path, data);
-
-                            system.Disconnect();
-                            return path;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        log($"Job İndirme Hatası: {ex.Message}");
-                        return null;
-                    }
-                });
-            }
-
-            // 4. BİLGİSAYARDAN JOB YÜKLE (UPLOAD)
-            public static async Task<bool> UploadJob(string filePath, Action<string> log)
-            {
-                return await Task.Run(() =>
-                {
-                    try
-                    {
-                        byte[] content = File.ReadAllBytes(filePath);
-                        string fileName = Path.GetFileNameWithoutExtension(filePath); // Uzantısız isim
-
-                        IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
-                        {
-                            log($"Job yükleniyor: {fileName}...");
-                            system.Connect();
-
-                            JObject payload = new JObject
-                            {
-                                ["fromLive"] = false,
-                                ["name"] = fileName,
-                                ["content"] = content
-                            };
-
-                            system.Client().Create(JOB_FILES_PATH, payload).CheckResponse(10000);
-                            system.Disconnect();
-                            return true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        log($"Upload Hatası: {ex.Message}");
-                        return false;
-                    }
-                });
-            }
-        }
+       
 
         // --- JOB YÖNETİM DEĞİŞKENLERİ ---
         // Sensörden çekilen Job listesini burada tutacağız
@@ -661,9 +482,9 @@ namespace App4.PAGES
             AvailableJobs.Clear();
             SensorJobListView.Items.Clear();
 
+            var jobs = await App4.Utilities.GocatorJobLogic.GetJobList(AddLog);
             // Sensörden veriyi çek
-            var jobs = await GocatorJobLogic.GetJobList(AddLog);
-
+           
             foreach (var job in jobs)
             {
                 AvailableJobs.Add(job); // ComboBox'lar için veri kaynağı
@@ -884,165 +705,43 @@ namespace App4.PAGES
 
 
         // --- OTOMASYON AYARLARI ---
-        // Kullanıcının ComboBox'tan seçtiği Tag isimleri burada tutulacak
-        private string _selectedRfidTag;
-        public string SelectedRfidTag { get => _selectedRfidTag; set { _selectedRfidTag = value; OnPropertyChanged(); SaveAutomationSettings(); } }
-
-        private string _selectedIndexTag;
-        public string SelectedIndexTag { get => _selectedIndexTag; set { _selectedIndexTag = value; OnPropertyChanged(); SaveAutomationSettings(); } }
-
-        private string _selectedTriggerTag;
-        public string SelectedTriggerTag { get => _selectedTriggerTag; set { _selectedTriggerTag = value; OnPropertyChanged(); BindTriggerListener(); SaveAutomationSettings(); } }
-
-        // --- CANLI DEĞERLER (EKRANDA GÖRÜNEN) ---
-        private string _livePlcRfid = "---";
-        public string LivePlcRfid { get => _livePlcRfid; set { _livePlcRfid = value; OnPropertyChanged(); } }
-
-        private string _livePlcIndex = "0";
-        public string LivePlcIndex { get => _livePlcIndex; set { _livePlcIndex = value; OnPropertyChanged(); } }
-
-        private string _liveProcessStatus = "HAZIR";
-        public string LiveProcessStatus { get => _liveProcessStatus; set { _liveProcessStatus = value; OnPropertyChanged(); } }
-
-        private bool _isProcessRunning = false;
-        public bool IsProcessRunning { get => _isProcessRunning; set { _isProcessRunning = value; OnPropertyChanged(); } }
-
-        // --- 1. AYARLARI KAYDET & YÜKLE ---
-        private void SaveAutomationSettings()
+        // ▼▼▼ YENİ: SEÇİM DEĞİŞTİĞİNDE KAYDET ▼▼▼
+        private void AutomationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Seçilen tag isimlerini basitçe LocalSettings'e kaydedelim ki program açılınca hatırlasın
-            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            localSettings.Values["Auto_RfidTag"] = SelectedRfidTag;
-            localSettings.Values["Auto_IndexTag"] = SelectedIndexTag;
-            localSettings.Values["Auto_TriggerTag"] = SelectedTriggerTag;
-        }
-
-        private void LoadAutomationSettings()
-        {
-            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            if (localSettings.Values.ContainsKey("Auto_RfidTag")) SelectedRfidTag = localSettings.Values["Auto_RfidTag"] as string;
-            if (localSettings.Values.ContainsKey("Auto_IndexTag")) SelectedIndexTag = localSettings.Values["Auto_IndexTag"] as string;
-            if (localSettings.Values.ContainsKey("Auto_TriggerTag")) SelectedTriggerTag = localSettings.Values["Auto_TriggerTag"] as string;
-        }
-
-        // --- 2. TAG DEĞİŞİNCE TETİKLEME (LISTENER) ---
-        private void BindTriggerListener()
-        {
-            // Önce eski dinleyiciyi temizle (varsa)
-            // (Burada tüm input listesini gezip PropertyChanged eventini kaldırmak karmaşık olabilir, 
-            // ama basitçe tetikleyici tag değiştiğinde onun olayına abone olacağız)
-
-            if (string.IsNullOrEmpty(SelectedTriggerTag)) return;
-
-            var triggerVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedTriggerTag);
-            if (triggerVar != null)
+            if (sender is ComboBox cmb && cmb.SelectedItem is string selectedTag)
             {
-                triggerVar.PropertyChanged -= TriggerVar_PropertyChanged; // Çift eklemeyi önle
-                triggerVar.PropertyChanged += TriggerVar_PropertyChanged;
-                AddLog($"Otomasyon: {SelectedTriggerTag} dinleniyor...", "Green");
-            }
-        }
-
-        private void TriggerVar_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
-            {
-                // Trigger değerini kontrol et (Sadece "1" veya "True" olduğunda çalış)
-                var triggerVar = sender as App4.Utilities.PlcVariable;
-                if (triggerVar != null && (triggerVar.Value == "1" || triggerVar.Value?.ToLower() == "true"))
+                // Hangi ComboBox'tan geldiğini kontrol et
+                if (cmb.Name == "CmbRfidTag")
                 {
-                    this.DispatcherQueue.TryEnqueue(() => RunAutomationSequence());
+                    App4.Utilities.GlobalData.Auto_RfidTag = selectedTag;
+                    AddLog($"✓ RFID Tag kaydedildi: {selectedTag}");
                 }
-            }
-        }
-
-        // --- 3. OTOMASYON MOTORU (İŞİ YAPAN KISIM) ---
-        private async void RunAutomationSequence()
-        {
-            if (IsProcessRunning) return; // Zaten çalışıyorsa çık
-            IsProcessRunning = true;
-            LiveProcessStatus = "BAŞLATILIYOR...";
-
-            try
-            {
-                // A. RFID ve INDEX Değerlerini Seçilen Taglerden Oku
-                var rfidVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedRfidTag);
-                var indexVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedIndexTag);
-
-                string currentRfid = rfidVar?.Value ?? "---";
-                string currentIndexStr = indexVar?.Value ?? "0";
-
-                // UI Güncelle
-                LivePlcRfid = currentRfid;
-                LivePlcIndex = currentIndexStr;
-
-                // B. Reçeteyi Bul
-                var recipe = App4.Utilities.GlobalData.KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
-                if (recipe == null)
+                else if (cmb.Name == "CmbIndexTag")
                 {
-                    LiveProcessStatus = "HATA: REÇETE YOK";
-                    AddLog($"HATA: {currentRfid} tanımlı değil.", "Red");
-                    IsProcessRunning = false; return;
+                    App4.Utilities.GlobalData.Auto_IndexTag = selectedTag;
+                    AddLog($"✓ Index Tag kaydedildi: {selectedTag}");
+                }
+                else if (cmb.Name == "CmbTriggerTag")
+                {
+                    App4.Utilities.GlobalData.Auto_TriggerTag = selectedTag;
+                    AddLog($"✓ Trigger Tag kaydedildi: {selectedTag}");
                 }
 
-                // C. Index Kontrolü
-                int.TryParse(currentIndexStr, out int index);
-                if (index < 0 || index >= recipe.JobSequence.Count)
-                {
-                    LiveProcessStatus = "HATA: INDEX YOK";
-                    AddLog($"HATA: Index {index} geçersiz.", "Red");
-                    IsProcessRunning = false; return;
-                }
-
-                // D. Job Yükle
-                string jobName = recipe.JobSequence[index];
-                LiveProcessStatus = $"YÜKLENİYOR: {jobName}";
-                bool loadOk = await GocatorJobLogic.LoadJob(jobName, AddLog);
-
-                if (!loadOk)
-                {
-                    LiveProcessStatus = "HATA: JOB YÜKLENEMEDİ";
-                    IsProcessRunning = false; return;
-                }
-
-                // E. Ölçüm Al
-                LiveProcessStatus = "ÖLÇÜM ALINIYOR...";
-                // Mevcut ölçüm alma fonksiyonunuzu çağırıyoruz
-                await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
-
-                // F. Sonuçları PLC Tablosuna Yaz
-                TransferMeasurementsToPlcRows();
-
-                LiveProcessStatus = "TAMAMLANDI";
-            }
-            catch (Exception ex)
-            {
-                LiveProcessStatus = "SİSTEM HATASI";
-                AddLog("Oto Hata: " + ex.Message, "Red");
-            }
-            finally
-            {
-                IsProcessRunning = false;
-
-                // Opsiyonel: Trigger'ı sıfırla (PLC yapmıyorsa)
-                // var triggerVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == SelectedTriggerTag);
-                // if(triggerVar != null) PlcService.Instance.WriteAsync(triggerVar, false);
+                // Kaydetme işlemi GlobalData setter'da yapılıyor
+                // Ek güvenlik için manuel olarak da çağır
+                App4.Utilities.GlobalData.SaveAutomationSettings();
             }
         }
 
+     
         // --- 4. MANUEL BUTON & UI EVENTLERİ ---
         private void BtnManualTrigger_Click(object sender, RoutedEventArgs e)
         {
-            AddLog("Manuel tetikleme başlatıldı...", "Yellow");
-            RunAutomationSequence();
+            AddLog("Manuel tetikleme gönderildi...", "Yellow");
+            // Artık işi GlobalData yapıyor
+            _ = App4.Utilities.GlobalData.RunAutomationSequence();
         }
 
-        private void AutoProcessTag_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            // Tag seçimi değişince ayarları kaydet ve dinleyiciyi güncelle
-            SaveAutomationSettings();
-            if (sender == CmbTriggerTag) BindTriggerListener();
-        }
 
 
 
@@ -1051,24 +750,25 @@ namespace App4.PAGES
 
 
 
-        // --- SATIR SİLME (YENİ EKLENECEK) ---
         private void BtnDeletePlcRow_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.DataContext is PlcTransferItem item)
             {
+                // 1. Listeden sil
                 PlcTransferRows.Remove(item);
 
-                // Sıra numaralarını (Index) yeniden düzenle
+                // 2. Sıra numaralarını ve renkleri düzelt (1, 2, 3... diye sıralansın)
                 for (int i = 0; i < PlcTransferRows.Count; i++)
                 {
                     PlcTransferRows[i].Index = i + 1;
-                    // Renkleri de düzelt
                     PlcTransferRows[i].BackgroundColor = ((i + 1) % 2 == 1)
                         ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
                         : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
                 }
 
-                SaveTransferRows();
+                // 3. ▼▼▼ KRİTİK NOKTA: KAYDET ▼▼▼
+                // Değişikliği dosyaya işle (Eskiden burada yerel fonksiyon vardı, şimdi Global'i çağırıyoruz)
+                App4.Utilities.GlobalData.SaveTransferRows();
             }
         }
 
@@ -1076,21 +776,49 @@ namespace App4.PAGES
 
         private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
-            LoadPlcTags(); // Load PLC tags first
-            LoadTransferRows(); // Load saved rows first
-            InitializeDefaultPlcRows(); // Only if empty
-            LoadCachedJobs(); // Load cached job list
-            LoadAutomationSettings(); // <-- BUNU EKLEYİN
-            BindTriggerListener();    // <-- VE BUNU
-            // Hook change events
-            PlcTransferRows.CollectionChanged -= PlcTransferRows_CollectionChanged; // Prevent double hook
-            PlcTransferRows.CollectionChanged += PlcTransferRows_CollectionChanged;
-            
-            foreach (var item in PlcTransferRows)
+            // ▼▼▼ 1. ÖNCE TAG LİSTELERİNİ DOLDUR (KRİTİK SIRALAMA) ▼▼▼
+            LoadPlcTags();
+
+            // 2. Job listelerini yükle
+            LoadCachedJobs();
+            await RefreshJobList();
+
+            // ▼▼▼ 3. TAG LİSTELERİ DOLDUKTAN SONRA KAYITLI SEÇİMLERİ UI'A BİLDİR ▼▼▼
+            await Task.Delay(100); // Binding'lerin oturması için kısa bekle
+
+            // Otomasyon ComboBox'larını güncelle
+            OnPropertyChanged(nameof(SelectedRfidTag));
+            OnPropertyChanged(nameof(SelectedIndexTag));
+            OnPropertyChanged(nameof(SelectedTriggerTag));
+            OnPropertyChanged(nameof(PlcTransferRows));
+            // Tag değerlerini güncelle
+            OnPropertyChanged(nameof(RfidTagValue));
+            OnPropertyChanged(nameof(IndexTagValue));
+            OnPropertyChanged(nameof(TriggerTagValue));
+
+            // ▼▼▼ 4. TRANSFER SATIRLARI İÇİN BINDING REFRESH ▼▼▼
+            RefreshTransferRowBindings();
+
+            // 5. Event'leri bağla
+            App4.Utilities.GlobalData.OnAutomationLog += (msg) => this.DispatcherQueue.TryEnqueue(() => AddLog(msg));
+
+            App4.Utilities.GlobalData.OnAutomationStatusChanged += () =>
             {
-                item.PropertyChanged -= PlcTransferItem_PropertyChanged;
-                item.PropertyChanged += PlcTransferItem_PropertyChanged;
-            }
+                this.DispatcherQueue.TryEnqueue(() =>
+                {
+                    OnPropertyChanged(nameof(LivePlcRfid));
+                    OnPropertyChanged(nameof(LivePlcIndex));
+                    OnPropertyChanged(nameof(LiveProcessStatus));
+                    OnPropertyChanged(nameof(IsProcessRunning));
+                    OnPropertyChanged(nameof(SelectedRfidTag));
+                    OnPropertyChanged(nameof(SelectedIndexTag));
+                    OnPropertyChanged(nameof(SelectedTriggerTag));
+                    // ▼▼▼ TAG DEĞERLERİNİ DE GÜNCELLE ▼▼▼
+                    OnPropertyChanged(nameof(RfidTagValue));
+                    OnPropertyChanged(nameof(IndexTagValue));
+                    OnPropertyChanged(nameof(TriggerTagValue));
+                });
+            };
 
             if (_isWebViewInitialized) return;
 
@@ -1855,95 +1583,7 @@ namespace App4.PAGES
     }
    
     // BU SINIF Camera_Page.xaml.cs EN ALTINA Gelecek (Namespace içine)
-    public class ReceiveMeasurementLogic
-    {
-        private const string GOCATOR_CONTROL_PATH = "/controls/gocator";
-        private const int RECEIVE_DATA_TIMEOUT_MSEC = 5000;
-        private const string SENSOR_IP = "192.168.251.30";
-        private const int CONTROL_PORT = 3600;
-
-        // YENİ PARAMETRE EKLENDİ: DispatcherQueue dispatcher
-        public static async Task<int> ReceiveAndProcessMeasurements(Action<string> log, DispatcherQueue dispatcher)
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
-                    {
-                        log("Sensöre bağlanılıyor (Ölçüm)...");
-                        system.Connect();
-
-                        // Gocator Protokolünü Aktif Et
-                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(5000);
-
-                        using (GoGdpClient gdpClient = new GoGdpClient())
-                        {
-                            gdpClient.Connect(system.Address, system.GdpPort());
-
-                            if (system.RunningState() == GoSystem.State.Ready)
-                                system.Start();
-
-                            log("Ölçüm verisi bekleniyor...");
-
-                            gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
-
-                            if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
-                            {
-                                // DÜZELTME: WinUI 3 Uyumlu Dispatcher Kullanımı
-                                dispatcher.TryEnqueue(() =>
-                                {
-                                    App4.Utilities.GlobalData.LastMeasurements.Clear();
-                                });
-
-                                int counter = 1;
-
-                                for (int i = 0; i < gdpClient.DataSet.Count; i++)
-                                {
-                                    var msg = gdpClient.DataSet.GdpMsgAt(i);
-
-                                    if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
-                                    {
-                                        // String -> Int Dönüşümü (Güvenli)
-                                        int.TryParse(mMsg.DataSourceId, out int parsedSourceId);
-
-                                        var newItem = new App4.Utilities.GocatorMeasurement
-                                        {
-                                            Id = counter++,
-                                            SourceId = parsedSourceId,
-                                            Name = $"Measurement {mMsg.DataSourceId}",
-                                            Value = Math.Round(mMsg.Value, 3),
-                                            Decision = mMsg.Decision.ToString(),
-                                        };
-
-                                        // DÜZELTME: WinUI 3 Uyumlu Dispatcher Kullanımı
-                                        dispatcher.TryEnqueue(() =>
-                                        {
-                                            App4.Utilities.GlobalData.LastMeasurements.Add(newItem);
-                                            App4.Utilities.GlobalData.SaveMeasurements();
-                                        });
-                                    }
-                                }
-                                log($"✓ {counter - 1} adet ölçüm alındı.");
-                            }
-                            else
-                            {
-                                log("⚠ Ölçüm verisi bulunamadı.");
-                            }
-                            system.Stop();
-                        }
-                    }
-                    return 1;
-                }
-                catch (Exception ex)
-                {
-                    log($"✗ Ölçüm Hatası: {ex.Message}");
-                    return -1;
-                }
-            });
-        }
-    }
+    
 
  #endregion
 

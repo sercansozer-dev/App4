@@ -48,6 +48,9 @@ namespace App4
             App4.Utilities.GlobalData.Initialize();
             m_window = new MainWindow();
             m_window.Activate();
+
+            
+
         }
     }
 }

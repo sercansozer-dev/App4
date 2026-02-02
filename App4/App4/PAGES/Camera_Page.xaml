@@ -2,6 +2,7 @@
 <Page
     x:Class="App4.PAGES.Camera_Page"
     xmlns:local="using:App4.PAGES"
+    x:Name="PageRoot"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:utils="using:App4.Utilities"
@@ -158,93 +159,172 @@
 
                 <Grid Margin="20,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="60"/>
-                        <RowDefinition Height="10"/>
-                        <RowDefinition Height="400"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="15"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="#102A44" CornerRadius="8" BorderBrush="#00A4EF" BorderThickness="2">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="160"/>
-                            </Grid.ColumnDefinitions>
+                    <Border Grid.Row="0" Background="#0F2940" CornerRadius="10" BorderBrush="#00A4EF" BorderThickness="2" Padding="15" MinHeight="240">
+                        <Grid RowSpacing="10" Padding="0,5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="15,0" VerticalAlignment="Center">
-                                <FontIcon Glyph="&#xE964;" Foreground="#00A4EF" FontSize="20"/>
+                            <!-- Header Section -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Border Background="#00A4EF" CornerRadius="6" Padding="10" MinWidth="40" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE964;" Foreground="White" FontSize="18"/>
+                                </Border>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="OTOMASYON" FontSize="13" FontWeight="Bold" Foreground="White"/>
-                                    <TextBlock Text="PLC Tag Bağlantısı" FontSize="9" Foreground="#888"/>
+                                    <TextBlock Text="OTOMASYON KONTROL" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="PLC Tag Bağlantısı ve Tetikleme" FontSize="9" Foreground="#AAA"/>
                                 </StackPanel>
-                                <Rectangle Width="1" Height="30" Fill="#00A4EF" Margin="10,0,0,0" Opacity="0.3"/>
                             </StackPanel>
 
-                            <Grid Grid.Column="1" Margin="15,5">
+                            <!-- Tags and Button Section -->
+                            <Grid Grid.Row="1" ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="140"/>
                                 </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="0" Margin="5,0">
-                                    <Grid>
-                                        <TextBlock Text="RFID TAGI" FontSize="9" Foreground="#AAA" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{x:Bind LivePlcRfid, Mode=OneWay}" Foreground="#FFB81C" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                    </Grid>
-                                    <ComboBox x:Name="CmbRfidTag" 
-                              ItemsSource="{Binding ElementName=PlcTransferContainer, Path=DataContext.PlcInputTags}" 
-                              SelectedItem="{x:Bind SelectedRfidTag, Mode=TwoWay}"
-                              PlaceholderText="Seçiniz..." 
-                              HorizontalAlignment="Stretch" FontSize="11" Height="24" Background="#202020" BorderBrush="#444"
-                              SelectionChanged="AutoProcessTag_Changed"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="5,0">
-                                    <Grid>
-                                        <TextBlock Text="JOB INDEX TAGI" FontSize="9" Foreground="#AAA" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{x:Bind LivePlcIndex, Mode=OneWay}" Foreground="#00FF88" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                    </Grid>
-                                    <ComboBox x:Name="CmbIndexTag" 
-                              ItemsSource="{Binding ElementName=PlcTransferContainer, Path=DataContext.PlcInputTags}" 
-                              SelectedItem="{x:Bind SelectedIndexTag, Mode=TwoWay}"
-                              PlaceholderText="Seçiniz..." 
-                              HorizontalAlignment="Stretch" FontSize="11" Height="24" Background="#202020" BorderBrush="#444"
-                              SelectionChanged="AutoProcessTag_Changed"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="2" Margin="5,0">
-                                    <Grid>
-                                        <TextBlock Text="TETİK (TRIGGER)" FontSize="9" Foreground="#AAA" VerticalAlignment="Center"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="5">
-                                            <FontIcon Glyph="{x:Bind IsProcessRunning, Mode=OneWay, Converter={StaticResource BoolToPlayPauseIconConverter}}" FontSize="10" Foreground="White"/>
-                                            <TextBlock Text="{x:Bind LiveProcessStatus, Mode=OneWay}" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                                <!-- RFID TAG SECTION -->
+                                <Border Grid.Column="0" Background="#1A2A3A" CornerRadius="8" BorderBrush="#2A4A5A" BorderThickness="1" Padding="12">
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="RFID TAG" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
+                                            <TextBlock Text="Kart Tanımlama" FontSize="8" Foreground="#666"/>
                                         </StackPanel>
-                                    </Grid>
-                                    <ComboBox x:Name="CmbTriggerTag" 
-                              ItemsSource="{Binding ElementName=PlcTransferContainer, Path=DataContext.PlcInputTags}" 
-                              SelectedItem="{x:Bind SelectedTriggerTag, Mode=TwoWay}"
-                              PlaceholderText="Seçiniz..." 
-                              HorizontalAlignment="Stretch" FontSize="11" Height="24" Background="#202020" BorderBrush="#444"
-                              SelectionChanged="AutoProcessTag_Changed"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Border Grid.Column="2" BorderBrush="#00A4EF" BorderThickness="1,0,0,0" Padding="10,0" Background="#0d2236" CornerRadius="0,6,6,0">
-                                <Button Click="BtnManualTrigger_Click" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="0">
-                                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                                        <FontIcon Glyph="&#xE768;" Foreground="#00FF88" FontSize="24"/>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="MANUEL" FontSize="9" Foreground="#AAA" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="BAŞLAT" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                                        </StackPanel>
+                                        
+                                        <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888"/>
+                                                <TextBlock Text="{x:Bind SelectedRfidTag, Mode=OneWay}" 
+                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                <TextBlock Text="DEĞER:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
+                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="6,3" BorderBrush="#FFB81C" BorderThickness="1">
+                                                    <TextBlock Text="{x:Bind RfidTagValue, Mode=OneWay}" 
+                                                               Foreground="#FFB81C" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <ComboBox x:Name="CmbRfidTag" 
+                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}" 
+                                            SelectedItem="{x:Bind SelectedRfidTag, Mode=TwoWay}"
+                                            SelectionChanged="AutomationComboBox_SelectionChanged"
+                                            PlaceholderText="Tag Seçiniz..." 
+                                            HorizontalAlignment="Stretch" FontSize="11" Height="34" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F2F" BorderBrush="#00A4EF" BorderThickness="2" CornerRadius="6">
+                                            <ComboBox.Resources>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A3A"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#00A4EF"/>
+                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
+                                            </ComboBox.Resources>
+                                        </ComboBox>
                                     </StackPanel>
-                                </Button>
-                            </Border>
+                                </Border>
+
+                                <!-- JOB INDEX TAG SECTION -->
+                                <Border Grid.Column="1" Background="#1A2A3A" CornerRadius="8" BorderBrush="#2A4A5A" BorderThickness="1" Padding="12">
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="JOB INDEX TAG" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
+                                            <TextBlock Text="İş Indeksi" FontSize="8" Foreground="#666"/>
+                                        </StackPanel>
+                                        
+                                        <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888"/>
+                                                <TextBlock Text="{x:Bind SelectedIndexTag, Mode=OneWay}" 
+                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                <TextBlock Text="DEĞER:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
+                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="6,3" BorderBrush="#00FF88" BorderThickness="1">
+                                                    <TextBlock Text="{x:Bind IndexTagValue, Mode=OneWay}" 
+                                                               Foreground="#00FF88" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <ComboBox x:Name="CmbIndexTag" 
+                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}" 
+                                            SelectedItem="{x:Bind SelectedIndexTag, Mode=TwoWay}"
+                                            SelectionChanged="AutomationComboBox_SelectionChanged"
+                                            PlaceholderText="Tag Seçiniz..."
+                                            HorizontalAlignment="Stretch" FontSize="11" Height="34" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F2F" BorderBrush="#00A4EF" BorderThickness="2" CornerRadius="6">
+                                            <ComboBox.Resources>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A3A"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#00A4EF"/>
+                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
+                                            </ComboBox.Resources>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- TRIGGER TAG SECTION -->
+                                <Border Grid.Column="2" Background="#1A2A3A" CornerRadius="8" BorderBrush="#2A4A5A" BorderThickness="1" Padding="12">
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="TETİK (TRIGGER)" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
+                                            <TextBlock Text="Tetikleme Sinyali" FontSize="8" Foreground="#666"/>
+                                        </StackPanel>
+                                        
+                                        <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888"/>
+                                                <TextBlock Text="{x:Bind SelectedTriggerTag, Mode=OneWay}" 
+                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                <TextBlock Text="DURUM:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
+                                                <Border Background="#1A3A2A" CornerRadius="4" Padding="6,3" BorderBrush="#00BFFF" BorderThickness="1">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <FontIcon Glyph="{x:Bind utils:GlobalData.IsProcessRunning, Mode=OneWay, Converter={StaticResource BoolToPlayPauseIconConverter}}" FontSize="10" Foreground="#00FF88"/>
+                                                        <TextBlock Text="{x:Bind utils:GlobalData.ProcessStatus, Mode=OneWay}" Foreground="#00BFFF" FontSize="11" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <ComboBox x:Name="CmbTriggerTag" 
+                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}" 
+                                            SelectedItem="{x:Bind SelectedTriggerTag, Mode=TwoWay}"
+                                            SelectionChanged="AutomationComboBox_SelectionChanged"
+                                            PlaceholderText="Tag Seçiniz..."
+                                            HorizontalAlignment="Stretch" FontSize="11" Height="34" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F2F" BorderBrush="#00A4EF" BorderThickness="2" CornerRadius="6">
+                                            <ComboBox.Resources>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A3A"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#00A4EF"/>
+                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
+                                            </ComboBox.Resources>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- MANUEL START BUTTON -->
+                                <Border Grid.Column="3" Background="#27AE60" CornerRadius="8" BorderBrush="#2ECC71" BorderThickness="2" Padding="0">
+                                    <Button Click="BtnManualTrigger_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="0">
+                                        <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE768;" Foreground="#2ECC71" FontSize="28"/>
+                                            <TextBlock Text="MANUEL" FontSize="8" Foreground="#DDD" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="BAŞLAT" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Border>
+                            </Grid>
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="2" ColumnSpacing="20">
+                    <Grid Grid.Row="2" ColumnSpacing="20" RowSpacing="15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
@@ -380,11 +460,11 @@
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5"/>
                                                         <ComboBox Grid.Column="1" 
-                                                  ItemsSource="{Binding ElementName=PlcTransferContainer, Path=DataContext.PlcOutputTags}"
-                                                  SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
-                                                  Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" 
-                                                  Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"
-                                                  VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
+                                                            ItemsSource="{Binding ElementName=PageRoot, Path=PlcOutputTags}"
+                                                            SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
+                                                            Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" 
+                                                            Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"
+                                                            VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
                                                         <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold"/>
                                                         <Button Grid.Column="3" Click="BtnDeletePlcRow_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Center">
                                                             <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#E74C3C"/>
