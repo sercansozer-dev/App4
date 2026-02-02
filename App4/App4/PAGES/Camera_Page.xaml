@@ -622,21 +622,45 @@
 
                                                 <TextBlock Text="İşlem Sırası:" FontSize="10" Foreground="#888"/>
                                                 <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
-                                                    <ItemsControl ItemsSource="{x:Bind JobSequence, Mode=OneWay}">
+                                                    <ItemsControl ItemsSource="{x:Bind IndexedJobSequence, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
+                                                            <DataTemplate x:DataType="utils:IndexedJobItem">
                                                                 <Grid Margin="0,0,0,4" Background="#2A2A2C" CornerRadius="4" Height="28">
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="30"/>
                                                                         <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="30"/>
+                                                                        <ColumnDefinition Width="24"/>
+                                                                        <ColumnDefinition Width="24"/>
+                                                                        <ColumnDefinition Width="28"/>
                                                                     </Grid.ColumnDefinitions>
-                                                                    <FontIcon Glyph="&#xE9F5;" FontSize="10" Foreground="#FFB81C" HorizontalAlignment="Center"/>
-                                                                    <TextBlock Grid.Column="1" Text="{Binding}" Foreground="White" VerticalAlignment="Center" FontSize="11" Margin="5,0"/>
+                                                                    <Border Background="#00A4EF" CornerRadius="4" Width="22" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{x:Bind Index}" Foreground="White" FontWeight="Bold" FontSize="10" 
+                                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <TextBlock Grid.Column="1" Text="{x:Bind JobName}" Foreground="White" VerticalAlignment="Center" FontSize="11" Margin="5,0" TextTrimming="CharacterEllipsis"/>
+                                                                    <!-- Yukarı Taşı Butonu -->
                                                                     <Button Grid.Column="2" 
-                                                            Click="BtnRemoveJobFromSequence_Click" 
-                                                            Tag="{Binding DataContext, ElementName=CmbAddJob}" 
-                                                            Background="Transparent" Padding="0" BorderThickness="0" HorizontalAlignment="Center">
+                                                                            Click="MoveJobUp"
+                                                                            Tag="{x:Bind Index}"
+                                                                            Background="Transparent" Padding="0" BorderThickness="0" 
+                                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                            Width="22" Height="22" ToolTipService.ToolTip="Yukarı Taşı">
+                                                                        <FontIcon Glyph="&#xE70E;" Foreground="#888" FontSize="10"/>
+                                                                    </Button>
+                                                                    <!-- Aşağı Taşı Butonu -->
+                                                                    <Button Grid.Column="3" 
+                                                                            Click="MoveJobDown"
+                                                                            Tag="{x:Bind Index}"
+                                                                            Background="Transparent" Padding="0" BorderThickness="0" 
+                                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                            Width="22" Height="22" ToolTipService.ToolTip="Aşağı Taşı">
+                                                                        <FontIcon Glyph="&#xE70D;" Foreground="#888" FontSize="10"/>
+                                                                    </Button>
+                                                                    <!-- Sil Butonu -->
+                                                                    <Button Grid.Column="4" 
+                                                                            Click="RemoveJobFromSequence"
+                                                                            Tag="{x:Bind JobName}"
+                                                                            Background="Transparent" Padding="0" BorderThickness="0" HorizontalAlignment="Center">
                                                                         <FontIcon Glyph="&#xE74D;" Foreground="#E74C3C" FontSize="10"/>
                                                                     </Button>
                                                                 </Grid>

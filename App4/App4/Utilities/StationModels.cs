@@ -1,21 +1,91 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Newtonsoft.Json;
 using Windows.UI;
 
 namespace App4.Utilities
 {
+    // --- INDEX'Lİ JOB ITEM (GÖRÜNTÜLEME İÇİN) ---
+    public class IndexedJobItem : INotifyPropertyChanged
+    {
+        private int _index;
+        private string _jobName;
+
+        public int Index
+        {
+            get => _index;
+            set { _index = value; OnPropertyChanged(); }
+        }
+
+        public string JobName
+        {
+            get => _jobName;
+            set { _jobName = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     // --- TEMEL SINIFLAR ---
-    public class RfidDef
+    public class RfidDef : INotifyPropertyChanged
     {
         public string Id { get; set; }
         public string Description { get; set; }
+
         // YENİ EKLENEN ALAN: Bu model için hangi Job dosyası yüklenecek?
-        public ObservableCollection<string> JobSequence { get; set; } = new();
+        private ObservableCollection<string> _jobSequence = new();
+        public ObservableCollection<string> JobSequence
+        {
+            get => _jobSequence;
+            set
+            {
+                if (_jobSequence != null)
+                    _jobSequence.CollectionChanged -= JobSequence_CollectionChanged;
+
+                _jobSequence = value ?? new ObservableCollection<string>();
+                _jobSequence.CollectionChanged += JobSequence_CollectionChanged;
+                RefreshIndexedJobs();
+                OnPropertyChanged();
+            }
+        }
+
+        // INDEX'Lİ JOB LİSTESİ (UI GÖRÜNTÜLEME İÇİN)
+        [JsonIgnore]
+        public ObservableCollection<IndexedJobItem> IndexedJobSequence { get; } = new();
+
+        public RfidDef()
+        {
+            _jobSequence.CollectionChanged += JobSequence_CollectionChanged;
+        }
+
+        private void JobSequence_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            RefreshIndexedJobs();
+        }
+
+        private void RefreshIndexedJobs()
+        {
+            IndexedJobSequence.Clear();
+            for (int i = 0; i < _jobSequence.Count; i++)
+            {
+                IndexedJobSequence.Add(new IndexedJobItem { Index = i, JobName = _jobSequence[i] });
+            }
+            OnPropertyChanged(nameof(IndexedJobSequence));
+        }
+
         public override string ToString() => $"{Id} ({Description})";
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public enum RfidOperationMode { Mixed, Specific }
