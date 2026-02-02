@@ -39,6 +39,58 @@ namespace App4.PAGES
         public string LivePlcIndex => App4.Utilities.GlobalData.Auto_IndexTag;
         public string LiveProcessStatus => App4.Utilities.GlobalData.ProcessStatus;
         public bool IsProcessRunning => App4.Utilities.GlobalData.IsProcessRunning;
+
+        // ▼▼▼ OTOMASYON MODU (Otomatik vs Manuel) ▼▼▼
+        private bool _isAutomationMode = true; // Varsayılan: Otomatik
+        public bool IsAutomationMode
+        {
+            get => _isAutomationMode;
+            set
+            {
+                if (_isAutomationMode != value)
+                {
+                    _isAutomationMode = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsManualMode));
+                }
+            }
+        }
+
+        public bool IsManualMode
+        {
+            get => !_isAutomationMode;
+            set => IsAutomationMode = !value;
+        }
+
+        // ▼▼▼ MANUEL MOD DEĞERLERİ ▼▼▼
+        private string _manualRfidValue = "";
+        public string ManualRfidValue
+        {
+            get => _manualRfidValue;
+            set
+            {
+                if (_manualRfidValue != value)
+                {
+                    _manualRfidValue = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private string _manualIndexValue = "";
+        public string ManualIndexValue
+        {
+            get => _manualIndexValue;
+            set
+            {
+                if (_manualIndexValue != value)
+                {
+                    _manualIndexValue = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public string SelectedRfidTag
         {
             get => App4.Utilities.GlobalData.Auto_RfidTag;
@@ -735,11 +787,171 @@ namespace App4.PAGES
 
      
         // --- 4. MANUEL BUTON & UI EVENTLERİ ---
-        private void BtnManualTrigger_Click(object sender, RoutedEventArgs e)
+        private async void BtnManualTrigger_Click(object sender, RoutedEventArgs e)
         {
-            AddLog("Manuel tetikleme gönderildi...", "Yellow");
-            // Artık işi GlobalData yapıyor
-            _ = App4.Utilities.GlobalData.RunAutomationSequence();
+            if (IsManualMode)
+            {
+                var btn = sender as Button;
+                if (btn != null) btn.IsEnabled = false;
+
+                // Manuel modda girilen değerler
+                string rfidValue = ManualRfidValue.Trim();
+                string indexValue = ManualIndexValue.Trim();
+
+                // Kontrol: değerler girilmiş mi?
+                if (string.IsNullOrEmpty(rfidValue) || string.IsNullOrEmpty(indexValue))
+                {
+                    AddLog("⚠ RFID ve Index değerleri zorunludur!");
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                AddLog($"✓ Manuel tetikleme: RFID={rfidValue}, Index={indexValue}");
+
+                try
+                {
+                    // 1. RFID'ye göre kart tanımını bul
+                    var rfidDef = App4.Utilities.GlobalData.KnownRfids
+                        .FirstOrDefault(r => r.Id == rfidValue);
+
+                    string selectedJob = null;
+
+                    if (rfidDef != null && rfidDef.JobSequence != null && rfidDef.JobSequence.Count > 0)
+                    {
+                        // Kart tanımlanmış ve job sequence'i var
+                        // Index değerini int'e çevir
+                        if (int.TryParse(indexValue, out int jobIndex))
+                        {
+                            if (jobIndex >= 0 && jobIndex < rfidDef.JobSequence.Count)
+                            {
+                                selectedJob = rfidDef.JobSequence[jobIndex];
+                                AddLog($"✓ Kart bulundu: {rfidValue}");
+                                AddLog($"✓ JobSequence'den job seçildi (Index {jobIndex}): {selectedJob}");
+                            }
+                            else
+                            {
+                                AddLog($"❌ Index {jobIndex} kart tanımında geçersiz (Job sayısı: {rfidDef.JobSequence.Count})");
+                                if (btn != null) btn.IsEnabled = true;
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            AddLog($"❌ Index değeri sayı olmalıdır: {indexValue}");
+                            if (btn != null) btn.IsEnabled = true;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // Kart tanımlanmamış veya job sequence yok
+                        // Genel job listesinde ara
+                        AddLog($"⚠ Kart tanımında job sequence bulunamadı, genel job listesinde aranıyor...");
+                        selectedJob = await FindAndSelectJobByIndex(indexValue);
+                    }
+
+                    if (string.IsNullOrEmpty(selectedJob))
+                    {
+                        AddLog($"❌ Job bulunamadı (RFID: {rfidValue}, Index: {indexValue})");
+                        if (btn != null) btn.IsEnabled = true;
+                        return;
+                    }
+
+                    AddLog($"► Seçili Job: {selectedJob}");
+                    AddLog($"► Job yükleniyor...");
+
+                    // 2. Job'u seçili yap
+                    bool jobLoadSuccess = await GocatorJobLogic.LoadJob(selectedJob, AddLog);
+
+                    if (!jobLoadSuccess)
+                    {
+                        AddLog($"❌ Job yüklenemedi: {selectedJob}");
+                        if (btn != null) btn.IsEnabled = true;
+                        return;
+                    }
+
+                    AddLog($"✓ {selectedJob} aktif edildi");
+
+                    // 3. Seçili job ile ölçüm ver al
+                    AddLog($"► Sensörden ölçüm verisi alınıyor...");
+                    var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+
+                    if (result.Item1 == 1) // Başarılı
+                    {
+                        // 4. Ölçüm verilerini PLC satırlarına aktar
+                        TransferMeasurementsToPlcRows();
+                        
+                        AddLog($"✅ BAŞARILI!");
+                        AddLog($"  RFID: {rfidValue} | Index: {indexValue} | Job: {selectedJob}");
+                        AddLog($"  {result.Item2.Count} adet ölçüm verisi aktarıldı");
+                    }
+                    else
+                    {
+                        AddLog("❌ Sensör verisi alınamadı");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"❌ Hata: {ex.Message}");
+                }
+                finally
+                {
+                    if (btn != null) btn.IsEnabled = true;
+                }
+            }
+            else
+            {
+                // Otomatik moddaysa automation sequence çalışır
+                AddLog("► Otomatik tetikleme başlatılıyor...");
+                _ = App4.Utilities.GlobalData.RunAutomationSequence();
+            }
+        }
+
+        // Index değerine göre job bulma (Kart tanımında yoksa genel listede ara)
+        private async Task<string> FindAndSelectJobByIndex(string indexValue)
+        {
+            try
+            {
+                // AvailableJobs listesinde index değerini ara
+                var matchedJob = AvailableJobs.FirstOrDefault(j => 
+                    j.Contains(indexValue) || 
+                    j.EndsWith(indexValue) ||
+                    j.Contains($"_{indexValue}") ||
+                    j.Contains($"-{indexValue}")
+                );
+
+                if (!string.IsNullOrEmpty(matchedJob))
+                {
+                    AddLog($"✓ Job bulundu: {matchedJob}");
+                    return matchedJob;
+                }
+                else
+                {
+                    // Job listesini yenile ve tekrar ara
+                    AddLog($"⚠ Job tarafından bulunmadı, liste yenileniyor...");
+                    await RefreshJobList();
+                    
+                    matchedJob = AvailableJobs.FirstOrDefault(j => 
+                        j.Contains(indexValue) || 
+                        j.EndsWith(indexValue) ||
+                        j.Contains($"_{indexValue}") ||
+                        j.Contains($"-{indexValue}")
+                    );
+
+                    if (!string.IsNullOrEmpty(matchedJob))
+                    {
+                        AddLog($"✓ Job bulundu: {matchedJob}");
+                        return matchedJob;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ Job arama hatası: {ex.Message}");
+                return null;
+            }
         }
 
 

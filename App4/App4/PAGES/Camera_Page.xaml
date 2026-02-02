@@ -180,6 +180,18 @@
                                     <TextBlock Text="OTOMASYON KONTROL" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                     <TextBlock Text="PLC Tag Bağlantısı ve Tetikleme" FontSize="9" Foreground="#AAA"/>
                                 </StackPanel>
+                                <Rectangle Width="1" Height="30" Fill="#00A4EF" Opacity="0.3" Margin="10,0"/>
+                                <StackPanel Spacing="5" VerticalAlignment="Center">
+                                    <TextBlock Text="MOD:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <RadioButton GroupName="AutomationMode" Content="Otomatik" 
+                                                     IsChecked="{x:Bind IsAutomationMode, Mode=TwoWay}"
+                                                     Foreground="White" FontSize="10"/>
+                                        <RadioButton GroupName="AutomationMode" Content="Manuel" 
+                                                     IsChecked="{x:Bind IsManualMode, Mode=TwoWay}"
+                                                     Foreground="White" FontSize="10"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- Tags and Button Section -->
@@ -201,14 +213,22 @@
                                         
                                         <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
                                             <StackPanel Spacing="4">
-                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888"/>
+                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888" Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
                                                 <TextBlock Text="{x:Bind SelectedRfidTag, Mode=OneWay}" 
-                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"
+                                                           Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
                                                 <TextBlock Text="DEĞER:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
-                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="6,3" BorderBrush="#FFB81C" BorderThickness="1">
+                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="0" BorderBrush="#FFB81C" BorderThickness="1"
+                                                        Visibility="{x:Bind IsAutomationMode, Mode=OneWay}">
                                                     <TextBlock Text="{x:Bind RfidTagValue, Mode=OneWay}" 
-                                                               Foreground="#FFB81C" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                               Foreground="#FFB81C" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono" Padding="6,3"/>
                                                 </Border>
+                                                <TextBox x:Name="TxtManualRfid" PlaceholderText="Değer girin..."
+                                                         Text="{x:Bind ManualRfidValue, Mode=TwoWay}"
+                                                         Visibility="{x:Bind IsManualMode, Mode=OneWay}"
+                                                         Background="#1A3A4A" Foreground="#FFB81C" BorderBrush="#FFB81C"
+                                                         FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono"
+                                                         Padding="6,3" Height="32" CornerRadius="4"/>
                                             </StackPanel>
                                         </Border>
                                         
@@ -240,14 +260,22 @@
                                         
                                         <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
                                             <StackPanel Spacing="4">
-                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888"/>
+                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888" Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
                                                 <TextBlock Text="{x:Bind SelectedIndexTag, Mode=OneWay}" 
-                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"
+                                                           Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
                                                 <TextBlock Text="DEĞER:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
-                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="6,3" BorderBrush="#00FF88" BorderThickness="1">
+                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="0" BorderBrush="#00FF88" BorderThickness="1"
+                                                        Visibility="{x:Bind IsAutomationMode, Mode=OneWay}">
                                                     <TextBlock Text="{x:Bind IndexTagValue, Mode=OneWay}" 
-                                                               Foreground="#00FF88" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono"/>
+                                                               Foreground="#00FF88" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono" Padding="6,3"/>
                                                 </Border>
+                                                <TextBox x:Name="TxtManualIndex" PlaceholderText="Değer girin..."
+                                                         Text="{x:Bind ManualIndexValue, Mode=TwoWay}"
+                                                         Visibility="{x:Bind IsManualMode, Mode=OneWay}"
+                                                         Background="#1A3A4A" Foreground="#00FF88" BorderBrush="#00FF88"
+                                                         FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono"
+                                                         Padding="6,3" Height="32" CornerRadius="4"/>
                                             </StackPanel>
                                         </Border>
                                         
@@ -279,11 +307,14 @@
                                         
                                         <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
                                             <StackPanel Spacing="4">
-                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888"/>
+                                                <TextBlock Text="SEÇİM:" FontSize="8" Foreground="#888" Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
                                                 <TextBlock Text="{x:Bind SelectedTriggerTag, Mode=OneWay}" 
-                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"/>
-                                                <TextBlock Text="DURUM:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
-                                                <Border Background="#1A3A2A" CornerRadius="4" Padding="6,3" BorderBrush="#00BFFF" BorderThickness="1">
+                                                           Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"
+                                                           Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
+                                                <TextBlock Text="DURUM:" FontSize="8" Foreground="#888" Margin="0,4,0,0"
+                                                           Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
+                                                <Border Background="#1A3A2A" CornerRadius="4" Padding="6,3" BorderBrush="#00BFFF" BorderThickness="1"
+                                                        Visibility="{x:Bind IsAutomationMode, Mode=OneWay}">
                                                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                                         <FontIcon Glyph="{x:Bind utils:GlobalData.IsProcessRunning, Mode=OneWay, Converter={StaticResource BoolToPlayPauseIconConverter}}" FontSize="10" Foreground="#00FF88"/>
                                                         <TextBlock Text="{x:Bind utils:GlobalData.ProcessStatus, Mode=OneWay}" Foreground="#00BFFF" FontSize="11" FontWeight="SemiBold"/>
