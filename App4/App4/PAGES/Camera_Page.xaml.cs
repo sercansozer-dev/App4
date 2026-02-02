@@ -735,23 +735,48 @@ namespace App4.PAGES
             var btn = sender as Button;
             var jobName = btn?.DataContext as string; // Silinecek Job'ın adı
 
-            // Silmek için üst ebeveyn olan RfidDef'e ulaşmamız lazım. 
-            // Bu biraz trick gerektirir çünkü DataContext şu an string (JobName).
-            // Alternatif: ItemsControl yerine ListView kullanıp Selection ile yapabilirdik ama UI bozulmasın.
-
-            // FrameworkElement.Tag özelliğini kullanarak RfidDef'i XAML'dan gönderebiliriz.
-            // Ancak daha basit bir yöntem: Tüm RFID listesini gezip bu job'ı içeren listeyi bulmak (Riskli ama basit)
-
-            // EN TEMİZ YÖNTEM: XAML DÜZELTMESİ (Aşağıya bakın)
-            // C# tarafında ise şunu yapacağız:
-
-            // Butonun bulunduğu ItemsControl (JobSequence listesi) -> Onun DataContext'i RFID Def değil.
-            // Bu yüzden XAML tarafında Tag binding yapacağız.
-
             if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
             {
                 parentRfid.JobSequence.Remove(jobName);
                 App4.Utilities.GlobalData.SaveRfids();
+            }
+        }
+
+        // 3. Job Sırası Yukarı Taşıma
+        private void BtnMoveJobUp_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            var jobName = btn?.DataContext as string;
+            
+            if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
+            {
+                int currentIndex = parentRfid.JobSequence.IndexOf(jobName);
+                if (currentIndex > 0)
+                {
+                    // Yukarı taşı
+                    parentRfid.JobSequence.RemoveAt(currentIndex);
+                    parentRfid.JobSequence.Insert(currentIndex - 1, jobName);
+                    App4.Utilities.GlobalData.SaveRfids();
+                }
+            }
+        }
+
+        // 4. Job Sırası Aşağı Taşıma
+        private void BtnMoveJobDown_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            var jobName = btn?.DataContext as string;
+            
+            if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
+            {
+                int currentIndex = parentRfid.JobSequence.IndexOf(jobName);
+                if (currentIndex < parentRfid.JobSequence.Count - 1)
+                {
+                    // Aşağı taşı
+                    parentRfid.JobSequence.RemoveAt(currentIndex);
+                    parentRfid.JobSequence.Insert(currentIndex + 1, jobName);
+                    App4.Utilities.GlobalData.SaveRfids();
+                }
             }
         }
 
