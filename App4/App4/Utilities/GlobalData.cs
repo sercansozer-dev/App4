@@ -272,8 +272,16 @@ namespace App4.Utilities
                     outputVar.CurrentValue = 0;
                     found = true;
                 }
+                
+                // 2. Try GeneralInputVars (Simulation Input)
+                var inputVar = GeneralInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (inputVar != null)
+                {
+                    inputVar.CurrentValue = 0;
+                    found = true;
+                }
 
-                // 2. Try PlcService (Real PLC)
+                // 3. Try PlcService (Real PLC)
                 if (PlcService.Instance != null)
                 {
                     var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
@@ -283,9 +291,9 @@ namespace App4.Utilities
                         plcVar.CurrentValue = 0;
                         found = true;
                     }
-                    // Input olarak tanımlı ama yazılabilir olabilir
                     else
                     {
+                        // Check Input list too (writable)
                         var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
                         if (plcIn != null)
                         {
@@ -298,12 +306,12 @@ namespace App4.Utilities
 
                 if (found)
                 {
-                    OnAutomationLog?.Invoke($"✓ Ölçüm sinyali sıfırlandı: {targetTag} = 0");
+                    // OnAutomationLog?.Invoke($"✓ Ölçüm sinyali sıfırlandı: {targetTag} = 0");
                     OnAutomationStatusChanged?.Invoke();
                 }
                 else
                 {
-                    OnAutomationLog?.Invoke($"⚠ Reset için Output Tag bulunamadı: {targetTag}");
+                    OnAutomationLog?.Invoke($"⚠ Reset için Tag bulunamadı: {targetTag}");
                 }
             }
             catch (Exception ex)
@@ -326,7 +334,11 @@ namespace App4.Utilities
                     var defaultOutput = GeneralOutputVars.FirstOrDefault(v => 
                         v.Name.Contains("MEASUREMENT") || v.Name.Contains("TRIGGER"));
                     if (defaultOutput != null) targetTag = defaultOutput.Name;
-                    else return;
+                    else 
+                    {
+                        OnAutomationLog?.Invoke("⚠ SetSignal: Tag seçili değil.");
+                        return;
+                    }
                 }
 
                 bool found = false;
@@ -338,8 +350,16 @@ namespace App4.Utilities
                     outputVar.CurrentValue = 1;
                     found = true;
                 }
+                
+                // 2. Try GeneralInputVars (Simulation Input)
+                var inputVar = GeneralInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (inputVar != null)
+                {
+                    inputVar.CurrentValue = 1;
+                    found = true;
+                }
 
-                // 2. Try PlcService (Real PLC)
+                // 3. Try PlcService (Real PLC)
                 if (PlcService.Instance != null)
                 {
                     var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
@@ -351,6 +371,7 @@ namespace App4.Utilities
                     }
                     else
                     {
+                        // Check Input list too (writable)
                         var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
                         if(plcIn != null)
                         {
@@ -363,12 +384,12 @@ namespace App4.Utilities
 
                 if (found)
                 {
-                    OnAutomationLog?.Invoke($"✓ Yeni ölçüm sinyali: {targetTag} = 1 (READY)");
+                    OnAutomationLog?.Invoke($"✓ Ölçüm sinyali gönderildi: {targetTag} = 1");
                     OnAutomationStatusChanged?.Invoke();
                 }
                 else
                 {
-                    OnAutomationLog?.Invoke($"⚠ Sinyal için Output Tag bulunamadı: {targetTag}");
+                    OnAutomationLog?.Invoke($"⚠ Sinyal için Tag bulunamadı: {targetTag}");
                 }
             }
             catch (Exception ex)
