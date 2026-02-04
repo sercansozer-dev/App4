@@ -200,6 +200,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="140"/>
                                 </Grid.ColumnDefinitions>
 
@@ -341,8 +342,43 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- OUTPUT SIGNAL TAG SECTION -->
+                                <Border Grid.Column="3" Background="#1A2A3A" CornerRadius="8" BorderBrush="#2A4A5A" BorderThickness="1" Padding="12">
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="ÖLÇÜM SONUCU (OUTPUT)" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
+                                            <TextBlock Text="Tamamlandı Sinyali" FontSize="8" Foreground="#666"/>
+                                        </StackPanel>
+                                        
+                                        <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="SİNYAL DURUMU:" FontSize="8" Foreground="#888"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <TextBlock Text="{x:Bind MeasurementOutputStatusText, Mode=OneWay}" Foreground="{x:Bind MeasurementOutputStatusColor, Mode=OneWay}" FontSize="11" FontWeight="Bold"/> 
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <ComboBox x:Name="CmbMeasurementOutputTag" 
+                                            ItemsSource="{x:Bind PlcOutputTags, Mode=OneWay}" 
+                                            SelectedItem="{x:Bind SelectedMeasurementOutputTag, Mode=TwoWay}"
+                                            SelectionChanged="AutomationComboBox_SelectionChanged"
+                                            PlaceholderText="Tag Seçiniz..."
+                                            HorizontalAlignment="Stretch" FontSize="11" Height="34" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F2F" BorderBrush="#00A4EF" BorderThickness="2" CornerRadius="6">
+                                            <ComboBox.Resources>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A3A"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#00A4EF"/>
+                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
+                                            </ComboBox.Resources>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- MANUEL START BUTTON -->
-                                <Border Grid.Column="3" Background="#27AE60" CornerRadius="8" BorderBrush="#2ECC71" BorderThickness="2" Padding="0">
+                                <Border Grid.Column="4" Background="#27AE60" CornerRadius="8" BorderBrush="#2ECC71" BorderThickness="2" Padding="0">
                                     <Button Click="BtnManualTrigger_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="0">
                                         <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                                             <FontIcon Glyph="&#xE768;" Foreground="#2ECC71" FontSize="28"/>

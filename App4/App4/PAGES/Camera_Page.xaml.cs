@@ -106,30 +106,60 @@ namespace App4.PAGES
             get => App4.Utilities.GlobalData.Auto_TriggerTag;
             set => App4.Utilities.GlobalData.Auto_TriggerTag = value;
         }
+        public string SelectedMeasurementOutputTag
+        {
+            get => App4.Utilities.GlobalData.MeasurementOutputTag;
+            set => App4.Utilities.GlobalData.MeasurementOutputTag = value;
+        }
 
         // ▼▼▼ TAG VALUE GÖSTERME (PLC'DEN OKUNAN DEĞERLER) ▼▼▼
         public string RfidTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_RfidTag);
         public string IndexTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_IndexTag);
         public string TriggerTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_TriggerTag);
+        
+        // Output Value
+        public string MeasurementOutputValue => GetTagValue(App4.Utilities.GlobalData.MeasurementOutputTag);
+        
+        public string MeasurementOutputStatusText
+        {
+            get
+            {
+                var val = MeasurementOutputValue;
+                if (val == "1" || val.ToLower() == "true") return "HAZIR (1)";
+                return "BEKLİYOR (0)";
+            }
+        }
+
+        public SolidColorBrush MeasurementOutputStatusColor
+        {
+            get
+            {
+                var val = MeasurementOutputValue;
+                if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen); 
+                return new SolidColorBrush(Microsoft.UI.Colors.Orange);
+            }
+        }
 
         private string GetTagValue(string tagName)
         {
             if (string.IsNullOrEmpty(tagName)) return "---";
             
-            // GeneralInputVars'dan değeri bul
-            var plcVar = App4.Utilities.GlobalData.GeneralInputVars
-                .FirstOrDefault(v => v.Name == tagName);
+            // 1. GeneralInputVars
+            var plcVar = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == tagName);
+            if (plcVar != null) return plcVar.Value ?? "---";
             
-            if (plcVar != null)
-                return plcVar.Value ?? "---";
-            
-            // PlcService'den de kontrol et
+            // 2. GeneralOutputVars
+            var outVar = App4.Utilities.GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == tagName);
+            if (outVar != null) return outVar.Value ?? "---";
+
+            // 3. PlcService'den de kontrol et
             if (App4.Utilities.PlcService.Instance != null)
             {
-                var serviceVar = App4.Utilities.PlcService.Instance.InputVariables
-                    .FirstOrDefault(v => v.Name == tagName);
-                if (serviceVar != null)
-                    return serviceVar.Value ?? "---";
+                var serviceVar = App4.Utilities.PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == tagName);
+                if (serviceVar != null) return serviceVar.Value ?? "---";
+
+                var serviceOut = App4.Utilities.PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == tagName);
+                if (serviceOut != null) return serviceOut.Value ?? "---";
             }
             
             return "---";
@@ -271,6 +301,7 @@ namespace App4.PAGES
                 string rfid = App4.Utilities.GlobalData.Auto_RfidTag;
                 string index = App4.Utilities.GlobalData.Auto_IndexTag;
                 string trigger = App4.Utilities.GlobalData.Auto_TriggerTag;
+                string output = App4.Utilities.GlobalData.MeasurementOutputTag;
 
                 // ComboBox'ları doğrudan kod ile set et (x:Bind yetersiz kalıyor)
                 if (!string.IsNullOrEmpty(rfid) && PlcInputTags.Contains(rfid))
@@ -289,6 +320,12 @@ namespace App4.PAGES
                 {
                     CmbTriggerTag.SelectedItem = trigger;
                     AddLog($"► Kayıtlı Trigger Tag yüklendi: {trigger}");
+                }
+                
+                if (!string.IsNullOrEmpty(output) && PlcOutputTags.Contains(output))
+                {
+                    CmbMeasurementOutputTag.SelectedItem = output;
+                    AddLog($"► Kayıtlı Output Tag yüklendi: {output}");
                 }
             }
             catch (Exception ex)
@@ -803,6 +840,11 @@ namespace App4.PAGES
                     App4.Utilities.GlobalData.Auto_TriggerTag = selectedTag;
                     AddLog($"✓ Trigger Tag kaydedildi: {selectedTag}");
                 }
+                else if (cmb.Name == "CmbMeasurementOutputTag")
+                {
+                    App4.Utilities.GlobalData.MeasurementOutputTag = selectedTag;
+                    AddLog($"✓ Measurement Output Tag kaydedildi: {selectedTag}");
+                }
 
                 // Kaydetme işlemi GlobalData setter'da yapılıyor
                 // Ek güvenlik için manuel olarak da çağır
@@ -897,12 +939,18 @@ namespace App4.PAGES
 
                     AddLog($"✓ {selectedJob} aktif edildi");
 
+                    // ▼▼▼ ÖLÇÜM SİNYALİNİ SIFIRLA ▼▼▼
+                    App4.Utilities.GlobalData.ResetMeasurementSignal();
+
                     // 3. Seçili job ile ölçüm ver al
                     AddLog($"► Sensörden ölçüm verisi alınıyor...");
                     var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
 
                     if (result.Item1 == 1) // Başarılı
                     {
+                        // ▼▼▼ SİNYAL GÖNDER ▼▼▼
+                        App4.Utilities.GlobalData.SetMeasurementSignal();
+
                         // 4. Ölçüm verilerini PLC satırlarına aktar
                         TransferMeasurementsToPlcRows();
                         
@@ -1054,6 +1102,9 @@ namespace App4.PAGES
                     OnPropertyChanged(nameof(RfidTagValue));
                     OnPropertyChanged(nameof(IndexTagValue));
                     OnPropertyChanged(nameof(TriggerTagValue));
+                    OnPropertyChanged(nameof(MeasurementOutputValue));
+                    OnPropertyChanged(nameof(MeasurementOutputStatusText));
+                    OnPropertyChanged(nameof(MeasurementOutputStatusColor));
                 });
             };
 

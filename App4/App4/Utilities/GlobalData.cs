@@ -91,6 +91,19 @@ namespace App4.Utilities
             } 
         }
 
+        // ÖLÇÜMEvent SINYALI AYARLARI (Yeni ölçüm geldiğinde output sinyali)
+        private static string _measurementOutputTag;
+        public static string MeasurementOutputTag
+        {
+            get => _measurementOutputTag;
+            set
+            {
+                if (_measurementOutputTag == value) return;
+                _measurementOutputTag = value;
+                SaveAutomationSettings();
+            }
+        }
+
         // EVENTLER VE DURUM
         public static event Action<string> OnAutomationLog;
         public static event Action OnAutomationStatusChanged;
@@ -144,8 +157,20 @@ namespace App4.Utilities
             PlcVariable Create(string name, string type, string dir, object val) => new PlcVariable { Name = name, Type = type, Direction = dir, CurrentValue = val, IsEditable = true };
             void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", false)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); }
             void AddOutputs(ObservableCollection<PlcVariable> c, int id) { c.Add(new PlcVariable { Name = $"ST{id}_RFID_MODE", Value = "0", Description = "RFID Mod", PlcTag = $"DB10.W{(id - 1) * 20}.0" }); c.Add(new PlcVariable { Name = $"ST{id}_RFID_TARGET", Value = "0", Description = "Hedef RFID", PlcTag = $"DB10.W{(id - 1) * 20}.4" }); c.Add(new PlcVariable { Name = $"ST{id}_ID_MATCHED", Value = "0", Description = "ID Eşleşti", PlcTag = $"DB10.W{(id - 1) * 20}.20" }); c.Add(new PlcVariable { Name = $"ST{id}_PROCESS_RESULT", Value = "0", Description = "Sonuç", PlcTag = $"DB10.W{(id - 1) * 20}.22" }); c.Add(new PlcVariable { Name = $"ST{id}_CONVEYOR_PERM", Value = "0", Description = "Konveyör", PlcTag = $"DB10.W{(id - 1) * 20}.24" }); c.Add(new PlcVariable { Name = $"ST{id}_MODE_CMD", Value = "1", Description = "Mod Cmd", PlcTag = $"DB10.W{(id - 1) * 20}.26" }); }
-            GeneralInputVars.Add(Create("SLIDER_POS_ACT", "WORD", "Input", "0")); GeneralInputVars.Add(Create("ROBOT_SPEED", "WORD", "Input", "100")); GeneralInputVars.Add(Create("GOCATOR_STATUS", "STRING", "Input", "READY")); GeneralInputVars.Add(Create("SAFETY_OK", "BOOL", "Input", true)); GeneralInputVars.Add(Create("LINE_RUNNING", "BOOL", "Input", false)); GeneralInputVars.Add(Create("LINE_AUTO_MODE", "BOOL", "Input", false)); GeneralInputVars.Add(Create("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
-            GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false)); GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false)); GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
+            GeneralInputVars.Add(Create("SLIDER_POS_ACT", "WORD", "Input", "0")); 
+            GeneralInputVars.Add(Create("ROBOT_SPEED", "WORD", "Input", "100")); 
+            GeneralInputVars.Add(Create("GOCATOR_STATUS", "STRING", "Input", "READY")); 
+            GeneralInputVars.Add(Create("SAFETY_OK", "BOOL", "Input", true)); 
+            GeneralInputVars.Add(Create("LINE_RUNNING", "BOOL", "Input", false)); 
+            GeneralInputVars.Add(Create("LINE_AUTO_MODE", "BOOL", "Input", false)); 
+            GeneralInputVars.Add(Create("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
+            // ▼▼▼ KAMERA ÖLÇÜM SİNYALİ - Yeni ölçüm geldiğinde 1, sıfırlandığında 0 ▼▼▼
+            GeneralInputVars.Add(Create("MEASUREMENT_NEW_DATA", "BOOL", "Input", false));
+            GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false)); 
+            GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false)); 
+            GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
+            // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
+            GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
             AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddVars(Station4Vars, 4); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3); AddOutputs(Station4Outputs, 4);
         }
 
@@ -177,11 +202,25 @@ namespace App4.Utilities
                 var val = settings["Auto_TriggerTag"] as string;
                 if (!string.IsNullOrEmpty(val)) _autoTriggerTag = val;
             }
+
+            if (settings.ContainsKey("MeasurementOutputTag"))
+            {
+                var val = settings["MeasurementOutputTag"] as string;
+                if (!string.IsNullOrEmpty(val)) _measurementOutputTag = val;
+            }
             
             // Debug log
-            System.Diagnostics.Debug.WriteLine($"[GlobalData] Otomasyon ayarları yüklendi: RFID={_autoRfidTag}, Index={_autoIndexTag}, Trigger={_autoTriggerTag}");
+            System.Diagnostics.Debug.WriteLine($"[GlobalData] Otomasyon ayarları yüklendi: RFID={_autoRfidTag}, Index={_autoIndexTag}, Trigger={_autoTriggerTag}, MeasurementOutput={_measurementOutputTag}");
         }
-        public static void SaveAutomationSettings() { var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values; settings["Auto_RfidTag"] = Auto_RfidTag ?? ""; settings["Auto_IndexTag"] = Auto_IndexTag ?? ""; settings["Auto_TriggerTag"] = Auto_TriggerTag ?? ""; StartAutomationListener(); }
+        public static void SaveAutomationSettings() 
+        { 
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values; 
+            settings["Auto_RfidTag"] = Auto_RfidTag ?? ""; 
+            settings["Auto_IndexTag"] = Auto_IndexTag ?? ""; 
+            settings["Auto_TriggerTag"] = Auto_TriggerTag ?? "";
+            settings["MeasurementOutputTag"] = MeasurementOutputTag ?? "";
+            StartAutomationListener(); 
+        }
 
         // --- PLC DİNLEYİCİSİ ---
         private static void StartAutomationListener()
@@ -202,6 +241,139 @@ namespace App4.Utilities
             {
                 var plcVar = sender as PlcVariable;
                 if (plcVar != null && (plcVar.Value == "1" || plcVar.Value?.ToLower() == "true")) _ = RunAutomationSequence();
+            }
+        }
+
+        // ▼▼▼ KAMERA ÖLÇÜM SİNYALLERİ ▼▼▼
+
+        /// <summary>
+        /// Ölçüm başlatıldığında çağrılır - output sinyalini 0'a düşürür
+        /// </summary>
+        public static async void ResetMeasurementSignal()
+        {
+            try
+            {
+                string targetTag = MeasurementOutputTag;
+                // Default tag (İlk output)
+                if (string.IsNullOrEmpty(targetTag))
+                {
+                    var defaultOutput = GeneralOutputVars.FirstOrDefault(v => 
+                        v.Name.Contains("MEASUREMENT") || v.Name.Contains("TRIGGER"));
+                    if (defaultOutput != null) targetTag = defaultOutput.Name;
+                    else return;
+                }
+
+                bool found = false;
+
+                // 1. Try GeneralOutputVars
+                var outputVar = GeneralOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (outputVar != null)
+                {
+                    outputVar.CurrentValue = 0;
+                    found = true;
+                }
+
+                // 2. Try PlcService (Real PLC)
+                if (PlcService.Instance != null)
+                {
+                    var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
+                    if (plcVar != null)
+                    {
+                        await PlcService.Instance.WriteAsync(plcVar, 0);
+                        plcVar.CurrentValue = 0;
+                        found = true;
+                    }
+                    // Input olarak tanımlı ama yazılabilir olabilir
+                    else
+                    {
+                        var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
+                        if (plcIn != null)
+                        {
+                            await PlcService.Instance.WriteAsync(plcIn, 0);
+                            plcIn.CurrentValue = 0;
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found)
+                {
+                    OnAutomationLog?.Invoke($"✓ Ölçüm sinyali sıfırlandı: {targetTag} = 0");
+                    OnAutomationStatusChanged?.Invoke();
+                }
+                else
+                {
+                    OnAutomationLog?.Invoke($"⚠ Reset için Output Tag bulunamadı: {targetTag}");
+                }
+            }
+            catch (Exception ex)
+            {
+                OnAutomationLog?.Invoke($"✗ Sinyal sıfırlama hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Yeni ölçüm verisi geldiğinde çağrılır - output sinyalini 1'e koyar
+        /// </summary>
+        public static async void SetMeasurementSignal()
+        {
+            try
+            {
+                string targetTag = MeasurementOutputTag;
+                // Default tag (İlk output)
+                if (string.IsNullOrEmpty(targetTag))
+                {
+                    var defaultOutput = GeneralOutputVars.FirstOrDefault(v => 
+                        v.Name.Contains("MEASUREMENT") || v.Name.Contains("TRIGGER"));
+                    if (defaultOutput != null) targetTag = defaultOutput.Name;
+                    else return;
+                }
+
+                bool found = false;
+
+                // 1. Try GeneralOutputVars
+                var outputVar = GeneralOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (outputVar != null)
+                {
+                    outputVar.CurrentValue = 1;
+                    found = true;
+                }
+
+                // 2. Try PlcService (Real PLC)
+                if (PlcService.Instance != null)
+                {
+                    var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
+                    if (plcVar != null)
+                    {
+                        await PlcService.Instance.WriteAsync(plcVar, 1);
+                        plcVar.CurrentValue = 1;
+                        found = true;
+                    }
+                    else
+                    {
+                        var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
+                        if(plcIn != null)
+                        {
+                            await PlcService.Instance.WriteAsync(plcIn, 1);
+                            plcIn.CurrentValue = 1;
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found)
+                {
+                    OnAutomationLog?.Invoke($"✓ Yeni ölçüm sinyali: {targetTag} = 1 (READY)");
+                    OnAutomationStatusChanged?.Invoke();
+                }
+                else
+                {
+                    OnAutomationLog?.Invoke($"⚠ Sinyal için Output Tag bulunamadı: {targetTag}");
+                }
+            }
+            catch (Exception ex)
+            {
+                OnAutomationLog?.Invoke($"✗ Sinyal ayarlama hatası: {ex.Message}");
             }
         }
 
@@ -273,6 +445,9 @@ namespace App4.Utilities
             IsProcessRunning = true;
             ProcessStatus = "İŞLENİYOR...";
 
+            // ▼▼▼ SİNYAL SIFIRLA (Ölçüm başlıyor) ▼▼▼
+            ResetMeasurementSignal();
+
             try
             {
                 var rfidVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_RfidTag);
@@ -299,6 +474,9 @@ namespace App4.Utilities
 
                 if (status == 1 && measurements != null)
                 {
+                    // ▼▼▼ SİNYAL GÖNDER (Ölçüm tamamlandı) ▼▼▼
+                    SetMeasurementSignal();
+
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
                     for (int i = 0; i < PlcTransferRows.Count; i++)
                     {
