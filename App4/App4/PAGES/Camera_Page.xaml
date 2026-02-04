@@ -640,10 +640,17 @@
 
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="utils:RfidDef">
-                                        <Border Width="360" Background="#202020" BorderBrush="#444" BorderThickness="1" CornerRadius="6" Padding="10">
-                                            <StackPanel Spacing="10">
-
-                                                <Grid>
+                                        <Border Width="360" Height="260" Background="#202020" BorderBrush="#444" BorderThickness="1" CornerRadius="6" Padding="10">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                
+                                                <Grid Grid.Row="0" Margin="0,0,0,10">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="*"/>
@@ -654,10 +661,11 @@
                                                     <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="#DDD" VerticalAlignment="Center" FontWeight="SemiBold" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
                                                 </Grid>
 
-                                                <Rectangle Height="1" Fill="#333"/>
+                                                <Rectangle Grid.Row="1" Height="1" Fill="#333" Margin="0,0,0,10"/>
 
-                                                <TextBlock Text="İşlem Sırası:" FontSize="10" Foreground="#888"/>
-                                                <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                                                <TextBlock Grid.Row="2" Text="İşlem Sırası:" FontSize="10" Foreground="#888" Margin="0,0,0,10"/>
+                                                
+                                                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
                                                     <ItemsControl ItemsSource="{x:Bind IndexedJobSequence, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate x:DataType="utils:IndexedJobItem">
@@ -705,7 +713,7 @@
                                                     </ItemsControl>
                                                 </ScrollViewer>
 
-                                                <Grid>
+                                                <Grid Grid.Row="4">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="70"/>
@@ -720,7 +728,7 @@
                                             Background="#27AE60" Foreground="White" FontSize="10" FontWeight="Bold" 
                                             Height="28" Margin="5,0,0,0" HorizontalAlignment="Stretch"/>
                                                 </Grid>
-                                            </StackPanel>
+                                            </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>

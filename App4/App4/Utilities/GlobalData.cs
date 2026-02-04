@@ -519,8 +519,13 @@ namespace App4.Utilities
                             }
                         }
                     }
+                    ProcessStatus = "TAMAMLANDI";
                 }
-                ProcessStatus = "TAMAMLANDI";
+                else
+                {
+                    ProcessStatus = "VERİ YOK";
+                    OnAutomationLog?.Invoke("⚠ Ölçüm alınamadı: Çıktı yok veya zaman aşımı.");
+                }
             }
             catch (Exception ex)
             {
@@ -531,7 +536,7 @@ namespace App4.Utilities
             {
                 IsProcessRunning = false;
                 await Task.Delay(2000);
-                if (ProcessStatus == "TAMAMLANDI") ProcessStatus = "HAZIR";
+                if (ProcessStatus == "TAMAMLANDI" || ProcessStatus == "VERİ YOK" || ProcessStatus == "HATA") ProcessStatus = "HAZIR";
             }
         }
     } // GlobalData Class Sonu

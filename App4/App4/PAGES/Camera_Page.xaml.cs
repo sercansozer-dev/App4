@@ -961,6 +961,7 @@ namespace App4.PAGES
                     else
                     {
                         AddLog("❌ Sensör verisi alınamadı");
+                        AddLog("⚠ Job içerisinde Output (Çıktı) olmayabilir veya zaman aşımı.");
                     }
                 }
                 catch (Exception ex)

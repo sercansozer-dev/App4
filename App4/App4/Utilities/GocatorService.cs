@@ -186,53 +186,65 @@ namespace App4.Utilities
                         using (GoGdpClient gdpClient = new GoGdpClient())
                         {
                             gdpClient.Connect(system.Address, system.GdpPort());
-                            if (system.RunningState() == GoSystem.State.Ready) system.Start();
-
-                            log?.Invoke("Ölçüm verisi bekleniyor...");
-                            gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
-
-                            if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
+                            
+                            try
                             {
-                                // UI Temizliği (Sadece Dispatcher varsa)
-                                if (dispatcher != null) dispatcher.TryEnqueue(() => GlobalData.LastMeasurements.Clear());
+                                if (system.RunningState() == GoSystem.State.Ready) system.Start();
 
-                                int counter = 1;
-                                for (int i = 0; i < gdpClient.DataSet.Count; i++)
+                                log?.Invoke("Ölçüm verisi bekleniyor...");
+                                gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
+
+                                if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
                                 {
-                                    var msg = gdpClient.DataSet.GdpMsgAt(i);
-                                    if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
+                                    // UI Temizliği (Sadece Dispatcher varsa)
+                                    if (dispatcher != null) dispatcher.TryEnqueue(() => GlobalData.LastMeasurements.Clear());
+
+                                    int counter = 1;
+                                    for (int i = 0; i < gdpClient.DataSet.Count; i++)
                                     {
-                                        int.TryParse(mMsg.DataSourceId, out int parsedSourceId);
-                                        var newItem = new GocatorMeasurement
+                                        var msg = gdpClient.DataSet.GdpMsgAt(i);
+                                        if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
                                         {
-                                            Id = counter++,
-                                            SourceId = parsedSourceId,
-                                            Name = $"Measurement {mMsg.DataSourceId}",
-                                            Value = Math.Round(mMsg.Value, 3),
-                                            Decision = mMsg.Decision.ToString(),
-                                        };
-
-                                        // 1. Sonuç listesine ekle (GlobalData için)
-                                        results.Add(newItem);
-
-                                        // 2. UI Listesine ekle (Eğer sayfa açıksa)
-                                        if (dispatcher != null)
-                                        {
-                                            dispatcher.TryEnqueue(() =>
+                                            int.TryParse(mMsg.DataSourceId, out int parsedSourceId);
+                                            var newItem = new GocatorMeasurement
                                             {
-                                                GlobalData.LastMeasurements.Add(newItem);
-                                                GlobalData.SaveMeasurements();
-                                            });
+                                                Id = counter++,
+                                                SourceId = parsedSourceId,
+                                                Name = $"Measurement {mMsg.DataSourceId}",
+                                                Value = Math.Round(mMsg.Value, 3),
+                                                Decision = mMsg.Decision.ToString(),
+                                            };
+
+                                            // 1. Sonuç listesine ekle (GlobalData için)
+                                            results.Add(newItem);
+
+                                            // 2. UI Listesine ekle (Eğer sayfa açıksa)
+                                            if (dispatcher != null)
+                                            {
+                                                dispatcher.TryEnqueue(() =>
+                                                {
+                                                    GlobalData.LastMeasurements.Add(newItem);
+                                                    GlobalData.SaveMeasurements();
+                                                });
+                                            }
                                         }
                                     }
+                                    log?.Invoke($"✓ {results.Count} adet ölçüm alındı.");
                                 }
-                                log?.Invoke($"✓ {results.Count} adet ölçüm alındı.");
+                                else
+                                {
+                                    log?.Invoke("⚠ Ölçüm verisi bulunamadı.");
+                                }
                             }
-                            else
+                            finally
                             {
-                                log?.Invoke("⚠ Ölçüm verisi bulunamadı.");
+                                // Timeout veya hata durumunda sensörü durdurmayı garantiye al
+                                try 
+                                { 
+                                    system.Stop(); 
+                                } 
+                                catch { }
                             }
-                            system.Stop();
                         }
                     }
                     return (1, results);
