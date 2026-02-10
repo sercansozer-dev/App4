@@ -358,6 +358,30 @@ namespace App4.Utilities
             OutputVariables.Add(new PlcVariable { Name = "D0 - Yazılan Değer", Type = "WORD", Direction = "Output", CurrentValue = 0 });
         }
 
+        public async Task RunOnUiAsync(Action action)
+        {
+            if (UiRunner == null)
+            {
+                action(); // Fallback to current thread
+                return;
+            }
+
+            var tcs = new TaskCompletionSource();
+            UiRunner.Invoke(() =>
+            {
+                try
+                {
+                    action();
+                    tcs.TrySetResult();
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+            await tcs.Task;
+        }
+
         // JSON Serileştirme için yardımcı sınıf (PlcService sınıfının dışında veya içinde olabilir)
         public class PlcConfigData
         {

@@ -533,26 +533,83 @@ namespace App4.Utilities
                     SetMeasurementSignal();
 
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
-                    for (int i = 0; i < PlcTransferRows.Count; i++)
-                    {
-                        var row = PlcTransferRows[i];
-                        if (i < measurements.Count)
-                        {
-                            var meas = measurements[i];
-                            row.Value = meas.Value.ToString();
-                            row.Status = "SENT";
 
-                            if (!string.IsNullOrEmpty(row.SelectedTag))
+                    // Yazılacak verileri topla
+                    List<string> tagsToWrite = new List<string>();
+                    List<object> valuesToWrite = new List<object>();
+
+                    // 1. UI Thread updates (Table & Init)
+                    await PlcService.Instance.RunOnUiAsync(() =>
+                    {
+                        // Ölçüm Listesini Güncelle
+                        LastMeasurements.Clear();
+                        foreach (var m in measurements) LastMeasurements.Add(m);
+                        SaveMeasurements();
+
+                        // Tabloyu Genişlet (Eğer eksik varsa)
+                        while (PlcTransferRows.Count < measurements.Count)
+                        {
+                            int index = PlcTransferRows.Count + 1;
+                            var color = (index % 2 == 1)
+                                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
+                                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+
+                            var newItem = new PlcTransferItem
                             {
-                                var plcTag = GeneralOutputVars.FirstOrDefault(v => v.Name == row.SelectedTag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == row.SelectedTag);
-                                if (plcTag != null)
-                                {
-                                    await PlcService.Instance.WriteAsync(plcTag, meas.Value);
-                                    OnAutomationLog?.Invoke($"PLC WR: {plcTag.Name} = {meas.Value}");
-                                }
+                                Index = index,
+                                Value = "0",
+                                Status = "WAIT",
+                                StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0)), // Orange
+                                BackgroundColor = color
+                            };
+                            newItem.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") SaveTransferRows(); };
+                            PlcTransferRows.Add(newItem);
+                        }
+
+                        // Değerleri Eşle
+                        for (int i = 0; i < measurements.Count; i++)
+                        {
+                            var row = PlcTransferRows[i];
+                            var meas = measurements[i];
+                            
+                            row.Value = meas.Value.ToString();
+                            row.Status = "WAIT"; // Önce WAIT (PLC yazılıyor)
+                            row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0));
+
+                            tagsToWrite.Add(row.SelectedTag);
+                            valuesToWrite.Add(meas.Value);
+                        }
+                        SaveTransferRows();
+                    });
+
+                    // 2. PLC'ye Yaz (Background Thread)
+                    for (int i = 0; i < valuesToWrite.Count; i++)
+                    {
+                        string tag = tagsToWrite[i];
+                        object val = valuesToWrite[i];
+
+                        if (!string.IsNullOrEmpty(tag))
+                        {
+                            var plcTag = GeneralOutputVars.FirstOrDefault(v => v.Name == tag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == tag);
+                            if (plcTag != null)
+                            {
+                                await PlcService.Instance.WriteAsync(plcTag, val);
+                                OnAutomationLog?.Invoke($"PLC WR: {plcTag.Name} = {val}");
                             }
                         }
                     }
+
+                    // 3. Durumu Güncelle (UI Thread)
+                    await PlcService.Instance.RunOnUiAsync(() =>
+                    {
+                        for (int i = 0; i < valuesToWrite.Count; i++)
+                        {
+                            var row = PlcTransferRows[i];
+                            row.Status = "SENT";
+                            row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 50, 205, 50)); // LimeGreen
+                        }
+                    });
+
                     ProcessStatus = "TAMAMLANDI";
                 }
                 else
