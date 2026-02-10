@@ -223,15 +223,41 @@ namespace App4.Utilities
         }
 
         // --- PLC DİNLEYİCİSİ ---
+        private static PlcVariable _currentTriggerVar; // Referansı tutmak için
+
         private static void StartAutomationListener()
         {
             if (string.IsNullOrEmpty(Auto_TriggerTag)) return;
+
+            // Önceki dinleyiciyi temizle
+            if (_currentTriggerVar != null)
+            {
+                _currentTriggerVar.PropertyChanged -= TriggerVar_PropertyChanged;
+                _currentTriggerVar = null;
+            }
+            
+            // 1. Önce Global Input listesine bak
             var triggerVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_TriggerTag);
+
+            // 2. Bulamazsak PlcService Input/Output listelerine bak
+            if (triggerVar == null && PlcService.Instance != null)
+            {
+                triggerVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == Auto_TriggerTag);
+                if (triggerVar == null)
+                {
+                    triggerVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == Auto_TriggerTag);
+                }
+            }
+
             if (triggerVar != null)
             {
-                triggerVar.PropertyChanged -= TriggerVar_PropertyChanged;
-                triggerVar.PropertyChanged += TriggerVar_PropertyChanged;
+                _currentTriggerVar = triggerVar;
+                _currentTriggerVar.PropertyChanged += TriggerVar_PropertyChanged;
                 OnAutomationLog?.Invoke($"Otomasyon devrede: {Auto_TriggerTag} izleniyor.");
+            }
+            else
+            {
+                OnAutomationLog?.Invoke($"⚠ UYARI: Trigger Tag '{Auto_TriggerTag}' sistemde bulunamadı.");
             }
         }
 
@@ -471,8 +497,16 @@ namespace App4.Utilities
 
             try
             {
+                // RFID Variable Bul
                 var rfidVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_RfidTag);
+                if (rfidVar == null && PlcService.Instance != null) 
+                    rfidVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == Auto_RfidTag);
+
+                // Index Variable Bul
                 var indexVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_IndexTag);
+                if (indexVar == null && PlcService.Instance != null)
+                    indexVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == Auto_IndexTag);
+
                 string currentRfid = rfidVar?.Value ?? "---";
                 string currentIndex = indexVar?.Value ?? "0";
 

@@ -94,22 +94,60 @@ namespace App4.PAGES
         public string SelectedRfidTag
         {
             get => App4.Utilities.GlobalData.Auto_RfidTag;
-            set => App4.Utilities.GlobalData.Auto_RfidTag = value;
+            set
+            {
+                if (App4.Utilities.GlobalData.Auto_RfidTag != value)
+                {
+                    App4.Utilities.GlobalData.Auto_RfidTag = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(RfidTagValue));
+                    UpdateRfidWatcher();
+                }
+            }
         }
         public string SelectedIndexTag
         {
             get => App4.Utilities.GlobalData.Auto_IndexTag;
-            set => App4.Utilities.GlobalData.Auto_IndexTag = value;
+            set
+            {
+                if (App4.Utilities.GlobalData.Auto_IndexTag != value)
+                {
+                    App4.Utilities.GlobalData.Auto_IndexTag = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IndexTagValue));
+                    UpdateIndexWatcher();
+                }
+            }
         }
         public string SelectedTriggerTag
         {
             get => App4.Utilities.GlobalData.Auto_TriggerTag;
-            set => App4.Utilities.GlobalData.Auto_TriggerTag = value;
+            set
+            {
+                if (App4.Utilities.GlobalData.Auto_TriggerTag != value)
+                {
+                    App4.Utilities.GlobalData.Auto_TriggerTag = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(TriggerTagValue));
+                    UpdateTriggerWatcher();
+                }
+            }
         }
         public string SelectedMeasurementOutputTag
         {
             get => App4.Utilities.GlobalData.MeasurementOutputTag;
-            set => App4.Utilities.GlobalData.MeasurementOutputTag = value;
+            set
+            {
+                if (App4.Utilities.GlobalData.MeasurementOutputTag != value)
+                {
+                    App4.Utilities.GlobalData.MeasurementOutputTag = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(MeasurementOutputValue));
+                    OnPropertyChanged(nameof(MeasurementOutputStatusText));
+                    OnPropertyChanged(nameof(MeasurementOutputStatusColor));
+                    UpdateOutputWatcher();
+                }
+            }
         }
 
         // ▼▼▼ TAG VALUE GÖSTERME (PLC'DEN OKUNAN DEĞERLER) ▼▼▼
@@ -137,6 +175,92 @@ namespace App4.PAGES
                 var val = MeasurementOutputValue;
                 if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen); 
                 return new SolidColorBrush(Microsoft.UI.Colors.Orange);
+            }
+        }
+
+        // --- WATCHER YÖNETİMİ ---
+        private PlcVariable _watchedRfidVar;
+        private PlcVariable _watchedIndexVar;
+        private PlcVariable _watchedTriggerVar;
+        private PlcVariable _watchedOutputVar;
+
+        private void SetupWatchers()
+        {
+            UpdateRfidWatcher();
+            UpdateIndexWatcher();
+            UpdateTriggerWatcher();
+            UpdateOutputWatcher();
+        }
+
+        private void UpdateRfidWatcher()
+        {
+            if (_watchedRfidVar != null) _watchedRfidVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedRfidVar = FindPlcVariable(SelectedRfidTag);
+            if (_watchedRfidVar != null) _watchedRfidVar.PropertyChanged += OnPlcDisplayValueChanged;
+            OnPropertyChanged(nameof(RfidTagValue));
+        }
+
+        private void UpdateIndexWatcher()
+        {
+            if (_watchedIndexVar != null) _watchedIndexVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedIndexVar = FindPlcVariable(SelectedIndexTag);
+            if (_watchedIndexVar != null) _watchedIndexVar.PropertyChanged += OnPlcDisplayValueChanged;
+            OnPropertyChanged(nameof(IndexTagValue));
+        }
+
+        private void UpdateTriggerWatcher()
+        {
+            if (_watchedTriggerVar != null) _watchedTriggerVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedTriggerVar = FindPlcVariable(SelectedTriggerTag);
+            if (_watchedTriggerVar != null) _watchedTriggerVar.PropertyChanged += OnPlcDisplayValueChanged;
+            OnPropertyChanged(nameof(TriggerTagValue));
+        }
+
+        private void UpdateOutputWatcher()
+        {
+            if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedOutputVar = FindPlcVariable(SelectedMeasurementOutputTag);
+            if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged += OnPlcDisplayValueChanged;
+            OnPropertyChanged(nameof(MeasurementOutputValue));
+            OnPropertyChanged(nameof(MeasurementOutputStatusText));
+            OnPropertyChanged(nameof(MeasurementOutputStatusColor));
+        }
+
+        private PlcVariable FindPlcVariable(string tagName)
+        {
+            if (string.IsNullOrEmpty(tagName)) return null;
+            // Sırayla Genel Input, Genel Output ve PlcService listelerini tara
+            var v = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+            v = App4.Utilities.GlobalData.GeneralOutputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+
+            if (App4.Utilities.PlcService.Instance != null)
+            {
+                v = App4.Utilities.PlcService.Instance.InputVariables.FirstOrDefault(x => x.Name == tagName);
+                if (v != null) return v;
+                v = App4.Utilities.PlcService.Instance.OutputVariables.FirstOrDefault(x => x.Name == tagName);
+                if (v != null) return v;
+            }
+            return null;
+        }
+
+        private void OnPlcDisplayValueChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "Value" || e.PropertyName == "CurrentValue")
+            {
+                this.DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (sender == _watchedRfidVar) OnPropertyChanged(nameof(RfidTagValue));
+                    else if (sender == _watchedIndexVar) OnPropertyChanged(nameof(IndexTagValue));
+                    else if (sender == _watchedTriggerVar) OnPropertyChanged(nameof(TriggerTagValue));
+                    else if (sender == _watchedOutputVar)
+                    {
+                        OnPropertyChanged(nameof(MeasurementOutputValue));
+                        OnPropertyChanged(nameof(MeasurementOutputStatusText));
+                        OnPropertyChanged(nameof(MeasurementOutputStatusColor));
+                    }
+                });
             }
         }
 
@@ -1084,6 +1208,9 @@ namespace App4.PAGES
 
             // ▼▼▼ 4. TRANSFER SATIRLARI İÇİN BINDING REFRESH ▼▼▼
             RefreshTransferRowBindings();
+
+            // WATCHER'LARI KUR
+            SetupWatchers();
 
             // 5. Event'leri bağla
             App4.Utilities.GlobalData.OnAutomationLog += (msg) => this.DispatcherQueue.TryEnqueue(() => AddLog(msg));

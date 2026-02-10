@@ -153,87 +153,100 @@ namespace App4.Utilities
         }
 
         // --- GÜÇLENDİRİLMİŞ OKUMA DÖNGÜSÜ ---
+        private bool _isScanning = false;
+
         private async void TimerCallback(object state)
         {
-            if (!IsConnected || _melsecNet == null) return;
-
-            // Liste üzerinde işlem yaparken hata almamak için .ToList() kullanıyoruz
-            foreach (var variable in InputVariables.ToList())
+            if (!IsConnected || _melsecNet == null || _isScanning) return;
+            
+            _isScanning = true;
+            try
             {
-                try
+                // Liste üzerinde işlem yaparken hata almamak için .ToList() kullanıyoruz
+                // Hem Input hem Output listelerini tara (Output'lar da PLC tarafında değişebilir)
+                var allVars = InputVariables.Concat(OutputVariables).ToList();
+
+                foreach (var variable in allVars)
                 {
-                    // Adres formatı: "D100 - Sıcaklık" ise sadece "D100" kısmını al
-                    string address = variable.Name.Split('-')[0].Trim();
-                    if (string.IsNullOrEmpty(address)) continue;
-
-                    object newValue = null;
-                    bool readSuccess = false;
-                    string type = variable.Type.ToUpper(); // Büyük harfe çevir (örn: "int" -> "INT")
-
-                    // TİPE GÖRE OKUMA (SWITCH CASE)
-                    switch (type)
+                    try
                     {
-                        case "BOOL":
-                            var bRes = await _melsecNet.ReadBoolAsync(address);
-                            if (bRes.IsSuccess) { newValue = bRes.Content ? 1 : 0; readSuccess = true; }
-                            break;
+                        // Adres formatı: "D100 - Sıcaklık" ise sadece "D100" kısmını al
+                        string address = variable.Name.Split('-')[0].Trim();
+                        if (string.IsNullOrEmpty(address)) continue;
 
-                        case "INT": // 16-bit Signed (D, W)
-                            var iRes = await _melsecNet.ReadInt16Async(address);
-                            if (iRes.IsSuccess) { newValue = iRes.Content; readSuccess = true; }
-                            break;
+                        object newValue = null;
+                        bool readSuccess = false;
+                        string type = variable.Type.ToUpper(); // Büyük harfe çevir (örn: "int" -> "INT")
 
-                        case "WORD": // 16-bit Unsigned (W, D) - Senin W600 için bu lazım
-                            var wRes = await _melsecNet.ReadUInt16Async(address);
-                            if (wRes.IsSuccess) { newValue = wRes.Content; readSuccess = true; }
-                            break;
-
-                        case "DINT": // 32-bit Signed (Çift Register)
-                            var diRes = await _melsecNet.ReadInt32Async(address);
-                            if (diRes.IsSuccess) { newValue = diRes.Content; readSuccess = true; }
-                            break;
-
-                        case "DWORD": // 32-bit Unsigned
-                            var dwRes = await _melsecNet.ReadUInt32Async(address);
-                            if (dwRes.IsSuccess) { newValue = dwRes.Content; readSuccess = true; }
-                            break;
-
-                        case "REAL": // 32-bit Float (Ondalıklı Sayı)
-                        case "FLOAT":
-                            var fRes = await _melsecNet.ReadFloatAsync(address);
-                            if (fRes.IsSuccess) { newValue = Math.Round(fRes.Content, 2); readSuccess = true; } // 2 hane yuvarla
-                            break;
-
-                        case "STRING":
-                            // 10 karakter uzunluğunda metin oku (Uzunluğa göre 10'u PLC programına göre değiştirebilirsin)
-                            var sRes = await _melsecNet.ReadStringAsync(address, 10);
-                            if (sRes.IsSuccess)
-                            {
-                                newValue = sRes.Content.Trim('\0', ' '); // Boşlukları ve null karakterleri temizle
-                                readSuccess = true;
-                            }
-                            break;
-
-                        default: // Tanımsızsa INT16 dene
-                            var defRes = await _melsecNet.ReadInt16Async(address);
-                            if (defRes.IsSuccess) { newValue = defRes.Content; readSuccess = true; }
-                            break;
-                    }
-
-                    // Eğer okuma başarılıysa ve değer değiştiyse UI güncelle
-                    if (readSuccess && newValue != null)
-                    {
-                        UiRunner?.Invoke(() =>
+                        // TİPE GÖRE OKUMA (SWITCH CASE)
+                        switch (type)
                         {
-                            // Değerleri string karşılaştırarak gereksiz güncellemeyi önle
-                            if (variable.CurrentValue?.ToString() != newValue.ToString())
+                            case "BOOL":
+                                var bRes = await _melsecNet.ReadBoolAsync(address);
+                                if (bRes.IsSuccess) { newValue = bRes.Content ? 1 : 0; readSuccess = true; }
+                                break;
+
+                            case "INT": // 16-bit Signed (D, W)
+                                var iRes = await _melsecNet.ReadInt16Async(address);
+                                if (iRes.IsSuccess) { newValue = iRes.Content; readSuccess = true; }
+                                break;
+
+                            case "WORD": // 16-bit Unsigned (W, D) - Senin W600 için bu lazım
+                                var wRes = await _melsecNet.ReadUInt16Async(address);
+                                if (wRes.IsSuccess) { newValue = wRes.Content; readSuccess = true; }
+                                break;
+
+                            case "DINT": // 32-bit Signed (Çift Register)
+                                var diRes = await _melsecNet.ReadInt32Async(address);
+                                if (diRes.IsSuccess) { newValue = diRes.Content; readSuccess = true; }
+                                break;
+
+                            case "DWORD": // 32-bit Unsigned
+                                var dwRes = await _melsecNet.ReadUInt32Async(address);
+                                if (dwRes.IsSuccess) { newValue = dwRes.Content; readSuccess = true; }
+                                break;
+
+                            case "REAL": // 32-bit Float (Ondalıklı Sayı)
+                            case "FLOAT":
+                                var fRes = await _melsecNet.ReadFloatAsync(address);
+                                if (fRes.IsSuccess) { newValue = Math.Round(fRes.Content, 2); readSuccess = true; } // 2 hane yuvarla
+                                break;
+
+                            case "STRING":
+                                // 10 karakter uzunluğunda metin oku (Uzunluğa göre 10'u PLC programına göre değiştirebilirsin)
+                                var sRes = await _melsecNet.ReadStringAsync(address, 10);
+                                if (sRes.IsSuccess)
+                                {
+                                    newValue = sRes.Content.Trim('\0', ' '); // Boşlukları ve null karakterleri temizle
+                                    readSuccess = true;
+                                }
+                                break;
+
+                            default: // Tanımsızsa INT16 dene
+                                var defRes = await _melsecNet.ReadInt16Async(address);
+                                if (defRes.IsSuccess) { newValue = defRes.Content; readSuccess = true; }
+                                break;
+                        }
+
+                        // Eğer okuma başarılıysa ve değer değiştiyse UI güncelle
+                        if (readSuccess && newValue != null)
+                        {
+                            UiRunner?.Invoke(() =>
                             {
-                                variable.CurrentValue = newValue;
-                            }
-                        });
+                                // Değerleri string karşılaştırarak gereksiz güncellemeyi önle
+                                if (variable.CurrentValue?.ToString() != newValue.ToString())
+                                {
+                                    variable.CurrentValue = newValue;
+                                }
+                            });
+                        }
                     }
+                    catch { }
                 }
-                catch { }
+            }
+            finally
+            {
+                _isScanning = false;
             }
         }
 
