@@ -21,15 +21,30 @@ namespace App4.Utilities
     // ==========================================
     public class PlcVariable : INotifyPropertyChanged
     {
+        private string _name;
         [JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string Name
+        {
+            get => _name;
+            set { if (_name != value) { _name = value; OnPropertyChanged(); } }
+        }
 
+        private string _type = "WORD";
         // Desteklenen Tipler: "BOOL", "INT", "WORD", "DINT", "DWORD", "REAL"
         [JsonPropertyName("type")]
-        public string Type { get; set; } = "WORD";
+        public string Type
+        {
+            get => _type;
+            set { if (_type != value) { _type = value; OnPropertyChanged(); } }
+        }
 
+        private string _direction = "Output";
         [JsonPropertyName("direction")]
-        public string Direction { get; set; } = "Output";
+        public string Direction
+        {
+            get => _direction;
+            set { if (_direction != value) { _direction = value; OnPropertyChanged(); } }
+        }
 
         public string Description { get; set; }
         public bool IsEditable { get; set; } = true;
@@ -116,6 +131,47 @@ namespace App4.Utilities
 
             // Kayıtlı verileri yükle
             LoadVariables();
+
+            // Değişiklikleri İzle
+            StartMonitoring();
+        }
+
+        private void StartMonitoring()
+        {
+            InputVariables.CollectionChanged += (s, e) =>
+            {
+                if (e.NewItems != null)
+                    foreach (PlcVariable item in e.NewItems) item.PropertyChanged += OnVariableChanged;
+
+                if (e.OldItems != null)
+                    foreach (PlcVariable item in e.OldItems) item.PropertyChanged -= OnVariableChanged;
+                    
+                SaveVariables();
+            };
+
+            OutputVariables.CollectionChanged += (s, e) =>
+            {
+                if (e.NewItems != null)
+                    foreach (PlcVariable item in e.NewItems) item.PropertyChanged += OnVariableChanged;
+
+                if (e.OldItems != null)
+                    foreach (PlcVariable item in e.OldItems) item.PropertyChanged -= OnVariableChanged;
+
+                SaveVariables();
+            };
+
+            // Mevcut öğeler için de dinleyici ekle
+            foreach (var item in InputVariables) item.PropertyChanged += OnVariableChanged;
+            foreach (var item in OutputVariables) item.PropertyChanged += OnVariableChanged;
+        }
+
+        private void OnVariableChanged(object sender, PropertyChangedEventArgs e)
+        {
+            // Sadece yapısal değişikliklerde kaydet (Değer değişince kaydetmeye gerek yok)
+            if (e.PropertyName != "CurrentValue" && e.PropertyName != "Value")
+            {
+                SaveVariables();
+            }
         }
 
         public void Initialize(Action<Action> uiRunner) => UiRunner = uiRunner;
@@ -302,7 +358,8 @@ namespace App4.Utilities
                 if (File.Exists(_configFilePath))
                 {
                     string json = File.ReadAllText(_configFilePath);
-                    var data = JsonSerializer.Deserialize<PlcConfigData>(json);
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var data = JsonSerializer.Deserialize<PlcConfigData>(json, options);
 
                     if (data != null)
                     {
