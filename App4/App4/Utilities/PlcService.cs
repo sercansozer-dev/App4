@@ -26,7 +26,30 @@ namespace App4.Utilities
         public string Name
         {
             get => _name;
-            set { if (_name != value) { _name = value; OnPropertyChanged(); } }
+            set 
+            { 
+                if (_name != value) 
+                { 
+                    _name = value; 
+                    _cachedAddress = null; // Clear cache
+                    OnPropertyChanged(); 
+                } 
+            }
+        }
+
+        private string _cachedAddress;
+        [JsonIgnore]
+        public string Address
+        {
+            get
+            {
+                if (_cachedAddress == null)
+                {
+                    if (!string.IsNullOrEmpty(PlcTag)) _cachedAddress = PlcTag;
+                    else _cachedAddress = Name?.Split('-')[0].Trim();
+                }
+                return _cachedAddress;
+            }
         }
 
         private string _type = "WORD";
@@ -138,41 +161,37 @@ namespace App4.Utilities
 
         private void StartMonitoring()
         {
+            void OnCollectionChanged() => _readListDirty = true;
+            void OnItemChanged(object s, PropertyChangedEventArgs e) 
+            { 
+                if (e.PropertyName != "CurrentValue" && e.PropertyName != "Value") SaveVariables(); 
+            }
+
             InputVariables.CollectionChanged += (s, e) =>
             {
-                if (e.NewItems != null)
-                    foreach (PlcVariable item in e.NewItems) item.PropertyChanged += OnVariableChanged;
-
-                if (e.OldItems != null)
-                    foreach (PlcVariable item in e.OldItems) item.PropertyChanged -= OnVariableChanged;
-                    
+                OnCollectionChanged();
+                if (e.NewItems != null) foreach (PlcVariable i in e.NewItems) i.PropertyChanged += OnItemChanged;
+                if (e.OldItems != null) foreach (PlcVariable i in e.OldItems) i.PropertyChanged -= OnItemChanged;
                 SaveVariables();
             };
 
             OutputVariables.CollectionChanged += (s, e) =>
             {
-                if (e.NewItems != null)
-                    foreach (PlcVariable item in e.NewItems) item.PropertyChanged += OnVariableChanged;
-
-                if (e.OldItems != null)
-                    foreach (PlcVariable item in e.OldItems) item.PropertyChanged -= OnVariableChanged;
-
+                OnCollectionChanged();
+                if (e.NewItems != null) foreach (PlcVariable i in e.NewItems) i.PropertyChanged += OnItemChanged;
+                if (e.OldItems != null) foreach (PlcVariable i in e.OldItems) i.PropertyChanged -= OnItemChanged;
                 SaveVariables();
             };
 
-            // Mevcut öğeler için de dinleyici ekle
-            foreach (var item in InputVariables) item.PropertyChanged += OnVariableChanged;
-            foreach (var item in OutputVariables) item.PropertyChanged += OnVariableChanged;
+            foreach (var item in InputVariables) item.PropertyChanged += OnItemChanged;
+            foreach (var item in OutputVariables) item.PropertyChanged += OnItemChanged;
+            
+            // Initial build
+            _readListDirty = true;
         }
 
-        private void OnVariableChanged(object sender, PropertyChangedEventArgs e)
-        {
-            // Sadece yapısal değişikliklerde kaydet (Değer değişince kaydetmeye gerek yok)
-            if (e.PropertyName != "CurrentValue" && e.PropertyName != "Value")
-            {
-                SaveVariables();
-            }
-        }
+        // DEPRECATED: Old handler removed in favor of lambda
+        // private void OnVariableChanged(object sender, PropertyChangedEventArgs e) { ... }
 
         public void Initialize(Action<Action> uiRunner) => UiRunner = uiRunner;
 
@@ -189,8 +208,8 @@ namespace App4.Utilities
                 if (result.IsSuccess)
                 {
                     IsConnected = true;
-                    // 500ms aralıkla okuma başlat
-                    _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 500);
+                    // Okuma hızı 100ms yapıldı (BEST Stability/Performance Balance)
+                    _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 100);
                     return true;
                 }
             }
@@ -210,6 +229,14 @@ namespace App4.Utilities
 
         // --- GÜÇLENDİRİLMİŞ OKUMA DÖNGÜSÜ ---
         private bool _isScanning = false;
+        private List<PlcVariable> _cachedReadList;
+        private bool _readListDirty = true;
+        
+        private void UpdateReadList()
+        {
+            _cachedReadList = InputVariables.Concat(OutputVariables).ToList();
+            _readListDirty = false;
+        }
 
         private async void TimerCallback(object state)
         {
@@ -218,23 +245,22 @@ namespace App4.Utilities
             _isScanning = true;
             try
             {
-                // Liste üzerinde işlem yaparken hata almamak için .ToList() kullanıyoruz
-                // Hem Input hem Output listelerini tara (Output'lar da PLC tarafında değişebilir)
-                var allVars = InputVariables.Concat(OutputVariables).ToList();
+                if (_readListDirty) UpdateReadList();
+                var scanList = _cachedReadList;
 
-                foreach (var variable in allVars)
+                // SERIAL OKUMA: (Daha kararlı)
+                // Paralel okuma bazı durumlarda paket kaybı yaratabilir. Sıralı okumaya dönüldü.
+                foreach (var variable in scanList)
                 {
                     try
                     {
-                        // Adres formatı: "D100 - Sıcaklık" ise sadece "D100" kısmını al
-                        string address = variable.Name.Split('-')[0].Trim();
+                        string address = variable.Address;
                         if (string.IsNullOrEmpty(address)) continue;
 
                         object newValue = null;
                         bool readSuccess = false;
-                        string type = variable.Type.ToUpper(); // Büyük harfe çevir (örn: "int" -> "INT")
+                        string type = variable.Type.ToUpper(); 
 
-                        // TİPE GÖRE OKUMA (SWITCH CASE)
                         switch (type)
                         {
                             case "BOOL":
@@ -242,59 +268,53 @@ namespace App4.Utilities
                                 if (bRes.IsSuccess) { newValue = bRes.Content ? 1 : 0; readSuccess = true; }
                                 break;
 
-                            case "INT": // 16-bit Signed (D, W)
+                            case "INT": 
                                 var iRes = await _melsecNet.ReadInt16Async(address);
                                 if (iRes.IsSuccess) { newValue = iRes.Content; readSuccess = true; }
                                 break;
 
-                            case "WORD": // 16-bit Unsigned (W, D) - Senin W600 için bu lazım
+                            case "WORD": 
                                 var wRes = await _melsecNet.ReadUInt16Async(address);
                                 if (wRes.IsSuccess) { newValue = wRes.Content; readSuccess = true; }
                                 break;
 
-                            case "DINT": // 32-bit Signed (Çift Register)
+                            case "DINT": 
                                 var diRes = await _melsecNet.ReadInt32Async(address);
                                 if (diRes.IsSuccess) { newValue = diRes.Content; readSuccess = true; }
                                 break;
 
-                            case "DWORD": // 32-bit Unsigned
+                            case "DWORD": 
                                 var dwRes = await _melsecNet.ReadUInt32Async(address);
                                 if (dwRes.IsSuccess) { newValue = dwRes.Content; readSuccess = true; }
                                 break;
 
-                            case "REAL": // 32-bit Float (Ondalıklı Sayı)
+                            case "REAL": 
                             case "FLOAT":
                                 var fRes = await _melsecNet.ReadFloatAsync(address);
-                                if (fRes.IsSuccess) { newValue = Math.Round(fRes.Content, 2); readSuccess = true; } // 2 hane yuvarla
+                                if (fRes.IsSuccess) { newValue = Math.Round(fRes.Content, 2); readSuccess = true; } 
                                 break;
 
                             case "STRING":
-                                // 10 karakter uzunluğunda metin oku (Uzunluğa göre 10'u PLC programına göre değiştirebilirsin)
                                 var sRes = await _melsecNet.ReadStringAsync(address, 10);
                                 if (sRes.IsSuccess)
                                 {
-                                    newValue = sRes.Content.Trim('\0', ' '); // Boşlukları ve null karakterleri temizle
+                                    newValue = sRes.Content.Trim('\0', ' '); 
                                     readSuccess = true;
                                 }
                                 break;
 
-                            default: // Tanımsızsa INT16 dene
+                            default: 
                                 var defRes = await _melsecNet.ReadInt16Async(address);
                                 if (defRes.IsSuccess) { newValue = defRes.Content; readSuccess = true; }
                                 break;
                         }
 
-                        // Eğer okuma başarılıysa ve değer değiştiyse UI güncelle
                         if (readSuccess && newValue != null)
                         {
-                            UiRunner?.Invoke(() =>
+                            if (variable.CurrentValue?.ToString() != newValue.ToString())
                             {
-                                // Değerleri string karşılaştırarak gereksiz güncellemeyi önle
-                                if (variable.CurrentValue?.ToString() != newValue.ToString())
-                                {
-                                    variable.CurrentValue = newValue;
-                                }
-                            });
+                                UiRunner?.Invoke(() => variable.CurrentValue = newValue);
+                            }
                         }
                     }
                     catch { }

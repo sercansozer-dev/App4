@@ -590,9 +590,26 @@ namespace App4.Utilities
 
                         if (!string.IsNullOrEmpty(tag))
                         {
-                            var plcTag = GeneralOutputVars.FirstOrDefault(v => v.Name == tag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == tag);
+                            // ÖNCELİK DEĞİŞTİRİLDİ: Artık kullanıcı tanımlı (PlcService) değişkenlere öncelik veriliyor.
+                            var plcTag = PlcService.Instance?.OutputVariables.FirstOrDefault(v => v.Name == tag) 
+                                      ?? GeneralOutputVars.FirstOrDefault(v => v.Name == tag);
+
                             if (plcTag != null)
                             {
+                                // Gocator'dan gelen veri float/double ise ve Tag tipi uygun değilse REAL yap
+                                if (val is double || val is float)
+                                {
+                                    bool isReal = plcTag.Type.Equals("REAL", StringComparison.OrdinalIgnoreCase) || 
+                                                  plcTag.Type.Equals("FLOAT", StringComparison.OrdinalIgnoreCase);
+                                    
+                                    if (!isReal)
+                                    {
+                                        plcTag.Type = "REAL";
+                                        PlcService.Instance?.SaveVariables(); // Değişikliği kaydet
+                                        OnAutomationLog?.Invoke($"⚠ Tag '{plcTag.Name}' tipi REAL olarak güncellendi (Gocator verisi düzeltmesi).");
+                                    }
+                                }
+
                                 await PlcService.Instance.WriteAsync(plcTag, val);
                                 OnAutomationLog?.Invoke($"PLC WR: {plcTag.Name} = {val}");
                             }
