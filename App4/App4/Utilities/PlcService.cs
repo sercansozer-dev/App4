@@ -208,8 +208,8 @@ namespace App4.Utilities
                 if (result.IsSuccess)
                 {
                     IsConnected = true;
-                    // Okuma hızı 100ms yapıldı (BEST Stability/Performance Balance)
-                    _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 100);
+                    // Okuma hızı 50ms yapıldı (Limiter ile güvenli hız)
+                    _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 50);
                     return true;
                 }
             }
@@ -232,6 +232,9 @@ namespace App4.Utilities
         private List<PlcVariable> _cachedReadList;
         private bool _readListDirty = true;
         
+        // Semaphore to limit parallel PLC requests to avoid overloading the socket/network
+        private System.Threading.SemaphoreSlim _parallelLimiter = new System.Threading.SemaphoreSlim(4);
+
         private void UpdateReadList()
         {
             _cachedReadList = InputVariables.Concat(OutputVariables).ToList();
@@ -248,14 +251,16 @@ namespace App4.Utilities
                 if (_readListDirty) UpdateReadList();
                 var scanList = _cachedReadList;
 
-                // SERIAL OKUMA: (Daha kararlı)
-                // Paralel okuma bazı durumlarda paket kaybı yaratabilir. Sıralı okumaya dönüldü.
-                foreach (var variable in scanList)
+                // PARALEL OKUMA (Limiter ile): 
+                // Serial çok yavaş kalıyor. Parallel full çok riskli. 
+                // SemaphoreSlim ile aynı anda maks 4 istek gönderiyoruz.
+                var tasks = scanList.Select(async variable =>
                 {
+                    await _parallelLimiter.WaitAsync();
                     try
                     {
                         string address = variable.Address;
-                        if (string.IsNullOrEmpty(address)) continue;
+                        if (string.IsNullOrEmpty(address)) return;
 
                         object newValue = null;
                         bool readSuccess = false;
@@ -318,7 +323,13 @@ namespace App4.Utilities
                         }
                     }
                     catch { }
-                }
+                    finally
+                    {
+                        _parallelLimiter.Release();
+                    }
+                });
+
+                await Task.WhenAll(tasks);
             }
             finally
             {

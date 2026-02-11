@@ -44,6 +44,7 @@ namespace App4
         public MainWindow()
         {
             this.InitializeComponent();
+            InitializeTriggerMonitor(); // Eklendi: Trigger izleme
 
             // Pencere Ayarları (WindowID ile AppWindow alma)
             IntPtr hWnd = WindowNative.GetWindowHandle(this);
@@ -124,6 +125,7 @@ namespace App4
 
                 SplashStatusText.Text = "Arayüz hazırlanıyor...";
                 await Task.Delay(500);
+
 
                 // 3. LOGOYU VE YAZILARI SİL (Fade Out)
                 for (double i = 1.0; i >= 0; i -= 0.1)
@@ -275,6 +277,34 @@ namespace App4
             {
                 ProcessLogin();
             }
+        }
+
+        private DispatcherTimer _triggerMonitorTimer;
+
+        private void InitializeTriggerMonitor()
+        {
+            _triggerMonitorTimer = new DispatcherTimer();
+            _triggerMonitorTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _triggerMonitorTimer.Tick += (s, e) =>
+            {
+                if (GlobalData.IsProcessRunning) return;
+
+                string tagName = GlobalData.Auto_TriggerTag;
+                if (string.IsNullOrEmpty(tagName)) return;
+
+                var v = PlcService.Instance?.InputVariables.FirstOrDefault(x => x.Name == tagName) ??
+                        PlcService.Instance?.OutputVariables.FirstOrDefault(x => x.Name == tagName) ??
+                        GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
+
+                if (v != null)
+                {
+                    string val = v.Value ?? "0";
+                    bool isHigh = (val == "1" || val?.ToLower() == "true");
+                    // Kullanıcı 0 veya 1 olduğunu görmek istiyor
+                    GlobalData.ProcessStatus = isHigh ? "HAZIR (Sinyal: 1)" : "HAZIR (Sinyal: 0)";
+                }
+            };
+            _triggerMonitorTimer.Start();
         }
 
         private void ProcessLogin()

@@ -312,14 +312,11 @@
                                                 <TextBlock Text="{x:Bind SelectedTriggerTag, Mode=OneWay}" 
                                                            Foreground="#00FF88" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono"
                                                            Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
-                                                <TextBlock Text="DURUM:" FontSize="8" Foreground="#888" Margin="0,4,0,0"
-                                                           Visibility="{x:Bind IsAutomationMode, Mode=OneWay}"/>
-                                                <Border Background="#1A3A2A" CornerRadius="4" Padding="6,3" BorderBrush="#00BFFF" BorderThickness="1"
+                                                <TextBlock Text="DEĞER:" FontSize="8" Foreground="#888" Margin="0,4,0,0"/>
+                                                <Border Background="#1A3A4A" CornerRadius="4" Padding="0" BorderBrush="#00FF88" BorderThickness="1"
                                                         Visibility="{x:Bind IsAutomationMode, Mode=OneWay}">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                        <FontIcon Glyph="{x:Bind utils:GlobalData.IsProcessRunning, Mode=OneWay, Converter={StaticResource BoolToPlayPauseIconConverter}}" FontSize="10" Foreground="#00FF88"/>
-                                                        <TextBlock Text="{x:Bind utils:GlobalData.ProcessStatus, Mode=OneWay}" Foreground="#00BFFF" FontSize="11" FontWeight="SemiBold"/>
-                                                    </StackPanel>
+                                                    <TextBlock Text="{x:Bind TriggerTagValue, Mode=OneWay}" 
+                                                               Foreground="#00FF88" FontSize="13" FontWeight="Bold" FontFamily="Cascadia Mono" Padding="6,3"/>
                                                 </Border>
                                             </StackPanel>
                                         </Border>

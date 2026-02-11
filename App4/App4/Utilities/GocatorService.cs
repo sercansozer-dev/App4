@@ -191,6 +191,19 @@ namespace App4.Utilities
                             {
                                 if (system.RunningState() == GoSystem.State.Ready) system.Start();
 
+                                // ▼▼▼ SINGLE SHOT TRIGGER ▼▼▼
+                                // Eğer sensör "Software/Command" tetik modundaysa bu komut çekim yapmasını sağlar.
+                                // Time modundaysa yoksayar veya ekstra tetikleyebilir (Time modu için bu kısım gereksizdir).
+                                try
+                                {
+                                    // Sensörün hazır olması için çok kısa bekle
+                                    System.Threading.Thread.Sleep(20);
+                                    // /commands/trigger endpoint'ini çağır
+                                    system.Client().Call("/commands/trigger", new JObject());
+                                }
+                                catch (Exception) { /* Trigger desteklenmiyor veya gerekmiyor */ }
+                                // ▲▲▲
+
                                 log?.Invoke("Ölçüm verisi bekleniyor...");
                                 gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
 

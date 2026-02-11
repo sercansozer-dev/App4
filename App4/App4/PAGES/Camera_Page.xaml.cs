@@ -310,11 +310,54 @@ namespace App4.PAGES
         private static readonly SolidColorBrush BrushRed = new(Microsoft.UI.Colors.Red);
         private static readonly SolidColorBrush BrushIndianRed = new(Microsoft.UI.Colors.IndianRed);
 
+        private Action<string> _automationLogHandler;
+        private Action _automationStatusHandler;
+
         public Camera_Page()
         {
             this.InitializeComponent();
             this.DataContext = this;
+            
+            // Handlerları oluştur (Bellek sızıntısı ve duplicate log önleme)
+            _automationLogHandler = (msg) => this.DispatcherQueue.TryEnqueue(() => AddLog(msg));
+            _automationStatusHandler = () =>
+            {
+                this.DispatcherQueue.TryEnqueue(() =>
+                {
+                    OnPropertyChanged(nameof(LivePlcRfid));
+                    OnPropertyChanged(nameof(LivePlcIndex));
+                    OnPropertyChanged(nameof(LiveProcessStatus));
+                    OnPropertyChanged(nameof(IsProcessRunning));
+                    OnPropertyChanged(nameof(SelectedRfidTag));
+                    OnPropertyChanged(nameof(SelectedIndexTag));
+                    OnPropertyChanged(nameof(SelectedTriggerTag));
+                    OnPropertyChanged(nameof(RfidTagValue));
+                    OnPropertyChanged(nameof(IndexTagValue));
+                    OnPropertyChanged(nameof(TriggerTagValue));
+                    OnPropertyChanged(nameof(MeasurementOutputValue));
+                    OnPropertyChanged(nameof(MeasurementOutputStatusText));
+                    OnPropertyChanged(nameof(MeasurementOutputStatusColor));
+                });
+            };
+
             this.Loaded += Camera_Page_Loaded;
+            this.Unloaded += Camera_Page_Unloaded;
+        }
+
+        private void Camera_Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Olay dinleyicilerini temizle
+            if (_automationLogHandler != null)
+                App4.Utilities.GlobalData.OnAutomationLog -= _automationLogHandler;
+            
+            if (_automationStatusHandler != null)
+                App4.Utilities.GlobalData.OnAutomationStatusChanged -= _automationStatusHandler;
+
+            // Watcher'ları temizle
+            if (_watchedRfidVar != null) _watchedRfidVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            if (_watchedIndexVar != null) _watchedIndexVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            if (_watchedTriggerVar != null) _watchedTriggerVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
         }
 
         private async void BtnGetMeasurement_Click(object sender, RoutedEventArgs e)
@@ -1212,29 +1255,12 @@ namespace App4.PAGES
             // WATCHER'LARI KUR
             SetupWatchers();
 
-            // 5. Event'leri bağla
-            App4.Utilities.GlobalData.OnAutomationLog += (msg) => this.DispatcherQueue.TryEnqueue(() => AddLog(msg));
+            // 5. Event'leri bağla (Duplicate önlemek için önce çıkar)
+            App4.Utilities.GlobalData.OnAutomationLog -= _automationLogHandler;
+            App4.Utilities.GlobalData.OnAutomationLog += _automationLogHandler;
 
-            App4.Utilities.GlobalData.OnAutomationStatusChanged += () =>
-            {
-                this.DispatcherQueue.TryEnqueue(() =>
-                {
-                    OnPropertyChanged(nameof(LivePlcRfid));
-                    OnPropertyChanged(nameof(LivePlcIndex));
-                    OnPropertyChanged(nameof(LiveProcessStatus));
-                    OnPropertyChanged(nameof(IsProcessRunning));
-                    OnPropertyChanged(nameof(SelectedRfidTag));
-                    OnPropertyChanged(nameof(SelectedIndexTag));
-                    OnPropertyChanged(nameof(SelectedTriggerTag));
-                    // ▼▼▼ TAG DEĞERLERİNİ DE GÜNCELLE ▼▼▼
-                    OnPropertyChanged(nameof(RfidTagValue));
-                    OnPropertyChanged(nameof(IndexTagValue));
-                    OnPropertyChanged(nameof(TriggerTagValue));
-                    OnPropertyChanged(nameof(MeasurementOutputValue));
-                    OnPropertyChanged(nameof(MeasurementOutputStatusText));
-                    OnPropertyChanged(nameof(MeasurementOutputStatusColor));
-                });
-            };
+            App4.Utilities.GlobalData.OnAutomationStatusChanged -= _automationStatusHandler;
+            App4.Utilities.GlobalData.OnAutomationStatusChanged += _automationStatusHandler;
 
             if (_isWebViewInitialized) return;
 
