@@ -25,11 +25,9 @@ namespace App4
         public ObservableCollection<PlcVariable> Station1Vars => GlobalData.Station1Vars;
         public ObservableCollection<PlcVariable> Station2Vars => GlobalData.Station2Vars;
         public ObservableCollection<PlcVariable> Station3Vars => GlobalData.Station3Vars;
-        public ObservableCollection<PlcVariable> Station4Vars => GlobalData.Station4Vars;
         public ObservableCollection<PlcVariable> Station1Outputs => GlobalData.Station1Outputs;
         public ObservableCollection<PlcVariable> Station2Outputs => GlobalData.Station2Outputs;
         public ObservableCollection<PlcVariable> Station3Outputs => GlobalData.Station3Outputs;
-        public ObservableCollection<PlcVariable> Station4Outputs => GlobalData.Station4Outputs;
 
         public ObservableCollection<App4.Utilities.LogEntry> SystemLogs { get; set; } = new();
         public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
@@ -74,7 +72,6 @@ namespace App4
             BindVars(Station1Vars); BindVars(Station1Outputs);
             BindVars(Station2Vars); BindVars(Station2Outputs);
             BindVars(Station3Vars); BindVars(Station3Outputs);
-            BindVars(Station4Vars); BindVars(Station4Outputs);
 
             // --- YENİ EKLENEN KISIM: ZORLA GÜNCELLEME (FORCE SYNC) ---
             // Sayfa açıldığında "Değişiklik beklemeden" mevcut değerleri istasyonlara yaz
@@ -96,7 +93,6 @@ namespace App4
             ForceUpdateStations(Station1Vars);
             ForceUpdateStations(Station2Vars);
             ForceUpdateStations(Station3Vars);
-            ForceUpdateStations(Station4Vars);
             // ---------------------------------------------------------
 
             // 3. Hat Durum Işıklarını Yak
@@ -121,7 +117,7 @@ namespace App4
                 // PLC'ye Yazma İşlemleri (Eski kodunun aynısı)
                 int index = Stations.IndexOf(station);
                 if (index < 0) return;
-                ObservableCollection<PlcVariable> outputs = index switch { 0 => Station1Outputs, 1 => Station2Outputs, 2 => Station3Outputs, 3 => Station4Outputs, _ => null };
+                ObservableCollection<PlcVariable> outputs = index switch { 0 => Station1Outputs, 1 => Station2Outputs, 2 => Station3Outputs, _ => null };
 
                 if (outputs != null)
                 {
@@ -379,7 +375,7 @@ namespace App4
 
         private void AddLog(string msg, string clr) => SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
         private void UpdatePlcVar(ObservableCollection<PlcVariable> c, string n, string v) { var i = c.FirstOrDefault(x => x.Name == n); if (i != null && i.Value != v) i.Value = v; }
-        private void UpdateSliderPosition(string v) { foreach (var s in Stations) s.IsRobotPresent = false; if (int.TryParse(v, out int p) && p >= 1 && p <= 4) Stations[p - 1].IsRobotPresent = true; }
+        private void UpdateSliderPosition(string v) { foreach (var s in Stations) s.IsRobotPresent = false; if (int.TryParse(v, out int p) && p >= 1 && p <= 3) Stations[p - 1].IsRobotPresent = true; }
         private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
