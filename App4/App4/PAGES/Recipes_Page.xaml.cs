@@ -171,7 +171,7 @@ namespace App4.Pages
         function init() {{
             try {{
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x1e1e1e);
+                scene.background = new THREE.Color(0x181818);
                 
                 // Isometric view camera setup
                 const width = window.innerWidth;
@@ -298,8 +298,13 @@ namespace App4.Pages
                     model.position.x = -center.x;
                     model.position.z = -center.z;
                     
+                    // Klima üniteleri dike almak için (X ekseni etrafýnda 90 derece)
+                    model.rotation.x = Math.PI / 2;
+                    
+                    // Y ekseninde aynalamak (mirror)
+                    model.scale.y = -1;
 
-                    if(controls) {{ controls.target.set(0, 0, 0); controls.update(); }}
+                    if(controls) {{ controls.target.set(0, 0, 0); }}
                     showLoading(false);
                     log('Model loaded - on ground');
                 }} catch(err) {{
@@ -386,11 +391,14 @@ namespace App4.Pages
                     }
                 }
 
+
+
                 if (File.Exists(fullPath))
                 {
-                    // Use file:// URL for direct file access
-                    string fileUri = new Uri(fullPath).AbsoluteUri;
-                    string escapedUri = fileUri.Replace("'", "\\'");
+                    // Use localmodels:// virtual host mapping for WebView2
+                    string relativePath = Path.GetRelativePath(modelsRoot, fullPath).Replace("\\", "/");
+                    string modelUri = $"http://localmodels/{relativePath}";
+                    string escapedUri = modelUri.Replace("'", "\\'");
                     string jsCode = $@"if(window.loadModel) {{ 
                         console.log('Calling loadModel with: {escapedUri}');
                         window.loadModel('{escapedUri}'); 
@@ -398,7 +406,7 @@ namespace App4.Pages
                         console.error('loadModel function not ready'); 
                     }}";
                     
-                    System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Loading: {fileUri}");
+                    System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Loading: {modelUri}");
                     await PreviewWebView.ExecuteScriptAsync(jsCode);
                     TxtPreviewName.Text = fileName;
                 }

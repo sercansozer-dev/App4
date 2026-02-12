@@ -17,6 +17,7 @@
             display: block;
             width: 100vw;
             height: 100vh;
+            touch-action: none;
         }
 
         #info {
@@ -76,6 +77,32 @@
             max-width: 300px;
             display: none;
         }
+
+        #controls-panel {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.85);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: right;
+            border: 2px solid #00A4EF;
+            min-width: 150px;
+        }
+        #controls-panel button {
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            padding: 6px 10px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        #controls-panel button:hover { background: #00A4EF; }
+        #rot-status { font-size: 10px; color: yellow; margin-top: 5px; text-align: center; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -83,9 +110,28 @@
 </head>
 <body>
     <div id="info">Station 3 Viewer</div>
-    <div id="loading">? Y�kleniyor...</div>
+    <div id="loading">? Y�kleniyor...</div>
     <div id="error"></div>
     <div id="debug"></div>
+
+    <div id="controls-panel" style="display:none !important;">
+        <div style="font-size:10px;color:#aaa;margin-bottom:5px;border-bottom:1px solid #555;padding-bottom:2px">GÖRÜNÜM KONTROL</div>
+        <div>
+            <button onclick="setView('iso')">ISO</button>
+            <button onclick="setView('front')">ÖN</button>
+            <button onclick="setView('top')">ÜST</button>
+            <button onclick="setView('side')">YAN</button>
+            <button onclick="fitCamera()" style="background:#0078D7">ODAKLA</button>
+        </div>
+        <div style="font-size:10px;color:#aaa;margin-top:5px;margin-bottom:2px">YÖN DÜZELTME</div>
+        <div>
+            <button onclick="rotateModel('x')">ROT X</button>
+            <button onclick="rotateModel('y')">ROT Y</button>
+            <button onclick="rotateModel('z')">ROT Z</button>
+        </div>
+        <div id="rot-status">ROT: 0,0,0</div>
+        <button onclick="window.location.reload()" style="width:100%;margin-top:5px;background:#800;">SAYFA YENİLE</button>
+    </div>
 
     <script>
         let scene, camera, renderer, controls, currentModel;
@@ -134,20 +180,14 @@
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x000000);
                 
-                // Isometric view camera setup
+                // Perspective Camera Setup
                 const width = window.innerWidth;
                 const height = window.innerHeight;
-                const distance = 150;
+                const distance = 200; // Used for lights and camera
+                const fov = 45;
                 
-                // Isometric angle: 45 degrees around Y, 30-35 degrees from horizontal
-                camera = new THREE.OrthographicCamera(
-                    -width / 2, width / 2,
-                    height / 2, -height / 2,
-                    0.1, 10000
-                );
-                
-                // Isometric position
-                camera.position.set(distance * 0.866, distance * 0.866, distance * 0.866);
+                camera = new THREE.PerspectiveCamera(fov, width / height, 0.1, 10000);
+                camera.position.set(distance, distance * 0.6, distance);
                 camera.lookAt(0, 0, 0);
 
                 renderer = new THREE.WebGLRenderer({ 
@@ -163,11 +203,24 @@
                 // OrbitControls setup
                 if (typeof THREE.OrbitControls !== 'undefined') {
                     controls = new THREE.OrbitControls(camera, renderer.domElement);
-                    controls.enableDamping = false;
-                    controls.autoRotate = false;
-                    controls.enableRotate = false;  // Disable all rotation
-                    controls.enableZoom = true;     // Allow zoom only
-                    controls.enablePan = false;     // Disable pan
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.1;
+                    controls.enableRotate = true;
+                    controls.rotateSpeed = 1.0;
+                    controls.enableZoom = true;
+                    controls.enablePan = true;
+                    
+                    // Explicit configuration
+                    controls.mouseButtons = {
+                        LEFT: THREE.MOUSE.ROTATE,
+                        MIDDLE: THREE.MOUSE.DOLLY,
+                        RIGHT: THREE.MOUSE.PAN
+                    }
+                    controls.touches = {
+                        ONE: THREE.TOUCH.ROTATE,
+                        TWO: THREE.TOUCH.DOLLY_PAN
+                    }
+                    
                     controls.target.set(0, 0, 0);
                     controls.update();
                 }
@@ -177,12 +230,12 @@
                 scene.add(ambientLight);
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(distance * 0.866, distance * 1.5, distance * 0.866);
+                directionalLight.position.set(distance, distance * 1.5, distance);
                 directionalLight.castShadow = true;
                 scene.add(directionalLight);
 
                 const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
-                backLight.position.set(-distance * 0.866, -distance * 0.5, -distance * 0.866);
+                backLight.position.set(-distance, -distance * 0.5, -distance);
                 scene.add(backLight);
 
                 // Ground plane reference
@@ -192,7 +245,7 @@
                     emissive: 0x1a1a1a
                 });
                 const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
-                groundPlane.rotation.x = -Math.PI / 2;
+                groundPlane.rotation.x = -Math.PI / 2; // XZ Plane
                 groundPlane.position.y = -0.1;
                 groundPlane.receiveShadow = true;
                 scene.add(groundPlane);
@@ -258,21 +311,25 @@
                         
                         // Reset model position first
                         model.position.set(0, 0, 0);
+                        model.rotation.set(-Math.PI / 2, 0, 0); // Correct orientation (stand up)
+                        model.updateMatrixWorld(true);
                         
                         // Calculate bounding box
                         const box = new THREE.Box3().setFromObject(model);
                         const center = box.getCenter(new THREE.Vector3());
-                        const size = box.getSize(new THREE.Vector3());
                         
-                        // Position model to sit on ground
-                        // Move down so bottom of model is at Y=0
+                        // Position model to sit on ground (Y-up)
                         model.position.y = -box.min.y;
-                        // Center horizontally
+                        
+                        // Center horizontally (XZ)
                         model.position.x = -center.x;
                         model.position.z = -center.z;
                         
+                        fitCamera(); // Auto-fit camera
+                        
                         showLoading(false);
-                        log('Model loaded - on ground');
+                        log('Model loaded (Rot X -90)');
+                        updateRotStatus();
                     } catch (err) {
                         updateError("Model processing error: " + err.message);
                         showLoading(false);
@@ -288,6 +345,67 @@
                     log('Load error - check browser console');
                 }
             );
+        }
+
+        function setView(view) {
+            const dist = 300; // Larger distance for perspective
+            if (!camera || !controls) return;
+            
+            controls.reset();
+            
+            switch(view) {
+                case 'front': camera.position.set(0, 0, dist); break;
+                case 'back': camera.position.set(0, 0, -dist); break;
+                case 'right': camera.position.set(dist, 0, 0); break;
+                case 'left': camera.position.set(-dist, 0, 0); break;
+                case 'top': camera.position.set(0, dist, 0); break; 
+                case 'side': camera.position.set(dist, 0, dist); break; 
+                case 'iso': camera.position.set(200, 200, 200); break;
+            }
+            camera.lookAt(0, 0, 0);
+            controls.update();
+        }
+
+        function rotateModel(axis) {
+            if (!currentModel) return;
+            currentModel.rotation[axis] += Math.PI / 2;
+            currentModel.updateMatrixWorld(true);
+            
+            // Re-center on ground
+            const box = new THREE.Box3().setFromObject(currentModel);
+            currentModel.position.y -= box.min.y;
+            currentModel.position.x = -box.getCenter(new THREE.Vector3()).x;
+            currentModel.position.z = -box.getCenter(new THREE.Vector3()).z;
+            
+            updateRotStatus();
+        }
+        
+        function updateRotStatus() {
+            if(!currentModel) return;
+            const r = currentModel.rotation;
+            const toDeg = rad => Math.round(rad * 180 / Math.PI);
+            document.getElementById('rot-status').textContent = `ROT: ${toDeg(r.x)}, ${toDeg(r.y)}, ${toDeg(r.z)}`;
+        }
+
+        function fitCamera() {
+            if (!currentModel || !camera || !controls) return;
+            
+            const box = new THREE.Box3().setFromObject(currentModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+            cameraDist *= 2.0;
+
+            const direction = camera.position.clone().sub(controls.target).normalize();
+            const newPos = direction.multiplyScalar(cameraDist).add(center);
+
+            camera.position.copy(newPos);
+            controls.target.copy(center);
+            controls.update();
+            log(`Camera fitted. Dist: ${Math.round(cameraDist)}`);
         }
 
         function animate() {

@@ -201,10 +201,36 @@ namespace App4
                 string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
                 if (!Directory.Exists(modelsFolder)) Directory.CreateDirectory(modelsFolder);
 
-                // HTML Dosyalarını Oluştur
-                await CreateViewerHtml(htmlFolder, "1_StationProductViewer.html", "Station 1 Viewer");
-                await CreateViewerHtml(htmlFolder, "2_StationProductViewer.html", "Station 2 Viewer");
-                await CreateViewerHtml(htmlFolder, "3_StationProductViewer.html", "Station 3 Viewer");
+                // HTML Dosyalarını Hazırla (Assets'ten kopyala, yoksa oluştur)
+                string assetsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
+                
+                async Task PrepareHtml(string fileName, string title)
+                {
+                    string destPath = Path.Combine(htmlFolder, fileName);
+                    string sourcePath = Path.Combine(assetsFolder, fileName);
+
+                    // Eğer Assets klasöründe dosya varsa onu kopyala (Geliştirme sırasında yapılan değişiklikleri alır)
+                    if (File.Exists(sourcePath))
+                    {
+                        try 
+                        {
+                            File.Copy(sourcePath, destPath, true);
+                            System.Diagnostics.Debug.WriteLine($">>> Copied HTML from Assets: {fileName}");
+                            return; 
+                        }
+                        catch (Exception ex) 
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Copy Error ({fileName}): {ex.Message}");
+                        }
+                    }
+                    
+                    // Yoksa veya hata olursa string'den oluştur
+                    await CreateViewerHtml(htmlFolder, fileName, title);
+                }
+
+                await PrepareHtml("1_StationProductViewer.html", "Station 1 Viewer");
+                await PrepareHtml("2_StationProductViewer.html", "Station 2 Viewer");
+                await PrepareHtml("3_StationProductViewer.html", "Station 3 Viewer");
 
                 await InitSingleViewer(Viewer_Station1, "1_StationProductViewer.html", env, htmlFolder, modelsFolder, Stations[0]);
                 await InitSingleViewer(Viewer_Station2, "2_StationProductViewer.html", env, htmlFolder, modelsFolder, Stations[1]);
@@ -224,6 +250,9 @@ namespace App4
             {
                 await wv.EnsureCoreWebView2Async(env);
 
+                // Clear cache by deleting content and reloading
+                await wv.CoreWebView2.ExecuteScriptAsync("localStorage.clear(); sessionStorage.clear();");
+
                 // Map virtual hosts for file access
                 try
                 {
@@ -240,12 +269,13 @@ namespace App4
                     if (station is ExtendedStationViewModel ext) UpdateStationModel(ext);
                 };
 
-                // Load HTML from file using file:// protocol
+                // Load HTML from file using file:// protocol with cache-busting query
                 string htmlFilePath = Path.Combine(htmlPath, htmlName);
                 if (File.Exists(htmlFilePath))
                 {
-                    // Use file:// for local files
-                    wv.Source = new Uri($"file:///{htmlFilePath.Replace("\\", "/")}");
+                    // Use file:// for local files with timestamp to prevent caching
+                    string timestamp = DateTime.Now.Ticks.ToString();
+                    wv.Source = new Uri($"file:///{htmlFilePath.Replace("\\", "/")}?t={timestamp}");
                 }
                 else
                 {
@@ -262,175 +292,409 @@ namespace App4
         {
             try
             {
+                // Updated HTML content with Perspective Camera, Controls, and Fixes
                 string htmlContent = $@"<!DOCTYPE html>
 <html lang='en'>
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>{title}</title>
-    <style> 
-        body {{ margin: 0; overflow: hidden; background: transparent; font-family: sans-serif; }} 
-        canvas {{ display: block; width: 100vw; height: 100vh; outline: none; }} 
-        #loading {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #3498db; font-size: 20px; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 8px; display: none; z-index: 100; }}
-        #error {{ position: absolute; bottom: 20px; left: 20px; background: rgba(220, 53, 69, 0.9); color: white; padding: 10px; border-radius: 4px; font-size: 12px; display: none; z-index: 100; }}
-        #debug {{ position: absolute; top: 10px; left: 10px; font-size: 10px; color: #666; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; max-width: 300px; word-break: break-word; }}
+    <title>{{title}}</title>
+    <style>
+        body {{
+            margin: 0;
+            overflow: hidden;
+            background-color: transparent;
+            color: white;
+            font-family: sans-serif;
+        }}
+
+        canvas {{
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none; /* Prevent scroll */
+        }}
+
+        #info {{
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00A4EF;
+            font-size: 12px;
+            display: none;
+        }}
+
+        #loading {{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #3498db;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 8px;
+            display: none;
+            z-index: 200;
+        }}
+
+        #error {{
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 400px;
+            display: none;
+            border-left: 4px solid #dc3545;
+            z-index: 200;
+            word-wrap: break-word;
+        }}
+
+        #debug {{
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #888;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 10px;
+            z-index: 100;
+            max-width: 300px;
+            display: none;
+        }}
+
+        #controls-panel {{
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.85);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: right;
+            border: 2px solid #00A4EF;
+            min-width: 150px;
+        }}
+        #controls-panel button {{
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            padding: 6px 10px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }}
+        #controls-panel button:hover {{ background: #00A4EF; }}
+        #rot-status {{ font-size: 10px; color: yellow; margin-top: 5px; text-align: center; }}
     </style>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'></script>
 </head>
 <body>
-    <div id='debug'></div>
+    <div id='info'>{{title}}</div>
     <div id='loading'>Yükleniyor...</div>
     <div id='error'></div>
+    <div id='debug'></div>
+
+    <div id='controls-panel' style='display:none !important;'>
+        <div style='font-size:10px;color:#aaa;margin-bottom:5px;border-bottom:1px solid #555;padding-bottom:2px'>GÖRÜNÜM KONTROL</div>
+        <div>
+            <button onclick='setView(""iso"")'>ISO</button>
+            <button onclick='setView(""front"")'>ÖN</button>
+            <button onclick='setView(""top"")'>ÜST</button>
+            <button onclick='setView(""side"")'>YAN</button>
+            <button onclick='fitCamera()' style='background:#0078D7'>ODAKLA</button>
+        </div>
+        <div style='font-size:10px;color:#aaa;margin-top:5px;margin-bottom:2px'>YÖN DÜZELTME</div>
+        <div>
+            <button onclick='rotateModel(""x"")'>ROT X</button>
+            <button onclick='rotateModel(""y"")'>ROT Y</button>
+            <button onclick='rotateModel(""z"")'>ROT Z</button>
+        </div>
+        <div id='rot-status'>ROT: 0,0,0</div>
+        <button onclick='window.location.reload()' style='width:100%;margin-top:5px;background:#800;'>SAYFA YENİLE</button>
+    </div>
+
     <script>
         let scene, camera, renderer, controls, currentModel;
-        const loadingEl = document.getElementById('loading');
         const errorEl = document.getElementById('error');
+        const loadingEl = document.getElementById('loading');
         const debugEl = document.getElementById('debug');
-        let THREE_LOADED = false;
+        let THREE_READY = false;
 
         function log(msg) {{
-            console.log('[Station] ' + msg);
+            console.log(`[{{title}}] ${{msg}}`);
             debugEl.textContent = msg;
+            debugEl.style.display = 'block';
         }}
 
-        function showError(msg) {{ 
-            errorEl.textContent = msg; 
-            errorEl.style.display = 'block'; 
-            console.error('[Station] ' + msg);
+        function updateError(message) {{
+            errorEl.textContent = `! ${{message}}`;
+            errorEl.style.display = 'block';
+            console.error(`[{{title}} ERROR] ${{message}}`);
         }}
-        
-        function showLoading(v) {{ loadingEl.style.display = v ? 'block' : 'none'; }}
 
-        // Wait for THREE.js libraries to load
+        function clearError() {{ 
+            errorEl.style.display = 'none'; 
+        }}
+
+        function showLoading(show = true) {{ 
+            loadingEl.style.display = show ? 'block' : 'none'; 
+        }}
+
         function waitForTHREE(callback, attempt = 0) {{
             if (typeof THREE !== 'undefined' && 
                 typeof THREE.OrbitControls !== 'undefined' && 
                 typeof THREE.GLTFLoader !== 'undefined') {{
-                THREE_LOADED = true;
+                THREE_READY = true;
                 log('THREE.js ready');
                 callback();
-            }} else if (attempt < 100) {{
+            }} else if (attempt < 50) {{
                 setTimeout(() => waitForTHREE(callback, attempt + 1), 100);
             }} else {{
-                showError('THREE.js kütüphaneleri yüklenemedi');
+                updateError('THREE.js libraries failed to load. Check CDN access.');
             }}
         }}
 
         function init() {{
             try {{
                 scene = new THREE.Scene();
-                scene.background = null;
-                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
-                camera.position.set(50, 50, 50);
-                renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
+                scene.background = new THREE.Color(0x000000); // Black background
+                
+                // Perspective Camera Setup
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                const distance = 200; 
+                const fov = 45;
+                
+                camera = new THREE.PerspectiveCamera(fov, width / height, 0.1, 10000);
+                // Lower Y for a better side/front view (not top-down)
+                camera.position.set(distance, distance * 0.6, distance);
+                camera.lookAt(0, 0, 0);
+
+                renderer = new THREE.WebGLRenderer({{ 
+                    antialias: true, 
+                    alpha: true,
+                    powerPreference: 'high-performance'
+                }});
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.outputColorSpace = THREE.SRGBColorSpace;
                 document.body.appendChild(renderer.domElement);
-                
+
+                // OrbitControls setup
                 if (typeof THREE.OrbitControls !== 'undefined') {{
                     controls = new THREE.OrbitControls(camera, renderer.domElement);
                     controls.enableDamping = true;
-                    controls.autoRotate = true;
-                    controls.autoRotateSpeed = 2.0;
+                    controls.dampingFactor = 0.1;
+                    controls.enableRotate = true;
+                    controls.rotateSpeed = 1.0;
+                    controls.enableZoom = true;
+                    controls.enablePan = true;
+                    
+                    controls.mouseButtons = {{
+                        LEFT: THREE.MOUSE.ROTATE,
+                        MIDDLE: THREE.MOUSE.DOLLY,
+                        RIGHT: THREE.MOUSE.PAN
+                    }};
+                    
+                    controls.target.set(0, 0, 0);
+                    controls.update();
                 }}
-                
-                const ambi = new THREE.AmbientLight(0xffffff, 0.8); 
-                scene.add(ambi);
-                const dir = new THREE.DirectionalLight(0xffffff, 1.0); 
-                dir.position.set(50, 50, 100); 
-                scene.add(dir);
-                
-                window.addEventListener('resize', () => {{
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(distance, distance * 1.5, distance);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+
+                const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                backLight.position.set(-distance, -distance * 0.5, -distance);
+                scene.add(backLight);
+
+                // Ground plane
+                const groundGeometry = new THREE.PlaneGeometry(500, 500);
+                const groundMaterial = new THREE.MeshStandardMaterial({{ 
+                    color: 0x333333,
+                    emissive: 0x1a1a1a
                 }});
-                
-                log('Scene initialized');
+                const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+                groundPlane.rotation.x = -Math.PI / 2; // XZ Plane
+                groundPlane.position.y = -0.1;
+                groundPlane.receiveShadow = true;
+                scene.add(groundPlane);
+
+                window.addEventListener('resize', onWindowResize);
+
+                log('Scene Initialized (Perspective)');
                 animate();
-            }} catch (e) {{ 
-                showError('Init Error: ' + e.message); 
+            }} catch (e) {{
+                updateError('Init Error: ' + e.message);
             }}
         }}
-        
-        function loadModel(url) {{
-            if(!url) {{
-                log('No URL provided');
+
+        function onWindowResize() {{
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }}
+
+        function loadModel(urlPath) {{
+            if (!urlPath || urlPath.trim() === '') {{
+                clearError();
+                log('No model specified');
                 return;
             }}
-            
-            log('Loading: ' + url);
+
+            log(`Loading: ${{urlPath}}`);
             showLoading(true);
-            errorEl.style.display = 'none';
-            
-            if(currentModel) {{ 
+            clearError();
+
+            if (currentModel) {{ 
                 scene.remove(currentModel); 
                 currentModel = null; 
             }}
-            
+
+            let url = urlPath;
+            if (!url.startsWith('file://') && !url.startsWith('http://') && !url.startsWith('https://')) {{
+                url = 'file:///' + urlPath.split('/').map(p => encodeURIComponent(p)).join('/');
+            }}
+
             const loader = new THREE.GLTFLoader();
-            loader.load(url, (gltf) => {{
-                try {{
-                    const model = gltf.scene;
-                    currentModel = model;
-                    scene.add(model);
-                    
-                    // Process materials for proper rendering
-                    model.traverse((child) => {{
-                        if (child.isMesh) {{
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                        }}
-                    }});
-                    
-                    // Calculate bounding box
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    
-                    // Position model to sit on ground (ZEMINE OTURTUYOR)
-                    // Move down so bottom of model is at Y=0
-                    model.position.y = -box.min.y;
-                    // Center horizontally
-                    model.position.x = -center.x;
-                    model.position.z = -center.z;
-                    
-                    // Auto-rotate camera to view model
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const fov = camera.fov * (Math.PI / 180);
-                    let cameraDist = maxDim / (2 * Math.tan(fov / 2));
-                    cameraDist *= 1.5; 
-                    camera.position.set(cameraDist, cameraDist*0.5, cameraDist);
-                    camera.lookAt(0, 0, 0);
-                    
-                    if(controls) {{ 
-                        controls.target.set(0, 0, 0); 
-                        controls.update(); 
+            
+            loader.load(
+                url, 
+                (gltf) => {{
+                    try {{
+                        const model = gltf.scene;
+                        currentModel = model;
+                        scene.add(model);
+                        
+                        model.traverse((child) => {{
+                            if (child.isMesh) {{
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }}
+                        }});
+                        
+                        // Default Rotation: -90 X (Stand Up)
+                        model.position.set(0, 0, 0);
+                        model.rotation.set(-Math.PI / 2, 0, 0); 
+                        model.updateMatrixWorld(true);
+                        
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        
+                        // Sit on ground
+                        model.position.y = -box.min.y;
+                        model.position.x = -center.x; // Center Horizontal
+                        model.position.z = -center.z; // Center Depth (relative to rotated X)
+                        
+                        fitCamera(); // Auto-fit camera
+                        
+                        showLoading(false);
+                        log('Model loaded (Rot X -90)');
+                        updateRotStatus();
+                    }} catch (err) {{
+                        updateError('Model processing error: ' + err.message);
+                        showLoading(false);
                     }}
-                    showLoading(false);
-                    log('Model loaded - on ground');
-                }} catch(err) {{
-                    showError('Processing: ' + err.message);
+                }}, 
+                (progress) => {{
+                    const percentComplete = Math.round((progress.loaded / progress.total) * 100);
+                    log(`Loading... ${{percentComplete}}%`);
+                }}, 
+                (err) => {{
+                    updateError('Model load failed: ' + (err.message || JSON.stringify(err)));
                     showLoading(false);
                 }}
-            }}, (progress) => {{
-                const pct = Math.round((progress.loaded / progress.total) * 100);
-                log('Loading... ' + pct + '%');
-            }}, (err) => {{
-                showError('Yükleme Hatası: ' + err.message);
-                showLoading(false);
-            }});
+            );
         }}
 
-        function animate() {{ 
-            requestAnimationFrame(animate); 
-            if(controls) controls.update(); 
-            renderer.render(scene, camera); 
+        function setView(view) {{
+            const dist = 300; 
+            if (!camera || !controls) return;
+            
+            controls.reset();
+            
+            switch(view) {{
+                case 'front': camera.position.set(0, 0, dist); break;
+                case 'back': camera.position.set(0, 0, -dist); break;
+                case 'right': camera.position.set(dist, 0, 0); break;
+                case 'left': camera.position.set(-dist, 0, 0); break;
+                case 'top': camera.position.set(0, dist, 0); break; 
+                case 'side': camera.position.set(dist, 0, dist); break; 
+                case 'iso': camera.position.set(200, 200, 200); break;
+            }}
+            camera.lookAt(0, 0, 0);
+            controls.update();
+        }}
+
+        function rotateModel(axis) {{
+            if (!currentModel) return;
+            currentModel.rotation[axis] += Math.PI / 2;
+            currentModel.updateMatrixWorld(true);
+            
+            const box = new THREE.Box3().setFromObject(currentModel);
+            currentModel.position.y -= box.min.y;
+            currentModel.position.x = -box.getCenter(new THREE.Vector3()).x;
+            currentModel.position.z = -box.getCenter(new THREE.Vector3()).z;
+            
+            updateRotStatus();
         }}
         
-        // Wait for THREE.js then initialize
+        function updateRotStatus() {{
+            if(!currentModel) return;
+            const r = currentModel.rotation;
+            const toDeg = rad => Math.round(rad * 180 / Math.PI);
+            document.getElementById('rot-status').textContent = `ROT: ${{toDeg(r.x)}}, ${{toDeg(r.y)}}, ${{toDeg(r.z)}}`;
+        }}
+        
+        function fitCamera() {{
+            if (!currentModel || !camera || !controls) return;
+            
+            const box = new THREE.Box3().setFromObject(currentModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+            cameraDist *= 2.0;
+
+            const direction = camera.position.clone().sub(controls.target).normalize();
+            const newPos = direction.multiplyScalar(cameraDist).add(center);
+
+            camera.position.copy(newPos);
+            controls.target.copy(center);
+            controls.update();
+            log(`Camera fitted. Dist: ${{Math.round(cameraDist)}}`);
+        }}
+
+        function animate() {{
+            requestAnimationFrame(animate);
+            if (controls) {{
+                controls.update();
+            }}
+            renderer.render(scene, camera);
+        }}
+
         waitForTHREE(() => {{
             init();
             window.loadModel = loadModel;
