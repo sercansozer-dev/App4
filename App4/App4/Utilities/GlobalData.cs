@@ -34,6 +34,10 @@ namespace App4.Utilities
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
+
+        // YENİ: Model Klasöründeki Dosyaların Listesi
+        public static ObservableCollection<string> AvailableModels { get; private set; } = new();
+
         public static ObservableCollection<StationViewModel> Stations { get; private set; } = new();
         public static ObservableCollection<SystemCheckItem> SystemCheckList { get; private set; } = new();
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
@@ -124,10 +128,32 @@ namespace App4.Utilities
             LoadSystemChecks();
             LoadMeasurements();
             LoadTransferRows(); // <-- Burası eklendi
+
+            // Modelleri Yükle
+            RefreshAvailableModels();
+
             LoadAutomationSettings();
             StartAutomationListener();
             _isInitialized = true;
             
+        }
+
+        public static void RefreshAvailableModels()
+        {
+            try
+            {
+                AvailableModels.Clear();
+                string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                if (Directory.Exists(modelsFolder))
+                {
+                    var files = Directory.GetFiles(modelsFolder, "*.glb");
+                    foreach (var file in files)
+                    {
+                        AvailableModels.Add(Path.GetFileName(file));
+                    }
+                }
+            }
+            catch { }
         }
 
         // --- METOTLAR ---
@@ -137,13 +163,45 @@ namespace App4.Utilities
         public static void SaveMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_measurementsFilePath, json); } catch { } }
         private static void LoadMeasurements() { try { if (File.Exists(_measurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath)); if (list != null) { LastMeasurements.Clear(); foreach (var item in list) LastMeasurements.Add(item); } } } catch { } }
 
-        private static void LoadRfids() { try { if (File.Exists(_rfidFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<RfidDef>>(File.ReadAllText(_rfidFilePath)); if (list != null) foreach (var item in list) KnownRfids.Add(item); } else { KnownRfids.Add(new RfidDef { Id = "RF123", Description = "Klima A Tipi" }); SaveRfids(); } KnownRfids.CollectionChanged += (s, e) => SaveRfids(); } catch { } }
+        private static void LoadRfids() 
+        { 
+            try 
+            { 
+                if (File.Exists(_rfidFilePath)) 
+                { 
+                    var list = System.Text.Json.JsonSerializer.Deserialize<List<RfidDef>>(File.ReadAllText(_rfidFilePath)); 
+                    if (list != null) foreach (var item in list) KnownRfids.Add(item); 
+                } 
+                else 
+                { 
+                    KnownRfids.Add(new RfidDef { Id = "RF123", Description = "Klima A Tipi" }); 
+                    SaveRfids(); 
+                }
+                
+                // Mevcut öğeleri dinle
+                foreach (var item in KnownRfids) item.PropertyChanged += RfidDef_PropertyChanged;
+
+                KnownRfids.CollectionChanged += (s, e) => 
+                {
+                    if (e.NewItems != null) foreach (RfidDef item in e.NewItems) item.PropertyChanged += RfidDef_PropertyChanged;
+                    if (e.OldItems != null) foreach (RfidDef item in e.OldItems) item.PropertyChanged -= RfidDef_PropertyChanged;
+                    SaveRfids();
+                }; 
+            } 
+            catch { } 
+        }
+
+        private static void RfidDef_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(RfidDef.ModelFileName)) SaveRfids();
+        }
+
         public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, System.Text.Json.JsonSerializer.Serialize(KnownRfids, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
 
         private static void InitializeStations()
         {
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Auto, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Auto, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
             Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 3", Description = "Boş İstasyon", Mode = StationMode.Manual, StatusTag = "ST3_STATUS", AlarmTag = "ST3_ALARM", ProducingTag = "ST3_PRODUCING", ProductionCountTag = "ST3_PROD_COUNT", EfficiencyTag = "ST3_EFFICIENCY", CurrentRfidTag = "ST3_RFID_ACT", AllowedRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
         }
         public static void SaveStationStates() { try { var states = Stations.Select(s => { var ext = s as ExtendedStationViewModel; return new { Name = s.Name, Mode = (int)s.Mode, RfidOpMode = ext != null ? (int)ext.RfidOpMode : 0, TargetRfid = ext != null ? ext.TargetRfid : "" }; }).ToList(); File.WriteAllText(_stationStateFilePath, System.Text.Json.JsonSerializer.Serialize(states, new JsonSerializerOptions { WriteIndented = true })); } catch { } }

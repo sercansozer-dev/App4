@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station 2 Model Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: transparent;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00A4EF;
+            font-size: 12px;
+            display: none;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #3498db;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 8px;
+            display: none;
+            z-index: 200;
+        }
+
+        #error {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 400px;
+            display: none;
+            border-left: 4px solid #dc3545;
+            z-index: 200;
+            word-wrap: break-word;
+        }
+
+        #debug {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #888;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 10px;
+            z-index: 100;
+            max-width: 300px;
+            display: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+    <div id="info">Station 2 Viewer</div>
+    <div id="loading">? Yükleniyor...</div>
+    <div id="error"></div>
+    <div id="debug"></div>
+
+    <script>
+        let scene, camera, renderer, controls, currentModel;
+        const errorEl = document.getElementById('error');
+        const loadingEl = document.getElementById('loading');
+        const debugEl = document.getElementById('debug');
+        let THREE_READY = false;
+
+        function log(msg) {
+            console.log(`[Station2] ${msg}`);
+            debugEl.textContent = msg;
+            debugEl.style.display = 'block';
+        }
+
+        function updateError(message) {
+            errorEl.textContent = `? ${message}`;
+            errorEl.style.display = 'block';
+            console.error(`[Station2 ERROR] ${message}`);
+        }
+
+        function clearError() { 
+            errorEl.style.display = 'none'; 
+        }
+
+        function showLoading(show = true) { 
+            loadingEl.style.display = show ? 'block' : 'none'; 
+        }
+
+        // Wait for THREE.js and related libraries
+        function waitForTHREE(callback, attempt = 0) {
+            if (typeof THREE !== 'undefined' && 
+                typeof THREE.OrbitControls !== 'undefined' && 
+                typeof THREE.GLTFLoader !== 'undefined') {
+                THREE_READY = true;
+                log('THREE.js ready');
+                callback();
+            } else if (attempt < 50) {
+                setTimeout(() => waitForTHREE(callback, attempt + 1), 100);
+            } else {
+                updateError('THREE.js libraries failed to load. Check CDN access.');
+            }
+        }
+
+        function init() {
+            try {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x000000);
+                
+                // Isometric view camera setup
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                const distance = 150;
+                
+                // Isometric angle: 45 degrees around Y, 30-35 degrees from horizontal
+                camera = new THREE.OrthographicCamera(
+                    -width / 2, width / 2,
+                    height / 2, -height / 2,
+                    0.1, 10000
+                );
+                
+                // Isometric position
+                camera.position.set(distance * 0.866, distance * 0.866, distance * 0.866);
+                camera.lookAt(0, 0, 0);
+
+                renderer = new THREE.WebGLRenderer({ 
+                    antialias: true, 
+                    alpha: true,
+                    powerPreference: 'high-performance'
+                });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.outputColorSpace = THREE.SRGBColorSpace;
+                document.body.appendChild(renderer.domElement);
+
+                // OrbitControls setup
+                if (typeof THREE.OrbitControls !== 'undefined') {
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = false;
+                    controls.autoRotate = false;
+                    controls.enableRotate = false;  // Disable all rotation
+                    controls.enableZoom = true;     // Allow zoom only
+                    controls.enablePan = false;     // Disable pan
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                }
+
+                // Lighting for isometric view
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(distance * 0.866, distance * 1.5, distance * 0.866);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+
+                const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                backLight.position.set(-distance * 0.866, -distance * 0.5, -distance * 0.866);
+                scene.add(backLight);
+
+                // Ground plane reference
+                const groundGeometry = new THREE.PlaneGeometry(500, 500);
+                const groundMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x333333,
+                    emissive: 0x1a1a1a
+                });
+                const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+                groundPlane.rotation.x = -Math.PI / 2;
+                groundPlane.position.y = -0.1;
+                groundPlane.receiveShadow = true;
+                scene.add(groundPlane);
+
+                // Handle window resize
+                window.addEventListener('resize', onWindowResize);
+
+                log('Three.js Scene Initialized (Isometric)');
+                animate();
+            } catch (e) {
+                updateError("Init Error: " + e.message);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function loadModel(urlPath) {
+            if (!urlPath || urlPath.trim() === '') {
+                clearError();
+                log('No model specified');
+                return;
+            }
+
+            log(`Loading: ${urlPath}`);
+            showLoading(true);
+            clearError();
+
+            // Remove previous model
+            if (currentModel) { 
+                scene.remove(currentModel); 
+                currentModel = null; 
+            }
+
+            // For file:// URLs, we can use them directly
+            let url = urlPath;
+            if (!url.startsWith('file://') && !url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'file:///' + urlPath.split('/').map(p => encodeURIComponent(p)).join('/');
+            }
+
+            log(`URL: ${url}`);
+
+            const loader = new THREE.GLTFLoader();
+            
+            loader.load(
+                url, 
+                (gltf) => {
+                    try {
+                        const model = gltf.scene;
+                        currentModel = model;
+                        scene.add(model);
+                        
+                        // Process materials
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        
+                        // Reset model position first
+                        model.position.set(0, 0, 0);
+                        
+                        // Calculate bounding box
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+                        
+                        // Position model to sit on ground
+                        // Move down so bottom of model is at Y=0
+                        model.position.y = -box.min.y;
+                        // Center horizontally
+                        model.position.x = -center.x;
+                        model.position.z = -center.z;
+                        
+                        showLoading(false);
+                        log('Model loaded - on ground');
+                    } catch (err) {
+                        updateError("Model processing error: " + err.message);
+                        showLoading(false);
+                    }
+                }, 
+                (progress) => {
+                    const percentComplete = Math.round((progress.loaded / progress.total) * 100);
+                    log(`Loading... ${percentComplete}%`);
+                }, 
+                (err) => {
+                    updateError("Model load failed: " + (err.message || JSON.stringify(err)));
+                    showLoading(false);
+                    log('Load error - check browser console');
+                }
+            );
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) {
+                controls.update();
+            }
+            renderer.render(scene, camera);
+        }
+
+        // Ensure THREE.js is loaded before initializing
+        waitForTHREE(() => {
+            init();
+            window.loadModel = loadModel;
+            log('Ready for models');
+        });
+    </script>
+</body>
+</html>

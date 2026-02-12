@@ -12,10 +12,22 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Content Remove="Assets\1_StationProductViewer.html" />
+    <Content Remove="Assets\2_StationProductViewer.html" />
+    <Content Remove="Assets\3_StationProductViewer.html" />
+    <Content Remove="Assets\ThreeJS_Viewer.html" />
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="Assets\PointCloud3DViewer.html" />
     <None Remove="Auto_Page.xaml" />
     <None Remove="Camera_Page.xaml" />
     <None Remove="Manuel_Page.xaml" />
+    <None Remove="Models\ARXM71A5V1B.glb" />
+    <None Remove="Models\cad04379-sf2-zeta-odu-all-top-assy.glb" />
+    <None Remove="Models\cad04778-stylish-bml-h-outdoor-top.glb" />
+    <None Remove="Models\cad04811-mini-skyair-bml-h-outdoor-top.glb" />
+    <None Remove="Models\cad05046-sensira50-all-assy-piping.glb" />
+    <None Remove="Models\RXM71A5V1B.glb" />
     <None Remove="PAGES\Klima_Editor_Page.xaml" />
     <None Remove="PAGES\PLC_Page.xaml" />
     <None Remove="PAGES\Recipes_Page.xaml" />
@@ -61,9 +73,6 @@
 
   <ItemGroup>
     <Content Update="Assets\PointCloud3DViewer.html">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Update="Assets\ThreeJS_Viewer.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -114,7 +123,24 @@
 		<Content Include="Assets\PointCloud3DViewer.html">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="Assets\ThreeJS_Viewer.html" />
+		<Content Include="Models\ARXM71A5V1B.glb">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Models\cad04379-sf2-zeta-odu-all-top-assy.glb">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Models\cad04778-stylish-bml-h-outdoor-top.glb">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Models\cad04811-mini-skyair-bml-h-outdoor-top.glb">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Models\cad05046-sensira50-all-assy-piping.glb">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Models\RXM71A5V1B.glb">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 	
 	<ItemGroup>

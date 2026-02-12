@@ -61,29 +61,41 @@ namespace App4.Pages
                 System.Diagnostics.Debug.WriteLine(">>> [RECIPES] WebView2 Hazýrlanýyor...");
 
                 string userDataFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_WebView2_Cache");
-                var env = await CoreWebView2Environment.CreateWithOptionsAsync(null, userDataFolder, null);
+                
+                // Allow cross-origin (localui -> localmodels)
+                var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = "--disable-web-security --disable-features=IsolateOrigins,site-per-process" };
+                var env = await CoreWebView2Environment.CreateWithOptionsAsync(null, userDataFolder, options);
+                
                 await PreviewWebView.EnsureCoreWebView2Async(env);
 
-                // A. ASSETS KLASÖRÜ (Viewer.html için)
-                string assetsPath;
-                try { assetsPath = Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, "Assets"); }
-                catch { assetsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets"); }
-                
-                PreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                    "appassets", assetsPath, CoreWebView2HostResourceAccessKind.Allow);
+                // A. HTML Klasörü (Temp)
+                string htmlFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_HTML");
+                if (!Directory.Exists(htmlFolder)) Directory.CreateDirectory(htmlFolder);
 
-                // B. MODELLER KLASÖRÜ (.glb dosyalarý için)
+                // B. Modeller Klasörü (App BaseDir)
                 string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
                 if (!Directory.Exists(modelsFolder)) Directory.CreateDirectory(modelsFolder);
 
-                PreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                    "localmodels", modelsFolder, CoreWebView2HostResourceAccessKind.Allow);
+                // HTML Dosyasýný Oluþtur (Temp içine)
+                await CreateRecipeViewerHtml(htmlFolder, "Recipe_Viewer.html", "Recipe 3D Preview");
+
+                // Mappings
+                try
+                {
+                    PreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping("localui", htmlFolder, CoreWebView2HostResourceAccessKind.Allow);
+                    PreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping("localmodels", modelsFolder, CoreWebView2HostResourceAccessKind.Allow);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Virtual host mapping error: {ex.Message}");
+                }
 
                 PreviewWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 PreviewWebView.NavigationCompleted += PreviewWebView_NavigationCompleted;
 
-                // HTML'i yükle (Assets içinden)
-                PreviewWebView.Source = new Uri("https://appassets/ThreeJS_Viewer.html");
+                // Load HTML using file:// protocol
+                string recipeHtmlPath = Path.Combine(htmlFolder, "Recipe_Viewer.html");
+                PreviewWebView.Source = new Uri($"file:///{recipeHtmlPath.Replace("\\", "/")}");
 
                 await RefreshLibraryList();
             }
@@ -93,32 +105,324 @@ namespace App4.Pages
             }
         }
 
+        private async Task CreateRecipeViewerHtml(string folder, string fileName, string title)
+        {
+            try
+            {
+                // Dark theme viewer with GLTFLoader
+                string htmlContent = $@"<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>{title}</title>
+    <style> 
+        body {{ margin: 0; overflow: hidden; background: #1e1e1e; color: white; font-family: sans-serif; }} 
+        canvas {{ display: block; width: 100vw; height: 100vh; outline: none; }} 
+        #loading {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #3498db; font-size: 20px; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 8px; display: none; z-index: 100; }}
+        #error {{ position: absolute; bottom: 20px; left: 20px; background: rgba(220, 53, 69, 0.9); color: white; padding: 10px; border-radius: 4px; font-size: 12px; display: none; z-index: 100; }}
+        #info {{ position: absolute; top: 10px; left: 10px; font-size: 10px; color: #888; pointer-events: none; }}
+        #debug {{ position: absolute; top: 10px; right: 10px; font-size: 10px; color: #666; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; }}
+    </style>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'></script>
+</head>
+<body>
+    <div id='info'>Recipe Viewer</div>
+    <div id='debug'></div>
+    <div id='loading'>Yükleniyor...</div>
+    <div id='error'></div>
+    <script>
+        let scene, camera, renderer, controls, currentModel;
+        let THREE_LOADED = false;
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const debugEl = document.getElementById('debug');
+
+        function log(msg) {{
+            console.log('[RecipeViewer] ' + msg);
+            debugEl.textContent = msg;
+        }}
+
+        function showError(msg) {{ 
+            errorEl.textContent = '? ' + msg; 
+            errorEl.style.display = 'block'; 
+            console.error('[RecipeViewer] ' + msg);
+        }}
+        
+        function showLoading(v) {{ loadingEl.style.display = v ? 'block' : 'none'; }}
+
+        // Wait for THREE.js to load
+        function waitForTHREE(callback, attempt = 0) {{
+            if (typeof THREE !== 'undefined' && 
+                typeof THREE.OrbitControls !== 'undefined' && 
+                typeof THREE.GLTFLoader !== 'undefined') {{
+                THREE_LOADED = true;
+                log('THREE.js loaded');
+                callback();
+            }} else if (attempt < 100) {{
+                setTimeout(() => waitForTHREE(callback, attempt + 1), 100);
+            }} else {{
+                showError('THREE.js kütüphaneleri yüklenemedi');
+            }}
+        }}
+
+        function init() {{
+            try {{
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x1e1e1e);
+                
+                // Isometric view camera setup
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                const distance = 150;
+                const aspect = width / height;
+                
+                // Orthographic camera for isometric view - properly scaled
+                const frustumSize = 200;
+                camera = new THREE.OrthographicCamera(
+                    -frustumSize * aspect / 2,
+                    frustumSize * aspect / 2,
+                    frustumSize / 2,
+                    -frustumSize / 2,
+                    0.1,
+                    10000
+                );
+                
+                // Isometric position
+                camera.position.set(distance * 0.866, distance * 0.866, distance * 0.866);
+                camera.lookAt(0, 0, 0);
+                
+                renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.body.appendChild(renderer.domElement);
+                
+                if (typeof THREE.OrbitControls !== 'undefined') {{
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = false;
+                    controls.autoRotate = false;
+                    controls.enableRotate = false;  // Disable all rotation
+                    controls.enableZoom = true;     // Allow zoom only
+                    controls.enablePan = false;     // Disable pan
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                }}
+                
+                const ambi = new THREE.AmbientLight(0xffffff, 0.7); 
+                scene.add(ambi);
+                const dir = new THREE.DirectionalLight(0xffffff, 0.8); 
+                dir.position.set(distance * 0.866, distance * 1.5, distance * 0.866); 
+                scene.add(dir);
+                const dir2 = new THREE.DirectionalLight(0xffffff, 0.5); 
+                dir2.position.set(-distance * 0.866, -distance * 0.5, -distance * 0.866); 
+                scene.add(dir2);
+
+                // Ground plane reference
+                const groundGeometry = new THREE.PlaneGeometry(500, 500);
+                const groundMaterial = new THREE.MeshStandardMaterial({{ 
+                    color: 0x333333,
+                    emissive: 0x1a1a1a
+                }});
+                const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+                groundPlane.rotation.x = -Math.PI / 2;
+                groundPlane.position.y = -0.1;
+                groundPlane.receiveShadow = true;
+                scene.add(groundPlane);
+                
+                window.addEventListener('resize', () => {{
+                    const newWidth = window.innerWidth;
+                    const newHeight = window.innerHeight;
+                    const newAspect = newWidth / newHeight;
+                    const frustumSize = 200;
+                    
+                    camera.left = -frustumSize * newAspect / 2;
+                    camera.right = frustumSize * newAspect / 2;
+                    camera.top = frustumSize / 2;
+                    camera.bottom = -frustumSize / 2;
+                    camera.updateProjectionMatrix();
+                    
+                    renderer.setSize(newWidth, newHeight);
+                }});
+                
+                log('Scene initialized (Isometric)');
+                animate();
+            }} catch(e) {{ 
+                showError('Init Error: ' + e.message); 
+            }}
+        }}
+        
+        function loadModel(url) {{
+            if(!url) {{
+                log('No URL provided');
+                return;
+            }}
+            
+            log('Loading: ' + url);
+            showLoading(true);
+            errorEl.style.display = 'none';
+            
+            if(currentModel) {{ 
+                scene.remove(currentModel); 
+                currentModel = null; 
+            }}
+            
+            const loader = new THREE.GLTFLoader();
+            loader.load(url, (gltf) => {{
+                try {{
+                    const model = gltf.scene;
+                    currentModel = model;
+                    scene.add(model);
+                    
+                    // Process materials
+                    model.traverse((child) => {{
+                        if (child.isMesh) {{
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }}
+                    }});
+                    
+                    // Reset model position first
+                    model.position.set(0, 0, 0);
+                    
+                    // Calculate bounding box
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    // Position model to sit on ground
+                    // Move down so bottom of model is at Y=0
+                    model.position.y = -box.min.y;
+                    // Center horizontally
+                    model.position.x = -center.x;
+                    model.position.z = -center.z;
+                    
+                    if(controls) {{ controls.target.set(0, 0, 0); controls.update(); }}
+                    showLoading(false);
+                    log('Model loaded - on ground');
+                }} catch(err) {{
+                    showError('Processing: ' + err.message);
+                    showLoading(false);
+                }}
+            }}, (progress) => {{
+                const pct = Math.round((progress.loaded / progress.total) * 100);
+                log('Loading... ' + pct + '%');
+            }}, (err) => {{
+                showError('Load Error: ' + err.message);
+                showLoading(false);
+            }});
+        }}
+                    log('Model loaded');
+                }} catch(err) {{
+                    showError('Processing: ' + err.message);
+                    showLoading(false);
+                }}
+            }}, (progress) => {{
+                const pct = Math.round((progress.loaded / progress.total) * 100);
+                log('Loading... ' + pct + '%');
+            }}, (err) => {{
+                showError('Load Error: ' + err.message);
+                showLoading(false);
+            }});
+        }}
+
+        function animate() {{ 
+            requestAnimationFrame(animate); 
+            if(controls) controls.update(); 
+            renderer.render(scene, camera); 
+        }}
+        
+        // Start initialization
+        waitForTHREE(() => {{
+            init();
+            window.loadModel = loadModel;
+            log('Ready');
+        }});
+    </script>
+</body>
+</html>";
+                string path = Path.Combine(folder, fileName);
+                await File.WriteAllTextAsync(path, htmlContent);
+                System.Diagnostics.Debug.WriteLine($">>> [RECIPES] HTML created: {path}");
+            }
+            catch (Exception ex)
+            {
+                 System.Diagnostics.Debug.WriteLine($"HTML Create Error: {ex.Message}");
+            }
+        }
+
         // --- HTML YÜKLENDIKÇE MODELI ÇAÐIR ---
         private async void PreviewWebView_NavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
         {
             if (args.IsSuccess && SelectedRecipe != null && !string.IsNullOrEmpty(SelectedRecipe.StepFilePath))
             {
-                string temizAd = Path.GetFileName(SelectedRecipe.StepFilePath);
-                await Update3DPreview(temizAd);
+                // Use full relative path instead of stripping directory
+                string relativePath = SelectedRecipe.StepFilePath.Replace("\\", "/");
+                await Update3DPreview(relativePath);
             }
         }
 
         // --- MODELI GÜNCELLE ---
         private async Task Update3DPreview(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName)) return;
+            if (string.IsNullOrEmpty(fileName)) 
+            {
+                System.Diagnostics.Debug.WriteLine(">>> [3D PREVIEW] No filename provided");
+                return;
+            }
+            
             try
             {
-                // WebView hazýr mý emin ol
-                if (PreviewWebView.CoreWebView2 == null) return;
+                if (PreviewWebView.CoreWebView2 == null) 
+                {
+                    System.Diagnostics.Debug.WriteLine(">>> [3D PREVIEW] WebView not ready");
+                    return;
+                }
+                
+                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                string fullPath = Path.Combine(modelsRoot, fileName.Replace("\\", "/"));
+                
+                System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Trying: {fullPath}");
+                
+                // Try exact path first
+                if (!File.Exists(fullPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Exact path not found, searching...");
+                    // Search for file in Models folder
+                    var foundFile = Directory.GetFiles(modelsRoot, Path.GetFileName(fileName), SearchOption.AllDirectories).FirstOrDefault();
+                    if (foundFile != null)
+                    {
+                        fullPath = foundFile;
+                        System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Found: {fullPath}");
+                    }
+                }
 
-                string url = $"https://localmodels/{fileName}";
-                System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Model Yükleniyor: {url}");
-
-                await PreviewWebView.ExecuteScriptAsync($"if(window.loadModel) {{ window.loadModel('{url}'); }}");
-                TxtPreviewName.Text = fileName;
+                if (File.Exists(fullPath))
+                {
+                    // Use file:// URL for direct file access
+                    string fileUri = new Uri(fullPath).AbsoluteUri;
+                    string escapedUri = fileUri.Replace("'", "\\'");
+                    string jsCode = $@"if(window.loadModel) {{ 
+                        console.log('Calling loadModel with: {escapedUri}');
+                        window.loadModel('{escapedUri}'); 
+                    }} else {{ 
+                        console.error('loadModel function not ready'); 
+                    }}";
+                    
+                    System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Loading: {fileUri}");
+                    await PreviewWebView.ExecuteScriptAsync(jsCode);
+                    TxtPreviewName.Text = fileName;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] File not found: {fullPath}");
+                }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("3D Yükleme Hatasý: " + ex.Message); }
+            catch (Exception ex) 
+            { 
+                System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Error: {ex.Message}\n{ex.StackTrace}"); 
+            }
         }
 
         // --- DÝÐER FONKSIYONLAR (Ayný Kalýyor) ---
@@ -174,8 +478,9 @@ namespace App4.Pages
 
                 if (!string.IsNullOrEmpty(recipe.StepFilePath))
                 {
-                    string temizAd = Path.GetFileName(recipe.StepFilePath);
-                    _ = Update3DPreview(temizAd);
+                    // Use the stored path directly (relative path)
+                    string relativePath = recipe.StepFilePath.Replace("\\", "/");
+                    _ = Update3DPreview(relativePath);
                 }
             }
         }
@@ -206,17 +511,20 @@ namespace App4.Pages
             LibraryModelList.ItemsSource = GlobalSettings.AppState.ModelLibrary;
         }
 
-        private void LibraryModelList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void LibraryModelList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (LibraryModelList.SelectedItem is ModelLibraryItem selectedModel)
             {
-                string sadeceDosyaAdi = Path.GetFileName(selectedModel.FilePath);
-                TxtStepPath.Text = sadeceDosyaAdi;
+                // Get relative path from Utilities/Models to the selected file
+                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                string relativePath = Path.GetRelativePath(modelsRoot, selectedModel.FilePath).Replace("\\", "/");
+                
+                TxtStepPath.Text = relativePath;
 
                 if (SelectedRecipe != null)
-                    SelectedRecipe.StepFilePath = sadeceDosyaAdi;
+                    SelectedRecipe.StepFilePath = relativePath;
 
-                _ = Update3DPreview(sadeceDosyaAdi);
+                _ = Update3DPreview(relativePath);
             }
         }
 

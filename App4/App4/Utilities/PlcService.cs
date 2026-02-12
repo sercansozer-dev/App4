@@ -440,10 +440,10 @@ namespace App4.Utilities
         // Varsayılanlar (Eğer dosya yoksa bunlar gelir)
         private void LoadDefaultVariables()
         {
-            InputVariables.Add(new PlcVariable { Name = "D0 - Okunan Değer", Type = "WORD", Direction = "Input", CurrentValue = 0 });
-            InputVariables.Add(new PlcVariable { Name = "W600 - Link Reg", Type = "WORD", Direction = "Input", CurrentValue = 0 }); // Senin W600
+            InputVariables.Add(new PlcVariable { Name = "D0 - Okunan Değer", Type = "WORD", Direction = "Input", CurrentValue = null });
+            InputVariables.Add(new PlcVariable { Name = "W600 - Link Reg", Type = "WORD", Direction = "Input", CurrentValue = null }); // Senin W600
 
-            OutputVariables.Add(new PlcVariable { Name = "D0 - Yazılan Değer", Type = "WORD", Direction = "Output", CurrentValue = 0 });
+            OutputVariables.Add(new PlcVariable { Name = "D0 - Yazılan Değer", Type = "WORD", Direction = "Output", CurrentValue = null });
         }
 
         public async Task RunOnUiAsync(Action action)

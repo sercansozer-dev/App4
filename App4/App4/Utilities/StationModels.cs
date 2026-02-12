@@ -40,6 +40,20 @@ namespace App4.Utilities
         public string Id { get; set; }
         public string Description { get; set; }
 
+        private string _modelFileName;
+        public string ModelFileName 
+        { 
+            get => _modelFileName; 
+            set 
+            { 
+                if (_modelFileName != value)
+                {
+                    _modelFileName = value; 
+                    OnPropertyChanged(); 
+                }
+            } 
+        }
+
         // YENİ EKLENEN ALAN: Bu model için hangi Job dosyası yüklenecek?
         private ObservableCollection<string> _jobSequence = new();
         public ObservableCollection<string> JobSequence
@@ -144,25 +158,25 @@ namespace App4.Utilities
         public string CurrentRfidTag { get; set; }
 
         private string _allowedRfid;
-        public string AllowedRfid { get => _allowedRfid; set { _allowedRfid = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public string AllowedRfid { get => _allowedRfid; set { if (_allowedRfid != value) { _allowedRfid = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private string _currentRfid;
-        public string CurrentRfid { get => _currentRfid; set { _currentRfid = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public string CurrentRfid { get => _currentRfid; set { if (_currentRfid != value) { _currentRfid = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private StationMode _mode;
-        public StationMode Mode { get => _mode; set { _mode = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public StationMode Mode { get => _mode; set { if (_mode != value) { _mode = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private bool _isProducing;
-        public bool IsProducing { get => _isProducing; set { _isProducing = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public bool IsProducing { get => _isProducing; set { if (_isProducing != value) { _isProducing = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private bool _hasAlarm;
-        public bool HasAlarm { get => _hasAlarm; set { _hasAlarm = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public bool HasAlarm { get => _hasAlarm; set { if (_hasAlarm != value) { _hasAlarm = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private bool _isRobotPresent;
-        public bool IsRobotPresent { get => _isRobotPresent; set { _isRobotPresent = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public bool IsRobotPresent { get => _isRobotPresent; set { if (_isRobotPresent != value) { _isRobotPresent = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private string _processStatus;
-        public string ProcessStatus { get => _processStatus; set { _processStatus = value; OnPropertyChanged(); UpdateVisuals(); } }
+        public string ProcessStatus { get => _processStatus; set { if (_processStatus != value) { _processStatus = value; OnPropertyChanged(); UpdateVisuals(); } } }
 
         private string _productionCount = "0";
         public string ProductionCount { get => _productionCount; set { _productionCount = value; OnPropertyChanged(); } }
@@ -180,7 +194,15 @@ namespace App4.Utilities
         public Visibility AlarmVisibility => HasAlarm ? Visibility.Visible : Visibility.Collapsed;
         public Visibility RobotVisibility => IsRobotPresent ? Visibility.Visible : Visibility.Collapsed;
         public float RobotOpacity => IsRobotPresent ? 1.0f : 0.0f;
-        public bool IsRfidMatch => !string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid.Trim() == CurrentRfid.Trim();
+        
+        private bool _ignoreRfidMatch = false;
+        public bool IgnoreRfidMatch
+        {
+            get => _ignoreRfidMatch;
+            set { _ignoreRfidMatch = value; UpdateVisuals(); }
+        }
+
+        public bool IsRfidMatch => IgnoreRfidMatch || (!string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid.Trim() == CurrentRfid.Trim());
         public string RfidMatchIcon => IsRfidMatch ? "\uE73E" : "\uE711";
         public SolidColorBrush RfidMatchColor => IsRfidMatch ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) : new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
         public string BypassButtonText => Mode == StationMode.Bypass ? "ETKİNLEŞTİR" : "BYPASS ET";
@@ -198,7 +220,7 @@ namespace App4.Utilities
 
         // StationModels.cs dosyasındaki StationViewModel sınıfının içindeki UpdateVisuals metodunu bununla değiştirin:
 
-        private void UpdateVisuals()
+        protected virtual void UpdateVisuals()
         {
             // 1. MOD RENGİ (OTOMATİK/MANUEL/BYPASS)
             switch (Mode)
@@ -302,14 +324,31 @@ namespace App4.Utilities
         public RfidOperationMode RfidOpMode
         {
             get => _rfidOpMode;
-            set { _rfidOpMode = value; OnPropertyChanged(nameof(RfidOpMode)); OnPropertyChanged(nameof(IsSpecificRfidVisible)); }
+            set 
+            { 
+                if (_rfidOpMode != value)
+                {
+                    _rfidOpMode = value; 
+                    IgnoreRfidMatch = (_rfidOpMode == RfidOperationMode.Mixed);
+                    OnPropertyChanged(nameof(RfidOpMode)); 
+                    OnPropertyChanged(nameof(IsSpecificRfidVisible)); 
+                }
+            }
         }
 
         private string _targetRfid;
         public string TargetRfid
         {
             get => _targetRfid;
-            set { _targetRfid = value; OnPropertyChanged(nameof(TargetRfid)); AllowedRfid = value; }
+            set 
+            { 
+                if (_targetRfid != value)
+                {
+                    _targetRfid = value; 
+                    OnPropertyChanged(nameof(TargetRfid)); 
+                    AllowedRfid = value; 
+                }
+            }
         }
 
         public Visibility IsSpecificRfidVisible => RfidOpMode == RfidOperationMode.Specific ? Visibility.Visible : Visibility.Collapsed;

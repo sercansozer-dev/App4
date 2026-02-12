@@ -3,12 +3,14 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO; // File check için gerekebilir ama load/save Global'de
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace App4
 {
@@ -32,16 +34,57 @@ namespace App4
         public ObservableCollection<App4.Utilities.LogEntry> SystemLogs { get; set; } = new();
         public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
+        public ObservableCollection<string> AvailableModels { get; set; } = new();
 
         public Auto_Page()
         {
             this.InitializeComponent();
+            this.DataContext = this;
 
-            // Tag listelerini doldur
+            // Tag listelerini ve modelleri doldur
             InitializeAvailablePlcTags();
+            InitializeAvailableModels();
 
             // Olayları dinlemeye başla (Sayfa her açıldığında tekrar bağlanır)
             this.Loaded += Page_Loaded;
+            this.Unloaded += Page_Unloaded;
+        }
+
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            foreach (var s in Stations)
+            {
+                s.PropertyChanged -= Station_PropertyChanged;
+            }
+            
+            foreach (var rfid in KnownRfids)
+            {
+                rfid.PropertyChanged -= Rfid_PropertyChanged;
+            }
+            KnownRfids.CollectionChanged -= KnownRfids_CollectionChanged;
+        }
+
+        private async void InitializeAvailableModels()
+        {
+            try
+            {
+                await App4.Utilities.RecipeManager.RefreshModelLibraryAsync();
+                AvailableModels.Clear();
+                
+                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+
+                if (App4.Utilities.GlobalSettings.AppState.ModelLibrary != null)
+                {
+                    foreach (var item in App4.Utilities.GlobalSettings.AppState.ModelLibrary)
+                    {
+                        // Use relative path so localmodels mapping works for subfolders
+                        // e.g. "Sub/Model.glb" -> https://localmodels/Sub/Model.glb
+                        string relativePath = Path.GetRelativePath(modelsRoot, item.FilePath).Replace("\\", "/");
+                        AvailableModels.Add(relativePath);
+                    }
+                }
+            }
+            catch { }
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -97,9 +140,365 @@ namespace App4
 
             // 3. Hat Durum Işıklarını Yak
             UpdateLineStatusVisuals();
+
+             // 4. Viewerları Başlat
+            _ = InitializeStationViewers();
+
+            // 5. RFID Model Değişikliklerini Dinle
+            foreach (var rfid in KnownRfids)
+            {
+                rfid.PropertyChanged -= Rfid_PropertyChanged;
+                rfid.PropertyChanged += Rfid_PropertyChanged;
+            }
+            KnownRfids.CollectionChanged -= KnownRfids_CollectionChanged;
+            KnownRfids.CollectionChanged += KnownRfids_CollectionChanged;
+        }
+
+        private void KnownRfids_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null) foreach (App4.Utilities.RfidDef item in e.NewItems) item.PropertyChanged += Rfid_PropertyChanged;
+            if (e.OldItems != null) foreach (App4.Utilities.RfidDef item in e.OldItems) item.PropertyChanged -= Rfid_PropertyChanged;
+        }
+
+        private void Rfid_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(App4.Utilities.RfidDef.ModelFileName))
+            {
+                if (sender is App4.Utilities.RfidDef rfid)
+                {
+                    this.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        foreach (var s in Stations)
+                        {
+                            if (s is ExtendedStationViewModel ext && ext.TargetRfid == rfid.Id)
+                            {
+                                UpdateStationModel(ext);
+                            }
+                        }
+                    });
+                }
+            }
         }
 
 
+
+
+        private async Task InitializeStationViewers()
+        {
+            try
+            {
+                string userDataFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_WebView2_Cache");
+                
+                // Allow cross-origin requests (localui -> localmodels)
+                var options = new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = "--disable-web-security --disable-features=IsolateOrigins,site-per-process" };
+                var env = await CoreWebView2Environment.CreateWithOptionsAsync(null, userDataFolder, options);
+
+                // 1. HTML Klasörü (Temp - Yazılabilir)
+                string htmlFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_HTML");
+                if (!Directory.Exists(htmlFolder)) Directory.CreateDirectory(htmlFolder);
+
+                // 2. Modeller Klasörü (App - Okunabilir)
+                string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                if (!Directory.Exists(modelsFolder)) Directory.CreateDirectory(modelsFolder);
+
+                // HTML Dosyalarını Oluştur
+                await CreateViewerHtml(htmlFolder, "1_StationProductViewer.html", "Station 1 Viewer");
+                await CreateViewerHtml(htmlFolder, "2_StationProductViewer.html", "Station 2 Viewer");
+                await CreateViewerHtml(htmlFolder, "3_StationProductViewer.html", "Station 3 Viewer");
+
+                await InitSingleViewer(Viewer_Station1, "1_StationProductViewer.html", env, htmlFolder, modelsFolder, Stations[0]);
+                await InitSingleViewer(Viewer_Station2, "2_StationProductViewer.html", env, htmlFolder, modelsFolder, Stations[1]);
+                await InitSingleViewer(Viewer_Station3, "3_StationProductViewer.html", env, htmlFolder, modelsFolder, Stations[2]);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Viewer Init Error: {ex.Message}");
+            }
+        }
+
+        private async Task InitSingleViewer(WebView2 wv, string htmlName, CoreWebView2Environment env, string htmlPath, string modelsPath, StationViewModel station)
+        {
+            if (wv == null) return;
+
+            try
+            {
+                await wv.EnsureCoreWebView2Async(env);
+
+                // Map virtual hosts for file access
+                try
+                {
+                    wv.CoreWebView2.SetVirtualHostNameToFolderMapping("localui", htmlPath, CoreWebView2HostResourceAccessKind.Allow);
+                    wv.CoreWebView2.SetVirtualHostNameToFolderMapping("localmodels", modelsPath, CoreWebView2HostResourceAccessKind.Allow);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Virtual host mapping error: {ex.Message}");
+                }
+
+                wv.CoreWebView2.NavigationCompleted += (s, e) =>
+                {
+                    if (station is ExtendedStationViewModel ext) UpdateStationModel(ext);
+                };
+
+                // Load HTML from file using file:// protocol
+                string htmlFilePath = Path.Combine(htmlPath, htmlName);
+                if (File.Exists(htmlFilePath))
+                {
+                    // Use file:// for local files
+                    wv.Source = new Uri($"file:///{htmlFilePath.Replace("\\", "/")}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"HTML file not found: {htmlFilePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"InitSingleViewer Error: {ex.Message}");
+            }
+        }
+
+        private async Task<bool> CreateViewerHtml(string folder, string fileName, string title)
+        {
+            try
+            {
+                string htmlContent = $@"<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>{title}</title>
+    <style> 
+        body {{ margin: 0; overflow: hidden; background: transparent; font-family: sans-serif; }} 
+        canvas {{ display: block; width: 100vw; height: 100vh; outline: none; }} 
+        #loading {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #3498db; font-size: 20px; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 8px; display: none; z-index: 100; }}
+        #error {{ position: absolute; bottom: 20px; left: 20px; background: rgba(220, 53, 69, 0.9); color: white; padding: 10px; border-radius: 4px; font-size: 12px; display: none; z-index: 100; }}
+        #debug {{ position: absolute; top: 10px; left: 10px; font-size: 10px; color: #666; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; max-width: 300px; word-break: break-word; }}
+    </style>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'></script>
+</head>
+<body>
+    <div id='debug'></div>
+    <div id='loading'>Yükleniyor...</div>
+    <div id='error'></div>
+    <script>
+        let scene, camera, renderer, controls, currentModel;
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const debugEl = document.getElementById('debug');
+        let THREE_LOADED = false;
+
+        function log(msg) {{
+            console.log('[Station] ' + msg);
+            debugEl.textContent = msg;
+        }}
+
+        function showError(msg) {{ 
+            errorEl.textContent = msg; 
+            errorEl.style.display = 'block'; 
+            console.error('[Station] ' + msg);
+        }}
+        
+        function showLoading(v) {{ loadingEl.style.display = v ? 'block' : 'none'; }}
+
+        // Wait for THREE.js libraries to load
+        function waitForTHREE(callback, attempt = 0) {{
+            if (typeof THREE !== 'undefined' && 
+                typeof THREE.OrbitControls !== 'undefined' && 
+                typeof THREE.GLTFLoader !== 'undefined') {{
+                THREE_LOADED = true;
+                log('THREE.js ready');
+                callback();
+            }} else if (attempt < 100) {{
+                setTimeout(() => waitForTHREE(callback, attempt + 1), 100);
+            }} else {{
+                showError('THREE.js kütüphaneleri yüklenemedi');
+            }}
+        }}
+
+        function init() {{
+            try {{
+                scene = new THREE.Scene();
+                scene.background = null;
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+                camera.position.set(50, 50, 50);
+                renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.body.appendChild(renderer.domElement);
+                
+                if (typeof THREE.OrbitControls !== 'undefined') {{
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.autoRotate = true;
+                    controls.autoRotateSpeed = 2.0;
+                }}
+                
+                const ambi = new THREE.AmbientLight(0xffffff, 0.8); 
+                scene.add(ambi);
+                const dir = new THREE.DirectionalLight(0xffffff, 1.0); 
+                dir.position.set(50, 50, 100); 
+                scene.add(dir);
+                
+                window.addEventListener('resize', () => {{
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }});
+                
+                log('Scene initialized');
+                animate();
+            }} catch (e) {{ 
+                showError('Init Error: ' + e.message); 
+            }}
+        }}
+        
+        function loadModel(url) {{
+            if(!url) {{
+                log('No URL provided');
+                return;
+            }}
+            
+            log('Loading: ' + url);
+            showLoading(true);
+            errorEl.style.display = 'none';
+            
+            if(currentModel) {{ 
+                scene.remove(currentModel); 
+                currentModel = null; 
+            }}
+            
+            const loader = new THREE.GLTFLoader();
+            loader.load(url, (gltf) => {{
+                try {{
+                    const model = gltf.scene;
+                    currentModel = model;
+                    scene.add(model);
+                    
+                    const box = new THREE.Box3().setFromObject(model);
+                    const size = box.getSize(new THREE.Vector3());
+                    const center = box.getCenter(new THREE.Vector3());
+                    
+                    model.position.x += (model.position.x - center.x);
+                    model.position.y += (model.position.y - center.y);
+                    model.position.z += (model.position.z - center.z);
+                    
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = camera.fov * (Math.PI / 180);
+                    let cameraDist = maxDim / (2 * Math.tan(fov / 2));
+                    cameraDist *= 1.5; 
+                    camera.position.set(cameraDist, cameraDist*0.5, cameraDist);
+                    camera.lookAt(0, 0, 0);
+                    
+                    if(controls) {{ 
+                        controls.target.set(0, 0, 0); 
+                        controls.update(); 
+                    }}
+                    showLoading(false);
+                    log('Model loaded');
+                }} catch(err) {{
+                    showError('Processing: ' + err.message);
+                    showLoading(false);
+                }}
+            }}, (progress) => {{
+                const pct = Math.round((progress.loaded / progress.total) * 100);
+                log('Loading... ' + pct + '%');
+            }}, (err) => {{
+                showError('Yükleme Hatası: ' + err.message);
+                showLoading(false);
+            }});
+        }}
+
+        function animate() {{ 
+            requestAnimationFrame(animate); 
+            if(controls) controls.update(); 
+            renderer.render(scene, camera); 
+        }}
+        
+        // Wait for THREE.js then initialize
+        waitForTHREE(() => {{
+            init();
+            window.loadModel = loadModel;
+            log('Ready');
+        }});
+    </script>
+</body>
+</html>";
+                string path = Path.Combine(folder, fileName);
+                await File.WriteAllTextAsync(path, htmlContent);
+                System.Diagnostics.Debug.WriteLine($">>> Auto HTML created: {path}");
+                return true;
+            }
+            catch (Exception ex) 
+            {
+                System.Diagnostics.Debug.WriteLine($"HTML Create Error ({fileName}): {ex.Message}");
+                return false;
+            }
+        }
+
+        // Duplicate InitSingleViewer removed
+
+        private async void UpdateStationModel(ExtendedStationViewModel station)
+        {
+            try
+            {
+                int index = Stations.IndexOf(station);
+                WebView2 targetWebView = index switch
+                {
+                    0 => Viewer_Station1,
+                    1 => Viewer_Station2,
+                    2 => Viewer_Station3,
+                    _ => null
+                };
+
+                if (targetWebView?.CoreWebView2 == null) return;
+
+                var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == station.TargetRfid);
+                
+                if (rfidDef != null && !string.IsNullOrEmpty(rfidDef.ModelFileName))
+                {
+                    string modelPath = rfidDef.ModelFileName.Replace("\\", "/");
+                    string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                    string fullPath = Path.Combine(modelsRoot, modelPath);
+                    
+                    // Try exact path first
+                    if (!File.Exists(fullPath))
+                    {
+                        // Search for file in Models folder
+                        var foundFile = Directory.GetFiles(modelsRoot, Path.GetFileName(modelPath), SearchOption.AllDirectories).FirstOrDefault();
+                        if (foundFile != null)
+                        {
+                            modelPath = Path.GetRelativePath(modelsRoot, foundFile).Replace("\\", "/");
+                            fullPath = foundFile;
+                        }
+                    }
+
+                    if (File.Exists(fullPath))
+                    {
+                        // Use file:// URL for direct file access
+                        string fileUri = new Uri(fullPath).AbsoluteUri;
+                        string jsCode = $"if(window.loadModel) {{ window.loadModel('{fileUri.Replace("'", "\\'")}'); }} else {{ console.error('loadModel not ready'); }}";
+                        
+                        System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Loading: {fileUri}");
+                        await targetWebView.ExecuteScriptAsync(jsCode);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Model file not found: {fullPath}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] No model defined - RFID: {station.TargetRfid}");
+                }
+            }
+            catch (Exception ex) 
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateStationModel Error: {ex.Message}");
+            }
+        }
 
 
         // --- İSTASYON DURUMU DEĞİŞİRSE KAYDET ---
@@ -112,6 +511,11 @@ namespace App4
                     e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
                 {
                     GlobalData.SaveStationStates(); // <-- GLOBAL KAYDET
+                    
+                    if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
+                    {
+                        UpdateStationModel(station);
+                    }
                 }
 
                 // PLC'ye Yazma İşlemleri (Eski kodunun aynısı)
