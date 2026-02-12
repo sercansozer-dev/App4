@@ -349,13 +349,18 @@
                     model.position.y += (model.position.y - center.y);
                     model.position.z += (model.position.z - center.z);
                     
-                    // Kamera mesafesi ayarla
+                    // Kamera mesafesi ve açısı ayarla (İkinci resim referans alınarak)
                     const maxDim = Math.max(size.x, size.y, size.z);
                     const fov = camera.fov * (Math.PI / 180);
-                    let cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
-                    cameraZ *= 2.0; // Biraz pay bırak
                     
-                    camera.position.set(cameraZ, cameraZ, cameraZ); // İzometrik gibi
+                    // Objenin tamamını sığdırmak için gerekli mesafe formülü: distance = size / (2 * tan(fov / 2))
+                    let cameraDist = maxDim / (2 * Math.tan(fov / 2));
+                    cameraDist *= 1.4; // %40 boşluk bırakarak sığdır (Daha net görünüm)
+                    
+                    // Konumlandırma: X+, Y-, Z+ (Ön-Sağ-Üst Bakış Açısı)
+                    // Bu açı genellikle endüstriyel makineler için en temiz görüntüyü verir
+                    camera.position.set(cameraDist * 0.8, -cameraDist, cameraDist * 0.6);
+                    
                     camera.lookAt(0, 0, 0);
                     
                     if(controls) {
