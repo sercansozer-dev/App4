@@ -64,27 +64,26 @@ namespace App4.Pages
                 var env = await CoreWebView2Environment.CreateWithOptionsAsync(null, userDataFolder, null);
                 await PreviewWebView.EnsureCoreWebView2Async(env);
 
-                // =================================================================================
-                // DÜZELTME BURADA: Senin masaüstündeki klasör yolunu buraya da ekledik.
-                // =================================================================================
-                string baseFolder = @"C:\Users\Simbiosis\Desktop\Project\App2\App2\App2\Utilities\Models";
+                // A. ASSETS KLASÖRÜ (Viewer.html için)
+                string assetsPath;
+                try { assetsPath = Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path, "Assets"); }
+                catch { assetsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets"); }
+                
+                PreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    "appassets", assetsPath, CoreWebView2HostResourceAccessKind.Allow);
 
-                // Klasör yoksa varsayýlaný kullan (Yedek plan)
-                if (!Directory.Exists(baseFolder))
-                {
-                    baseFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
-                }
+                // B. MODELLER KLASÖRÜ (.glb dosyalarý için)
+                string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                if (!Directory.Exists(modelsFolder)) Directory.CreateDirectory(modelsFolder);
 
                 PreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                    "localproject",
-                    baseFolder,
-                    CoreWebView2HostResourceAccessKind.Allow);
+                    "localmodels", modelsFolder, CoreWebView2HostResourceAccessKind.Allow);
 
                 PreviewWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 PreviewWebView.NavigationCompleted += PreviewWebView_NavigationCompleted;
 
-                // HTML'i yükle
-                PreviewWebView.Source = new Uri("https://localproject/ThreeJS_Viewer.html");
+                // HTML'i yükle (Assets içinden)
+                PreviewWebView.Source = new Uri("https://appassets/ThreeJS_Viewer.html");
 
                 await RefreshLibraryList();
             }
@@ -244,8 +243,8 @@ namespace App4.Pages
             var files = await picker.PickMultipleFilesAsync();
             if (files.Count > 0)
             {
-                // Burasý da senin masaüstü klasörüne kopyalayacak
-                string targetFolder = @"C:\Users\Simbiosis\Desktop\Project\App2\App2\App2\Utilities\Models";
+                // Doðru yol: Uygulama dizini içindeki Utilities/Models
+                string targetFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
                 if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
 
                 foreach (var f in files)
