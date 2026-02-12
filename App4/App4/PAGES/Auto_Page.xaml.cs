@@ -807,7 +807,14 @@ namespace App4
                         string matchVal = station.IsRfidMatch ? "1" : "0";
                         UpdatePlcVar(outputs, $"ST{index + 1}_ID_MATCHED", matchVal);
                         UpdatePlcVar(outputs, $"ST{index + 1}_CONVEYOR_PERM", matchVal);
-                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid)) UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", station.TargetRfid);
+                        
+                        if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid)) 
+                        {
+                            // Target RFID is STRING type, send full value
+                            string rfidVal = station.TargetRfid;
+                            System.Diagnostics.Debug.WriteLine($"[PLC] Sending RFID Target to ST{index + 1}: {rfidVal}");
+                            UpdatePlcVar(outputs, $"ST{index + 1}_RFID_TARGET", rfidVal);
+                        }
                     }
                     else if (e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode)) UpdatePlcVar(outputs, $"ST{index + 1}_RFID_MODE", ((int)station.RfidOpMode).ToString());
                     else if (e.PropertyName == nameof(StationViewModel.Mode)) UpdatePlcVar(outputs, $"ST{index + 1}_MODE_CMD", (station.Mode == StationMode.Auto) ? "1" : "0");
@@ -846,6 +853,7 @@ namespace App4
         {
             if (string.IsNullOrEmpty(localVar.PlcTag)) return;
             var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
+            
             if (sourceRealVar != null)
             {
                 // Okuma
@@ -855,6 +863,19 @@ namespace App4
                 localVar.PropertyChanged += async (s, e) => {
                     if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
                     { sourceRealVar.CurrentValue = localVar.CurrentValue; await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue); }
+                };
+            }
+            else
+            {
+                // Fallback: Doğrudan Adres Yazma (Direct Write)
+                // Eğer PlcTags serviste kayıtlı bir isim değilse (örn: DB10.W20.0 gibi ham adres ise)
+                localVar.PropertyChanged += async (s, e) => {
+                    if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
+                    {
+                        // Geçici değişken ile yazma (Name=Address kuralına göre)
+                        var tempVar = new PlcVariable { Name = localVar.PlcTag, Type = localVar.Type ?? "WORD" };
+                        await PlcService.Instance.WriteAsync(tempVar, localVar.CurrentValue);
+                    }
                 };
             }
         }
