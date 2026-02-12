@@ -732,7 +732,18 @@ namespace App4
 
                 if (targetWebView?.CoreWebView2 == null) return;
 
-                var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == station.TargetRfid);
+                // Determine which RFID to use for model lookup
+                string rfidToLookup = station.TargetRfid; // Default to Target (Specific Mode)
+
+                if (station.RfidOpMode.Equals(RfidOperationMode.Mixed))
+                {
+                    // In Mixed Mode, use the ACTUALLY READ Rfid (CurrentRfid)
+                    rfidToLookup = station.CurrentRfid;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Updating Model. Mode: {station.RfidOpMode}, LookupID: {rfidToLookup}");
+
+                var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidToLookup);
                 
                 if (rfidDef != null && !string.IsNullOrEmpty(rfidDef.ModelFileName))
                 {
@@ -783,16 +794,21 @@ namespace App4
         {
             if (sender is ExtendedStationViewModel station)
             {
+                // Visual / State updates that need saving
                 if (e.PropertyName == nameof(StationViewModel.Mode) ||
                     e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode) ||
                     e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
                 {
                     GlobalData.SaveStationStates(); // <-- GLOBAL KAYDET
-                    
-                    if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid))
-                    {
-                        UpdateStationModel(station);
-                    }
+                }
+
+                // Model Update Triggering:
+                // If TargetRfid changes (Specific Mode) OR CurrentRfid changes (Mixed Mode) OR OpMode changes
+                if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) || 
+                    e.PropertyName == nameof(StationViewModel.CurrentRfid) ||
+                    e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode))
+                {
+                    UpdateStationModel(station);
                 }
 
                 // PLC'ye Yazma İşlemleri (Eski kodunun aynısı)
