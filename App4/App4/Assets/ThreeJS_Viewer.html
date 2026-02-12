@@ -74,10 +74,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- OrbitControls CDN -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- GLTFLoader CDN (Three.js r128 compatible) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
     <div id="info">
-        <div>🎥 3D Point Cloud Viewer</div>
+        <div>🎥 3D Viewer (GLB & Point Cloud)</div>
         <div id="pointCount">Bekleniyor...</div>
     </div>
     <div id="loading">⏳ Veriler işleniyor...</div>
@@ -147,8 +149,16 @@
                 }
 
                 // Işık
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
                 scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                dirLight.position.set(100, 100, 100);
+                scene.add(dirLight);
+
+                const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+                dirLight2.position.set(-100, -100, 50);
+                scene.add(dirLight2);
 
                 // Eksenler
                 const axesHelper = new THREE.AxesHelper(100);
@@ -295,6 +305,87 @@
         // Global fonksiyonlar
         window.initPointCloudViewer = initPointCloudViewer;
         window.loadPointCloud = loadPointCloud;
+        window.loadModel = loadModel; // Dışarıdan erişim için
+
+        function loadModel(url) {
+            try {
+                console.log('🟢 loadModel çağrıldı', url);
+                updateStatus("📦 Model yükleniyor: " + url);
+                clearError();
+                showLoading(true);
+
+                // Temizlik
+                if (window.currentModel) {
+                     scene.remove(window.currentModel);
+                     // Derinlemesine dispose gerekebilir ama şimdilik scene remove yeterli
+                     window.currentModel = null;
+                }
+                if (pointsMesh) {
+                    scene.remove(pointsMesh);
+                    pointsMesh.geometry.dispose();
+                    pointsMesh.material.dispose();
+                    pointsMesh = null;
+                }
+
+                // GLTFLoader kontrolü
+                if (typeof THREE.GLTFLoader === 'undefined') {
+                    throw new Error("GLTFLoader yüklenemedi. İnternet bağlantısını kontrol edin.");
+                }
+
+                const loader = new THREE.GLTFLoader();
+                loader.load(url, function (gltf) {
+                    const model = gltf.scene;
+                    window.currentModel = model;
+
+                    scene.add(model);
+
+                    // Bounding Box ve Kamera Otomatik Ayarı
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    // Modeli orijine taşı
+                    model.position.x += (model.position.x - center.x);
+                    model.position.y += (model.position.y - center.y);
+                    model.position.z += (model.position.z - center.z);
+                    
+                    // Kamera mesafesi ayarla
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = camera.fov * (Math.PI / 180);
+                    let cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
+                    cameraZ *= 2.0; // Biraz pay bırak
+                    
+                    camera.position.set(cameraZ, cameraZ, cameraZ); // İzometrik gibi
+                    camera.lookAt(0, 0, 0);
+                    
+                    if(controls) {
+                        controls.target.set(0,0,0);
+                        controls.update();
+                    }
+
+                    showLoading(false);
+                    updateStatus("✓ Model başarıyla yüklendi");
+                    document.getElementById('pointCount').textContent = `Model: ${url.split('/').pop()}`;
+
+                }, 
+                function (xhr) {
+                    if (xhr.lengthComputable) {
+                        const percent = (xhr.loaded / xhr.total) * 100;
+                        updateStatus(`Yükleniyor: %${percent.toFixed(0)}`);
+                    }
+                },
+                function (error) {
+                    console.error("GLTF Load Error:", error);
+                    updateError("Model yüklenemedi: " + (error.message || "Bilinmeyen Hata"));
+                    showLoading(false);
+                });
+
+            } catch(e) {
+                console.error("loadModel exception:", e);
+                updateError("Hata: " + e.message);
+                showLoading(false);
+            }
+        }
 
         console.log('✓ HTML script yüklendi ve hazır');
     </script>

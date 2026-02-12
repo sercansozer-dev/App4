@@ -112,7 +112,7 @@ namespace App4.Pages
                 // WebView hazýr mý emin ol
                 if (PreviewWebView.CoreWebView2 == null) return;
 
-                string url = $"https://localproject/{fileName}";
+                string url = $"https://localmodels/{fileName}";
                 System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Model Yükleniyor: {url}");
 
                 await PreviewWebView.ExecuteScriptAsync($"if(window.loadModel) {{ window.loadModel('{url}'); }}");
