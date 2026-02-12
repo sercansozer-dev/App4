@@ -243,13 +243,13 @@
 
                 <Grid Width="350" Margin="0,20,0,0">
                     <ProgressBar IsIndeterminate="True" Height="3" Foreground="#00A2FF" Background="#222222"/>
-                    <TextBlock x:Name="SplashStatusText" Text="Sistem başlatılıyor..." FontSize="10" Foreground="Gray" HorizontalAlignment="Right" Margin="0,10,0,0" FontStyle="Italic"/>
+                    <TextBlock x:Name="SplashStatusText" Text="Sistem başlatılıyor..." FontSize="10" Foreground="Gray" HorizontalAlignment="Center" Margin="0,10,0,0" FontStyle="Italic"/>
                 </Grid>
-            </StackPanel>
 
-            <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,40" Opacity="0.4">
-                <TextBlock Text="POWERED BY" FontSize="8" Foreground="Gray" HorizontalAlignment="Center" CharacterSpacing="200"/>
-                <TextBlock Text="GOCATOR • KUKA • WINUI 3" FontSize="10" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                <StackPanel HorizontalAlignment="Center" Opacity="0.4" Spacing="2">
+                    <TextBlock Text="POWERED BY" FontSize="8" Foreground="Gray" HorizontalAlignment="Center" CharacterSpacing="200"/>
+                    <TextBlock Text="GOCATOR • KUKA • WINUI 3" FontSize="10" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Grid>

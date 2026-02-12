@@ -89,16 +89,21 @@ namespace App4
                 AppSplashScreen.Opacity = 1;
                 SplashContent.Opacity = 1;
                 SplashContent.Visibility = Visibility.Visible;
+                
+                // Varsayılan metin rengi (Gri yerine Beyaz - Okunabilirlik için)
+                var normalColor = new SolidColorBrush(Microsoft.UI.Colors.WhiteSmoke);
+                SplashStatusText.Foreground = normalColor;
 
                 // 1. YÜKLEME AŞAMALARI
                 SplashStatusText.Text = "Sistem yapılandırması okunuyor...";
-                await Task.Delay(800);
+                await Task.Delay(1000);
 
                 // --- 2. PLC BAĞLANTISINI GERÇEKLEŞTİR (Burada yapıyoruz) ---
                 SplashStatusText.Text = "PLC Bağlantısı kuruluyor (192.168.251.100)...";
                 SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange); // Dikkat çekmesi için renk değişimi
 
                 // GLOBAL SERVİS ÜZERİNDEN BAĞLAN (Bekleme süresi bağlantı hızına bağlı)
+                await Task.Delay(500); // Kullanıcı mesajı görebilsin
                 bool connected = await PlcService.Instance.ConnectAsync("192.168.251.100", 5007);
 
                 if (connected)
@@ -115,34 +120,32 @@ namespace App4
                 await Task.Delay(1500); // Kullanıcı sonucu okuyabilsin diye bekleme
 
                 // Rengi normale döndür
-                SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray);
+                SplashStatusText.Foreground = normalColor;
 
                 SplashStatusText.Text = "Gocator 3D Sensör bağlantısı kuruluyor...";
                 await Task.Delay(1000);
 
                 SplashStatusText.Text = "KUKA Robot arayüzü başlatılıyor...";
-                await Task.Delay(800);
+                await Task.Delay(1000);
 
                 SplashStatusText.Text = "Arayüz hazırlanıyor...";
-                await Task.Delay(500);
+                await Task.Delay(800);
 
 
                 // 3. LOGOYU VE YAZILARI SİL (Fade Out)
                 for (double i = 1.0; i >= 0; i -= 0.1)
                 {
                     SplashContent.Opacity = i;
-                    await Task.Delay(10);
+                    await Task.Delay(20);
                 }
                 SplashContent.Visibility = Visibility.Collapsed;
 
-                // --- HAYALET GEÇİŞ (Pencere Boyutlandırma) ---
+                // --- HAYALET GEÇİŞ KORUMASI (Pencere Boyutlandırma) ---
                 if (m_AppWindow != null)
                 {
-                    m_AppWindow.Hide();
-                    await Task.Delay(200);
+                    // Titremeyi azaltmak için Hide/Show kaldırıldı, direkt geçiş
                     m_AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
-                    await Task.Delay(500);
-                    m_AppWindow.Show(true);
+                    await Task.Delay(100);
                 }
 
                 // 4. SİYAH PERDEYİ KALDIR (Fade Out)
