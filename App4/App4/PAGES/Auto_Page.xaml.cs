@@ -377,14 +377,27 @@ namespace App4
                     currentModel = model;
                     scene.add(model);
                     
+                    // Process materials for proper rendering
+                    model.traverse((child) => {{
+                        if (child.isMesh) {{
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }}
+                    }});
+                    
+                    // Calculate bounding box
                     const box = new THREE.Box3().setFromObject(model);
-                    const size = box.getSize(new THREE.Vector3());
                     const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
                     
-                    model.position.x += (model.position.x - center.x);
-                    model.position.y += (model.position.y - center.y);
-                    model.position.z += (model.position.z - center.z);
+                    // Position model to sit on ground (ZEMINE OTURTUYOR)
+                    // Move down so bottom of model is at Y=0
+                    model.position.y = -box.min.y;
+                    // Center horizontally
+                    model.position.x = -center.x;
+                    model.position.z = -center.z;
                     
+                    // Auto-rotate camera to view model
                     const maxDim = Math.max(size.x, size.y, size.z);
                     const fov = camera.fov * (Math.PI / 180);
                     let cameraDist = maxDim / (2 * Math.tan(fov / 2));
@@ -397,7 +410,7 @@ namespace App4
                         controls.update(); 
                     }}
                     showLoading(false);
-                    log('Model loaded');
+                    log('Model loaded - on ground');
                 }} catch(err) {{
                     showError('Processing: ' + err.message);
                     showLoading(false);

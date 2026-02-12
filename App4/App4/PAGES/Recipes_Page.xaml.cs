@@ -298,22 +298,10 @@ namespace App4.Pages
                     model.position.x = -center.x;
                     model.position.z = -center.z;
                     
+
                     if(controls) {{ controls.target.set(0, 0, 0); controls.update(); }}
                     showLoading(false);
                     log('Model loaded - on ground');
-                }} catch(err) {{
-                    showError('Processing: ' + err.message);
-                    showLoading(false);
-                }}
-            }}, (progress) => {{
-                const pct = Math.round((progress.loaded / progress.total) * 100);
-                log('Loading... ' + pct + '%');
-            }}, (err) => {{
-                showError('Load Error: ' + err.message);
-                showLoading(false);
-            }});
-        }}
-                    log('Model loaded');
                 }} catch(err) {{
                     showError('Processing: ' + err.message);
                     showLoading(false);
