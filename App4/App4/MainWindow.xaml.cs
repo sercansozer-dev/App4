@@ -126,6 +126,8 @@ namespace App4
                 await Task.Delay(1000);
 
                 SplashStatusText.Text = "KUKA Robot arayüzü başlatılıyor...";
+                App4.Utilities.KukaService.Instance.UiDispatcher = this.DispatcherQueue;
+                App4.Utilities.KukaService.Instance.Start();
                 await Task.Delay(1000);
 
                 SplashStatusText.Text = "Arayüz hazırlanıyor...";
@@ -237,6 +239,7 @@ namespace App4
                 case "plc": ContentFrame.Navigate(typeof(PLC_Page), null, transition); break;
                 case "settings": ContentFrame.Navigate(typeof(Settings_Page), null, transition); break;
                 case "robot": ContentFrame.Navigate(typeof(Robot_Page), null, transition); break;
+                case "multirobot": ContentFrame.Navigate(typeof(MultiRobot_Page), null, transition); break;
                 case "recipes": ContentFrame.Navigate(typeof(Recipes_Page), null, transition); break;
                 case "Klima_Editor_Page": ContentFrame.Navigate(typeof(Klima_Editor_Page)); break;
             }

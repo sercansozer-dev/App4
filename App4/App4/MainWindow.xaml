@@ -82,6 +82,11 @@
                 </NavigationViewItem>
                 <NavigationViewItem Content="Reçete Yönetimi" Tag="recipes" Icon="Library" Margin="0,5,0,0"/>
                 <NavigationViewItem Content="Robot Entegrasyonu" Tag="robot" Icon="Remote" Margin="0,5,0,0"/>
+                <NavigationViewItem Content="Çoklu Robot" Tag="multirobot" Margin="0,5,0,0">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE99A;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Klima Editörü" Tag="Klima_Editor_Page">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE70F;" />

@@ -52,6 +52,8 @@ namespace App4.Utilities
         public static ObservableCollection<PlcVariable> Station1Outputs { get; private set; } = new();
         public static ObservableCollection<PlcVariable> Station2Outputs { get; private set; } = new();
         public static ObservableCollection<PlcVariable> Station3Outputs { get; private set; } = new();
+        public static ObservableCollection<PlcVariable> RobotInputVars { get; private set; } = new();
+        public static ObservableCollection<PlcVariable> RobotOutputVars { get; private set; } = new();
 
         private static bool _isInitialized = false;
 
@@ -102,6 +104,31 @@ namespace App4.Utilities
             {
                 if (_measurementOutputTag == value) return;
                 _measurementOutputTag = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- ROBOT BAĞLANTI AYARLARI ---
+        private static string _robotIpAddress = "127.0.0.1";
+        public static string Robot_IpAddress
+        {
+            get => _robotIpAddress;
+            set
+            {
+                if (_robotIpAddress == value) return;
+                _robotIpAddress = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        private static int _robotPort = 7000;
+        public static int Robot_Port
+        {
+            get => _robotPort;
+            set
+            {
+                if (_robotPort == value) return;
+                _robotPort = value;
                 SaveAutomationSettings();
             }
         }
@@ -227,10 +254,25 @@ namespace App4.Utilities
             // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
             GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
             AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
+            
+            // ROBOT DEĞİŞKENLERİ (Default - Input ve Output)
+            if (RobotInputVars.Count == 0)
+            {
+                RobotInputVars.Add(Create("ROBOT_X", "REAL", "Input", "0.0"));
+                RobotInputVars.Add(Create("ROBOT_Y", "REAL", "Input", "0.0"));
+                RobotInputVars.Add(Create("ROBOT_Z", "REAL", "Input", "0.0"));
+                RobotInputVars.Add(Create("ROBOT_STATUS", "STRING", "Input", "HAZIR"));
+            }
+            if (RobotOutputVars.Count == 0)
+            {
+                RobotOutputVars.Add(Create("CMD_START_ROBOT", "BOOL", "Output", false));
+                RobotOutputVars.Add(Create("CMD_STOP_ROBOT", "BOOL", "Output", false));
+                RobotOutputVars.Add(Create("TARGET_POS_X", "REAL", "Output", "100.0"));
+            }
         }
 
-        public static void SavePlcVariableTagsToFile() { try { object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new { name = v.Name, plcTag = v.PlcTag, value = v.Value }).ToList(); var data = new { GeneralInputVars = Map(GeneralInputVars), GeneralOutputVars = Map(GeneralOutputVars), Station1Vars = Map(Station1Vars), Station1Outputs = Map(Station1Outputs), Station2Vars = Map(Station2Vars), Station2Outputs = Map(Station2Outputs), Station3Vars = Map(Station3Vars), Station3Outputs = Map(Station3Outputs) }; File.WriteAllText(_autoPageVariablesFilePath, System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
-        private static void LoadPlcVariableTagsFromFile() { try { if (File.Exists(_autoPageVariablesFilePath)) { var json = File.ReadAllText(_autoPageVariablesFilePath); var data = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json); void Load(string p, ObservableCollection<PlcVariable> t) { if (data.TryGetProperty(p, out var a)) foreach (var i in a.EnumerateArray()) { if (i.TryGetProperty("name", out var n)) { var v = t.FirstOrDefault(x => x.Name == n.GetString()); if (v != null) { if (i.TryGetProperty("plcTag", out var pt)) v.PlcTag = pt.GetString(); if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) v.Value = val.ToString(); } } } } Load("GeneralInputVars", GeneralInputVars); Load("GeneralOutputVars", GeneralOutputVars); Load("Station1Vars", Station1Vars); Load("Station1Outputs", Station1Outputs); Load("Station2Vars", Station2Vars); Load("Station2Outputs", Station2Outputs); Load("Station3Vars", Station3Vars); Load("Station3Outputs", Station3Outputs); } } catch { } }
+        public static void SavePlcVariableTagsToFile() { try { object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new { name = v.Name, plcTag = v.PlcTag, value = v.Value }).ToList(); var data = new { GeneralInputVars = Map(GeneralInputVars), GeneralOutputVars = Map(GeneralOutputVars), Station1Vars = Map(Station1Vars), Station1Outputs = Map(Station1Outputs), Station2Vars = Map(Station2Vars), Station2Outputs = Map(Station2Outputs), Station3Vars = Map(Station3Vars), Station3Outputs = Map(Station3Outputs), RobotInputVars = Map(RobotInputVars), RobotOutputVars = Map(RobotOutputVars) }; File.WriteAllText(_autoPageVariablesFilePath, System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
+        private static void LoadPlcVariableTagsFromFile() { try { if (File.Exists(_autoPageVariablesFilePath)) { var json = File.ReadAllText(_autoPageVariablesFilePath); var data = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json); void Load(string p, ObservableCollection<PlcVariable> t) { if (data.TryGetProperty(p, out var a)) foreach (var i in a.EnumerateArray()) { if (i.TryGetProperty("name", out var n)) { var v = t.FirstOrDefault(x => x.Name == n.GetString()); if (v == null) { v = new PlcVariable { Name = n.GetString(), Type = "STRING", Direction = "Input" }; if (i.TryGetProperty("plcTag", out var pt)) v.PlcTag = pt.GetString(); if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) v.Value = val.ToString(); t.Add(v); } else { if (i.TryGetProperty("plcTag", out var pt)) v.PlcTag = pt.GetString(); if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) v.Value = val.ToString(); } } } } Load("GeneralInputVars", GeneralInputVars); Load("GeneralOutputVars", GeneralOutputVars); Load("Station1Vars", Station1Vars); Load("Station1Outputs", Station1Outputs); Load("Station2Vars", Station2Vars); Load("Station2Outputs", Station2Outputs); Load("Station3Vars", Station3Vars); Load("Station3Outputs", Station3Outputs); Load("RobotInputVars", RobotInputVars); Load("RobotOutputVars", RobotOutputVars); } } catch { } }
 
         private static void LoadAutomationSettings() 
         { 
@@ -263,9 +305,22 @@ namespace App4.Utilities
                 var val = settings["MeasurementOutputTag"] as string;
                 if (!string.IsNullOrEmpty(val)) _measurementOutputTag = val;
             }
+
+            // Robot Ayarları
+            if (settings.ContainsKey("Robot_IpAddress"))
+            {
+                var val = settings["Robot_IpAddress"] as string;
+                if (!string.IsNullOrEmpty(val)) _robotIpAddress = val;
+            }
+            if (settings.ContainsKey("Robot_Port"))
+            {
+                var val = settings["Robot_Port"];
+                if (val is int i) _robotPort = i;
+                else if (val is string s && int.TryParse(s, out int p)) _robotPort = p;
+            }
             
             // Debug log
-            System.Diagnostics.Debug.WriteLine($"[GlobalData] Otomasyon ayarları yüklendi: RFID={_autoRfidTag}, Index={_autoIndexTag}, Trigger={_autoTriggerTag}, MeasurementOutput={_measurementOutputTag}");
+            System.Diagnostics.Debug.WriteLine($"[GlobalData] Otomasyon ve Robot ayarları yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}");
         }
         public static void SaveAutomationSettings() 
         { 
@@ -274,6 +329,10 @@ namespace App4.Utilities
             settings["Auto_IndexTag"] = Auto_IndexTag ?? ""; 
             settings["Auto_TriggerTag"] = Auto_TriggerTag ?? "";
             settings["MeasurementOutputTag"] = MeasurementOutputTag ?? "";
+            
+            settings["Robot_IpAddress"] = Robot_IpAddress;
+            settings["Robot_Port"] = Robot_Port;
+
             StartAutomationListener(); 
         }
 

@@ -144,6 +144,12 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+	  <None Update="PAGES\MultiRobot_Page.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </None>
+	</ItemGroup>
+	
+	<ItemGroup>
 	  <Page Update="PAGES\PLC_Page.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
