@@ -87,11 +87,88 @@ namespace App4.Utilities
         public int OverridePro { get => _overridePro; set { if (_overridePro != value) { _overridePro = value; OnPropertyChanged(); } } }
         public int OverrideJog { get => _overrideJog; set { if (_overrideJog != value) { _overrideJog = value; OnPropertyChanged(); } } }
 
-        // Durum Flagleri
+        // Temel Durum Flagleri
         private bool _robotReady, _robotError, _robotRunning;
         public bool RobotReady { get => _robotReady; set { if (_robotReady != value) { _robotReady = value; OnPropertyChanged(); } } }
         public bool RobotError { get => _robotError; set { if (_robotError != value) { _robotError = value; OnPropertyChanged(); } } }
         public bool RobotRunning { get => _robotRunning; set { if (_robotRunning != value) { _robotRunning = value; OnPropertyChanged(); } } }
+
+        #endregion
+
+        #region Safety & Gelişmiş Durum Verileri
+
+        // Safety Durumları
+        private bool _drivesOn, _emergencyStop, _safetyGate, _peripheralReady, _userSafety, _alarmStop;
+        public bool DrivesOn { get => _drivesOn; set { if (_drivesOn != value) { _drivesOn = value; OnPropertyChanged(); } } }
+        public bool EmergencyStop { get => _emergencyStop; set { if (_emergencyStop != value) { _emergencyStop = value; OnPropertyChanged(); } } }
+        public bool SafetyGate { get => _safetyGate; set { if (_safetyGate != value) { _safetyGate = value; OnPropertyChanged(); } } }
+        public bool PeripheralReady { get => _peripheralReady; set { if (_peripheralReady != value) { _peripheralReady = value; OnPropertyChanged(); } } }
+        public bool UserSafety { get => _userSafety; set { if (_userSafety != value) { _userSafety = value; OnPropertyChanged(); } } }
+        public bool AlarmStop { get => _alarmStop; set { if (_alarmStop != value) { _alarmStop = value; OnPropertyChanged(); } } }
+
+        // Operasyon Modu (1=T1, 2=T2, 3=AUT, 4=EXT)
+        private int _operationMode;
+        public int OperationMode { get => _operationMode; set { if (_operationMode != value) { _operationMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(OperationModeText)); } } }
+        public string OperationModeText => OperationMode switch { 1 => "T1", 2 => "T2", 3 => "AUT", 4 => "EXT", _ => "?" };
+
+        // Program Durumu
+        private string _programName = "", _currentStep = "";
+        private int _programState; // 0=Stopped, 1=Running, 2=Paused
+        public string ProgramName { get => _programName; set { if (_programName != value) { _programName = value; OnPropertyChanged(); } } }
+        public string CurrentStep { get => _currentStep; set { if (_currentStep != value) { _currentStep = value; OnPropertyChanged(); } } }
+        public int ProgramState { get => _programState; set { if (_programState != value) { _programState = value; OnPropertyChanged(); OnPropertyChanged(nameof(ProgramStateText)); } } }
+        public string ProgramStateText => ProgramState switch { 0 => "Stopped", 1 => "Running", 2 => "Paused", _ => "Unknown" };
+
+        // Tool & Base
+        private int _toolNo, _baseNo;
+        public int ToolNo { get => _toolNo; set { if (_toolNo != value) { _toolNo = value; OnPropertyChanged(); } } }
+        public int BaseNo { get => _baseNo; set { if (_baseNo != value) { _baseNo = value; OnPropertyChanged(); } } }
+
+        // Hata Bilgisi
+        private int _errorNo;
+        private string _errorMessage = "";
+        public int ErrorNo { get => _errorNo; set { if (_errorNo != value) { _errorNo = value; OnPropertyChanged(); } } }
+        public string ErrorMessage { get => _errorMessage; set { if (_errorMessage != value) { _errorMessage = value; OnPropertyChanged(); } } }
+
+        #endregion
+
+        #region Motor & Performans Verileri
+
+        // Eksen Torkları (%)
+        private double _torque1, _torque2, _torque3, _torque4, _torque5, _torque6;
+        public double Torque1 { get => _torque1; set { if (Math.Abs(_torque1 - value) > 0.1) { _torque1 = value; OnPropertyChanged(); } } }
+        public double Torque2 { get => _torque2; set { if (Math.Abs(_torque2 - value) > 0.1) { _torque2 = value; OnPropertyChanged(); } } }
+        public double Torque3 { get => _torque3; set { if (Math.Abs(_torque3 - value) > 0.1) { _torque3 = value; OnPropertyChanged(); } } }
+        public double Torque4 { get => _torque4; set { if (Math.Abs(_torque4 - value) > 0.1) { _torque4 = value; OnPropertyChanged(); } } }
+        public double Torque5 { get => _torque5; set { if (Math.Abs(_torque5 - value) > 0.1) { _torque5 = value; OnPropertyChanged(); } } }
+        public double Torque6 { get => _torque6; set { if (Math.Abs(_torque6 - value) > 0.1) { _torque6 = value; OnPropertyChanged(); } } }
+
+        // Motor Sıcaklıkları (°C)
+        private double _temp1, _temp2, _temp3, _temp4, _temp5, _temp6;
+        public double Temp1 { get => _temp1; set { if (Math.Abs(_temp1 - value) > 0.1) { _temp1 = value; OnPropertyChanged(); } } }
+        public double Temp2 { get => _temp2; set { if (Math.Abs(_temp2 - value) > 0.1) { _temp2 = value; OnPropertyChanged(); } } }
+        public double Temp3 { get => _temp3; set { if (Math.Abs(_temp3 - value) > 0.1) { _temp3 = value; OnPropertyChanged(); } } }
+        public double Temp4 { get => _temp4; set { if (Math.Abs(_temp4 - value) > 0.1) { _temp4 = value; OnPropertyChanged(); } } }
+        public double Temp5 { get => _temp5; set { if (Math.Abs(_temp5 - value) > 0.1) { _temp5 = value; OnPropertyChanged(); } } }
+        public double Temp6 { get => _temp6; set { if (Math.Abs(_temp6 - value) > 0.1) { _temp6 = value; OnPropertyChanged(); } } }
+
+        // Eksen Hızları (°/s veya mm/s)
+        private double _vel1, _vel2, _vel3, _vel4, _vel5, _vel6;
+        public double Vel1 { get => _vel1; set { if (Math.Abs(_vel1 - value) > 0.1) { _vel1 = value; OnPropertyChanged(); } } }
+        public double Vel2 { get => _vel2; set { if (Math.Abs(_vel2 - value) > 0.1) { _vel2 = value; OnPropertyChanged(); } } }
+        public double Vel3 { get => _vel3; set { if (Math.Abs(_vel3 - value) > 0.1) { _vel3 = value; OnPropertyChanged(); } } }
+        public double Vel4 { get => _vel4; set { if (Math.Abs(_vel4 - value) > 0.1) { _vel4 = value; OnPropertyChanged(); } } }
+        public double Vel5 { get => _vel5; set { if (Math.Abs(_vel5 - value) > 0.1) { _vel5 = value; OnPropertyChanged(); } } }
+        public double Vel6 { get => _vel6; set { if (Math.Abs(_vel6 - value) > 0.1) { _vel6 = value; OnPropertyChanged(); } } }
+
+        // Çalışma Süreleri
+        private double _operatingHours, _cycleTime;
+        public double OperatingHours { get => _operatingHours; set { if (Math.Abs(_operatingHours - value) > 0.01) { _operatingHours = value; OnPropertyChanged(); } } }
+        public double CycleTime { get => _cycleTime; set { if (Math.Abs(_cycleTime - value) > 0.001) { _cycleTime = value; OnPropertyChanged(); } } }
+
+        // TCP Hızı
+        private double _tcpSpeed;
+        public double TcpSpeed { get => _tcpSpeed; set { if (Math.Abs(_tcpSpeed - value) > 0.1) { _tcpSpeed = value; OnPropertyChanged(); } } }
 
         #endregion
 
@@ -121,23 +198,74 @@ namespace App4.Utilities
 
         public KukaRobotInstance()
         {
-            // Standart okuma listesi
+            // Standart okuma listesi - TÜM KUKA DEĞİŞKENLERİ
             _standardReads = new List<(string, Action<string>)>
             {
+                // ═══ TCP POZİSYONU ═══
                 ("$POS_ACT.X", v => PosX = ParseDouble(v)),
                 ("$POS_ACT.Y", v => PosY = ParseDouble(v)),
                 ("$POS_ACT.Z", v => PosZ = ParseDouble(v)),
                 ("$POS_ACT.A", v => PosA = ParseDouble(v)),
                 ("$POS_ACT.B", v => PosB = ParseDouble(v)),
                 ("$POS_ACT.C", v => PosC = ParseDouble(v)),
+
+                // ═══ EKSEN AÇILARI ═══
                 ("$AXIS_ACT.A1", v => A1 = ParseDouble(v)),
                 ("$AXIS_ACT.A2", v => A2 = ParseDouble(v)),
                 ("$AXIS_ACT.A3", v => A3 = ParseDouble(v)),
                 ("$AXIS_ACT.A4", v => A4 = ParseDouble(v)),
                 ("$AXIS_ACT.A5", v => A5 = ParseDouble(v)),
                 ("$AXIS_ACT.A6", v => A6 = ParseDouble(v)),
+
+                // ═══ OVERRİDE ═══
                 ("$OV_PRO", v => OverridePro = ParseInt(v)),
                 ("$OV_JOG", v => OverrideJog = ParseInt(v)),
+
+                // ═══ SAFETY DURUMLARI ═══
+                ("$DRIVES_ON", v => DrivesOn = ParseBool(v)),
+                ("$STOPMESS", v => EmergencyStop = ParseBool(v)),
+                ("$PERI_RDY", v => PeripheralReady = ParseBool(v)),
+                ("$ROB_RDY", v => RobotReady = ParseBool(v)),
+                ("$USER_SAF", v => UserSafety = ParseBool(v)),
+                ("$ALARM_STOP", v => AlarmStop = ParseBool(v)),
+
+                // ═══ OPERASYON MODU ═══
+                ("$MODE_OP", v => OperationMode = ParseInt(v)),
+
+                // ═══ PROGRAM BİLGİLERİ ═══
+                ("$PRO_STATE", v => ProgramState = ParseInt(v)),
+                ("$PRO_NAME[]", v => ProgramName = v?.Trim() ?? ""),
+                ("$STEP_NAME[]", v => CurrentStep = v?.Trim() ?? ""),
+
+                // ═══ TOOL & BASE ═══
+                ("$TOOL_ACT", v => ToolNo = ParseInt(v)),
+                ("$BASE_ACT", v => BaseNo = ParseInt(v)),
+
+                // ═══ HATA BİLGİLERİ ═══
+                ("$ERR.NO", v => ErrorNo = ParseInt(v)),
+                ("$ERR.MSG[]", v => ErrorMessage = v?.Trim() ?? ""),
+
+                // ═══ TORK VERİLERİ (%) ═══
+                ("$TORQUE_AXIS_ACT[1]", v => Torque1 = ParseDouble(v)),
+                ("$TORQUE_AXIS_ACT[2]", v => Torque2 = ParseDouble(v)),
+                ("$TORQUE_AXIS_ACT[3]", v => Torque3 = ParseDouble(v)),
+                ("$TORQUE_AXIS_ACT[4]", v => Torque4 = ParseDouble(v)),
+                ("$TORQUE_AXIS_ACT[5]", v => Torque5 = ParseDouble(v)),
+                ("$TORQUE_AXIS_ACT[6]", v => Torque6 = ParseDouble(v)),
+
+                // ═══ HIZ VERİLERİ ═══
+                ("$VEL_AXIS_ACT[1]", v => Vel1 = ParseDouble(v)),
+                ("$VEL_AXIS_ACT[2]", v => Vel2 = ParseDouble(v)),
+                ("$VEL_AXIS_ACT[3]", v => Vel3 = ParseDouble(v)),
+                ("$VEL_AXIS_ACT[4]", v => Vel4 = ParseDouble(v)),
+                ("$VEL_AXIS_ACT[5]", v => Vel5 = ParseDouble(v)),
+                ("$VEL_AXIS_ACT[6]", v => Vel6 = ParseDouble(v)),
+                ("$VEL_ACT", v => TcpSpeed = ParseDouble(v)),
+
+                // ═══ ÇALIŞMA SÜRELERİ ═══
+                ("$TIMER[1]", v => CycleTime = ParseDouble(v)),
+
+                // ═══ KULLANICI DEĞİŞKENLERİ ═══
                 ("Robot_Ready", v => RobotReady = ParseBool(v)),
                 ("Robot_Error", v => RobotError = ParseBool(v)),
                 ("Robot_Running", v => RobotRunning = ParseBool(v)),
@@ -296,6 +424,126 @@ namespace App4.Utilities
 
                 await Task.Delay(500); // Döngü hızı
             }
+        }
+
+        #endregion
+
+        #region Robot Kontrol Komutları
+
+        /// <summary>Robot programını başlatır</summary>
+        public async Task<bool> StartProgramAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] ▶️ START komutu gönderiliyor...");
+            bool result = await WriteVariableAsync("PC_Start", "TRUE");
+            if (result) OnLog?.Invoke($"[{Name}] ✅ Program başlatıldı");
+            return result;
+        }
+
+        /// <summary>Robot programını durdurur</summary>
+        public async Task<bool> StopProgramAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] ⏹️ STOP komutu gönderiliyor...");
+            bool result = await WriteVariableAsync("PC_Stop", "TRUE");
+            if (result) OnLog?.Invoke($"[{Name}] ✅ Program durduruldu");
+            return result;
+        }
+
+        /// <summary>Robot hatalarını resetler</summary>
+        public async Task<bool> ResetErrorAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] 🔄 RESET komutu gönderiliyor...");
+            bool result = await WriteVariableAsync("PC_Reset", "TRUE");
+            if (result) OnLog?.Invoke($"[{Name}] ✅ Reset tamamlandı");
+            await Task.Delay(200);
+            await WriteVariableAsync("PC_Reset", "FALSE");
+            return result;
+        }
+
+        /// <summary>Robotu HOME pozisyonuna gönderir</summary>
+        public async Task<bool> GoHomeAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] 🏠 HOME komutu gönderiliyor...");
+            bool result = await WriteVariableAsync("PC_GoHome", "TRUE");
+            if (result) OnLog?.Invoke($"[{Name}] ✅ Home pozisyonuna gidiyor");
+            return result;
+        }
+
+        /// <summary>Program/Reçete numarası seçer</summary>
+        public async Task<bool> SelectRecipeAsync(int recipeNo)
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] 📋 Reçete {recipeNo} seçiliyor...");
+            bool result = await WriteVariableAsync("PC_RecipeNo", recipeNo.ToString());
+            if (result) OnLog?.Invoke($"[{Name}] ✅ Reçete {recipeNo} seçildi");
+            return result;
+        }
+
+        /// <summary>Program Override hızını ayarlar (%1-100)</summary>
+        public async Task<bool> SetOverrideProAsync(int percent)
+        {
+            if (!IsConnected) return false;
+            percent = Math.Clamp(percent, 1, 100);
+            bool result = await WriteVariableAsync("$OV_PRO", percent.ToString());
+            if (result) OverridePro = percent;
+            return result;
+        }
+
+        /// <summary>JOG Override hızını ayarlar (%1-100)</summary>
+        public async Task<bool> SetOverrideJogAsync(int percent)
+        {
+            if (!IsConnected) return false;
+            percent = Math.Clamp(percent, 1, 100);
+            bool result = await WriteVariableAsync("$OV_JOG", percent.ToString());
+            if (result) OverrideJog = percent;
+            return result;
+        }
+
+        /// <summary>JOG hareketi - Belirtilen ekseni hareket ettirir</summary>
+        public async Task<bool> JogAxisAsync(int axis, int direction)
+        {
+            if (!IsConnected || axis < 1 || axis > 6) 
+            {
+                OnLog?.Invoke($"[{Name}] ❌ JOG A{axis} başarısız: Bağlı değil veya geçersiz eksen");
+                return false;
+            }
+            string varName = $"PC_JogAxis{axis}";
+            OnLog?.Invoke($"[{Name}] 🎮 JOG A{axis}: {(direction > 0 ? "+" : direction < 0 ? "-" : "STOP")} -> Değişken: {varName} = {direction}");
+            bool result = await WriteVariableAsync(varName, direction.ToString());
+            if (!result)
+            {
+                OnLog?.Invoke($"[{Name}] ❌ JOG yazma başarısız! Değişken '{varName}' robotta tanımlı olmayabilir.");
+            }
+            return result;
+        }
+
+        /// <summary>Tüm JOG hareketlerini durdurur</summary>
+        public async Task<bool> StopJogAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] ⏹️ Tüm JOG hareketleri durduruluyor");
+            for (int i = 1; i <= 6; i++)
+                await WriteVariableAsync($"PC_JogAxis{i}", "0");
+            return true;
+        }
+
+        /// <summary>Robotu Servo ON yapar</summary>
+        public async Task<bool> ServoOnAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] ⚡ Servo ON");
+            return await WriteVariableAsync("PC_ServoOn", "TRUE");
+        }
+
+        /// <summary>Robotu Servo OFF yapar</summary>
+        public async Task<bool> ServoOffAsync()
+        {
+            if (!IsConnected) return false;
+            OnLog?.Invoke($"[{Name}] ⚡ Servo OFF");
+            return await WriteVariableAsync("PC_ServoOn", "FALSE");
         }
 
         #endregion
