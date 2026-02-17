@@ -116,10 +116,11 @@ namespace App4.Pages
             };
 
             var headerGrid = new Grid();
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // LED + İsim
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // IP/Port
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Boşluk
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // Override
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // Silme butonu
 
             // Sol - Durum LED ve İsim
             var leftPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
@@ -223,6 +224,41 @@ namespace App4.Pages
 
             Grid.SetColumn(rightPanel, 3);
             headerGrid.Children.Add(rightPanel);
+
+            // Silme Butonu
+            var deleteBtn = new Button
+            {
+                Content = "🗑️",
+                Width = 36,
+                Height = 36,
+                FontSize = 14,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 60, 60, 65)),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(0),
+                Margin = new Thickness(15, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            ToolTipService.SetToolTip(deleteBtn, "Robotu Sil");
+            deleteBtn.Click += async (s, e) =>
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "Robot Silme Onayı",
+                    Content = $"'{robot.Name}' robotunu silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.",
+                    PrimaryButtonText = "Sil",
+                    CloseButtonText = "İptal",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+
+                if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+                {
+                    KukaRobotManager.Instance.RemoveRobot(robot);
+                }
+            };
+            Grid.SetColumn(deleteBtn, 4);
+            headerGrid.Children.Add(deleteBtn);
 
             header.Child = headerGrid;
             return header;
