@@ -149,6 +149,42 @@ namespace App4.Utilities
             Name = name;
             IpAddress = ip;
             Port = port;
+            InitializeDefaultVariables();
+        }
+
+        private void InitializeDefaultVariables()
+        {
+            // TCP Pozisyon değişkenleri (Input - Okunacak)
+            InputVars.Add(new PlcVariable { Name = "TCP_X", Type = "REAL", PlcTag = "$POS_ACT.X", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "TCP_Y", Type = "REAL", PlcTag = "$POS_ACT.Y", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "TCP_Z", Type = "REAL", PlcTag = "$POS_ACT.Z", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "TCP_A", Type = "REAL", PlcTag = "$POS_ACT.A", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "TCP_B", Type = "REAL", PlcTag = "$POS_ACT.B", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "TCP_C", Type = "REAL", PlcTag = "$POS_ACT.C", Direction = "Input" });
+
+            // Eksen açıları (Input - Okunacak)
+            InputVars.Add(new PlcVariable { Name = "AXIS_A1", Type = "REAL", PlcTag = "$AXIS_ACT.A1", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_A2", Type = "REAL", PlcTag = "$AXIS_ACT.A2", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_A3", Type = "REAL", PlcTag = "$AXIS_ACT.A3", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_A4", Type = "REAL", PlcTag = "$AXIS_ACT.A4", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_A5", Type = "REAL", PlcTag = "$AXIS_ACT.A5", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_A6", Type = "REAL", PlcTag = "$AXIS_ACT.A6", Direction = "Input" });
+
+            // Override değerleri (Input - Okunacak)
+            InputVars.Add(new PlcVariable { Name = "OV_PRO", Type = "INT", PlcTag = "$OV_PRO", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "OV_JOG", Type = "INT", PlcTag = "$OV_JOG", Direction = "Input" });
+
+            // Durum değişkenleri (Input - Okunacak)
+            InputVars.Add(new PlcVariable { Name = "ROBOT_READY", Type = "BOOL", PlcTag = "Robot_Ready", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "ROBOT_ERROR", Type = "BOOL", PlcTag = "Robot_Error", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "ROBOT_RUNNING", Type = "BOOL", PlcTag = "Robot_Running", Direction = "Input" });
+
+            // Output değişkenleri (Yazılacak)
+            OutputVars.Add(new PlcVariable { Name = "PC_START", Type = "BOOL", PlcTag = "PC_Start", Direction = "Output" });
+            OutputVars.Add(new PlcVariable { Name = "PC_STOP", Type = "BOOL", PlcTag = "PC_Stop", Direction = "Output" });
+            OutputVars.Add(new PlcVariable { Name = "PC_RESET", Type = "BOOL", PlcTag = "PC_Reset", Direction = "Output" });
+            OutputVars.Add(new PlcVariable { Name = "PC_RECIPE", Type = "INT", PlcTag = "PC_RecipeNo", Direction = "Output" });
+            OutputVars.Add(new PlcVariable { Name = "SET_JOG_OV", Type = "INT", PlcTag = "$OV_JOG", Direction = "Output" });
         }
 
         #region Bağlantı Yönetimi
@@ -433,6 +469,9 @@ namespace App4.Utilities
                 robot.UiDispatcher = dispatcher;
                 robot.OnLog += msg => OnLog?.Invoke(msg);
             }
+
+            // Robotları otomatik başlat
+            StartAll();
         }
 
         public KukaRobotInstance AddRobot(string name, string ip, int port = 7000)
@@ -444,7 +483,18 @@ namespace App4.Utilities
             robot.OnLog += msg => OnLog?.Invoke(msg);
             Robots.Add(robot);
             SaveRobots();
+            // Yeni eklenen robotu otomatik başlat
+            robot.Start();
             return robot;
+        }
+
+        public void UpdateRobotIp(KukaRobotInstance robot, string newIp, int newPort)
+        {
+            robot.Stop();
+            robot.IpAddress = newIp;
+            robot.Port = newPort;
+            SaveRobots();
+            robot.Start();
         }
 
         public void RemoveRobot(KukaRobotInstance robot)

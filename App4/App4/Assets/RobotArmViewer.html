@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Robot Arm Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0D0D0D; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #container { width: 100%; height: 100vh; }
+        #info {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 9px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="info">🖱️ Döndürmek için sürükle</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene setup
+        const container = document.getElementById('container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0D0D0D);
+        
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(300, 200, 300);
+        camera.lookAt(0, 100, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(100, 200, 100);
+        scene.add(directionalLight);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(400, 20, 0x333333, 0x222222);
+        scene.add(gridHelper);
+
+        // Robot arm segments
+        const segmentColors = [0xFF5722, 0xFF9800, 0xFFEB3B, 0x4CAF50, 0x2196F3, 0x9C27B0];
+        const segmentLengths = [60, 80, 70, 50, 40, 30];
+        
+        // Materials
+        const materials = segmentColors.map(color => 
+            new THREE.MeshPhongMaterial({ color: color, shininess: 100 })
+        );
+        const jointMaterial = new THREE.MeshPhongMaterial({ color: 0x00FF88, shininess: 150 });
+
+        // Robot arm group
+        const robotArm = new THREE.Group();
+        scene.add(robotArm);
+
+        // Base
+        const baseGeometry = new THREE.CylinderGeometry(30, 35, 20, 32);
+        const baseMesh = new THREE.Mesh(baseGeometry, new THREE.MeshPhongMaterial({ color: 0x333333 }));
+        baseMesh.position.y = 10;
+        robotArm.add(baseMesh);
+
+        // Create segments and joints
+        const segments = [];
+        const joints = [];
+        let currentGroup = robotArm;
+
+        for (let i = 0; i < 6; i++) {
+            // Joint
+            const jointGroup = new THREE.Group();
+            jointGroup.position.y = i === 0 ? 20 : segmentLengths[i - 1];
+            currentGroup.add(jointGroup);
+            
+            const jointGeometry = new THREE.SphereGeometry(12, 16, 16);
+            const jointMesh = new THREE.Mesh(jointGeometry, jointMaterial);
+            jointGroup.add(jointMesh);
+            joints.push(jointGroup);
+
+            // Segment
+            const segmentGeometry = new THREE.CylinderGeometry(8, 8, segmentLengths[i], 16);
+            segmentGeometry.translate(0, segmentLengths[i] / 2, 0);
+            const segmentMesh = new THREE.Mesh(segmentGeometry, materials[i]);
+            jointGroup.add(segmentMesh);
+            segments.push(segmentMesh);
+            
+            currentGroup = jointGroup;
+        }
+
+        // TCP (Tool Center Point)
+        const tcpGeometry = new THREE.ConeGeometry(10, 25, 8);
+        tcpGeometry.translate(0, 12.5, 0);
+        const tcpMesh = new THREE.Mesh(tcpGeometry, new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
+        tcpMesh.position.y = segmentLengths[5];
+        joints[5].add(tcpMesh);
+
+        // Current angles (degrees)
+        let angles = [0, 0, 0, 0, 0, 0];
+
+        // Update robot arm with angles
+        function updateRobotArm(newAngles) {
+            angles = newAngles.map(a => a || 0);
+            
+            // A1 - Base rotation (Y axis)
+            joints[0].rotation.y = THREE.MathUtils.degToRad(angles[0]);
+            
+            // A2 - Shoulder (Z axis, forward/backward)
+            joints[1].rotation.z = THREE.MathUtils.degToRad(-angles[1]);
+            
+            // A3 - Elbow (Z axis)
+            joints[2].rotation.z = THREE.MathUtils.degToRad(-angles[2]);
+            
+            // A4 - Wrist rotation (Y axis)
+            joints[3].rotation.y = THREE.MathUtils.degToRad(angles[3]);
+            
+            // A5 - Wrist pitch (Z axis)
+            joints[4].rotation.z = THREE.MathUtils.degToRad(-angles[4]);
+            
+            // A6 - Tool rotation (Y axis)
+            joints[5].rotation.y = THREE.MathUtils.degToRad(angles[5]);
+        }
+
+        // Mouse controls for rotation
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraAngle = { theta: Math.PI / 4, phi: Math.PI / 4 };
+        let cameraDistance = 400;
+
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        container.addEventListener('mouseup', () => { isDragging = false; });
+        container.addEventListener('mouseleave', () => { isDragging = false; });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - previousMousePosition.x;
+            const deltaY = e.clientY - previousMousePosition.y;
+            
+            cameraAngle.theta -= deltaX * 0.01;
+            cameraAngle.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraAngle.phi - deltaY * 0.01));
+            
+            updateCameraPosition();
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        container.addEventListener('wheel', (e) => {
+            cameraDistance = Math.max(150, Math.min(800, cameraDistance + e.deltaY * 0.5));
+            updateCameraPosition();
+        });
+
+        function updateCameraPosition() {
+            camera.position.x = cameraDistance * Math.sin(cameraAngle.phi) * Math.cos(cameraAngle.theta);
+            camera.position.y = cameraDistance * Math.cos(cameraAngle.phi);
+            camera.position.z = cameraDistance * Math.sin(cameraAngle.phi) * Math.sin(cameraAngle.theta);
+            camera.lookAt(0, 100, 0);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // API for C# to call
+        window.setAngles = function(a1, a2, a3, a4, a5, a6) {
+            updateRobotArm([a1, a2, a3, a4, a5, a6]);
+        };
+
+        // Initial pose
+        updateRobotArm([0, -45, 90, 0, 45, 0]);
+    </script>
+</body>
+</html>

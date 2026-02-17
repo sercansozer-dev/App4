@@ -43,20 +43,6 @@
                             <TextBlock Text="Robot Ekle" FontSize="12"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="BtnStartAll" Click="BtnStartAll_Click"
-                            Background="#1B5E20" Foreground="White" CornerRadius="6" Padding="15,8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE768;" FontSize="14"/>
-                            <TextBlock Text="Tümünü Başlat" FontSize="12"/>
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="BtnStopAll" Click="BtnStopAll_Click"
-                            Background="#B71C1C" Foreground="White" CornerRadius="6" Padding="15,8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE71A;" FontSize="14"/>
-                            <TextBlock Text="Tümünü Durdur" FontSize="12"/>
-                        </StackPanel>
-                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
