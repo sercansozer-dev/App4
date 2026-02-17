@@ -50,24 +50,38 @@
         </DataTemplate>
     </Page.Resources>
 
-    <Grid Background="#101010">
+    <Grid Background="#0D0D0D">
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#1F1F1F" BorderThickness="0,0,0,1" BorderBrush="#333333" Padding="20,0">
-            <Grid>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                    <FontIcon Glyph="&#xE72A;" Foreground="#0078D4" FontSize="20"/>
-                    <TextBlock Text="OTOMATİK ÜRETİM KONTROLÜ" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+        <!-- HEADER -->
+        <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,1" BorderBrush="#333">
+            <Grid Padding="20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                    <Border Background="#0078D4" CornerRadius="8" Width="40" Height="40">
+                        <FontIcon Glyph="&#xE72A;" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Otomatik Üretim" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="İstasyon Kontrolü ve Üretim Takibi" FontSize="11" Foreground="#888"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
+                    <Border Background="#1E1E20" CornerRadius="6" Padding="12,6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Width="8" Height="8" Fill="#4CAF50"/>
+                            <TextBlock Text="Sistem Aktif" Foreground="#888" FontSize="11"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
 
         <ScrollViewer Grid.Row="1">
             <StackPanel Padding="20">
-                <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Margin="0,0,0,20">
+                <Border Background="#1E1E20" CornerRadius="8" Margin="0,0,0,15">
                     <Grid Padding="20">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -76,34 +90,39 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="5">
-                            <TextBlock Text="HAT KONTROL MERKEZİ" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Border Background="#333" CornerRadius="6" Width="36" Height="36">
+                                    <FontIcon Glyph="&#xE943;" Foreground="#0078D4" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Hat Kontrol Merkezi" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
 
-                            <Border x:Name="LineStatusCard" Background="#333" CornerRadius="4" Padding="10,5" HorizontalAlignment="Left" BorderThickness="1" BorderBrush="#555">
+                            <Border x:Name="LineStatusCard" Background="#252528" CornerRadius="6" Padding="12,8" HorizontalAlignment="Left">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon x:Name="LineStatusIcon" Glyph="&#xE71A;" FontSize="14" Foreground="#CCC"/>
-                                    <TextBlock x:Name="LineStatusText" Text="SİSTEM KAPALI" FontSize="12" FontWeight="Bold" Foreground="#CCC"/>
+                                    <FontIcon x:Name="LineStatusIcon" Glyph="&#xE71A;" FontSize="14" Foreground="#888"/>
+                                    <TextBlock x:Name="LineStatusText" Text="SİSTEM KAPALI" FontSize="12" FontWeight="SemiBold" Foreground="#888"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center" Margin="0,0,30,0">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center" Margin="0,0,30,0">
 
-                            <StackPanel Orientation="Vertical" Spacing="2">
-                                <TextBlock Text="SAFETY" FontSize="9" Foreground="#888" HorizontalAlignment="Center"/>
-                                <Border x:Name="CheckSafetyBorder" Background="#333" CornerRadius="10" Padding="8,4" BorderThickness="1" BorderBrush="#555">
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <FontIcon x:Name="CheckSafetyIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#999"/>
-                                        <TextBlock x:Name="CheckSafetyText" Text="BEKLİYOR" FontSize="10" FontWeight="Bold" Foreground="#999"/>
+                            <StackPanel Orientation="Vertical" Spacing="4">
+                                <TextBlock Text="SAFETY" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
+                                <Border x:Name="CheckSafetyBorder" Background="#252528" CornerRadius="6" Padding="10,6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon x:Name="CheckSafetyIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#666"/>
+                                        <TextBlock x:Name="CheckSafetyText" Text="BEKLİYOR" FontSize="10" FontWeight="SemiBold" Foreground="#666"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
 
-                            <StackPanel Orientation="Vertical" Spacing="2">
-                                <TextBlock Text="ALARM" FontSize="9" Foreground="#888" HorizontalAlignment="Center"/>
-                                <Border x:Name="CheckAlarmBorder" Background="#333" CornerRadius="10" Padding="8,4" BorderThickness="1" BorderBrush="#555">
-                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <FontIcon x:Name="CheckAlarmIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#999"/>
+                            <StackPanel Orientation="Vertical" Spacing="4">
+                                <TextBlock Text="ALARM" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
+                                <Border x:Name="CheckAlarmBorder" Background="#252528" CornerRadius="6" Padding="10,6">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon x:Name="CheckAlarmIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#666"/>
                                         <TextBlock x:Name="CheckAlarmText" Text="KONTROL" FontSize="10" FontWeight="Bold" Foreground="#999"/>
                                     </StackPanel>
                                 </Border>

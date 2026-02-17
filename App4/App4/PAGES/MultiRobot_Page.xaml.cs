@@ -59,33 +59,23 @@ namespace App4.Pages
         {
             var card = new Border
             {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 21, 21, 21)),
-                CornerRadius = new CornerRadius(12),
-                BorderThickness = new Thickness(2),
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 30, 32)),
+                CornerRadius = new CornerRadius(8),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51)),
                 Padding = new Thickness(0),
                 Margin = new Thickness(0, 0, 0, 10)
             };
 
             robot.PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(robot.IsConnected))
-                {
-                    this.DispatcherQueue.TryEnqueue(() =>
-                    {
-                        card.BorderBrush = new SolidColorBrush(robot.IsConnected 
-                            ? Windows.UI.Color.FromArgb(255, 0, 255, 136)
-                            : Windows.UI.Color.FromArgb(255, 255, 68, 68));
-                    });
-                }
+                // Border rengi sabit kalır
             };
-            card.BorderBrush = new SolidColorBrush(robot.IsConnected 
-                ? Windows.UI.Color.FromArgb(255, 0, 255, 136)
-                : Windows.UI.Color.FromArgb(255, 255, 68, 68));
 
             var mainGrid = new Grid();
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });  // Header
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });     // Kontrol Paneli
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });     // İçerik
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // Header
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // Kontrol Paneli
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });  // İçerik
 
             // Header
             var header = CreateRobotHeader(robot);
@@ -110,48 +100,57 @@ namespace App4.Pages
         {
             var header = new Border
             {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 26)),
-                CornerRadius = new CornerRadius(10, 10, 0, 0),
-                Padding = new Thickness(15, 0, 15, 0)
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 40)),
+                CornerRadius = new CornerRadius(8, 8, 0, 0),
+                Padding = new Thickness(15, 12, 15, 12)
             };
 
             var headerGrid = new Grid();
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // LED + İsim
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // IP/Port
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Boşluk
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // Override
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });  // Silme butonu
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // Sol - Durum LED ve İsim
+            // Sol - LED + İsim
             var leftPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
 
-            var statusLed = new Ellipse { Width = 14, Height = 14 };
+            // Renkli ikon kutusu
+            var iconBox = new Border
+            {
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)),
+                CornerRadius = new CornerRadius(6),
+                Width = 36,
+                Height = 36
+            };
+            var robotIcon = new FontIcon { Glyph = "\uE99A", FontSize = 16, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            iconBox.Child = robotIcon;
+            leftPanel.Children.Add(iconBox);
+
+            var namePanel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            namePanel.Children.Add(new TextBlock { Text = robot.Name, FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+
+            var statusLed = new Ellipse { Width = 8, Height = 8, Margin = new Thickness(0, 4, 0, 0) };
             robot.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(robot.IsConnected))
-                {
-                    this.DispatcherQueue.TryEnqueue(() =>
-                    {
-                        statusLed.Fill = new SolidColorBrush(robot.IsConnected 
-                            ? Windows.UI.Color.FromArgb(255, 0, 255, 136)
-                            : Windows.UI.Color.FromArgb(255, 255, 68, 68));
-                    });
-                }
+                    this.DispatcherQueue.TryEnqueue(() => statusLed.Fill = new SolidColorBrush(robot.IsConnected ? Windows.UI.Color.FromArgb(255, 76, 175, 80) : Windows.UI.Color.FromArgb(255, 102, 102, 102)));
             };
-            statusLed.Fill = new SolidColorBrush(robot.IsConnected 
-                ? Windows.UI.Color.FromArgb(255, 0, 255, 136)
-                : Windows.UI.Color.FromArgb(255, 255, 68, 68));
-            leftPanel.Children.Add(statusLed);
+            statusLed.Fill = new SolidColorBrush(robot.IsConnected ? Windows.UI.Color.FromArgb(255, 76, 175, 80) : Windows.UI.Color.FromArgb(255, 102, 102, 102));
 
-            leftPanel.Children.Add(new TextBlock { Text = robot.Name, FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+            var statusRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            statusRow.Children.Add(statusLed);
+            statusRow.Children.Add(new TextBlock { Text = "Bağlantı Durumu", FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
+            namePanel.Children.Add(statusRow);
+            leftPanel.Children.Add(namePanel);
+
             Grid.SetColumn(leftPanel, 0);
             headerGrid.Children.Add(leftPanel);
 
-            // IP düzenleme alanı
-            var ipPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(15, 0, 0, 0) };
-
-            var ipBox = new TextBox { Text = robot.IpAddress, Width = 130, Height = 28, FontSize = 11, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 164, 239)) };
-            var portBox = new TextBox { Text = robot.Port.ToString(), Width = 60, Height = 28, FontSize = 11, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 164, 239)) };
+            // IP/Port
+            var ipPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20, 0, 0, 0) };
+            var ipBox = new TextBox { Text = robot.IpAddress, Width = 120, Height = 32, FontSize = 12, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 40)), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51)), CornerRadius = new CornerRadius(4) };
+            var portBox = new TextBox { Text = robot.Port.ToString(), Width = 60, Height = 32, FontSize = 12, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 40)), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51)), CornerRadius = new CornerRadius(4) };
 
             ipBox.LostFocus += (s, e) =>
             {
@@ -185,42 +184,46 @@ namespace App4.Pages
                     this.DispatcherQueue.TryEnqueue(() =>
                     {
                         statusBadge.Background = new SolidColorBrush(robot.IsConnected 
-                            ? Windows.UI.Color.FromArgb(255, 0, 255, 136)
-                            : Windows.UI.Color.FromArgb(255, 255, 68, 68));
-                        statusBadgeText.Text = robot.StatusText;
+                            ? Windows.UI.Color.FromArgb(255, 76, 175, 80)
+                            : Windows.UI.Color.FromArgb(255, 51, 51, 51));
+                        statusBadgeText.Text = robot.IsConnected ? "Bağlı" : "Bağlı Değil";
+                        statusBadgeText.Foreground = new SolidColorBrush(robot.IsConnected ? Microsoft.UI.Colors.White : Windows.UI.Color.FromArgb(255, 136, 136, 136));
                     });
                 }
             };
             statusBadge.Background = new SolidColorBrush(robot.IsConnected 
-                ? Windows.UI.Color.FromArgb(255, 0, 255, 136)
-                : Windows.UI.Color.FromArgb(255, 255, 68, 68));
-            statusBadgeText.Text = robot.StatusText;
+                ? Windows.UI.Color.FromArgb(255, 76, 175, 80)
+                : Windows.UI.Color.FromArgb(255, 51, 51, 51));
+            statusBadgeText.Text = robot.IsConnected ? "Bağlı" : "Bağlı Değil";
+            statusBadgeText.Foreground = new SolidColorBrush(robot.IsConnected ? Microsoft.UI.Colors.White : Windows.UI.Color.FromArgb(255, 136, 136, 136));
             statusBadge.Child = statusBadgeText;
             ipPanel.Children.Add(statusBadge);
 
             Grid.SetColumn(ipPanel, 1);
             headerGrid.Children.Add(ipPanel);
 
-            // Sağ - Override değerleri
-            var rightPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, VerticalAlignment = VerticalAlignment.Center };
+            // Override değerleri
+            var rightPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 15, VerticalAlignment = VerticalAlignment.Center };
 
-            var proStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 };
-            proStack.Children.Add(new TextBlock { Text = "PRO:", FontSize = 11, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
-            var proValue = new TextBlock { FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 170, 255)) };
-            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.OverridePro)) this.DispatcherQueue.TryEnqueue(() => proValue.Text = robot.OverridePro.ToString()); };
-            proValue.Text = robot.OverridePro.ToString();
+            var proBox = new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 30, 32)), CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 6, 10, 6) };
+            var proStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            proStack.Children.Add(new TextBlock { Text = "PRO", FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
+            var proValue = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 120, 212)) };
+            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.OverridePro)) this.DispatcherQueue.TryEnqueue(() => proValue.Text = robot.OverridePro.ToString() + "%"); };
+            proValue.Text = robot.OverridePro.ToString() + "%";
             proStack.Children.Add(proValue);
-            proStack.Children.Add(new TextBlock { Text = "%", FontSize = 11, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
-            rightPanel.Children.Add(proStack);
+            proBox.Child = proStack;
+            rightPanel.Children.Add(proBox);
 
-            var jogStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 };
-            jogStack.Children.Add(new TextBlock { Text = "JOG:", FontSize = 11, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
-            var jogValue = new TextBlock { FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 170, 0)) };
-            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.OverrideJog)) this.DispatcherQueue.TryEnqueue(() => jogValue.Text = robot.OverrideJog.ToString()); };
-            jogValue.Text = robot.OverrideJog.ToString();
+            var jogBox = new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 30, 32)), CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 6, 10, 6) };
+            var jogStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            jogStack.Children.Add(new TextBlock { Text = "JOG", FontSize = 10, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
+            var jogValue = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0)) };
+            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.OverrideJog)) this.DispatcherQueue.TryEnqueue(() => jogValue.Text = robot.OverrideJog.ToString() + "%"); };
+            jogValue.Text = robot.OverrideJog.ToString() + "%";
             jogStack.Children.Add(jogValue);
-            jogStack.Children.Add(new TextBlock { Text = "%", FontSize = 11, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)) });
-            rightPanel.Children.Add(jogStack);
+            jogBox.Child = jogStack;
+            rightPanel.Children.Add(jogBox);
 
             Grid.SetColumn(rightPanel, 3);
             headerGrid.Children.Add(rightPanel);
@@ -228,13 +231,11 @@ namespace App4.Pages
             // Silme Butonu
             var deleteBtn = new Button
             {
-                Content = "🗑️",
+                Content = new FontIcon { Glyph = "\uE74D", FontSize = 14, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)) },
                 Width = 36,
                 Height = 36,
-                FontSize = 14,
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 60, 60, 65)),
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)),
-                CornerRadius = new CornerRadius(6),
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51)),
+                CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(0),
                 Margin = new Thickness(15, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
@@ -244,8 +245,8 @@ namespace App4.Pages
             {
                 var dialog = new ContentDialog
                 {
-                    Title = "Robot Silme Onayı",
-                    Content = $"'{robot.Name}' robotunu silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.",
+                    Title = "Silme Onayı",
+                    Content = $"'{robot.Name}' silinsin mi?",
                     PrimaryButtonText = "Sil",
                     CloseButtonText = "İptal",
                     DefaultButton = ContentDialogButton.Close,
@@ -268,176 +269,58 @@ namespace App4.Pages
 
         private Border CreateRobotControlPanel(KukaRobotInstance robot)
         {
+            // Çalışmayan kontroller kaldırıldı - Override slider'ları korundu
             var controlBorder = new Border
             {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 18, 18, 20)),
-                Padding = new Thickness(15, 12, 15, 12),
-                BorderThickness = new Thickness(0, 1, 0, 1),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 35, 35, 38))
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 28)),
+                Padding = new Thickness(20, 15, 20, 15),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51))
             };
 
-            var mainStack = new StackPanel { Spacing = 12 };
+            var mainStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 40 };
 
-            // ========== ROW 1: Ana Kontroller + Servo + Reçete ==========
-            var row1 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20 };
-
-            // Kontrol Butonları
-            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-            btnPanel.Children.Add(CreateControlButton("▶", "Programı Başlat (START)", "#4CAF50", 42, async () => await robot.StartProgramAsync()));
-            btnPanel.Children.Add(CreateControlButton("⏹", "Programı Durdur (STOP)", "#F44336", 42, async () => await robot.StopProgramAsync()));
-            btnPanel.Children.Add(CreateControlButton("⟳", "Hata Resetle (RESET)", "#FF9800", 42, async () => await robot.ResetErrorAsync()));
-            btnPanel.Children.Add(CreateControlButton("⌂", "HOME Pozisyonuna Git", "#2196F3", 42, async () => await robot.GoHomeAsync()));
-            row1.Children.Add(btnPanel);
-
-            // Ayırıcı
-            row1.Children.Add(new Border { Width = 1, Height = 28, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 50, 50, 55)), Margin = new Thickness(5, 0, 5, 0) });
-
-            // Servo Kontrolü
-            var servoPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
-            servoPanel.Children.Add(new TextBlock { Text = "⚡SERVO:", FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 188, 212)), VerticalAlignment = VerticalAlignment.Center });
-            servoPanel.Children.Add(CreateControlButton("ON", "Servo Aç", "#00BCD4", 38, async () => await robot.ServoOnAsync()));
-            servoPanel.Children.Add(CreateControlButton("OFF", "Servo Kapat", "#607D8B", 38, async () => await robot.ServoOffAsync()));
-            row1.Children.Add(servoPanel);
-
-            // Ayırıcı
-            row1.Children.Add(new Border { Width = 1, Height = 28, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 50, 50, 55)), Margin = new Thickness(5, 0, 5, 0) });
-
-            // Reçete Seçimi
-            var recipePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
-            recipePanel.Children.Add(new TextBlock { Text = "📋 Reçete:", FontSize = 11, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), VerticalAlignment = VerticalAlignment.Center });
-            var recipeCombo = new ComboBox { Width = 70, Height = 32, FontSize = 12, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)), Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) };
-            for (int i = 1; i <= 20; i++) recipeCombo.Items.Add(i);
-            recipeCombo.SelectedIndex = 0;
-            recipeCombo.SelectionChanged += async (s, e) => { if (recipeCombo.SelectedItem is int no) await robot.SelectRecipeAsync(no); };
-            recipePanel.Children.Add(recipeCombo);
-            row1.Children.Add(recipePanel);
-
-            mainStack.Children.Add(row1);
-
-            // ========== ROW 2: Override Sliders ==========
-            var row2 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 30 };
-
-            // PRO Override
-            var proPanel = CreateOverrideControl("⚡ PRO Override", "#00AAFF", robot.OverridePro, 
+            // PRO Override Slider
+            var proPanel = CreateOverrideControl("⚡ PRO Override", "#0078D4", robot.OverridePro,
                 async (val) => await robot.SetOverrideProAsync(val),
                 (tb) => robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.OverridePro)) this.DispatcherQueue.TryEnqueue(() => tb.Text = $"{robot.OverridePro}%"); });
-            row2.Children.Add(proPanel);
+            mainStack.Children.Add(proPanel);
 
-            // JOG Override
-            var jogPanel = CreateOverrideControl("🎮 JOG Override", "#FFAA00", robot.OverrideJog,
+            // JOG Override Slider
+            var jogPanel = CreateOverrideControl("🎮 JOG Override", "#FF9800", robot.OverrideJog,
                 async (val) => await robot.SetOverrideJogAsync(val),
                 (tb) => robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.OverrideJog)) this.DispatcherQueue.TryEnqueue(() => tb.Text = $"{robot.OverrideJog}%"); });
-            row2.Children.Add(jogPanel);
-
-            mainStack.Children.Add(row2);
-
-            // ========== ROW 3: JOG Kontrolleri ==========
-            var row3 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 15 };
-            row3.Children.Add(new TextBlock { Text = "🎮 JOG:", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 170, 0)), VerticalAlignment = VerticalAlignment.Center });
-
-            // Eksen JOG butonları
-            for (int axis = 1; axis <= 6; axis++)
-            {
-                int ax = axis;
-                var axisPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-                axisPanel.Children.Add(CreateJogButton("-", $"A{axis} Negatif Yönde Hareket", async () => await robot.JogAxisAsync(ax, -1)));
-                axisPanel.Children.Add(new TextBlock { Text = $"A{axis}", FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 200, 200, 200)), VerticalAlignment = VerticalAlignment.Center, Width = 24, TextAlignment = TextAlignment.Center });
-                axisPanel.Children.Add(CreateJogButton("+", $"A{axis} Pozitif Yönde Hareket", async () => await robot.JogAxisAsync(ax, 1)));
-                row3.Children.Add(axisPanel);
-            }
-
-            // JOG STOP
-            var jogStopBtn = new Button
-            {
-                Content = "⏹ STOP",
-                Height = 28,
-                Padding = new Thickness(12, 0, 12, 0),
-                FontSize = 10,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 244, 67, 54)),
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                CornerRadius = new CornerRadius(4),
-                Margin = new Thickness(10, 0, 0, 0)
-            };
-            jogStopBtn.Click += async (s, e) => await robot.StopJogAsync();
-            ToolTipService.SetToolTip(jogStopBtn, "Tüm JOG Hareketlerini Durdur");
-            row3.Children.Add(jogStopBtn);
-
-            mainStack.Children.Add(row3);
-
-            // ========== ROW 4: Durum Göstergeleri ==========
-            var row4 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-            row4.Children.Add(new TextBlock { Text = "📊 DURUM:", FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), VerticalAlignment = VerticalAlignment.Center });
-
-            // READY
-            var readyIndicator = CreateStatusIndicator("READY", "#4CAF50", robot.RobotReady);
-            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.RobotReady)) this.DispatcherQueue.TryEnqueue(() => UpdateStatusIndicator(readyIndicator, robot.RobotReady, "#4CAF50")); };
-            row4.Children.Add(readyIndicator);
-
-            // RUNNING
-            var runningIndicator = CreateStatusIndicator("RUNNING", "#2196F3", robot.RobotRunning);
-            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.RobotRunning)) this.DispatcherQueue.TryEnqueue(() => UpdateStatusIndicator(runningIndicator, robot.RobotRunning, "#2196F3")); };
-            row4.Children.Add(runningIndicator);
-
-            // ERROR
-            var errorIndicator = CreateStatusIndicator("ERROR", "#F44336", robot.RobotError);
-            robot.PropertyChanged += (s, e) => { if (e.PropertyName == nameof(robot.RobotError)) this.DispatcherQueue.TryEnqueue(() => UpdateStatusIndicator(errorIndicator, robot.RobotError, "#F44336")); };
-            row4.Children.Add(errorIndicator);
-
-            mainStack.Children.Add(row4);
+            mainStack.Children.Add(jogPanel);
 
             controlBorder.Child = mainStack;
             return controlBorder;
         }
 
-        private Button CreateControlButton(string icon, string tooltip, string color, int width, Func<System.Threading.Tasks.Task> action)
-        {
-            var c = ParseColor(color);
-            var btn = new Button
-            {
-                Content = icon,
-                Width = width,
-                Height = 32,
-                FontSize = 14,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                Background = new SolidColorBrush(c),
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(0)
-            };
-            ToolTipService.SetToolTip(btn, tooltip);
-            btn.Click += async (s, e) => await action();
-            return btn;
-        }
-
-        private Button CreateJogButton(string text, string tooltip, Func<System.Threading.Tasks.Task> action)
-        {
-            var btn = new Button
-            {
-                Content = text,
-                Width = 26,
-                Height = 26,
-                FontSize = 12,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 55, 55, 60)),
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(0)
-            };
-            ToolTipService.SetToolTip(btn, tooltip);
-            btn.Click += async (s, e) => await action();
-            return btn;
-        }
-
         private StackPanel CreateOverrideControl(string label, string color, int initialValue, Func<int, System.Threading.Tasks.Task> onChange, Action<TextBlock> bindValue)
         {
             var c = ParseColor(color);
-            var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
 
-            panel.Children.Add(new TextBlock { Text = label + ":", FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(c), VerticalAlignment = VerticalAlignment.Center, Width = 100 });
+            panel.Children.Add(new TextBlock 
+            { 
+                Text = label + ":", 
+                FontSize = 12, 
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, 
+                Foreground = new SolidColorBrush(c), 
+                VerticalAlignment = VerticalAlignment.Center, 
+                Width = 110 
+            });
 
-            var slider = new Slider { Width = 120, Minimum = 1, Maximum = 100, Value = initialValue, Height = 28 };
-            var valueText = new TextBlock { Text = $"{initialValue}%", Width = 40, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(c), VerticalAlignment = VerticalAlignment.Center };
+            var slider = new Slider { Width = 150, Minimum = 1, Maximum = 100, Value = initialValue, Height = 32 };
+            var valueText = new TextBlock 
+            { 
+                Text = $"{initialValue}%", 
+                Width = 50, 
+                FontSize = 14, 
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold, 
+                Foreground = new SolidColorBrush(c), 
+                VerticalAlignment = VerticalAlignment.Center 
+            };
 
             slider.ValueChanged += async (s, e) =>
             {
@@ -451,35 +334,6 @@ namespace App4.Pages
             panel.Children.Add(slider);
             panel.Children.Add(valueText);
             return panel;
-        }
-
-        private Border CreateStatusIndicator(string label, string color, bool isActive)
-        {
-            var c = ParseColor(color);
-            var border = new Border
-            {
-                Background = new SolidColorBrush(isActive ? c : Windows.UI.Color.FromArgb(255, 45, 45, 48)),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(10, 4, 10, 4)
-            };
-            border.Child = new TextBlock
-            {
-                Text = label,
-                FontSize = 10,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                Foreground = new SolidColorBrush(isActive ? Microsoft.UI.Colors.White : Windows.UI.Color.FromArgb(255, 80, 80, 80))
-            };
-            return border;
-        }
-
-        private void UpdateStatusIndicator(Border indicator, bool isActive, string color)
-        {
-            var c = ParseColor(color);
-            indicator.Background = new SolidColorBrush(isActive ? c : Windows.UI.Color.FromArgb(255, 45, 45, 48));
-            if (indicator.Child is TextBlock tb)
-            {
-                tb.Foreground = new SolidColorBrush(isActive ? Microsoft.UI.Colors.White : Windows.UI.Color.FromArgb(255, 80, 80, 80));
-            }
         }
 
         private Windows.UI.Color ParseColor(string hex)

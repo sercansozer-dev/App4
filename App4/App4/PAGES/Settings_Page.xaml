@@ -6,9 +6,170 @@
     xmlns:local="using:App4"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Background="#0D0D0D">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
+        <!-- HEADER -->
+        <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,1" BorderBrush="#333">
+            <Grid Padding="20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                    <Border Background="#9C27B0" CornerRadius="8" Width="40" Height="40">
+                        <FontIcon Glyph="&#xE713;" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Ayarlar" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Sistem Yapılandırma ve Tercihler" FontSize="11" Foreground="#888"/>
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Text="v1.0.0" Foreground="#666" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- İÇERİK -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Padding="20" Spacing="15" MaxWidth="800" HorizontalAlignment="Left">
+
+                <!-- PLC Bağlantı -->
+                <Border Background="#1E1E20" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="15">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Background="#4CAF50" CornerRadius="6" Width="36" Height="36">
+                                <FontIcon Glyph="&#xE968;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="PLC Bağlantı Ayarları" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#333"/>
+
+                        <Grid ColumnSpacing="20" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="250"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="IP Adresi" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtPlcIp" PlaceholderText="192.168.1.10" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtPlcPort" PlaceholderText="5000" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Protokol" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1" Background="#252528" Foreground="White" CornerRadius="4" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="Mitsubishi MC Protocol" IsSelected="True"/>
+                                <ComboBoxItem Content="Modbus TCP"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Button Content="Bağlantıyı Test Et" Background="#4CAF50" Foreground="White" Padding="15,10" CornerRadius="4"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Robot Ayarları -->
+                <Border Background="#1E1E20" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="15">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Background="#0078D4" CornerRadius="6" Width="36" Height="36">
+                                <FontIcon Glyph="&#xE99A;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Robot Ayarları" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#333"/>
+
+                        <Grid ColumnSpacing="20" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="250"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Varsayılan Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="7000" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Okuma Hızı (ms)" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="500" Value="100"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Kamera Ayarları -->
+                <Border Background="#1E1E20" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="15">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Background="#9C27B0" CornerRadius="6" Width="36" Height="36">
+                                <FontIcon Glyph="&#xE722;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Kamera Ayarları" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#333"/>
+
+                        <Grid ColumnSpacing="20" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="250"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Gocator IP" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" PlaceholderText="192.168.1.10" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Otomatik Bağlan" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <ToggleSwitch Grid.Row="1" Grid.Column="1" IsOn="True"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Genel Ayarlar -->
+                <Border Background="#1E1E20" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="15">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Background="#FF9800" CornerRadius="6" Width="36" Height="36">
+                                <FontIcon Glyph="&#xE770;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Genel Ayarlar" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#333"/>
+
+                        <Grid ColumnSpacing="20" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bildirimler" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <ToggleSwitch Grid.Row="0" Grid.Column="1" IsOn="True"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Log Kaydet" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <ToggleSwitch Grid.Row="1" Grid.Column="1" IsOn="True"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Kaydet Butonları -->
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button Content="Varsayılana Dön" Background="#333" Foreground="White" Padding="20,10" CornerRadius="4"/>
+                    <Button Content="Ayarları Kaydet" Background="#0078D4" Foreground="White" Padding="20,10" CornerRadius="4"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>
