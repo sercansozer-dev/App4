@@ -99,12 +99,11 @@ namespace App4
                 await Task.Delay(1000);
 
                 // --- 2. PLC BAĞLANTISINI GERÇEKLEŞTİR (Burada yapıyoruz) ---
-                SplashStatusText.Text = "PLC Bağlantısı kuruluyor (192.168.251.100)...";
-                SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange); // Dikkat çekmesi için renk değişimi
+                SplashStatusText.Text = $"PLC Bağlantısı kuruluyor ({GlobalData.Plc_IpAddress}:{GlobalData.Plc_Port})...";
+                SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
 
-                // GLOBAL SERVİS ÜZERİNDEN BAĞLAN (Bekleme süresi bağlantı hızına bağlı)
-                await Task.Delay(500); // Kullanıcı mesajı görebilsin
-                bool connected = await PlcService.Instance.ConnectAsync("192.168.251.100", 5007);
+                await Task.Delay(500);
+                bool connected = await PlcService.Instance.ConnectAsync(GlobalData.Plc_IpAddress, GlobalData.Plc_Port);
 
                 if (connected)
                 {
@@ -128,6 +127,9 @@ namespace App4
                 SplashStatusText.Text = "KUKA Robot arayüzü başlatılıyor...";
                 App4.Utilities.KukaService.Instance.UiDispatcher = this.DispatcherQueue;
                 App4.Utilities.KukaService.Instance.Start();
+
+                // Multi-Robot Manager'ı başlat (Robotlar otomatik bağlanmaya başlar)
+                KukaRobotManager.Instance.Initialize(this.DispatcherQueue);
                 await Task.Delay(1000);
 
                 SplashStatusText.Text = "Arayüz hazırlanıyor...";
@@ -293,24 +295,73 @@ namespace App4
             _triggerMonitorTimer.Interval = TimeSpan.FromMilliseconds(500);
             _triggerMonitorTimer.Tick += (s, e) =>
             {
-                if (GlobalData.IsProcessRunning) return;
-
-                string tagName = GlobalData.Auto_TriggerTag;
-                if (string.IsNullOrEmpty(tagName)) return;
-
-                var v = PlcService.Instance?.InputVariables.FirstOrDefault(x => x.Name == tagName) ??
-                        PlcService.Instance?.OutputVariables.FirstOrDefault(x => x.Name == tagName) ??
-                        GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
-
-                if (v != null)
+                // --- Trigger Monitor ---
+                if (!GlobalData.IsProcessRunning)
                 {
-                    string val = v.Value ?? "0";
-                    bool isHigh = (val == "1" || val?.ToLower() == "true");
-                    // Kullanıcı 0 veya 1 olduğunu görmek istiyor
-                    GlobalData.ProcessStatus = isHigh ? "HAZIR (Sinyal: 1)" : "HAZIR (Sinyal: 0)";
+                    string tagName = GlobalData.Auto_TriggerTag;
+                    if (!string.IsNullOrEmpty(tagName))
+                    {
+                        var v = PlcService.Instance?.InputVariables.FirstOrDefault(x => x.Name == tagName) ??
+                                PlcService.Instance?.OutputVariables.FirstOrDefault(x => x.Name == tagName) ??
+                                GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
+
+                        if (v != null)
+                        {
+                            string val = v.Value ?? "0";
+                            bool isHigh = (val == "1" || val?.ToLower() == "true");
+                            GlobalData.ProcessStatus = isHigh ? "HAZIR (Sinyal: 1)" : "HAZIR (Sinyal: 0)";
+                        }
+                    }
                 }
+
+                // --- Sistem Durumu Paneli Güncelle ---
+                UpdateSystemStatusPanel();
             };
             _triggerMonitorTimer.Start();
+        }
+
+        private void UpdateSystemStatusPanel()
+        {
+            try
+            {
+                // Global durum güncelle (tek noktadan)
+                GlobalData.RefreshEquipmentStatus();
+
+                // PLC Durumu
+                bool plcConnected = GlobalData.PlcConnected;
+                PlcStatusLed.Fill = new SolidColorBrush(plcConnected ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
+                PlcStatusText.Text = plcConnected ? "PLC Bağlı" : "PLC Bağlantısız";
+                PlcStatusDetail.Text = plcConnected 
+                    ? $"{PlcService.Instance?.InputVariables?.Count ?? 0}I/{PlcService.Instance?.OutputVariables?.Count ?? 0}O" 
+                    : "Offline";
+
+                // Robot Durumu (KukaRobotManager)
+                int total = GlobalData.RobotTotalCount;
+                int connected = GlobalData.RobotConnectedCount;
+                if (total > 0)
+                {
+                    bool allConnected = connected == total;
+                    bool anyConnected = connected > 0;
+                    RobotStatusLed.Fill = new SolidColorBrush(
+                        allConnected ? Microsoft.UI.Colors.LimeGreen :
+                        anyConnected ? Microsoft.UI.Colors.Orange :
+                        Microsoft.UI.Colors.Red);
+                    RobotStatusText.Text = $"Robot ({connected}/{total})";
+                    RobotStatusDetail.Text = allConnected ? "Online" : anyConnected ? "Kısmi" : "Offline";
+                }
+                else
+                {
+                    RobotStatusLed.Fill = new SolidColorBrush(Microsoft.UI.Colors.Gray);
+                    RobotStatusText.Text = "Robot";
+                    RobotStatusDetail.Text = "Yok";
+                }
+
+                // Gocator Durumu
+                GocatorStatusLed.Fill = new SolidColorBrush(
+                    GlobalData.GocatorOnline ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Gray);
+                GocatorStatusText.Text = GlobalData.GocatorOnline ? "Gocator 3D" : "Gocator 3D";
+            }
+            catch { }
         }
 
         private void ProcessLogin()

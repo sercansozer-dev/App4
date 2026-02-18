@@ -31,6 +31,7 @@ namespace App4.Utilities
         private static readonly string _measurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_Measurements.json");
         private static readonly string _transferRowsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Camera_PlcTransfer.json");
         private static readonly string _systemChecksFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "System_Checks.json");
+        private static readonly string _robotSliderMappingFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Slider_Mapping.json");
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
@@ -54,6 +55,106 @@ namespace App4.Utilities
         public static ObservableCollection<PlcVariable> Station3Outputs { get; private set; } = new();
         public static ObservableCollection<PlcVariable> RobotInputVars { get; private set; } = new();
         public static ObservableCollection<PlcVariable> RobotOutputVars { get; private set; } = new();
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ROBOT SLİDER SİNYAL EŞLEŞTİRME - Robottan gelen verilerle görsel eşleştirme
+        // ═══════════════════════════════════════════════════════════════════════════
+        public static RobotSliderSignalMapping Robot1SliderMapping { get; private set; } = new("Robot 1");
+        public static RobotSliderSignalMapping Robot2SliderMapping { get; private set; } = new("Robot 2");
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SLİDER POZİSYON EŞLEŞTİRME (Basitleştirilmiş)
+        // Hangi robotun hangi sinyali → Slider görseli pozisyonunu belirler
+        // ═══════════════════════════════════════════════════════════════════════════
+        private static int _sliderSourceRobotIndex = 0; // 0 = Robot 1, 1 = Robot 2
+        public static int SliderSourceRobotIndex
+        {
+            get => _sliderSourceRobotIndex;
+            set { if (_sliderSourceRobotIndex != value) { _sliderSourceRobotIndex = value; SaveRobotSliderMappings(); } }
+        }
+
+        // İstasyon sinyali: Robottan 1, 2, 3 değeri gelir → görsel o istasyona gider
+        private static string _sliderSourceSignalName = "E1";
+        public static string SliderSourceSignalName
+        {
+            get => _sliderSourceSignalName;
+            set { if (_sliderSourceSignalName != value) { _sliderSourceSignalName = value; SaveRobotSliderMappings(); } }
+        }
+
+        // Aktüel pozisyon sinyali: Gerçek mm değerini gösterir (görseli etkilemez)
+        private static string _sliderActualPosSignalName = "E1";
+        public static string SliderActualPosSignalName
+        {
+            get => _sliderActualPosSignalName;
+            set { if (_sliderActualPosSignalName != value) { _sliderActualPosSignalName = value; SaveRobotSliderMappings(); } }
+        }
+
+        /// <summary>
+        /// İstasyon numarasını okur (1, 2, 3 veya 4=Bakım). Görsel pozisyonlama için.
+        /// </summary>
+        public static int GetSliderStationNumber()
+        {
+            double val = GetSliderPositionValue();
+            int station = (int)Math.Round(val);
+            if (station == 4) return 4; // Bakım İstasyonu
+            return Math.Clamp(station, 1, 3);
+        }
+
+        /// <summary>
+        /// İstasyon sinyalinin ham değerini okur (seçilen robotun seçilen sinyalinden)
+        /// </summary>
+        public static double GetSliderPositionValue()
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null || robots.Count <= SliderSourceRobotIndex) return 0;
+            var robot = robots[SliderSourceRobotIndex];
+            return GetRobotSignalValue(robot, SliderSourceSignalName);
+        }
+
+        /// <summary>
+        /// Aktüel slider pozisyonunu mm olarak okur (görseli etkilemez)
+        /// </summary>
+        public static double GetSliderActualPosition()
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null || robots.Count <= SliderSourceRobotIndex) return 0;
+            var robot = robots[SliderSourceRobotIndex];
+            return GetRobotSignalValue(robot, SliderActualPosSignalName);
+        }
+
+        private static double GetRobotSignalValue(KukaRobotInstance robot, string signalName)
+        {
+            if (robot == null || string.IsNullOrEmpty(signalName)) return 0;
+
+            // 1. Sabit property'ler
+            var val = signalName switch
+            {
+                "E1" => robot.E1, "E2" => robot.E2, "E3" => robot.E3,
+                "E4" => robot.E4, "E5" => robot.E5, "E6" => robot.E6,
+                "PosX" => robot.PosX, "PosY" => robot.PosY, "PosZ" => robot.PosZ,
+                "A1" => robot.A1, "A2" => robot.A2, "A3" => robot.A3,
+                "A4" => robot.A4, "A5" => robot.A5, "A6" => robot.A6,
+                "OverridePro" => robot.OverridePro,
+                "OverrideJog" => robot.OverrideJog,
+                "OperationMode" => robot.OperationMode,
+                "ProgramState" => robot.ProgramState,
+                "ToolNo" => robot.ToolNo,
+                "BaseNo" => robot.BaseNo,
+                _ => double.NaN
+            };
+            if (!double.IsNaN(val)) return val;
+
+            // 2. Robot InputVars/OutputVars'dan dinamik sinyal oku
+            var inputVar = robot.InputVars?.FirstOrDefault(v => v.Name == signalName);
+            if (inputVar?.CurrentValue != null && double.TryParse(inputVar.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double iv))
+                return iv;
+
+            var outputVar = robot.OutputVars?.FirstOrDefault(v => v.Name == signalName);
+            if (outputVar?.CurrentValue != null && double.TryParse(outputVar.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ov))
+                return ov;
+
+            return 0;
+        }
 
         private static bool _isInitialized = false;
 
@@ -133,15 +234,117 @@ namespace App4.Utilities
             }
         }
 
+        // --- PLC BAĞLANTI AYARLARI ---
+        private static string _plcIpAddress = "192.168.251.100";
+        public static string Plc_IpAddress
+        {
+            get => _plcIpAddress;
+            set
+            {
+                if (_plcIpAddress == value) return;
+                _plcIpAddress = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        private static int _plcPort = 5007;
+        public static int Plc_Port
+        {
+            get => _plcPort;
+            set
+            {
+                if (_plcPort == value) return;
+                _plcPort = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- GOCATOR BAĞLANTI AYARLARI ---
+        private static string _gocatorIpAddress = "192.168.251.30";
+        public static string Gocator_IpAddress
+        {
+            get => _gocatorIpAddress;
+            set
+            {
+                if (_gocatorIpAddress == value) return;
+                _gocatorIpAddress = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        private static int _gocatorPort = 3600;
+        public static int Gocator_Port
+        {
+            get => _gocatorPort;
+            set
+            {
+                if (_gocatorPort == value) return;
+                _gocatorPort = value;
+                SaveAutomationSettings();
+            }
+        }
+
         // EVENTLER VE DURUM
         public static event Action<string> OnAutomationLog;
         public static event Action OnAutomationStatusChanged;
+        public static event Action OnEquipmentStatusChanged;
 
         private static string _processStatus = "HAZIR";
         public static string ProcessStatus { get => _processStatus; set { if (_processStatus != value) { _processStatus = value; OnAutomationStatusChanged?.Invoke(); } } }
 
         private static bool _isProcessRunning = false;
         public static bool IsProcessRunning { get => _isProcessRunning; set { if (_isProcessRunning != value) { _isProcessRunning = value; OnAutomationStatusChanged?.Invoke(); } } }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GLOBAL EKİPMAN DURUMLARI - Tüm uygulamadan erişilebilir
+        // ═══════════════════════════════════════════════════════════════════════════
+        private static bool _plcConnected;
+        public static bool PlcConnected
+        {
+            get => _plcConnected;
+            set { if (_plcConnected != value) { _plcConnected = value; OnEquipmentStatusChanged?.Invoke(); } }
+        }
+
+        private static bool _gocatorOnline;
+        public static bool GocatorOnline
+        {
+            get => _gocatorOnline;
+            set { if (_gocatorOnline != value) { _gocatorOnline = value; OnEquipmentStatusChanged?.Invoke(); } }
+        }
+
+        private static int _robotConnectedCount;
+        public static int RobotConnectedCount
+        {
+            get => _robotConnectedCount;
+            set { if (_robotConnectedCount != value) { _robotConnectedCount = value; OnEquipmentStatusChanged?.Invoke(); } }
+        }
+
+        private static int _robotTotalCount;
+        public static int RobotTotalCount
+        {
+            get => _robotTotalCount;
+            set { if (_robotTotalCount != value) { _robotTotalCount = value; OnEquipmentStatusChanged?.Invoke(); } }
+        }
+
+        /// <summary>
+        /// Tüm ekipman durumlarını günceller. Timer'dan veya bağlantı değişikliklerinde çağrılır.
+        /// </summary>
+        public static void RefreshEquipmentStatus()
+        {
+            // PLC
+            PlcConnected = PlcService.Instance?.IsConnected ?? false;
+
+            // Robot (KukaRobotManager)
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                RobotTotalCount = robots.Count;
+                RobotConnectedCount = robots.Count(r => r.IsConnected);
+            }
+
+            // Gocator - Son başarılı işleme göre kontrol
+            // (Gocator kalıcı bağlantı tutmuyor, her işlemde bağlanıp kapanıyor)
+        }
 
         // --- BAŞLATMA ---
         public static void Initialize()
@@ -154,7 +357,8 @@ namespace App4.Utilities
             LoadPlcVariableTagsFromFile();
             LoadSystemChecks();
             LoadMeasurements();
-            LoadTransferRows(); // <-- Burası eklendi
+            LoadTransferRows();
+            LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
 
             // Modelleri Yükle
             RefreshAvailableModels();
@@ -162,7 +366,89 @@ namespace App4.Utilities
             LoadAutomationSettings();
             StartAutomationListener();
             _isInitialized = true;
-            
+
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ROBOT SLİDER EŞLEŞTİRME KAYIT/YÜKLEME
+        // ═══════════════════════════════════════════════════════════════════════════
+        public static void SaveRobotSliderMappings()
+        {
+            try
+            {
+                var data = new
+                {
+                    Robot1 = Robot1SliderMapping.ToSaveData(),
+                    Robot2 = Robot2SliderMapping.ToSaveData(),
+                    SliderSourceRobotIndex = SliderSourceRobotIndex,
+                    SliderSourceSignalName = SliderSourceSignalName ?? "E1",
+                    SliderActualPosSignalName = SliderActualPosSignalName ?? "E1"
+                };
+                string dir = Path.GetDirectoryName(_robotSliderMappingFilePath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(_robotSliderMappingFilePath, JsonConvert.SerializeObject(data, Formatting.Indented));
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"SaveRobotSliderMappings Error: {ex.Message}"); }
+        }
+
+        public static void LoadRobotSliderMappings()
+        {
+            try
+            {
+                if (!File.Exists(_robotSliderMappingFilePath)) return;
+                var json = File.ReadAllText(_robotSliderMappingFilePath);
+                var jObj = Newtonsoft.Json.Linq.JObject.Parse(json);
+
+                if (jObj["Robot1"] != null)
+                    Robot1SliderMapping.LoadFromData(jObj["Robot1"].ToObject<RobotSliderMappingData>());
+                if (jObj["Robot2"] != null)
+                    Robot2SliderMapping.LoadFromData(jObj["Robot2"].ToObject<RobotSliderMappingData>());
+
+                if (jObj["SliderSourceRobotIndex"] != null)
+                    _sliderSourceRobotIndex = jObj["SliderSourceRobotIndex"].Value<int>();
+                if (jObj["SliderSourceSignalName"] != null)
+                    _sliderSourceSignalName = jObj["SliderSourceSignalName"].Value<string>() ?? "E1";
+                if (jObj["SliderActualPosSignalName"] != null)
+                    _sliderActualPosSignalName = jObj["SliderActualPosSignalName"].Value<string>() ?? "E1";
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"LoadRobotSliderMappings Error: {ex.Message}"); }
+        }
+
+        /// <summary>
+        /// Robotun Input/Output sinyallerinden seçilebilir liste döndürür
+        /// </summary>
+        public static List<string> GetAvailableRobotSignals(int robotIndex = 0)
+        {
+            var signals = new List<string> { "" }; // Boş seçenek
+
+            // Robot property'leri (sabit sinyaller)
+            signals.AddRange(new[] {
+                "E1", "E2", "E3", "E4", "E5", "E6",
+                "PosX", "PosY", "PosZ", "PosA", "PosB", "PosC",
+                "A1", "A2", "A3", "A4", "A5", "A6",
+                "OverridePro", "OverrideJog",
+                "OperationMode", "ProgramState",
+                "ToolNo", "BaseNo"
+            });
+
+            // Robot'un InputVars ve OutputVars'dan dinamik sinyaller
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots != null && robots.Count > robotIndex)
+            {
+                var robot = robots[robotIndex];
+                foreach (var v in robot.InputVars)
+                {
+                    if (!string.IsNullOrEmpty(v.Name) && !signals.Contains(v.Name))
+                        signals.Add(v.Name);
+                }
+                foreach (var v in robot.OutputVars)
+                {
+                    if (!string.IsNullOrEmpty(v.Name) && !signals.Contains(v.Name))
+                        signals.Add(v.Name);
+                }
+            }
+
+            return signals;
         }
 
         public static void RefreshAvailableModels()
@@ -318,9 +604,35 @@ namespace App4.Utilities
                 if (val is int i) _robotPort = i;
                 else if (val is string s && int.TryParse(s, out int p)) _robotPort = p;
             }
-            
+
+            // PLC Ayarları
+            if (settings.ContainsKey("Plc_IpAddress"))
+            {
+                var val = settings["Plc_IpAddress"] as string;
+                if (!string.IsNullOrEmpty(val)) _plcIpAddress = val;
+            }
+            if (settings.ContainsKey("Plc_Port"))
+            {
+                var val = settings["Plc_Port"];
+                if (val is int pi) _plcPort = pi;
+                else if (val is string ps && int.TryParse(ps, out int pp)) _plcPort = pp;
+            }
+
+            // Gocator Ayarları
+            if (settings.ContainsKey("Gocator_IpAddress"))
+            {
+                var val = settings["Gocator_IpAddress"] as string;
+                if (!string.IsNullOrEmpty(val)) _gocatorIpAddress = val;
+            }
+            if (settings.ContainsKey("Gocator_Port"))
+            {
+                var val = settings["Gocator_Port"];
+                if (val is int gi) _gocatorPort = gi;
+                else if (val is string gs && int.TryParse(gs, out int gp)) _gocatorPort = gp;
+            }
+
             // Debug log
-            System.Diagnostics.Debug.WriteLine($"[GlobalData] Otomasyon ve Robot ayarları yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}");
+            System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}");
         }
         public static void SaveAutomationSettings() 
         { 
@@ -329,9 +641,15 @@ namespace App4.Utilities
             settings["Auto_IndexTag"] = Auto_IndexTag ?? ""; 
             settings["Auto_TriggerTag"] = Auto_TriggerTag ?? "";
             settings["MeasurementOutputTag"] = MeasurementOutputTag ?? "";
-            
+
             settings["Robot_IpAddress"] = Robot_IpAddress;
             settings["Robot_Port"] = Robot_Port;
+
+            settings["Plc_IpAddress"] = Plc_IpAddress;
+            settings["Plc_Port"] = Plc_Port;
+
+            settings["Gocator_IpAddress"] = Gocator_IpAddress;
+            settings["Gocator_Port"] = Gocator_Port;
 
             StartAutomationListener(); 
         }
@@ -763,6 +1081,137 @@ namespace App4.Utilities
         }
     } // GlobalData Class Sonu
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AYAR YEDEKLEME/İÇE AKTARMA SİSTEMİ
+    // ═══════════════════════════════════════════════════════════════════════════
+    public static class ConfigBackupManager
+    {
+        private static readonly string _appDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4");
+
+        /// <summary>
+        /// Tüm ayar dosyalarını tek bir ZIP dosyasına yedekler.
+        /// </summary>
+        public static async Task<string> ExportConfigAsync(string destinationPath)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Geçici klasör oluştur
+                    string tempDir = Path.Combine(Path.GetTempPath(), $"App4_ConfigExport_{Guid.NewGuid():N}");
+                    Directory.CreateDirectory(tempDir);
+
+                    // 1. AppData JSON dosyalarını kopyala
+                    if (Directory.Exists(_appDataFolder))
+                    {
+                        foreach (var file in Directory.GetFiles(_appDataFolder, "*.json"))
+                            File.Copy(file, Path.Combine(tempDir, Path.GetFileName(file)), true);
+                    }
+
+                    // 2. LocalSettings (Otomasyon, Robot ayarları) — JSON olarak dışa aktar
+                    var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+                    var settingsDict = new Dictionary<string, object>();
+                    foreach (var key in settings.Keys)
+                    {
+                        var val = settings[key];
+                        if (val != null)
+                            settingsDict[key] = val;
+                    }
+                    string settingsJson = System.Text.Json.JsonSerializer.Serialize(settingsDict, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(Path.Combine(tempDir, "_LocalSettings.json"), settingsJson);
+
+                    // 3. PLC Service ayarlarını kopyala
+                    string plcVarsPath = Path.Combine(_appDataFolder, "PlcService_Variables.json");
+                    if (File.Exists(plcVarsPath))
+                        File.Copy(plcVarsPath, Path.Combine(tempDir, "PlcService_Variables.json"), true);
+
+                    // ZIP oluştur
+                    if (File.Exists(destinationPath)) File.Delete(destinationPath);
+                    System.IO.Compression.ZipFile.CreateFromDirectory(tempDir, destinationPath);
+
+                    // Geçici klasörü temizle
+                    Directory.Delete(tempDir, true);
+
+                    return destinationPath;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Config Export Error: {ex.Message}");
+                    return null;
+                }
+            });
+        }
+
+        /// <summary>
+        /// ZIP dosyasından ayarları içe aktarır.
+        /// </summary>
+        public static async Task<bool> ImportConfigAsync(string zipFilePath)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    string tempDir = Path.Combine(Path.GetTempPath(), $"App4_ConfigImport_{Guid.NewGuid():N}");
+                    System.IO.Compression.ZipFile.ExtractToDirectory(zipFilePath, tempDir, true);
+
+                    // 1. JSON dosyalarını AppData'ya kopyala
+                    if (!Directory.Exists(_appDataFolder))
+                        Directory.CreateDirectory(_appDataFolder);
+
+                    foreach (var file in Directory.GetFiles(tempDir, "*.json"))
+                    {
+                        string fileName = Path.GetFileName(file);
+                        if (fileName == "_LocalSettings.json") continue; // Ayrı işlenecek
+                        File.Copy(file, Path.Combine(_appDataFolder, fileName), true);
+                    }
+
+                    // 2. LocalSettings'i geri yükle
+                    string localSettingsPath = Path.Combine(tempDir, "_LocalSettings.json");
+                    if (File.Exists(localSettingsPath))
+                    {
+                        var json = File.ReadAllText(localSettingsPath);
+                        var settingsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json);
+                        if (settingsDict != null)
+                        {
+                            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+                            foreach (var kvp in settingsDict)
+                            {
+                                switch (kvp.Value.ValueKind)
+                                {
+                                    case System.Text.Json.JsonValueKind.String:
+                                        settings[kvp.Key] = kvp.Value.GetString();
+                                        break;
+                                    case System.Text.Json.JsonValueKind.Number:
+                                        if (kvp.Value.TryGetInt32(out int intVal))
+                                            settings[kvp.Key] = intVal;
+                                        else
+                                            settings[kvp.Key] = kvp.Value.GetDouble();
+                                        break;
+                                    case System.Text.Json.JsonValueKind.True:
+                                        settings[kvp.Key] = true;
+                                        break;
+                                    case System.Text.Json.JsonValueKind.False:
+                                        settings[kvp.Key] = false;
+                                        break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Geçici klasörü temizle
+                    Directory.Delete(tempDir, true);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Config Import Error: {ex.Message}");
+                    return false;
+                }
+            });
+        }
+    }
+
     // PLC Transfer Item (GlobalData namespace'i içine ama sınıfın dışına)
     public class PlcTransferItem : INotifyPropertyChanged
     {
@@ -802,5 +1251,177 @@ namespace App4.Utilities
 
         [Newtonsoft.Json.JsonIgnore]
         public SolidColorBrush BackgroundColor { get; set; }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ROBOT SLİDER SİNYAL EŞLEŞTİRME SINIFI
+    // Robottan gelen sinyalleri amaçlarına göre eşleştirme
+    // ═══════════════════════════════════════════════════════════════════════════
+    public class RobotSliderSignalMapping : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        public string RobotName { get; set; }
+
+        public RobotSliderSignalMapping(string robotName)
+        {
+            RobotName = robotName;
+        }
+
+        // ═══ İSTASYON DURUMU ═══
+        // Robotun şu an hangi istasyonda olduğunu belirten int değer (1, 2, 3)
+        private string _stationNumberSignal = ""; // Robot sinyali adı (örn: "Station_No" veya kullanıcı tanımlı)
+        public string StationNumberSignal
+        {
+            get => _stationNumberSignal;
+            set { if (_stationNumberSignal != value) { _stationNumberSignal = value; OnPropertyChanged(); } }
+        }
+
+        private int _currentStationNumber = 0; // Güncel değer (1, 2, 3)
+        public int CurrentStationNumber
+        {
+            get => _currentStationNumber;
+            set { if (_currentStationNumber != value) { _currentStationNumber = value; OnPropertyChanged(); OnPropertyChanged(nameof(CurrentStationText)); } }
+        }
+
+        public string CurrentStationText => CurrentStationNumber > 0 ? $"İSTASYON {CurrentStationNumber}" : "BELİRSİZ";
+
+        // ═══ SLİDER POZİSYONU ═══
+        // Slider pozisyonunu mm cinsinden veren sinyal
+        private string _sliderPositionSignal = "E1"; // Varsayılan: E1 harici ekseni
+        public string SliderPositionSignal
+        {
+            get => _sliderPositionSignal;
+            set { if (_sliderPositionSignal != value) { _sliderPositionSignal = value; OnPropertyChanged(); } }
+        }
+
+        private double _currentSliderPosition = 0; // mm cinsinden
+        public double CurrentSliderPosition
+        {
+            get => _currentSliderPosition;
+            set { if (Math.Abs(_currentSliderPosition - value) > 0.1) { _currentSliderPosition = value; OnPropertyChanged(); OnPropertyChanged(nameof(SliderPositionPercent)); } }
+        }
+
+        // İstasyon pozisyonları (mm) - Slider üzerindeki sabit konumlar
+        public double Station1Position { get; set; } = 0;
+        public double Station2Position { get; set; } = 1500;
+        public double Station3Position { get; set; } = 3000;
+
+        public double SliderPositionPercent
+        {
+            get
+            {
+                if (Station3Position <= Station1Position) return 0;
+                double percent = ((CurrentSliderPosition - Station1Position) / (Station3Position - Station1Position)) * 100;
+                return Math.Clamp(percent, 0, 100);
+            }
+        }
+
+        // ═══ ROBOT DURUMU ═══
+        private string _robotStatusSignal = ""; // Robot durum sinyali (Ready, Running, Error vb.)
+        public string RobotStatusSignal
+        {
+            get => _robotStatusSignal;
+            set { if (_robotStatusSignal != value) { _robotStatusSignal = value; OnPropertyChanged(); } }
+        }
+
+        private int _currentRobotStatus = 0;
+        public int CurrentRobotStatus
+        {
+            get => _currentRobotStatus;
+            set { if (_currentRobotStatus != value) { _currentRobotStatus = value; OnPropertyChanged(); OnPropertyChanged(nameof(RobotStatusText)); } }
+        }
+
+        public string RobotStatusText => CurrentRobotStatus switch
+        {
+            0 => "KAPALI",
+            1 => "HAZIR",
+            2 => "ÇALIŞIYOR",
+            3 => "HATA",
+            4 => "DURAKLATILDI",
+            _ => $"DURUM {CurrentRobotStatus}"
+        };
+
+        // ═══ OVERRİDE ═══
+        private string _overrideSignal = "OverridePro";
+        public string OverrideSignal
+        {
+            get => _overrideSignal;
+            set { if (_overrideSignal != value) { _overrideSignal = value; OnPropertyChanged(); } }
+        }
+
+        private int _currentOverride = 100;
+        public int CurrentOverride
+        {
+            get => _currentOverride;
+            set { if (_currentOverride != value) { _currentOverride = value; OnPropertyChanged(); } }
+        }
+
+        // ═══ OPERASYON MODU ═══
+        private string _operationModeSignal = "OperationMode";
+        public string OperationModeSignal
+        {
+            get => _operationModeSignal;
+            set { if (_operationModeSignal != value) { _operationModeSignal = value; OnPropertyChanged(); } }
+        }
+
+        private int _currentOperationMode = 0;
+        public int CurrentOperationMode
+        {
+            get => _currentOperationMode;
+            set { if (_currentOperationMode != value) { _currentOperationMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(OperationModeText)); } }
+        }
+
+        public string OperationModeText => CurrentOperationMode switch { 1 => "T1", 2 => "T2", 3 => "AUT", 4 => "EXT", _ => "?" };
+
+        // ═══ BAĞLANTI DURUMU ═══
+        private bool _isConnected = false;
+        public bool IsConnected
+        {
+            get => _isConnected;
+            set { if (_isConnected != value) { _isConnected = value; OnPropertyChanged(); OnPropertyChanged(nameof(ConnectionStatusText)); } }
+        }
+
+        public string ConnectionStatusText => IsConnected ? "BAĞLI" : "BAĞLI DEĞİL";
+
+        // ═══ KAYIT/YÜKLEME İÇİN SERİALİZE EDİLEBİLİR VERİLER ═══
+        public RobotSliderMappingData ToSaveData() => new()
+        {
+            StationNumberSignal = StationNumberSignal,
+            SliderPositionSignal = SliderPositionSignal,
+            OverrideSignal = OverrideSignal,
+            OperationModeSignal = OperationModeSignal,
+            RobotStatusSignal = RobotStatusSignal,
+            Station1Position = Station1Position,
+            Station2Position = Station2Position,
+            Station3Position = Station3Position
+        };
+
+        public void LoadFromData(RobotSliderMappingData data)
+        {
+            if (data == null) return;
+            StationNumberSignal = data.StationNumberSignal ?? "";
+            SliderPositionSignal = data.SliderPositionSignal ?? "E1";
+            OverrideSignal = data.OverrideSignal ?? "OverridePro";
+            OperationModeSignal = data.OperationModeSignal ?? "OperationMode";
+            RobotStatusSignal = data.RobotStatusSignal ?? "";
+            Station1Position = data.Station1Position;
+            Station2Position = data.Station2Position;
+            Station3Position = data.Station3Position;
+        }
+    }
+
+    // Kayıt için veri sınıfı
+    public class RobotSliderMappingData
+    {
+        public string StationNumberSignal { get; set; }
+        public string SliderPositionSignal { get; set; }
+        public string OverrideSignal { get; set; }
+        public string OperationModeSignal { get; set; }
+        public string RobotStatusSignal { get; set; }
+        public double Station1Position { get; set; }
+        public double Station2Position { get; set; }
+        public double Station3Position { get; set; }
     }
 }

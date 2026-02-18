@@ -208,6 +208,7 @@ namespace App4.Utilities
                 if (result.IsSuccess)
                 {
                     IsConnected = true;
+                    GlobalData.PlcConnected = true;
                     // Okuma hızı 50ms yapıldı (Limiter ile güvenli hız)
                     _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 50);
                     return true;
@@ -225,6 +226,7 @@ namespace App4.Utilities
             _refreshTimer?.Dispose();
             _melsecNet?.ConnectClose();
             IsConnected = false;
+            GlobalData.PlcConnected = false;
         }
 
         // --- GÜÇLENDİRİLMİŞ OKUMA DÖNGÜSÜ ---

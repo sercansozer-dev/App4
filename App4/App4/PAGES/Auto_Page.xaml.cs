@@ -152,6 +152,252 @@ namespace App4
             }
             KnownRfids.CollectionChanged -= KnownRfids_CollectionChanged;
             KnownRfids.CollectionChanged += KnownRfids_CollectionChanged;
+
+            // 6. Robot Slider Pozisyonlarını ve Sinyal Panellerini Bağla
+            InitializeRobotSliderPositions();
+            InitializeRobotSignalPanels();
+        }
+
+        private void InitializeRobotSliderPositions()
+        {
+            var sliderCanvas = this.FindName("SliderCanvas") as Canvas;
+            var robotPlatform = this.FindName("RobotPlatform") as Grid;
+            var sliderActualPosText = this.FindName("SliderActualPosText") as TextBlock;
+            var sliderStationText = this.FindName("SliderStationText") as TextBlock;
+
+            if (sliderCanvas == null || robotPlatform == null) return;
+
+            var robots = KukaRobotManager.Instance.Robots;
+
+            // İstasyon sinyali (1,2,3,4) → görseli o istasyonun önüne taşı
+            void RefreshSlider()
+            {
+                int station = GlobalData.GetSliderStationNumber();
+                int colIndex = StationToColumnIndex(station);
+                UpdatePlatformToStation(colIndex);
+
+                // Başlık bilgilerini güncelle
+                if (sliderStationText != null)
+                    sliderStationText.Text = station == 4 ? "BAKIM" : $"İSTASYON {station}";
+
+                // Aktüel pozisyon (mm - görseli etkilemez)
+                double actualPos = GlobalData.GetSliderActualPosition();
+                if (sliderActualPosText != null) sliderActualPosText.Text = $"{actualPos:F1} mm";
+            }
+
+            RefreshSlider();
+
+            foreach (var robot in robots)
+            {
+                robot.PropertyChanged += (s, e) =>
+                {
+                    this.DispatcherQueue.TryEnqueue(RefreshSlider);
+                };
+            }
+
+            sliderCanvas.SizeChanged += (s, e) =>
+            {
+                if (sliderCanvas.ActualWidth > 0) RefreshSlider();
+            };
+        }
+
+        /// <summary>
+        /// İstasyon numarasını 4 sütunlu Grid'deki sütun indeksine çevirir
+        /// Grid: [BAKIM(0)] [İST1(1)] [İST2(2)] [İST3(3)]
+        /// </summary>
+        private static int StationToColumnIndex(int station)
+        {
+            return station switch
+            {
+                4 => 0,  // Bakım İstasyonu
+                1 => 1,  // İstasyon 1
+                2 => 2,  // İstasyon 2
+                3 => 3,  // İstasyon 3
+                _ => 0
+            };
+        }
+
+        private void InitializeRobotSignalPanels()
+        {
+            var robots = KukaRobotManager.Instance.Robots;
+
+            // ═══ ROBOT SEÇİM COMBOBOX'I ═══
+            var robotCombo = this.FindName("SliderRobotCombo") as ComboBox;
+            var signalCombo = this.FindName("SliderSignalCombo") as ComboBox;
+            var actualPosCombo = this.FindName("SliderActualPosCombo") as ComboBox;
+            var liveValueText = this.FindName("SliderLiveValue") as TextBlock;
+            var actualPosLiveText = this.FindName("SliderActualPosLive") as TextBlock;
+
+            // Robot isimlerini doldur
+            if (robotCombo != null)
+            {
+                var robotNames = new List<string>();
+                for (int i = 0; i < robots.Count; i++)
+                    robotNames.Add(robots[i].Name ?? $"Robot {i + 1}");
+                robotCombo.ItemsSource = robotNames;
+
+                if (GlobalData.SliderSourceRobotIndex < robotNames.Count)
+                    robotCombo.SelectedIndex = GlobalData.SliderSourceRobotIndex;
+
+                robotCombo.SelectionChanged += (s, e) =>
+                {
+                    if (robotCombo.SelectedIndex >= 0)
+                    {
+                        GlobalData.SliderSourceRobotIndex = robotCombo.SelectedIndex;
+                        UpdateSliderSignalCombo(signalCombo, robotCombo.SelectedIndex, GlobalData.SliderSourceSignalName);
+                        UpdateSliderSignalCombo(actualPosCombo, robotCombo.SelectedIndex, GlobalData.SliderActualPosSignalName);
+                    }
+                };
+            }
+
+            // İstasyon sinyali combo
+            if (signalCombo != null)
+            {
+                UpdateSliderSignalCombo(signalCombo, GlobalData.SliderSourceRobotIndex, GlobalData.SliderSourceSignalName);
+                signalCombo.SelectionChanged += (s, e) =>
+                {
+                    if (signalCombo.SelectedItem is string sig)
+                        GlobalData.SliderSourceSignalName = sig;
+                };
+            }
+
+            // Aktüel pozisyon combo
+            if (actualPosCombo != null)
+            {
+                UpdateSliderSignalCombo(actualPosCombo, GlobalData.SliderSourceRobotIndex, GlobalData.SliderActualPosSignalName);
+                actualPosCombo.SelectionChanged += (s, e) =>
+                {
+                    if (actualPosCombo.SelectedItem is string sig)
+                        GlobalData.SliderActualPosSignalName = sig;
+                };
+            }
+
+            // ═══ ROBOT BAĞLANTI DURUMLARI ═══
+            var robot1ConnStatus = this.FindName("Robot1ConnStatus") as Border;
+            var robot1ConnText = this.FindName("Robot1ConnText") as TextBlock;
+            var robot2ConnStatus = this.FindName("Robot2ConnStatus") as Border;
+            var robot2ConnText = this.FindName("Robot2ConnText") as TextBlock;
+
+            void UpdateConnDisplay(KukaRobotInstance robot, Border border, TextBlock text, Windows.UI.Color connectedColor)
+            {
+                if (border != null)
+                    border.Background = new SolidColorBrush(robot.IsConnected ? connectedColor : Windows.UI.Color.FromArgb(255, 100, 30, 22));
+                if (text != null)
+                    text.Text = robot.IsConnected ? "BAĞLI" : "BAĞLI DEĞİL";
+            }
+
+            if (robots.Count > 0)
+            {
+                var r1 = robots[0];
+                UpdateConnDisplay(r1, robot1ConnStatus, robot1ConnText, Windows.UI.Color.FromArgb(255, 46, 125, 50));
+                r1.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == nameof(KukaRobotInstance.IsConnected))
+                        this.DispatcherQueue.TryEnqueue(() => UpdateConnDisplay(r1, robot1ConnStatus, robot1ConnText, Windows.UI.Color.FromArgb(255, 46, 125, 50)));
+                };
+            }
+            if (robots.Count > 1)
+            {
+                var r2 = robots[1];
+                UpdateConnDisplay(r2, robot2ConnStatus, robot2ConnText, Windows.UI.Color.FromArgb(255, 0, 90, 158));
+                r2.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == nameof(KukaRobotInstance.IsConnected))
+                        this.DispatcherQueue.TryEnqueue(() => UpdateConnDisplay(r2, robot2ConnStatus, robot2ConnText, Windows.UI.Color.FromArgb(255, 0, 90, 158)));
+                };
+            }
+
+            // ═══ CANLI DEĞER GÜNCELLEME ═══
+            void UpdateLiveValues()
+            {
+                if (liveValueText != null)
+                {
+                    double stationVal = GlobalData.GetSliderPositionValue();
+                    int station = (int)Math.Round(stationVal);
+                    liveValueText.Text = station switch
+                    {
+                        4 => "BAKIM",
+                        >= 1 and <= 3 => $"İSTASYON {station}",
+                        _ => $"{stationVal:F1}"
+                    };
+                }
+                if (actualPosLiveText != null)
+                {
+                    double actualPos = GlobalData.GetSliderActualPosition();
+                    actualPosLiveText.Text = $"{actualPos:F1} mm";
+                }
+            }
+
+            foreach (var robot in robots)
+            {
+                robot.PropertyChanged += (s, e) =>
+                {
+                    this.DispatcherQueue.TryEnqueue(UpdateLiveValues);
+                };
+            }
+            UpdateLiveValues();
+        }
+
+        private void UpdateSliderSignalCombo(ComboBox signalCombo, int robotIndex, string savedValue)
+        {
+            if (signalCombo == null) return;
+            var signals = GlobalData.GetAvailableRobotSignals(robotIndex);
+            signalCombo.ItemsSource = signals;
+            if (!string.IsNullOrEmpty(savedValue) && signals.Contains(savedValue))
+                signalCombo.SelectedItem = savedValue;
+            else if (signals.Contains("E1"))
+                signalCombo.SelectedItem = "E1";
+        }
+
+        private void OnRobotSignalMappingChanged(int robotIndex)
+        {
+            // Eski uyumluluk - artık kullanılmıyor ama referans kaldıysa hata vermesin
+            GlobalData.SaveRobotSliderMappings();
+        }
+
+        /// <summary>
+        /// Slider pozisyonundan istasyon numarası hesaplar
+        /// Station1: 0-750mm, Station2: 750-2250mm, Station3: 2250-3000mm
+        /// </summary>
+        private int GetStationNumberFromPosition(double positionMm)
+        {
+            if (positionMm < 750) return 1;
+            if (positionMm < 2250) return 2;
+            if (positionMm <= 3000) return 3;
+            return 0; // Belirsiz
+        }
+
+        /// <summary>
+        /// Robot platformunu slider üzerinde belirtilen sütun merkezine hizalar.
+        /// 4 eşit sütunlu Grid ile aynı düzeni kullanır (Bakım, İst1, İst2, İst3).
+        /// </summary>
+        private void UpdatePlatformToStation(int columnIndex)
+        {
+            var sliderCanvas = this.FindName("SliderCanvas") as Canvas;
+            var robotPlatform = this.FindName("RobotPlatform") as Grid;
+
+            if (sliderCanvas == null || robotPlatform == null || sliderCanvas.ActualWidth <= 0) return;
+
+            const int totalColumns = 4;
+            double platformWidth = 140;
+            double canvasWidth = sliderCanvas.ActualWidth;
+
+            // Sütun merkezi: (columnIndex + 0.5) / totalColumns * canvasWidth
+            double columnCenter = (columnIndex + 0.5) / totalColumns * canvasWidth;
+
+            // Platform sol kenarı = sütun merkezi - platform genişliğinin yarısı
+            double left = columnCenter - (platformWidth / 2.0);
+            left = Math.Clamp(left, 0, Math.Max(0, canvasWidth - platformWidth));
+
+            Canvas.SetLeft(robotPlatform, left);
+        }
+
+        // Eski metodu koru (geriye uyumluluk için)
+        public void UpdateRobotSliderPosition(int robotIndex, double positionPercent)
+        {
+            // Artık istasyon bazlı pozisyonlama kullanılıyor
+            int col = (int)Math.Round(positionPercent / 33.3);
+            UpdatePlatformToStation(Math.Clamp(col, 0, 3));
         }
 
         private void KnownRfids_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)

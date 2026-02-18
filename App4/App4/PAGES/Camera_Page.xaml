@@ -25,19 +25,25 @@
         <!-- ═══════════════════════════════════════════════════════════════════ -->
         <!-- BAŞLIK BÖLÜMÜ - Header -->
         <!-- ═══════════════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,2" BorderBrush="#00A4EF" Padding="25,0">
+        <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,1" BorderBrush="#333" Padding="20,0">
             <Grid VerticalAlignment="Center">
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="KAMERA KONTROL PANELİ" FontSize="22" FontWeight="Bold" Foreground="White"/>
-                    <TextBlock Text="Gocator Sensör | Point Cloud 3D Analiz" FontSize="11" Foreground="#00A4EF" Margin="0,3,0,0"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                    <Border Background="#00A4EF" CornerRadius="8" Width="40" Height="40">
+                        <FontIcon Glyph="&#xE722;" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Kamera Kontrol Paneli" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Gocator Sensör | Point Cloud 3D Analiz" FontSize="11" Foreground="#888"/>
+                    </StackPanel>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="20" VerticalAlignment="Center">
-                    <StackPanel VerticalAlignment="Center" Spacing="5">
-                        <TextBlock Text="SİSTEM DURUMU" FontSize="9" Foreground="#888888" HorizontalAlignment="Right"/>
-                        <TextBlock x:Name="StatusLabel" Text="HAZIR" FontSize="13" FontWeight="Bold" Foreground="#4CAF50"/>
-                    </StackPanel>
-                    <FontIcon Glyph="&#xE957;" Foreground="#4CAF50" FontSize="24"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" VerticalAlignment="Center">
+                    <Border Background="#1E1E20" CornerRadius="6" Padding="12,6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Ellipse Width="8" Height="8" Fill="#4CAF50"/>
+                            <TextBlock x:Name="StatusLabel" Text="HAZIR" FontSize="11" Foreground="#888"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
@@ -54,7 +60,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0">
+                    <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="12" BorderThickness="1" BorderBrush="#333" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="50"/>
@@ -62,7 +68,7 @@
                                 <RowDefinition Height="45"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                            <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                                     <FontIcon Glyph="&#xE722;" Foreground="#00A4EF" FontSize="20"/>
                                     <TextBlock Text="FOTOGRAF ÇEKIMI" FontSize="14" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
@@ -85,7 +91,7 @@
                                 <ProgressRing x:Name="LoadingRing" IsActive="False" Width="70" Height="70" Foreground="#00A4EF" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Grid>
 
-                            <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,2,0,0" BorderBrush="#00A4EF">
+                            <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,1,0,0" BorderBrush="#333">
                                 <Grid VerticalAlignment="Center">
                                     <StackPanel>
                                         <TextBlock Text="Durum:" FontSize="10" Foreground="#888888"/>
@@ -102,7 +108,7 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0">
+                    <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="1" BorderBrush="#333" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="50"/>
@@ -110,7 +116,7 @@
                                 <RowDefinition Height="45"/>
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                            <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
                                     <FontIcon Glyph="&#xE71D;" Foreground="#00A4EF" FontSize="20"/>
                                     <TextBlock Text="3D POINT CLOUD" FontSize="14" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
@@ -121,7 +127,7 @@
                                 <controls:WebView2 x:Name="PointCloudWebView"/>
                             </Grid>
 
-                            <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,2,0,0" BorderBrush="#00A4EF">
+                            <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="0,0,10,10" Padding="15,0" BorderThickness="0,1,0,0" BorderBrush="#333">
                                 <Grid VerticalAlignment="Center">
                                     <StackPanel>
                                         <TextBlock Text="Durum:" FontSize="10" Foreground="#888888"/>
@@ -139,13 +145,13 @@
                     </Border>
                 </Grid>
 
-                <Border Background="#1A1A1C" Height="150" Margin="20,0" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+                <Border Background="#1A1A1C" Height="150" Margin="20,0" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="45"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                        <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
                                 <FontIcon Glyph="&#xE7C3;" Foreground="#00A4EF" FontSize="16"/>
                                 <TextBlock Text="LOG KONSOLU" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
@@ -164,7 +170,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="#0F2940" CornerRadius="10" BorderBrush="#00A4EF" BorderThickness="2" Padding="15" MinHeight="240">
+                    <Border Grid.Row="0" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="15" MinHeight="240">
                         <Grid RowSpacing="10" Padding="0,5">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -394,7 +400,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Background="#1A1A1C" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+                        <Border Grid.Column="0" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="45"/>
@@ -402,7 +408,7 @@
                                     <RowDefinition Height="40"/>
                                 </Grid.RowDefinitions>
 
-                                <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                                <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
                                         <FontIcon Glyph="&#xE8F4;" Foreground="#00A4EF" FontSize="16"/>
                                         <TextBlock Text="GOCATOR ALINANLAR (ÖLÇÜMLER)" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
@@ -462,7 +468,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="1" Background="#1A1A1C" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+                        <Border Grid.Column="1" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="45"/>
@@ -470,7 +476,7 @@
                                     <RowDefinition Height="45"/>
                                 </Grid.RowDefinitions>
 
-                                <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="10,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
+                                <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="10,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -556,7 +562,7 @@
                     </Grid>
                 </Grid>
 
-                <Border Grid.Row="3" Background="#1A1A1C" Margin="20,10,20,10" CornerRadius="10" BorderThickness="2" BorderBrush="#FFB81C">
+                <Border Grid.Row="3" Background="#1A1A1C" Margin="20,10,20,10" CornerRadius="10" BorderThickness="1" BorderBrush="#333">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="250"/>
@@ -740,7 +746,7 @@
         <!-- ═══════════════════════════════════════════════════════════════════ -->
         <!-- ALT DURUM ÇUBUĞU - Footer -->
         <!-- ═══════════════════════════════════════════════════════════════════ -->
-        <Border Grid.Row="2" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
+        <Border Grid.Row="2" Background="#1A1A1C" BorderThickness="0,1,0,0" BorderBrush="#333" Padding="20,0">
             <Grid VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
                     <Ellipse Width="10" Height="10" Fill="#4CAF50" VerticalAlignment="Center"/>

@@ -19,8 +19,8 @@ namespace App4.Utilities
     {
         private const string JOB_FILES_PATH = "/jobs/files";
         private const string JOB_LOAD_PATH = "/jobs/commands/load";
-        private const string SENSOR_IP = "192.168.251.30";
-        private const int CONTROL_PORT = 3600;
+        private static string SENSOR_IP => GlobalData.Gocator_IpAddress;
+        private static int CONTROL_PORT => GlobalData.Gocator_Port;
 
         // 1. SENSÖRDEKİ JOB DOSYALARINI LİSTELE
         public static async Task<List<string>> GetJobList(Action<string> log)
@@ -31,7 +31,7 @@ namespace App4.Utilities
                 try
                 {
                     IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                     {
                         system.Connect();
                         // expandLevel=1 ile dosya adlarını alıyoruz
@@ -64,11 +64,12 @@ namespace App4.Utilities
                 try
                 {
                     IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                     {
-                        // log?.Invoke ile null kontrolü yapıyoruz (Arka planda log olmayabilir)
+                        // log?.Invoke ile null kontrolü yapıyoruz
                         log?.Invoke($"Sensöre bağlanılıyor ({jobName} yükle)...");
                         system.Connect();
+                        GlobalData.GocatorOnline = true;
 
                         if (system.RunningState() == GoSystem.State.Running)
                             system.Stop();
@@ -96,7 +97,7 @@ namespace App4.Utilities
                 try
                 {
                     IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                     {
                         system.Connect();
                         string readPath = $"{JOB_FILES_PATH}/{jobName}/data";
@@ -132,7 +133,7 @@ namespace App4.Utilities
                     string fileName = Path.GetFileNameWithoutExtension(filePath);
 
                     IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                     {
                         log?.Invoke($"Job yükleniyor: {fileName}...");
                         system.Connect();
@@ -165,8 +166,8 @@ namespace App4.Utilities
     {
         private const string GOCATOR_CONTROL_PATH = "/controls/gocator";
         private const int RECEIVE_DATA_TIMEOUT_MSEC = 5000;
-        private const string SENSOR_IP = "192.168.251.30";
-        private const int CONTROL_PORT = 3600;
+        private static string SENSOR_IP => GlobalData.Gocator_IpAddress;
+        private static int CONTROL_PORT => GlobalData.Gocator_Port;
 
         // DÖNÜŞ TİPİNİ DEĞİŞTİRDİK: (int status, List<GocatorMeasurement> results)
         public static async Task<(int, List<GocatorMeasurement>)> ReceiveAndProcessMeasurements(Action<string> log, DispatcherQueue dispatcher)
@@ -177,11 +178,12 @@ namespace App4.Utilities
                 try
                 {
                     IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                     {
                         log?.Invoke("Sensöre bağlanılıyor (Ölçüm)...");
-                        system.Connect();
-                        system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(5000);
+                            system.Connect();
+                            GlobalData.GocatorOnline = true;
+                            system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(5000);
 
                         using (GoGdpClient gdpClient = new GoGdpClient())
                         {
@@ -264,6 +266,7 @@ namespace App4.Utilities
                 }
                 catch (Exception ex)
                 {
+                    GlobalData.GocatorOnline = false;
                     log?.Invoke($"✗ Ölçüm Hatası: {ex.Message}");
                     return (-1, null);
                 }

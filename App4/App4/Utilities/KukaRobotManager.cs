@@ -53,6 +53,8 @@ namespace App4.Utilities
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(StatusText));
                     OnPropertyChanged(nameof(StatusColor));
+                    // Global ekipman durumunu güncelle
+                    GlobalData.RefreshEquipmentStatus();
                 }
             }
         }
@@ -81,6 +83,33 @@ namespace App4.Utilities
         public double A4 { get => _a4; set { if (Math.Abs(_a4 - value) > 0.001) { _a4 = value; OnPropertyChanged(); } } }
         public double A5 { get => _a5; set { if (Math.Abs(_a5 - value) > 0.001) { _a5 = value; OnPropertyChanged(); } } }
         public double A6 { get => _a6; set { if (Math.Abs(_a6 - value) > 0.001) { _a6 = value; OnPropertyChanged(); } } }
+
+        // Harici Eksenler (KL100 Slider için E1)
+        private double _e1, _e2, _e3, _e4, _e5, _e6;
+        public double E1 { get => _e1; set { if (Math.Abs(_e1 - value) > 0.1) { _e1 = value; OnPropertyChanged(); OnPropertyChanged(nameof(SliderPositionPercent)); } } }
+        public double E2 { get => _e2; set { if (Math.Abs(_e2 - value) > 0.1) { _e2 = value; OnPropertyChanged(); } } }
+        public double E3 { get => _e3; set { if (Math.Abs(_e3 - value) > 0.1) { _e3 = value; OnPropertyChanged(); } } }
+        public double E4 { get => _e4; set { if (Math.Abs(_e4 - value) > 0.1) { _e4 = value; OnPropertyChanged(); } } }
+        public double E5 { get => _e5; set { if (Math.Abs(_e5 - value) > 0.1) { _e5 = value; OnPropertyChanged(); } } }
+        public double E6 { get => _e6; set { if (Math.Abs(_e6 - value) > 0.1) { _e6 = value; OnPropertyChanged(); } } }
+
+        // KL100 Slider Sınırları (mm cinsinden - varsayılan değerler, ayardan okunabilir)
+        public double SliderMinPos { get; set; } = 0;      // Slider minimum pozisyon (mm)
+        public double SliderMaxPos { get; set; } = 3000;   // Slider maksimum pozisyon (mm)
+
+        /// <summary>
+        /// Slider pozisyonunu yüzde olarak döndürür (0-100)
+        /// E1 harici eksen değerine göre hesaplanır
+        /// </summary>
+        public double SliderPositionPercent
+        {
+            get
+            {
+                if (SliderMaxPos <= SliderMinPos) return 0;
+                double percent = ((E1 - SliderMinPos) / (SliderMaxPos - SliderMinPos)) * 100;
+                return Math.Clamp(percent, 0, 100);
+            }
+        }
 
         // Override Değerleri
         private int _overridePro = 100, _overrideJog = 100;
@@ -216,6 +245,14 @@ namespace App4.Utilities
                 ("$AXIS_ACT.A4", v => A4 = ParseDouble(v)),
                 ("$AXIS_ACT.A5", v => A5 = ParseDouble(v)),
                 ("$AXIS_ACT.A6", v => A6 = ParseDouble(v)),
+
+                // ═══ HARİCİ EKSENLER (KL100 Slider için E1-E6) ═══
+                ("$AXIS_ACT.E1", v => E1 = ParseDouble(v)),
+                ("$AXIS_ACT.E2", v => E2 = ParseDouble(v)),
+                ("$AXIS_ACT.E3", v => E3 = ParseDouble(v)),
+                ("$AXIS_ACT.E4", v => E4 = ParseDouble(v)),
+                ("$AXIS_ACT.E5", v => E5 = ParseDouble(v)),
+                ("$AXIS_ACT.E6", v => E6 = ParseDouble(v)),
 
                 // ═══ OVERRİDE ═══
                 ("$OV_PRO", v => OverridePro = ParseInt(v)),
@@ -704,6 +741,8 @@ namespace App4.Utilities
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "App4", "KukaRobots.json");
 
+        private bool _isInitialized = false;
+
         private KukaRobotManager()
         {
             LoadRobots();
@@ -712,14 +751,19 @@ namespace App4.Utilities
         public void Initialize(DispatcherQueue dispatcher)
         {
             UiDispatcher = dispatcher;
-            foreach (var robot in Robots)
-            {
-                robot.UiDispatcher = dispatcher;
-                robot.OnLog += msg => OnLog?.Invoke(msg);
-            }
 
-            // Robotları otomatik başlat
-            StartAll();
+            // Dispatcher'ı her zaman güncelle (sayfa değişikliklerinde)
+            foreach (var robot in Robots)
+                robot.UiDispatcher = dispatcher;
+
+            // İlk seferde robotları başlat, sonraki çağrılarda sadece dispatcher güncelle
+            if (!_isInitialized)
+            {
+                _isInitialized = true;
+                foreach (var robot in Robots)
+                    robot.OnLog += msg => OnLog?.Invoke(msg);
+                StartAll();
+            }
         }
 
         public KukaRobotInstance AddRobot(string name, string ip, int port = 7000)

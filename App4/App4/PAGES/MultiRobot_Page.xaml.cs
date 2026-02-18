@@ -21,8 +21,9 @@ namespace App4.Pages
         {
             this.InitializeComponent();
 
-            // Manager'ı initialize et (robotları otomatik başlatır)
-            KukaRobotManager.Instance.Initialize(this.DispatcherQueue);
+            // Manager'ı initialize et (eğer henüz başlamamışsa robotları otomatik başlatır)
+            if (this.DispatcherQueue != null)
+                KukaRobotManager.Instance.Initialize(this.DispatcherQueue);
 
             // Log handler (sadece bir kez ekle)
             if (!_logHandlerAttached)

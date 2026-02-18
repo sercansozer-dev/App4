@@ -448,51 +448,34 @@ namespace App4.PAGES
         {
             try
             {
-                // PlcTransferRows içindeki SelectedTag değerlerinin ComboBox'larda görünmesi için
-                foreach (var row in PlcTransferRows)
-                {
-                    if (!string.IsNullOrEmpty(row.SelectedTag))
-                    {
-                        // Output listesinde var mı kontrol et
-                        if (PlcOutputTags.Contains(row.SelectedTag))
-                        {
-                            // Binding'i zorla refresh et (null -> değer)
-                            string savedTag = row.SelectedTag;
-                            row.SelectedTag = null;
-                            row.SelectedTag = savedTag;
-                        }
-                    }
-                }
-
                 // ▼▼▼ KRİTİK: OTOMASYON COMBOBOX'LARINI DOĞRUDAN GÜNCELLE ▼▼▼
                 string rfid = App4.Utilities.GlobalData.Auto_RfidTag;
                 string index = App4.Utilities.GlobalData.Auto_IndexTag;
                 string trigger = App4.Utilities.GlobalData.Auto_TriggerTag;
                 string output = App4.Utilities.GlobalData.MeasurementOutputTag;
 
-                // ComboBox'ları doğrudan kod ile set et (x:Bind yetersiz kalıyor)
+                // ComboBox'ları doğrudan kod ile set et
                 if (!string.IsNullOrEmpty(rfid) && PlcInputTags.Contains(rfid))
-                {
                     CmbRfidTag.SelectedItem = rfid;
-                    AddLog($"► Kayıtlı RFID Tag yüklendi: {rfid}");
-                }
 
                 if (!string.IsNullOrEmpty(index) && PlcInputTags.Contains(index))
-                {
                     CmbIndexTag.SelectedItem = index;
-                    AddLog($"► Kayıtlı Index Tag yüklendi: {index}");
-                }
 
                 if (!string.IsNullOrEmpty(trigger) && PlcInputTags.Contains(trigger))
-                {
                     CmbTriggerTag.SelectedItem = trigger;
-                    AddLog($"► Kayıtlı Trigger Tag yüklendi: {trigger}");
-                }
-                
+
                 if (!string.IsNullOrEmpty(output) && PlcOutputTags.Contains(output))
-                {
                     CmbMeasurementOutputTag.SelectedItem = output;
-                    AddLog($"► Kayıtlı Output Tag yüklendi: {output}");
+
+                // Transfer satır seçimlerini toplu güncelle (null -> değer ile binding tetiklenir)
+                foreach (var row in PlcTransferRows)
+                {
+                    if (!string.IsNullOrEmpty(row.SelectedTag) && PlcOutputTags.Contains(row.SelectedTag))
+                    {
+                        string saved = row.SelectedTag;
+                        row.SelectedTag = null;
+                        row.SelectedTag = saved;
+                    }
                 }
             }
             catch (Exception ex)
@@ -638,9 +621,9 @@ namespace App4.PAGES
         public class GocatorBackupLogic
         {
             private const string SYSTEM_BACKUP_PATH = "/system/commands/archive";
-            private const string SENSOR_IP = "192.168.251.30";
-            private const int CONTROL_PORT = 3600;
-            private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000; // Büyük dosyalar için süre
+            private static string SENSOR_IP => App4.Utilities.GlobalData.Gocator_IpAddress;
+            private static int CONTROL_PORT => App4.Utilities.GlobalData.Gocator_Port;
+            private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000;
 
             public static async Task<string> PerformBackup(Action<string> log)
             {
@@ -649,7 +632,7 @@ namespace App4.PAGES
                     try
                     {
                         IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                        using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                        using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                         {
                             log("Sensöre bağlanılıyor (Yedekleme)...");
                             system.Connect();
@@ -1229,30 +1212,17 @@ namespace App4.PAGES
 
         private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
-            // ▼▼▼ 1. ÖNCE TAG LİSTELERİNİ DOLDUR (KRİTİK SIRALAMA) ▼▼▼
+            // 1. Tag listelerini doldur
             LoadPlcTags();
 
-            // 2. Job listelerini yükle
+            // 2. Job listelerini yükle (cache'den hızlı, arka planda sensörden güncelle)
             LoadCachedJobs();
-            await RefreshJobList();
+            _ = RefreshJobList(); // Fire-and-forget, UI'ı bloklama
 
-            // ▼▼▼ 3. TAG LİSTELERİ DOLDUKTAN SONRA KAYITLI SEÇİMLERİ UI'A BİLDİR ▼▼▼
-            await Task.Delay(100); // Binding'lerin oturması için kısa bekle
-
-            // Otomasyon ComboBox'larını güncelle
-            OnPropertyChanged(nameof(SelectedRfidTag));
-            OnPropertyChanged(nameof(SelectedIndexTag));
-            OnPropertyChanged(nameof(SelectedTriggerTag));
-            OnPropertyChanged(nameof(PlcTransferRows));
-            // Tag değerlerini güncelle
-            OnPropertyChanged(nameof(RfidTagValue));
-            OnPropertyChanged(nameof(IndexTagValue));
-            OnPropertyChanged(nameof(TriggerTagValue));
-
-            // ▼▼▼ 4. TRANSFER SATIRLARI İÇİN BINDING REFRESH ▼▼▼
+            // 3. Kayıtlı seçimleri UI'a doğrudan ata (Task.Delay yerine direkt)
             RefreshTransferRowBindings();
 
-            // WATCHER'LARI KUR
+            // 4. Watcher'ları kur
             SetupWatchers();
 
             // 5. Event'leri bağla (Duplicate önlemek için önce çıkar)
@@ -1669,15 +1639,15 @@ namespace App4.PAGES
         private const string GOCATOR_ADD_OUTPUT_PATH = GOCATOR_OUTPUT_PATH + "/commands/add";
         private const string REPLAY_PATH = "/replay/playback";
         private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000;
-        private const string SENSOR_IP = "192.168.251.30";
-        private const int CONTROL_PORT = 3600;
+        private static string SENSOR_IP => App4.Utilities.GlobalData.Gocator_IpAddress;
+        private static int CONTROL_PORT => App4.Utilities.GlobalData.Gocator_Port;
 
         public static async Task<int> ReceiveImageNet(Action<string>? log = null)
         {
             IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
             return await Task.Run(async () =>
             {
-                using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                 {
                     try
                     {
@@ -1768,15 +1738,15 @@ namespace App4.PAGES
         private const string GOCATOR_ADD_OUTPUT_PATH = GOCATOR_OUTPUT_PATH + "/commands/add";
         private const string REPLAY_PATH = "/replay/playback";
         private const int RECEIVE_DATA_TIMEOUT_MSEC = 60000;
-        private const string SENSOR_IP = "192.168.251.30";
-        private const int CONTROL_PORT = 3600;
+        private static string SENSOR_IP => App4.Utilities.GlobalData.Gocator_IpAddress;
+        private static int CONTROL_PORT => App4.Utilities.GlobalData.Gocator_Port;
 
         public static async Task<(int status, string pointCloudJson)> ReceiveSurfacePointCloudNet(Action<string>? log = null)
         {
             IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
             return await Task.Run(async () =>
             {
-                using (GoSystem system = new GoSystem(ipAddress, CONTROL_PORT))
+                using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                 {
                     try
                     {

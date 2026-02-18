@@ -80,93 +80,31 @@
         </Border>
 
         <ScrollViewer Grid.Row="1">
-            <StackPanel Padding="20">
-                <Border Background="#1E1E20" CornerRadius="8" Margin="0,0,0,15">
-                    <Grid Padding="20">
+            <StackPanel Padding="20,10,20,20">
+                <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                <!-- İSTASYONLAR, KONTROLLER VE SLIDER BÖLÜMÜ -->
+                <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- ÜST KISIM: İstasyonlar + Kontrol Butonları Yan Yana -->
+                    <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="8">
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Border Background="#333" CornerRadius="6" Width="36" Height="36">
-                                    <FontIcon Glyph="&#xE943;" Foreground="#0078D4" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="Hat Kontrol Merkezi" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <Border x:Name="LineStatusCard" Background="#252528" CornerRadius="6" Padding="12,8" HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon x:Name="LineStatusIcon" Glyph="&#xE71A;" FontSize="14" Foreground="#888"/>
-                                    <TextBlock x:Name="LineStatusText" Text="SİSTEM KAPALI" FontSize="12" FontWeight="SemiBold" Foreground="#888"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center" Margin="0,0,30,0">
-
-                            <StackPanel Orientation="Vertical" Spacing="4">
-                                <TextBlock Text="SAFETY" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
-                                <Border x:Name="CheckSafetyBorder" Background="#252528" CornerRadius="6" Padding="10,6">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon x:Name="CheckSafetyIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#666"/>
-                                        <TextBlock x:Name="CheckSafetyText" Text="BEKLİYOR" FontSize="10" FontWeight="SemiBold" Foreground="#666"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Vertical" Spacing="4">
-                                <TextBlock Text="ALARM" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
-                                <Border x:Name="CheckAlarmBorder" Background="#252528" CornerRadius="6" Padding="10,6">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon x:Name="CheckAlarmIcon" Glyph="&#xE7BA;" FontSize="12" Foreground="#666"/>
-                                        <TextBlock x:Name="CheckAlarmText" Text="KONTROL" FontSize="10" FontWeight="Bold" Foreground="#999"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <Button x:Name="BtnStart" Click="BtnStart_Click" CornerRadius="6" Padding="0" Width="110" Height="45" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1" Opacity="0.5" IsEnabled="False">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE768;" FontSize="16" Foreground="#2ECC71"/>
-                                    <TextBlock Text="BAŞLAT" FontWeight="Bold" Foreground="White" FontSize="12"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button x:Name="BtnStop" Click="BtnStop_Click" CornerRadius="6" Padding="0" Width="110" Height="45" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE71A;" FontSize="16" Foreground="#E74C3C"/>
-                                    <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="12"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button x:Name="BtnReset" Click="BtnReset_Click" CornerRadius="6" Padding="0" Width="110" Height="45" Background="#7E5109" BorderBrush="#F39C12" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE72C;" FontSize="16" Foreground="#F1C40F"/>
-                                    <TextBlock Text="RESET" FontWeight="Bold" Foreground="White" FontSize="12"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Grid Height="650">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="80"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Grid Grid.Column="0" Grid.Row="0" Margin="5">
+                    <!-- ═══ İSTASYON 1 ═══ -->
+                    <Grid Grid.Column="1" Grid.Row="0" Margin="5">
                         <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind Stations[0].BorderColor, Mode=OneWay}" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -193,7 +131,7 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- 1. Auto/Manual Buttons -->
+                                        <!-- Auto/Manual Buttons -->
                                         <Border Grid.Row="0" CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2" Margin="0,0,0,10">
                                             <StackPanel Orientation="Horizontal">
                                                 <ToggleButton IsChecked="{Binding Stations[0].IsAutoMode, Mode=TwoWay}" Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[0].AutoBtnBg}" Foreground="{Binding Stations[0].AutoBtnFg}"/>
@@ -201,30 +139,27 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <!-- 2. Model View (Middle) -->
-                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10">
+                                        <!-- Model View -->
+                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station1" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <!-- 3. Bottom Area (Status Left | RFID Right) -->
+                                        <!-- Status & RFID -->
                                         <Grid Grid.Row="2">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Status Notifications -->
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0">
                                                 <FontIcon Glyph="&#xE9F5;" FontSize="36" Foreground="{x:Bind Stations[0].StateColor, Mode=OneWay}" Margin="0,0,0,5"/>
                                                 <TextBlock Text="{x:Bind Stations[0].StateText, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="{x:Bind Stations[0].StateColor, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"/>
-                                                
                                                 <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[0].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,5,0,0">
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[0].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <!-- RFID Control Box -->
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
                                                 <StackPanel Spacing="5">
                                                     <StackPanel Orientation="Horizontal" Spacing="5">
@@ -232,12 +167,10 @@
                                                         <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
                                                     </StackPanel>
                                                     <ComboBox ItemsSource="{Binding Stations[0].RfidOpModes}" SelectedItem="{Binding Stations[0].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    
                                                     <StackPanel Visibility="{Binding Stations[0].IsSpecificRfidVisible}">
                                                         <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
                                                         <ComboBox ItemsSource="{Binding Stations[0].RefRfids}" SelectedValue="{Binding Stations[0].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
                                                     </StackPanel>
-
                                                     <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
@@ -269,7 +202,9 @@
                             </Grid>
                         </Border>
                     </Grid>
-                    <Grid Grid.Column="1" Grid.Row="0" Margin="5">
+
+                    <!-- ═══ İSTASYON 2 ═══ -->
+                    <Grid Grid.Column="2" Grid.Row="0" Margin="5">
                         <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind Stations[1].BorderColor, Mode=OneWay}" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -296,7 +231,6 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- 1. Auto/Manual Buttons -->
                                         <Border Grid.Row="0" CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2" Margin="0,0,0,10">
                                             <StackPanel Orientation="Horizontal">
                                                 <ToggleButton IsChecked="{Binding Stations[1].IsAutoMode, Mode=TwoWay}" Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[1].AutoBtnBg}" Foreground="{Binding Stations[1].AutoBtnFg}"/>
@@ -304,30 +238,25 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <!-- 2. Model View (Middle) -->
-                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10">
+                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station2" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <!-- 3. Bottom Area (Status Left | RFID Right) -->
                                         <Grid Grid.Row="2">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Status Notifications -->
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0">
                                                 <FontIcon Glyph="&#xE9F5;" FontSize="36" Foreground="{x:Bind Stations[1].StateColor, Mode=OneWay}" Margin="0,0,0,5"/>
                                                 <TextBlock Text="{x:Bind Stations[1].StateText, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="{x:Bind Stations[1].StateColor, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"/>
-                                                
                                                 <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[1].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,5,0,0">
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[1].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <!-- RFID Control Box -->
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
                                                 <StackPanel Spacing="5">
                                                     <StackPanel Orientation="Horizontal" Spacing="5">
@@ -335,12 +264,10 @@
                                                         <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
                                                     </StackPanel>
                                                     <ComboBox ItemsSource="{Binding Stations[1].RfidOpModes}" SelectedItem="{Binding Stations[1].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    
                                                     <StackPanel Visibility="{Binding Stations[1].IsSpecificRfidVisible}">
                                                         <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
                                                         <ComboBox ItemsSource="{Binding Stations[1].RefRfids}" SelectedValue="{Binding Stations[1].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
                                                     </StackPanel>
-
                                                     <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
@@ -372,7 +299,9 @@
                             </Grid>
                         </Border>
                     </Grid>
-                    <Grid Grid.Column="2" Grid.Row="0" Margin="5">
+
+                    <!-- ═══ İSTASYON 3 ═══ -->
+                    <Grid Grid.Column="3" Grid.Row="0" Margin="5">
                         <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="2" BorderBrush="{x:Bind Stations[2].BorderColor, Mode=OneWay}" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -399,7 +328,6 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- 1. Auto/Manual Buttons -->
                                         <Border Grid.Row="0" CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2" Margin="0,0,0,10">
                                             <StackPanel Orientation="Horizontal">
                                                 <ToggleButton IsChecked="{Binding Stations[2].IsAutoMode, Mode=TwoWay}" Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[2].AutoBtnBg}" Foreground="{Binding Stations[2].AutoBtnFg}"/>
@@ -407,30 +335,25 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <!-- 2. Model View (Middle) -->
-                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10">
+                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station3" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <!-- 3. Bottom Area (Status Left | RFID Right) -->
                                         <Grid Grid.Row="2">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Status Notifications -->
                                             <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0">
                                                 <FontIcon Glyph="&#xE9F5;" FontSize="36" Foreground="{x:Bind Stations[2].StateColor, Mode=OneWay}" Margin="0,0,0,5"/>
                                                 <TextBlock Text="{x:Bind Stations[2].StateText, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="{x:Bind Stations[2].StateColor, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"/>
-                                                
                                                 <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[2].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,5,0,0">
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[2].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <!-- RFID Control Box -->
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
                                                 <StackPanel Spacing="5">
                                                     <StackPanel Orientation="Horizontal" Spacing="5">
@@ -438,12 +361,10 @@
                                                         <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
                                                     </StackPanel>
                                                     <ComboBox ItemsSource="{Binding Stations[2].RfidOpModes}" SelectedItem="{Binding Stations[2].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    
                                                     <StackPanel Visibility="{Binding Stations[2].IsSpecificRfidVisible}">
                                                         <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
                                                         <ComboBox ItemsSource="{Binding Stations[2].RefRfids}" SelectedValue="{Binding Stations[2].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
                                                     </StackPanel>
-
                                                     <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
@@ -476,54 +397,358 @@
                         </Border>
                     </Grid>
 
-                    <Border Grid.Row="1" Grid.ColumnSpan="3" Height="4" Background="#333333" VerticalAlignment="Center" Margin="10,0" CornerRadius="2"/>
+                    <!-- ═══ KONTROL PANELİ (Sol Taraf - Bakım Hizası) ═══ -->
+                    <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="8" Margin="5" Padding="15" MinWidth="180" VerticalAlignment="Stretch">
+                        <StackPanel Spacing="12">
+                            <!-- Başlık -->
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Background="#333" CornerRadius="6" Width="32" Height="32">
+                                    <FontIcon Glyph="&#xE943;" Foreground="#0078D4" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="KONTROL" FontSize="13" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
 
-                    <Grid Grid.Row="1" Grid.Column="0" Visibility="{x:Bind Stations[0].RobotVisibility, Mode=OneWay}" Opacity="{x:Bind Stations[0].RobotOpacity, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-20,0,0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid Grid.Row="0" HorizontalAlignment="Center">
-                                <Ellipse Width="50" Height="50" Fill="#1F1F1F" Stroke="#0078D4" StrokeThickness="2"/>
-                                <FontIcon Glyph="&#xE81D;" FontSize="24" Foreground="#0078D4"/>
+                            <Rectangle Height="1" Fill="#333"/>
+
+                            <!-- Sistem Durumu -->
+                            <Border x:Name="LineStatusCard" Background="#252528" CornerRadius="6" Padding="10,8">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon x:Name="LineStatusIcon" Glyph="&#xE71A;" FontSize="14" Foreground="#888"/>
+                                    <TextBlock x:Name="LineStatusText" Text="SİSTEM KAPALI" FontSize="11" FontWeight="SemiBold" Foreground="#888"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Safety & Alarm -->
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="CheckSafetyBorder" Grid.Column="0" Background="#252528" CornerRadius="6" Padding="8,6">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="SAFETY" FontSize="8" Foreground="#666" HorizontalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                            <FontIcon x:Name="CheckSafetyIcon" Glyph="&#xE7BA;" FontSize="10" Foreground="#666"/>
+                                            <TextBlock x:Name="CheckSafetyText" Text="OK" FontSize="9" FontWeight="Bold" Foreground="#666"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="CheckAlarmBorder" Grid.Column="1" Background="#252528" CornerRadius="6" Padding="8,6">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="ALARM" FontSize="8" Foreground="#666" HorizontalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                            <FontIcon x:Name="CheckAlarmIcon" Glyph="&#xE7BA;" FontSize="10" Foreground="#666"/>
+                                            <TextBlock x:Name="CheckAlarmText" Text="OK" FontSize="9" FontWeight="Bold" Foreground="#666"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
-                            <Rectangle Grid.Row="1" Width="2" Height="15" Fill="#0078D4" HorizontalAlignment="Center"/>
-                            <Border Grid.Row="1" Width="40" Height="8" Background="#0078D4" CornerRadius="4" VerticalAlignment="Bottom" Margin="0,0,0,-4"/>
-                        </Grid>
-                    </Grid>
-                    <Grid Grid.Row="1" Grid.Column="1" Visibility="{x:Bind Stations[1].RobotVisibility, Mode=OneWay}" Opacity="{x:Bind Stations[1].RobotOpacity, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-20,0,0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid Grid.Row="0" HorizontalAlignment="Center">
-                                <Ellipse Width="50" Height="50" Fill="#1F1F1F" Stroke="#0078D4" StrokeThickness="2"/>
-                                <FontIcon Glyph="&#xE81D;" FontSize="24" Foreground="#0078D4"/>
-                            </Grid>
-                            <Rectangle Grid.Row="1" Width="2" Height="15" Fill="#0078D4" HorizontalAlignment="Center"/>
-                            <Border Grid.Row="1" Width="40" Height="8" Background="#0078D4" CornerRadius="4" VerticalAlignment="Bottom" Margin="0,0,0,-4"/>
-                        </Grid>
-                    </Grid>
-                    <Grid Grid.Row="1" Grid.Column="2" Visibility="{x:Bind Stations[2].RobotVisibility, Mode=OneWay}" Opacity="{x:Bind Stations[2].RobotOpacity, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-20,0,0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid Grid.Row="0" HorizontalAlignment="Center">
-                                <Ellipse Width="50" Height="50" Fill="#1F1F1F" Stroke="#0078D4" StrokeThickness="2"/>
-                                <FontIcon Glyph="&#xE81D;" FontSize="24" Foreground="#0078D4"/>
-                            </Grid>
-                            <Rectangle Grid.Row="1" Width="2" Height="15" Fill="#0078D4" HorizontalAlignment="Center"/>
-                            <Border Grid.Row="1" Width="40" Height="8" Background="#0078D4" CornerRadius="4" VerticalAlignment="Bottom" Margin="0,0,0,-4"/>
-                        </Grid>
+
+                            <Rectangle Height="1" Fill="#333"/>
+
+                            <!-- Kontrol Butonları -->
+                            <Button x:Name="BtnStart" Click="BtnStart_Click" CornerRadius="6" Padding="0" HorizontalAlignment="Stretch" Height="40" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1" Opacity="0.5" IsEnabled="False">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE768;" FontSize="14" Foreground="#2ECC71"/>
+                                    <TextBlock Text="BAŞLAT" FontWeight="Bold" Foreground="White" FontSize="11"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button x:Name="BtnStop" Click="BtnStop_Click" CornerRadius="6" Padding="0" HorizontalAlignment="Stretch" Height="40" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE71A;" FontSize="14" Foreground="#E74C3C"/>
+                                    <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="11"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button x:Name="BtnReset" Click="BtnReset_Click" CornerRadius="6" Padding="0" HorizontalAlignment="Stretch" Height="40" Background="#7E5109" BorderBrush="#F39C12" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE72C;" FontSize="14" Foreground="#F1C40F"/>
+                                    <TextBlock Text="RESET" FontWeight="Bold" Foreground="White" FontSize="11"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
                     </Grid>
                 </Grid>
 
+                <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                <!-- KL100 SLIDER VE ROBOTLAR -->
+                <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                <Border Background="#1A1A1C" CornerRadius="8" Padding="20,15" Margin="5,10,5,5">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="140"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                <Expander Header="RFID ve Model Eşleştirme" IsExpanded="True" Margin="0,20,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
+                                <!-- Slider Başlık -->
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="0,0,0,10">
+                                    <Border Background="#333" CornerRadius="6" Padding="12,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE71D;" Foreground="#0078D4" FontSize="14"/>
+                                            <TextBlock Text="KL100 LİNEER SLIDER" FontSize="12" FontWeight="Bold" Foreground="#0078D4"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#252528" CornerRadius="6" Padding="12,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="Aktüel Poz:" FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="SliderActualPosText" Text="---" FontSize="12" FontWeight="Bold" Foreground="#FF9800" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#252528" CornerRadius="6" Padding="12,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="İstasyon:" FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="SliderStationText" Text="---" FontSize="12" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Slider Ray ve Robotlar -->
+                                <Grid Grid.Row="1" Background="#151518">
+                                    <!-- Slider Ray Arka Plan (Metalik görünüm) -->
+                                    <Border Height="20" CornerRadius="10" VerticalAlignment="Center" Margin="80,0" BorderBrush="#666" BorderThickness="1">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#707070" Offset="0"/>
+                                                <GradientStop Color="#404040" Offset="0.5"/>
+                                                <GradientStop Color="#505050" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+
+                                    <!-- Slider Ray Çizgisi (Üstten) -->
+                                    <Border Height="4" CornerRadius="2" VerticalAlignment="Center" Margin="80,-8,80,0">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#888888" Offset="0"/>
+                                                <GradientStop Color="#AAAAAA" Offset="0.5"/>
+                                                <GradientStop Color="#888888" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+
+                                    <!-- İstasyon İşaretleri (Slider üzerinde) -->
+                                    <Grid VerticalAlignment="Center" Margin="80,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Width="8" Height="36" Background="#9E9E9E" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
+                                        <Border Grid.Column="1" Width="8" Height="36" Background="#FF5722" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
+                                        <Border Grid.Column="2" Width="8" Height="36" Background="#FF9800" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
+                                        <Border Grid.Column="3" Width="8" Height="36" Background="#4CAF50" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
+                                    </Grid>
+
+                                    <!-- Robot Platform Canvas (İki robot yan yana, tek slider) -->
+                                    <Canvas x:Name="SliderCanvas" Margin="80,0">
+                                        <!-- Robot Platform - İki robot yan yana -->
+                                        <Grid x:Name="RobotPlatform" Canvas.Left="20" Canvas.Top="20" Width="140">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- İki Robot Yan Yana -->
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+                                                <!-- Robot 1 (Gocator + Helyum) -->
+                                                <Grid Width="60">
+                                                    <Grid HorizontalAlignment="Center">
+                                                        <Ellipse Width="50" Height="50" StrokeThickness="3">
+                                                            <Ellipse.Fill>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                    <GradientStop Color="#2A2A2A" Offset="0"/>
+                                                                    <GradientStop Color="#1A1A1A" Offset="1"/>
+                                                                </LinearGradientBrush>
+                                                            </Ellipse.Fill>
+                                                            <Ellipse.Stroke>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                    <GradientStop Color="#4CAF50" Offset="0"/>
+                                                                    <GradientStop Color="#2E7D32" Offset="1"/>
+                                                                </LinearGradientBrush>
+                                                            </Ellipse.Stroke>
+                                                        </Ellipse>
+                                                        <FontIcon Glyph="&#xE99A;" FontSize="20" Foreground="#4CAF50"/>
+                                                        <!-- Gocator İkonu -->
+                                                        <Border Background="#FF9800" CornerRadius="3" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
+                                                            <FontIcon Glyph="&#xE945;" FontSize="7" Foreground="White"/>
+                                                        </Border>
+                                                        <!-- Helyum İkonu -->
+                                                        <Border Background="#9C27B0" CornerRadius="3" Padding="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-2,-2,0,0">
+                                                            <TextBlock Text="He" FontSize="6" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+                                                    <!-- Etiket -->
+                                                    <Border Background="#4CAF50" CornerRadius="3" Padding="4,1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,-10,0,0">
+                                                        <TextBlock Text="R1" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Robot 2 (Sadece Helyum) -->
+                                                <Grid Width="60">
+                                                    <Grid HorizontalAlignment="Center">
+                                                        <Ellipse Width="50" Height="50" StrokeThickness="3">
+                                                            <Ellipse.Fill>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                    <GradientStop Color="#2A2A2A" Offset="0"/>
+                                                                    <GradientStop Color="#1A1A1A" Offset="1"/>
+                                                                </LinearGradientBrush>
+                                                            </Ellipse.Fill>
+                                                            <Ellipse.Stroke>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                                    <GradientStop Color="#0078D4" Offset="0"/>
+                                                                    <GradientStop Color="#005A9E" Offset="1"/>
+                                                                </LinearGradientBrush>
+                                                            </Ellipse.Stroke>
+                                                        </Ellipse>
+                                                        <FontIcon Glyph="&#xE99A;" FontSize="20" Foreground="#0078D4"/>
+                                                        <!-- Helyum İkonu -->
+                                                        <Border Background="#9C27B0" CornerRadius="3" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
+                                                            <TextBlock Text="He" FontSize="6" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+                                                    <!-- Etiket -->
+                                                    <Border Background="#0078D4" CornerRadius="3" Padding="4,1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,-10,0,0">
+                                                        <TextBlock Text="R2" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <!-- Platform Bağlantı Çubuğu (Tek parça) -->
+                                            <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,-3,0,0">
+                                                <Border Width="100" Height="6" CornerRadius="3">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                            <GradientStop Color="#4CAF50" Offset="0"/>
+                                                            <GradientStop Color="#0078D4" Offset="1"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                </Border>
+                                                <Rectangle Width="8" Height="10" Fill="#555" RadiusX="2" RadiusY="2" HorizontalAlignment="Center"/>
+                                                <Border Width="120" Height="10" CornerRadius="5">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                            <GradientStop Color="#666666" Offset="0"/>
+                                                            <GradientStop Color="#444444" Offset="1"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Canvas>
+                                </Grid>
+
+                                <!-- İstasyon Etiketleri -->
+                                <Grid Grid.Row="2" Margin="80,10,80,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#9E9E9E" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
+                                        <TextBlock Text="BAKIM" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="1" Background="#FF5722" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
+                                        <TextBlock Text="İSTASYON 1" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="2" Background="#FF9800" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
+                                        <TextBlock Text="İSTASYON 2" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Border Grid.Column="3" Background="#4CAF50" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
+                                        <TextBlock Text="İSTASYON 3" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                <!-- ROBOT SLİDER POZİSYON EŞLEŞTİRME (Basitleştirilmiş) -->
+                <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                <Expander Header="Slider Pozisyon Eşleştirme" IsExpanded="True" Margin="0,15,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
+                    <StackPanel Padding="15" Spacing="12">
+
+                        <!-- Robot Seçimi -->
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Kaynak Robot:" FontSize="11" Foreground="#AAA" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SliderRobotCombo" Grid.Column="1" FontSize="11" Height="32" HorizontalAlignment="Stretch" Background="#252528" BorderBrush="#333" PlaceholderText="Robot seç..."/>
+                        </Grid>
+
+                        <!-- İstasyon Sinyali (1, 2, 3 → görsel pozisyon) -->
+                        <Border Background="#151515" CornerRadius="6" Padding="12,8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="İstasyon Sinyali:" FontSize="11" Foreground="#FF9800" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="SliderSignalCombo" Grid.Column="1" FontSize="11" Height="32" HorizontalAlignment="Stretch" Background="#252528" BorderBrush="#333" PlaceholderText="Sinyal seç..."/>
+                                <TextBlock Grid.Column="2" Text="Değer:" FontSize="10" Foreground="#888" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SliderLiveValue" Grid.Column="3" Text="---" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="Robot 1,2 veya 3 gönderir → slider görseli o istasyona hareket eder" FontSize="10" Foreground="#666" Margin="0,-6,0,0"/>
+
+                        <!-- Aktüel Pozisyon Sinyali (mm → sadece gösterim) -->
+                        <Border Background="#151515" CornerRadius="6" Padding="12,8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Aktüel Pozisyon:" FontSize="11" Foreground="#0078D4" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="SliderActualPosCombo" Grid.Column="1" FontSize="11" Height="32" HorizontalAlignment="Stretch" Background="#252528" BorderBrush="#333" PlaceholderText="Sinyal seç..."/>
+                                <TextBlock Grid.Column="2" Text="Değer:" FontSize="10" Foreground="#888" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SliderActualPosLive" Grid.Column="3" Text="---" FontSize="14" FontWeight="Bold" Foreground="#FF9800" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="Slider'ın gerçek mm pozisyonunu gösterir (görseli etkilemez)" FontSize="10" Foreground="#666" Margin="0,-6,0,0"/>
+
+                        <!-- Robot Bağlantı Durumu -->
+                        <Grid ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="#151515" CornerRadius="6" Padding="10,8">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE99A;" FontSize="14" Foreground="#4CAF50"/>
+                                        <TextBlock Text="Robot 1" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <Border x:Name="Robot1ConnStatus" Background="#64211E" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right">
+                                        <TextBlock x:Name="Robot1ConnText" Text="BAĞLI DEĞİL" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Column="1" Background="#151515" CornerRadius="6" Padding="10,8">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE99A;" FontSize="14" Foreground="#0078D4"/>
+                                        <TextBlock Text="Robot 2" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <Border x:Name="Robot2ConnStatus" Background="#64211E" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right">
+                                        <TextBlock x:Name="Robot2ConnText" Text="BAĞLI DEĞİL" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Expander>
+
+
+                <Expander Header="RFID ve Model Eşleştirme" IsExpanded="True" Margin="0,5,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
                     <Grid Height="250" Padding="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -959,6 +1184,7 @@
                             </StackPanel>
                         </Grid>
                     </Border>
+                </StackPanel>
 
                     <Grid Margin="0,20,0,0">
                         <Grid.ColumnDefinitions>
@@ -1074,7 +1300,6 @@
                             </Grid>
                         </Border>
                     </Grid>
-                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </Grid>

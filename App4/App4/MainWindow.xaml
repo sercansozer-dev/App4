@@ -110,10 +110,24 @@
                         <TextBlock Text="SİSTEM DURUMU" FontSize="9" Foreground="Gray" FontWeight="Bold"/>
                         <Grid>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Ellipse Width="8" Height="8" Fill="#4CAF50" VerticalAlignment="Center"/>
-                                <TextBlock Text="Gocator 3D Online" FontSize="11" Foreground="White"/>
+                                <Ellipse x:Name="GocatorStatusLed" Width="8" Height="8" Fill="#4CAF50" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="GocatorStatusText" Text="Gocator 3D" FontSize="11" Foreground="White"/>
                             </StackPanel>
                             <TextBlock Text="v1.2.4" HorizontalAlignment="Right" FontSize="9" Foreground="#444444" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Ellipse x:Name="PlcStatusLed" Width="8" Height="8" Fill="Gray" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PlcStatusText" Text="PLC Bağlantısı" FontSize="11" Foreground="White"/>
+                            </StackPanel>
+                            <TextBlock x:Name="PlcStatusDetail" Text="---" HorizontalAlignment="Right" FontSize="9" Foreground="#444444" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Ellipse x:Name="RobotStatusLed" Width="8" Height="8" Fill="Gray" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="RobotStatusText" Text="Robot" FontSize="11" Foreground="White"/>
+                            </StackPanel>
+                            <TextBlock x:Name="RobotStatusDetail" Text="---" HorizontalAlignment="Right" FontSize="9" Foreground="#444444" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
                 </Border>

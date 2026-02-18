@@ -1,3 +1,4 @@
+using App4.Models;
 using App4.Utilities;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -5,7 +6,11 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace App4.Pages
 {
@@ -13,9 +18,15 @@ namespace App4.Pages
     {
         private DispatcherTimer _statusTimer;
         private Dictionary<KukaRobotInstance, RobotPanelControls> _robotControls = new();
-        
+
         // Robot panel renkler (döngüsel kullanılacak)
         private readonly string[] _robotColors = { "#00FF88", "#FF9800", "#00A4EF", "#E91E63", "#9C27B0", "#00BCD4" };
+
+        // Robot-PLC Köprü eşleşmeleri
+        private ObservableCollection<RobotPlcMapping> _mappings = new();
+        private readonly string _mappingsConfigPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "RobotPlcMappings.json");
 
         public Robot_Page()
         {
@@ -29,6 +40,10 @@ namespace App4.Pages
 
             // Robot listesi değiştiğinde panelleri yenile
             KukaRobotManager.Instance.Robots.CollectionChanged += (s, e) => RefreshRobotPanels();
+
+            // Köprü eşleşmelerini yükle
+            LoadMappings();
+            RefreshMappingRows();
 
             // Setup Timer
             _statusTimer = new DispatcherTimer();
@@ -340,6 +355,9 @@ namespace App4.Pages
                 string color = index >= 0 ? _robotColors[index % _robotColors.Length] : "#00FF88";
                 UpdateRobotStatus(robot, ctrl, color);
             }
+
+            // Köprü eşleşmelerini işle
+            _ = ProcessMappingsAsync();
         }
 
         private void LogMessage(string msg)
@@ -447,6 +465,336 @@ namespace App4.Pages
                 }
             }
         }
+
+        #region Robot-PLC Köprü Tablosu
+
+        private void BtnAddMapping_Click(object sender, RoutedEventArgs e)
+        {
+            _mappings.Add(new RobotPlcMapping());
+            RefreshMappingRows();
+            SaveMappings();
+            MappingCountText.Text = $"{_mappings.Count} Eşleşme";
+        }
+
+        private void RefreshMappingRows()
+        {
+            this.DispatcherQueue.TryEnqueue(() =>
+            {
+                MappingRowsContainer.Children.Clear();
+                MappingCountText.Text = $"{_mappings.Count} Eşleşme";
+
+                for (int i = 0; i < _mappings.Count; i++)
+                {
+                    var mapping = _mappings[i];
+                    var row = CreateMappingRow(mapping, i + 1);
+                    MappingRowsContainer.Children.Add(row);
+                }
+            });
+        }
+
+        private Border CreateMappingRow(RobotPlcMapping mapping, int rowNumber)
+        {
+            var rowBorder = new Border
+            {
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 28)),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 4, 8, 4)
+            };
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+
+            // # Sıra numarası
+            var numText = new TextBlock
+            {
+                Text = rowNumber.ToString(),
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(numText, 0);
+            grid.Children.Add(numText);
+
+            // Robot seçimi ComboBox
+            var robotCombo = new ComboBox
+            {
+                FontSize = 10,
+                Height = 28,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)),
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            foreach (var robot in KukaRobotManager.Instance.Robots)
+            {
+                robotCombo.Items.Add(robot.Name);
+            }
+            if (!string.IsNullOrEmpty(mapping.RobotName))
+            {
+                robotCombo.SelectedItem = mapping.RobotName;
+            }
+            Grid.SetColumn(robotCombo, 1);
+            grid.Children.Add(robotCombo);
+
+            // Robot Tag seçimi ComboBox
+            var robotTagCombo = new ComboBox
+            {
+                FontSize = 10,
+                Height = 28,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)),
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            Grid.SetColumn(robotTagCombo, 2);
+            grid.Children.Add(robotTagCombo);
+
+            // PLC Tag seçimi ComboBox
+            var plcTagCombo = new ComboBox
+            {
+                FontSize = 10,
+                Height = 28,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)),
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            foreach (var plcVar in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
+            {
+                string display = $"{plcVar.Name} ({plcVar.Address})";
+                plcTagCombo.Items.Add(display);
+            }
+            if (!string.IsNullOrEmpty(mapping.PlcTag))
+            {
+                foreach (var item in plcTagCombo.Items)
+                {
+                    if (item.ToString() == mapping.PlcTag)
+                    {
+                        plcTagCombo.SelectedItem = item;
+                        break;
+                    }
+                }
+            }
+            Grid.SetColumn(plcTagCombo, 3);
+            grid.Children.Add(plcTagCombo);
+
+            // Değer gösterimi
+            var valueText = new TextBlock
+            {
+                Text = mapping.LastValue ?? "-",
+                FontSize = 10,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            mapping.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(RobotPlcMapping.LastValue))
+                {
+                    this.DispatcherQueue.TryEnqueue(() => valueText.Text = mapping.LastValue ?? "-");
+                }
+            };
+            Grid.SetColumn(valueText, 4);
+            grid.Children.Add(valueText);
+
+            // Aktif/Pasif toggle
+            var activeToggle = new ToggleSwitch
+            {
+                IsOn = mapping.IsActive,
+                MinWidth = 0,
+                MinHeight = 0,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            activeToggle.Toggled += (s, e) =>
+            {
+                mapping.IsActive = activeToggle.IsOn;
+                SaveMappings();
+            };
+            Grid.SetColumn(activeToggle, 5);
+            grid.Children.Add(activeToggle);
+
+            // Sil butonu
+            var deleteBtn = new Button
+            {
+                Content = "\uE74D",
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                Background = new SolidColorBrush(Colors.Transparent),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)),
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            deleteBtn.Click += (s, e) =>
+            {
+                _mappings.Remove(mapping);
+                RefreshMappingRows();
+                SaveMappings();
+                LogMessage($"🗑️ Köprü eşleşmesi silindi");
+            };
+            Grid.SetColumn(deleteBtn, 6);
+            grid.Children.Add(deleteBtn);
+
+            // Robot tag listesini güncelleme
+            void UpdateRobotTags()
+            {
+                robotTagCombo.Items.Clear();
+                string selectedRobotName = robotCombo.SelectedItem?.ToString();
+                if (string.IsNullOrEmpty(selectedRobotName)) return;
+
+                var selectedRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == selectedRobotName);
+                if (selectedRobot == null) return;
+
+                foreach (var v in selectedRobot.InputVars)
+                {
+                    robotTagCombo.Items.Add($"{v.Name} ({v.PlcTag})");
+                }
+                foreach (var v in selectedRobot.OutputVars)
+                {
+                    robotTagCombo.Items.Add($"{v.Name} ({v.PlcTag})");
+                }
+
+                if (!string.IsNullOrEmpty(mapping.RobotTag))
+                {
+                    foreach (var item in robotTagCombo.Items)
+                    {
+                        if (item.ToString() == mapping.RobotTag)
+                        {
+                            robotTagCombo.SelectedItem = item;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            robotCombo.SelectionChanged += (s, e) =>
+            {
+                mapping.RobotName = robotCombo.SelectedItem?.ToString();
+                UpdateRobotTags();
+                SaveMappings();
+            };
+
+            robotTagCombo.SelectionChanged += (s, e) =>
+            {
+                mapping.RobotTag = robotTagCombo.SelectedItem?.ToString();
+                SaveMappings();
+            };
+
+            plcTagCombo.SelectionChanged += (s, e) =>
+            {
+                mapping.PlcTag = plcTagCombo.SelectedItem?.ToString();
+                SaveMappings();
+            };
+
+            // İlk yüklemede robot tag listesini doldur
+            if (!string.IsNullOrEmpty(mapping.RobotName))
+            {
+                UpdateRobotTags();
+            }
+
+            rowBorder.Child = grid;
+            return rowBorder;
+        }
+
+        private async Task ProcessMappingsAsync()
+        {
+            foreach (var mapping in _mappings)
+            {
+                if (!mapping.IsActive || string.IsNullOrEmpty(mapping.RobotName) ||
+                    string.IsNullOrEmpty(mapping.RobotTag) || string.IsNullOrEmpty(mapping.PlcTag))
+                    continue;
+
+                try
+                {
+                    // Robotu bul
+                    var robot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
+                    if (robot == null || !robot.IsConnected) continue;
+
+                    // Robot tag'inden değeri bul
+                    string robotTagDisplay = mapping.RobotTag;
+                    PlcVariable robotVar = null;
+
+                    foreach (var v in robot.InputVars.Concat(robot.OutputVars))
+                    {
+                        if ($"{v.Name} ({v.PlcTag})" == robotTagDisplay)
+                        {
+                            robotVar = v;
+                            break;
+                        }
+                    }
+
+                    if (robotVar == null || string.IsNullOrEmpty(robotVar.Value)) continue;
+
+                    string currentValue = robotVar.Value;
+                    mapping.LastValue = currentValue;
+
+                    // PLC tag'ini bul
+                    string plcTagDisplay = mapping.PlcTag;
+                    PlcVariable plcVar = null;
+
+                    foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
+                    {
+                        if ($"{v.Name} ({v.Address})" == plcTagDisplay)
+                        {
+                            plcVar = v;
+                            break;
+                        }
+                    }
+
+                    if (plcVar == null) continue;
+
+                    // PLC'ye yaz
+                    if (PlcService.Instance.IsConnected && plcVar.Value != currentValue)
+                    {
+                        await PlcService.Instance.WriteAsync(plcVar, currentValue);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private void LoadMappings()
+        {
+            try
+            {
+                if (File.Exists(_mappingsConfigPath))
+                {
+                    string json = File.ReadAllText(_mappingsConfigPath);
+                    var list = JsonSerializer.Deserialize<List<RobotPlcMapping>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (list != null)
+                    {
+                        _mappings.Clear();
+                        foreach (var m in list)
+                            _mappings.Add(m);
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private void SaveMappings()
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_mappings.ToList(), new JsonSerializerOptions { WriteIndented = true });
+                var dir = System.IO.Path.GetDirectoryName(_mappingsConfigPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(_mappingsConfigPath, json);
+            }
+            catch { }
+        }
+
+        #endregion
 
         // Helper class
         private class RobotPanelControls

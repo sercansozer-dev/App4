@@ -58,10 +58,10 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="IP Adresi" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtPlcIp" PlaceholderText="192.168.1.10" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtPlcIp" PlaceholderText="192.168.251.100" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtPlcPort" PlaceholderText="5000" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtPlcPort" PlaceholderText="5007" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Protokol" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                             <ComboBox Grid.Row="2" Grid.Column="1" Background="#252528" Foreground="White" CornerRadius="4" HorizontalAlignment="Stretch">
@@ -69,8 +69,6 @@
                                 <ComboBoxItem Content="Modbus TCP"/>
                             </ComboBox>
                         </Grid>
-
-                        <Button Content="Bağlantıyı Test Et" Background="#4CAF50" Foreground="White" Padding="15,10" CornerRadius="4"/>
                     </StackPanel>
                 </Border>
 
@@ -96,7 +94,7 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Varsayılan Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="7000" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtRobotPort" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Okuma Hızı (ms)" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                             <Slider Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="500" Value="100"/>
@@ -111,7 +109,7 @@
                             <Border Background="#9C27B0" CornerRadius="6" Width="36" Height="36">
                                 <FontIcon Glyph="&#xE722;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
-                            <TextBlock Text="Kamera Ayarları" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBlock Text="Kamera (Gocator 3D) Ayarları" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
                         </StackPanel>
                         <Rectangle Height="1" Fill="#333"/>
 
@@ -126,10 +124,10 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Gocator IP" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" PlaceholderText="192.168.1.10" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtGocatorIp" PlaceholderText="192.168.251.30" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Otomatik Bağlan" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
-                            <ToggleSwitch Grid.Row="1" Grid.Column="1" IsOn="True"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Control Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtGocatorPort" PlaceholderText="3600" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -166,9 +164,56 @@
 
                 <!-- Kaydet Butonları -->
                 <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-                    <Button Content="Varsayılana Dön" Background="#333" Foreground="White" Padding="20,10" CornerRadius="4"/>
-                    <Button Content="Ayarları Kaydet" Background="#0078D4" Foreground="White" Padding="20,10" CornerRadius="4"/>
+                    <Button x:Name="BtnResetDefaults" Click="BtnResetDefaults_Click" Content="Varsayılana Dön" Background="#333" Foreground="White" Padding="20,10" CornerRadius="4"/>
+                    <Button x:Name="BtnSaveSettings" Click="BtnSaveSettings_Click" Content="Ayarları Kaydet" Background="#0078D4" Foreground="White" Padding="20,10" CornerRadius="4"/>
                 </StackPanel>
+                <TextBlock x:Name="TxtSaveStatus" Text="" Foreground="#4CAF50" FontSize="11"/>
+
+                <!-- Ayar Yedekleme / İçe Aktarma -->
+                <Border Background="#1E1E20" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="15">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Background="#00BCD4" CornerRadius="6" Width="36" Height="36">
+                                <FontIcon Glyph="&#xE8F1;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Yapılandırma Yedekleme" FontSize="14" FontWeight="SemiBold" Foreground="White"/>
+                                <TextBlock Text="Tüm ayarları yedekle ve başka bilgisayara aktar" FontSize="11" Foreground="#888"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#333"/>
+
+                        <TextBlock Text="PLC tag eşleşmeleri, otomasyon ayarları, reçeteler, robot konfigürasyonu ve transfer tablosu tek dosyada yedeklenir." 
+                                   Foreground="#888" FontSize="11" TextWrapping="Wrap"/>
+
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="BtnExportConfig" Click="BtnExportConfig_Click" 
+                                    HorizontalAlignment="Stretch" Padding="0,14" CornerRadius="4"
+                                    Background="#00BCD4" Foreground="White">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE898;" FontSize="16"/>
+                                    <TextBlock Text="Ayarları Dışa Aktar" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button x:Name="BtnImportConfig" Click="BtnImportConfig_Click" Grid.Column="1"
+                                    HorizontalAlignment="Stretch" Padding="0,14" CornerRadius="4"
+                                    Background="#FF9800" Foreground="White">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE896;" FontSize="16"/>
+                                    <TextBlock Text="Ayarları İçe Aktar" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <TextBlock x:Name="TxtConfigStatus" Text="" Foreground="#4CAF50" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

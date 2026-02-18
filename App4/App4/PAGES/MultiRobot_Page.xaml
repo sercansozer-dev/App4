@@ -8,65 +8,67 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="#0A0A0A"
+    Background="#0D0D0D"
     NavigationCacheMode="Required">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="120"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- HEADER -->
-        <Border Grid.Row="0" Background="#111111" BorderBrush="#222" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Background="#1A1A1C" BorderThickness="0,0,0,1" BorderBrush="#333">
             <Grid Padding="20,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="15" VerticalAlignment="Center">
-                    <FontIcon Glyph="&#xE99A;" FontSize="28" Foreground="#00FF88"/>
-                    <TextBlock Text="ÇOKLU ROBOT KONTROLÜ" FontSize="22" FontWeight="Bold" Foreground="White"/>
-                    <Border x:Name="RobotCountBadge" Background="#00FF88" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
-                        <TextBlock x:Name="RobotCountText" Text="2 Robot" FontSize="12" FontWeight="Bold" Foreground="#0A0A0A"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                    <Border Background="#00BCD4" CornerRadius="8" Width="40" Height="40">
+                        <FontIcon Glyph="&#xE99A;" FontSize="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Çoklu Robot Kontrolü" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
+                        <TextBlock Text="Robot Durum İzleme ve Komut Yönetimi" FontSize="11" Foreground="#888"/>
+                    </StackPanel>
+                    <Border Background="#1E1E20" CornerRadius="6" Padding="12,6" Margin="15,0,0,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="RobotCountText" Text="2 Robot" FontSize="11" Foreground="#888"/>
                     </Border>
                 </StackPanel>
-
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <Button x:Name="BtnAddRobot" Click="BtnAddRobot_Click"
-                            Background="#2D2D30" Foreground="White" CornerRadius="6" Padding="15,8">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE710;" FontSize="14"/>
-                            <TextBlock Text="Robot Ekle" FontSize="12"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
+                <Button x:Name="BtnAddRobot" Click="BtnAddRobot_Click" HorizontalAlignment="Right"
+                        Background="#00BCD4" Foreground="White" CornerRadius="4" Padding="15,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;" FontSize="14"/>
+                        <TextBlock Text="Robot Ekle"/>
+                    </StackPanel>
+                </Button>
             </Grid>
         </Border>
 
         <!-- ROBOT KARTLARI -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
-            <StackPanel x:Name="RobotCardsPanel" Spacing="15"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20,15,20,0">
+            <StackPanel x:Name="RobotCardsPanel" Spacing="12"/>
         </ScrollViewer>
 
         <!-- LOG ALANI -->
-        <Border Grid.Row="2" Background="#0D0D0D" BorderBrush="#222" BorderThickness="0,1,0,0" Padding="20,10">
+        <Border Grid.Row="2" Background="#1E1E20" Margin="20,15,20,20" CornerRadius="8" MaxHeight="140">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="40"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="📋 LOG" FontWeight="SemiBold" Foreground="#666" Margin="0,0,0,5"/>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE71E;" Foreground="#00BCD4" FontSize="14"/>
+                        <TextBlock Text="ROBOT LOG" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                    </StackPanel>
+                </Border>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="#1A1A1C">
                     <TextBlock x:Name="LogTextBlock" 
                                Text="[INFO] Çoklu Robot Sistemi Hazır..." 
-                               Foreground="#00FF88" 
+                               Foreground="#4CAF50" 
                                FontSize="10" 
-                               FontFamily="Cascadia Mono" 
-                               TextWrapping="Wrap"/>
+                               FontFamily="Consolas" 
+                               TextWrapping="Wrap"
+                               Padding="15"/>
                 </ScrollViewer>
             </Grid>
         </Border>
