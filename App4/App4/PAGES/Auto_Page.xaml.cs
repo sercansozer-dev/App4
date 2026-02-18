@@ -416,9 +416,14 @@ namespace App4
                     {
                         foreach (var s in Stations)
                         {
-                            if (s is ExtendedStationViewModel ext && ext.TargetRfid == rfid.Id)
+                            if (s is ExtendedStationViewModel ext)
                             {
-                                UpdateStationModel(ext);
+                                // Specific modda TargetRfid, Mixed modda CurrentRfid kontrol et
+                                bool isMatch = ext.RfidOpMode.Equals(App4.Utilities.RfidOperationMode.Specific)
+                                    ? ext.TargetRfid == rfid.Id
+                                    : ext.CurrentRfid == rfid.Id;
+
+                                if (isMatch) UpdateStationModel(ext);
                             }
                         }
                     });
@@ -963,7 +968,19 @@ namespace App4
 
         // Duplicate InitSingleViewer removed
 
-        private async void UpdateStationModel(ExtendedStationViewModel station)
+        private void UpdateStationModel(ExtendedStationViewModel station)
+        {
+            // UI thread'de çalıştığından emin ol (ExecuteScriptAsync UI thread gerektirir)
+            if (!this.DispatcherQueue.HasThreadAccess)
+            {
+                this.DispatcherQueue.TryEnqueue(() => UpdateStationModel(station));
+                return;
+            }
+
+            _ = UpdateStationModelAsync(station);
+        }
+
+        private async Task UpdateStationModelAsync(ExtendedStationViewModel station)
         {
             try
             {
@@ -976,56 +993,74 @@ namespace App4
                     _ => null
                 };
 
-                if (targetWebView?.CoreWebView2 == null) return;
-
-                // Determine which RFID to use for model lookup
-                string rfidToLookup = station.TargetRfid; // Default to Target (Specific Mode)
-
-                if (station.RfidOpMode.Equals(RfidOperationMode.Mixed))
+                if (targetWebView?.CoreWebView2 == null)
                 {
-                    // In Mixed Mode, use the ACTUALLY READ Rfid (CurrentRfid)
-                    rfidToLookup = station.CurrentRfid;
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] WebView not ready, skipping model update");
+                    return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Updating Model. Mode: {station.RfidOpMode}, LookupID: {rfidToLookup}");
-
-                var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidToLookup);
-                
-                if (rfidDef != null && !string.IsNullOrEmpty(rfidDef.ModelFileName))
+                // Determine which RFID to use based on operation mode
+                string rfidToLookup;
+                if (station.RfidOpMode.Equals(App4.Utilities.RfidOperationMode.Mixed))
                 {
-                    string modelPath = rfidDef.ModelFileName.Replace("\\", "/");
-                    string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
-                    string fullPath = Path.Combine(modelsRoot, modelPath);
-                    
-                    // Try exact path first
-                    if (!File.Exists(fullPath))
-                    {
-                        // Search for file in Models folder
-                        var foundFile = Directory.GetFiles(modelsRoot, Path.GetFileName(modelPath), SearchOption.AllDirectories).FirstOrDefault();
-                        if (foundFile != null)
-                        {
-                            modelPath = Path.GetRelativePath(modelsRoot, foundFile).Replace("\\", "/");
-                            fullPath = foundFile;
-                        }
-                    }
-
-                    if (File.Exists(fullPath))
-                    {
-                        // Use file:// URL for direct file access
-                        string fileUri = new Uri(fullPath).AbsoluteUri;
-                        string jsCode = $"if(window.loadModel) {{ window.loadModel('{fileUri.Replace("'", "\\'")}'); }} else {{ console.error('loadModel not ready'); }}";
-                        
-                        System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Loading: {fileUri}");
-                        await targetWebView.ExecuteScriptAsync(jsCode);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Model file not found: {fullPath}");
-                    }
+                    // Mixed: Okunan (CurrentRfid) RFID'nin modeli
+                    rfidToLookup = station.CurrentRfid;
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] No model defined - RFID: {station.TargetRfid}");
+                    // Specific: Beklenen (TargetRfid) RFID'nin modeli
+                    rfidToLookup = station.TargetRfid;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Model güncelleniyor. Mod: {station.RfidOpMode}, RFID: {rfidToLookup ?? "(boş)"}");
+
+                // RFID boşsa modeli temizle
+                if (string.IsNullOrEmpty(rfidToLookup))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] RFID boş - model temizleniyor");
+                    await targetWebView.ExecuteScriptAsync("if(currentModel) { scene.remove(currentModel); currentModel = null; } document.getElementById('debug').textContent = 'RFID bekleniyor...';");
+                    return;
+                }
+
+                var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidToLookup);
+
+                if (rfidDef == null || string.IsNullOrEmpty(rfidDef.ModelFileName))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] RFID '{rfidToLookup}' için model tanımlı değil");
+                    await targetWebView.ExecuteScriptAsync($"if(currentModel) {{ scene.remove(currentModel); currentModel = null; }} document.getElementById('debug').textContent = 'RFID: {rfidToLookup} - Model tanımsız';");
+                    return;
+                }
+
+                string modelPath = rfidDef.ModelFileName.Replace("\\", "/");
+                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                string fullPath = Path.Combine(modelsRoot, modelPath);
+
+                // Try exact path first, then search
+                if (!File.Exists(fullPath))
+                {
+                    try
+                    {
+                        var foundFile = Directory.GetFiles(modelsRoot, Path.GetFileName(modelPath), SearchOption.AllDirectories).FirstOrDefault();
+                        if (foundFile != null)
+                        {
+                            fullPath = foundFile;
+                        }
+                    }
+                    catch { /* Models klasörü yoksa hata vermesin */ }
+                }
+
+                if (File.Exists(fullPath))
+                {
+                    string fileUri = new Uri(fullPath).AbsoluteUri;
+                    string jsCode = $"if(window.loadModel) {{ window.loadModel('{fileUri.Replace("'", "\\'")}'); }} else {{ console.error('loadModel not ready'); }}";
+
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Yükleniyor: {Path.GetFileName(fullPath)}");
+                    await targetWebView.ExecuteScriptAsync(jsCode);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Model dosyası bulunamadı: {fullPath}");
+                    await targetWebView.ExecuteScriptAsync($"document.getElementById('debug').textContent = 'Dosya bulunamadı: {Path.GetFileName(modelPath)}';");
                 }
             }
             catch (Exception ex) 
@@ -1049,12 +1084,12 @@ namespace App4
                 }
 
                 // Model Update Triggering:
-                // If TargetRfid changes (Specific Mode) OR CurrentRfid changes (Mixed Mode) OR OpMode changes
+                // TargetRfid değişirse (Specific mod), CurrentRfid değişirse (Mixed mod), veya OpMode değişirse
                 if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) || 
                     e.PropertyName == nameof(StationViewModel.CurrentRfid) ||
                     e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode))
                 {
-                    UpdateStationModel(station);
+                    this.DispatcherQueue.TryEnqueue(() => UpdateStationModel(station));
                 }
 
                 // PLC'ye Yazma İşlemleri (Eski kodunun aynısı)
