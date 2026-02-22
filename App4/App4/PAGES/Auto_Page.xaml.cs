@@ -1182,6 +1182,17 @@ namespace App4
             if (sender is ComboBox cb && cb.DataContext is PlcVariable v) { if (v.PlcTag != cb.SelectedItem as string) { v.PlcTag = cb.SelectedItem as string; GlobalData.SavePlcVariableTagsToFile(); ConnectToPlcVariable(v); } }
         }
 
+        private void RfidModel_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is App4.Utilities.RfidDef rfid) 
+            { 
+                if (cb.SelectedItem is string selectedModel && rfid.ModelFileName != selectedModel) 
+                { 
+                    rfid.ModelFileName = selectedModel; 
+                } 
+            }
+        }
+
         // --- GÜVENLİ DEĞER KONTROLÜ (BOOL, INT, STRING HEPSİNİ KABUL EDER) ---
         private bool IsConditionMet(string varName, bool expectedTrue)
         {

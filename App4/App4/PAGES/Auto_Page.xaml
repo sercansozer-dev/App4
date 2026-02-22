@@ -792,7 +792,8 @@
 
                                             <ComboBox Grid.Column="2" 
                                                       ItemsSource="{Binding ElementName=AutoPageRoot, Path=AvailableModels}"
-                                                      SelectedItem="{x:Bind ModelFileName, Mode=TwoWay}"
+                                                      SelectedItem="{x:Bind ModelFileName, Mode=OneWay}"
+                                                      SelectionChanged="RfidModel_SelectionChanged"
                                                       Background="#252526" BorderBrush="#444" Foreground="White" FontSize="11"
                                                       HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="28"/>
                                         </Grid>
