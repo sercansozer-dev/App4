@@ -283,6 +283,8 @@ namespace App4
                         mergedVars.Add(new SignalItemViewModel
                         {
                             VarName = v.Name,
+                            RobotName = "ROBOT 1",
+                            DirectionTarget = "ROBOT/PLC ➔ PC (Okuma)",
                             PlcTagName = pVar?.PlcTag ?? "-",
                             PlcType = pVar?.Type ?? "-",
                             ValueStr = v.Value,
@@ -295,6 +297,8 @@ namespace App4
                         mergedVars.Add(new SignalItemViewModel
                         {
                             VarName = v.Name,
+                            RobotName = "ROBOT 1",
+                            DirectionTarget = "PC ➔ ROBOT/PLC (Yazma)",
                             PlcTagName = pVar?.PlcTag ?? "-",
                             PlcType = pVar?.Type ?? "-",
                             ValueStr = v.Value,
@@ -342,6 +346,8 @@ namespace App4
 
     public class SignalItemViewModel : System.ComponentModel.INotifyPropertyChanged
     {
+        public string RobotName { get; set; }
+        public string DirectionTarget { get; set; }
         public string VarName { get; set; }
         public string PlcTagName { get; set; }
         public string PlcType { get; set; }

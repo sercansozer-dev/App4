@@ -165,36 +165,63 @@
             </Grid>
         </ScrollViewer>
 
-        <!-- SİNYAL TABLOSU -->
-        <Border Grid.Row="2" Background="#111" BorderThickness="0,1,0,0" BorderBrush="#333">
+        <!-- SİNYAL TABLOSU (DETAYLI) -->
+        <Border Grid.Row="2" Background="#141414" BorderThickness="0,2,0,0" BorderBrush="#333">
             <ListView x:Name="SignalListView" SelectionMode="None">
                 <ListView.Header>
-                    <Grid Padding="15,10" Background="#1A1A1C" BorderBrush="#333" BorderThickness="0,0,0,1">
+                    <Grid Padding="15,12" Background="#1E1E20" BorderBrush="#333" BorderThickness="0,0,0,1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="2.5*"/>
+                            <ColumnDefinition Width="3*"/>
                             <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="3*"/>
-                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="2*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="DEĞİŞKEN_ADI" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
-                        <TextBlock Grid.Column="1" Text="PLC_TAG" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
-                        <TextBlock Grid.Column="2" Text="TİP (BOOL/REAL...)" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
-                        <TextBlock Grid.Column="3" Text="DEĞER" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Column="0" Text="HEDEF ROBOT" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Column="1" Text="VERİ YÖNÜ / KAYNAK" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Column="2" Text="SİNYAL ADI" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Column="3" Text="PLC TAG" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Column="4" Text="BİLGİ TİPİ" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Grid.Column="5" Text="ANLIK DEĞER" Foreground="#AAA" FontWeight="Bold" FontSize="11"/>
                     </Grid>
                 </ListView.Header>
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <Grid Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#222">
+                        <Grid Padding="15,10" BorderThickness="0,0,0,1" BorderBrush="#222">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="2.5*"/>
+                                <ColumnDefinition Width="3*"/>
                                 <ColumnDefinition Width="2*"/>
-                                <ColumnDefinition Width="3*"/>
-                                <ColumnDefinition Width="3*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="2*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding VarName}" Foreground="#0078D4" FontWeight="SemiBold"/>
-                            <TextBlock Grid.Column="1" Text="{Binding PlcTagName}" Foreground="#AAA"/>
-                            <TextBlock Grid.Column="2" Text="{Binding PlcType}" Foreground="#888"/>
-                            <TextBlock Grid.Column="3" Text="{Binding ValueStr}" Foreground="White" FontWeight="Bold"/>
+                            
+                            <!-- Hedef Robot -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="🤖" FontSize="14" Foreground="#FF9800"/>
+                                <TextBlock Text="{Binding RobotName}" Foreground="#E0E0E0" FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <!-- Yön -->
+                            <Border Grid.Column="1" Background="#222" BorderBrush="#444" BorderThickness="1" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DirectionTarget}" Foreground="#4CAF50" FontSize="11" FontWeight="Bold"/>
+                            </Border>
+
+                            <!-- Sinyal Adı -->
+                            <TextBlock Grid.Column="2" Text="{Binding VarName}" Foreground="#5AA4FF" FontWeight="Bold" VerticalAlignment="Center" FontSize="14"/>
+
+                            <!-- PLC Tag -->
+                            <TextBlock Grid.Column="3" Text="{Binding PlcTagName}" Foreground="#888" VerticalAlignment="Center"/>
+
+                            <!-- Veri Tipi -->
+                            <Border Grid.Column="4" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PlcType}" Foreground="#BDBDBD" FontSize="11"/>
+                            </Border>
+
+                            <!-- Değer -->
+                            <TextBlock Grid.Column="5" Text="{Binding ValueStr}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" FontSize="16"/>
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
