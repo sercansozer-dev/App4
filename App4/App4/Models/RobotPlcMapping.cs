@@ -43,6 +43,14 @@ namespace App4.Models
             set { if (_isActive != value) { _isActive = value; OnPropertyChanged(); } }
         }
 
+        // Çift yönlü aktarım desteği: "Robot→PLC" veya "PLC→Robot"
+        private string _direction = "Robot→PLC";
+        public string Direction
+        {
+            get => _direction;
+            set { if (_direction != value) { _direction = value; OnPropertyChanged(); } }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

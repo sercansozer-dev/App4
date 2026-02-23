@@ -1194,9 +1194,28 @@ namespace App4
         }
 
         // --- GÜVENLİ DEĞER KONTROLÜ (BOOL, INT, STRING HEPSİNİ KABUL EDER) ---
+        // GENİŞLETİLDİ: GeneralInputVars + PlcService değişkenlerinde arar
         private bool IsConditionMet(string varName, bool expectedTrue)
         {
-            var variable = GeneralInputVars.FirstOrDefault(v => v.Name == varName);
+            // 1. Önce GeneralInputVars'ta ara
+            PlcVariable variable = GeneralInputVars.FirstOrDefault(v => v.Name == varName);
+
+            // 2. Bulamazsa PlcService Input/Output değişkenlerinde ara
+            if (variable == null && PlcService.Instance != null)
+            {
+                variable = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == varName);
+                if (variable == null)
+                    variable = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == varName);
+            }
+
+            // 3. İstasyon değişkenlerinde de ara
+            if (variable == null)
+            {
+                variable = Station1Vars.FirstOrDefault(v => v.Name == varName)
+                        ?? Station2Vars.FirstOrDefault(v => v.Name == varName)
+                        ?? Station3Vars.FirstOrDefault(v => v.Name == varName);
+            }
+
             if (variable == null || variable.CurrentValue == null) return false;
 
             string val = variable.CurrentValue.ToString().ToUpper().Trim();
@@ -1301,15 +1320,21 @@ namespace App4
         }
 
         // --- START BUTONU (ARTIK KONTROLLÜ) ---
+        // DÜZELTİLDİ: Hardcoded SAFETY_OK kontrolü kaldırıldı.
+        // Tüm ön koşullar SystemCheckList + İstasyon alarmları üzerinden kontrol edilir.
         private void BtnStart_Click(object sender, RoutedEventArgs e)
         {
-            // Son bir kez kontrol et (UI güncellemesi gecikmiş olabilir)
-            if (!IsConditionMet("SAFETY_OK", true))
+            // 1. SystemCheckList kurallarını kontrol et
+            foreach (var check in GlobalData.SystemCheckList)
             {
-                AddLog("BAŞLATILAMADI: Safety (Acil Stop) sinyali yok!", "Red");
-                return;
+                if (!IsConditionMet(check.TagName, true))
+                {
+                    AddLog($"BAŞLATILAMADI: {check.ErrorMessage}", "Red");
+                    return;
+                }
             }
 
+            // 2. İstasyon alarmlarını kontrol et
             if (Stations.Any(s => s.HasAlarm))
             {
                 AddLog("BAŞLATILAMADI: İstasyonlarda arıza var.", "Red");

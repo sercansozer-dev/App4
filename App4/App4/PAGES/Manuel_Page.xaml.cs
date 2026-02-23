@@ -108,6 +108,117 @@ namespace App4
 
             StatusTablaTara.Text = "TARA: " + (IsTrue("T_TABLA_TARA") ? "Açık" : "Kapalı");
             StatusTablaTamam.Text = "TAMAM: " + (IsTrue("G_TABLA_TAMAM") ? "Açık" : "Kapalı");
+
+            // Otomatik modda RFID'ye göre klima tipi index'ini robotlara gönder
+            _ = UpdateAutoKlimaTipFromRfid();
+
+            // Ölçüm sonuçlarını güncelle
+            if (GlobalData.LastMeasurements.Count > 0 && OlcumSonuclariList.ItemsSource != GlobalData.LastMeasurements)
+            {
+                OlcumSonuclariList.ItemsSource = GlobalData.LastMeasurements;
+            }
+        }
+
+        // --- KAMERA ÖLÇÜM (MANUEL BAŞLAT) ---
+        private async void BtnManuelOlcumBaslat_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            string rfidValue = TxtManuelRfid.Text?.Trim() ?? "";
+            string indexValue = TxtManuelIndex.Text?.Trim() ?? "";
+
+            if (string.IsNullOrEmpty(rfidValue) || string.IsNullOrEmpty(indexValue))
+            {
+                TxtOlcumDurum.Text = "RFID ve Index zorunludur!";
+                TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Orange);
+                if (btn != null) btn.IsEnabled = true;
+                return;
+            }
+
+            TxtOlcumDurum.Text = "Ölçüm alınıyor...";
+            TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Yellow);
+
+            try
+            {
+                // 1. RFID'ye göre kart tanımını bul
+                var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidValue);
+                string selectedJob = null;
+
+                if (rfidDef != null && rfidDef.JobSequence != null && rfidDef.JobSequence.Count > 0)
+                {
+                    if (int.TryParse(indexValue, out int jobIndex))
+                    {
+                        if (jobIndex >= 0 && jobIndex < rfidDef.JobSequence.Count)
+                        {
+                            selectedJob = rfidDef.JobSequence[jobIndex];
+                        }
+                        else
+                        {
+                            TxtOlcumDurum.Text = $"Index {jobIndex} geçersiz (Job sayısı: {rfidDef.JobSequence.Count})";
+                            TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red);
+                            if (btn != null) btn.IsEnabled = true;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        TxtOlcumDurum.Text = "Index değeri sayı olmalıdır!";
+                        TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red);
+                        if (btn != null) btn.IsEnabled = true;
+                        return;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(selectedJob))
+                {
+                    TxtOlcumDurum.Text = $"Job bulunamadı (RFID: {rfidValue}, Index: {indexValue})";
+                    TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red);
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                // 2. Job'u yükle
+                TxtOlcumDurum.Text = $"Job yükleniyor: {selectedJob}...";
+                bool jobLoaded = await GocatorJobLogic.LoadJob(selectedJob, (msg) => { });
+                if (!jobLoaded)
+                {
+                    TxtOlcumDurum.Text = $"Job yüklenemedi: {selectedJob}";
+                    TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red);
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                // 3. Ölçüm sinyalini sıfırla
+                GlobalData.ResetMeasurementSignal();
+
+                // 4. Sensörden ölçüm al
+                TxtOlcumDurum.Text = "Sensörden veri alınıyor...";
+                var result = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(
+                    (msg) => { }, this.DispatcherQueue);
+
+                if (result.Item1 == 1) // Başarılı
+                {
+                    GlobalData.SetMeasurementSignal();
+                    OlcumSonuclariList.ItemsSource = GlobalData.LastMeasurements;
+                    TxtOlcumDurum.Text = $"BAŞARILI! {result.Item2.Count} ölçüm alındı (RFID: {rfidValue}, Job: {selectedJob})";
+                    TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+                }
+                else
+                {
+                    TxtOlcumDurum.Text = "Sensör verisi alınamadı (Output yok veya zaman aşımı)";
+                    TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red);
+                }
+            }
+            catch (Exception ex)
+            {
+                TxtOlcumDurum.Text = $"Hata: {ex.Message}";
+                TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red);
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
+            }
         }
 
         private async void BtnBaslat_Click(object sender, RoutedEventArgs e)
@@ -243,6 +354,7 @@ namespace App4
             await WriteGlobalRobotOutVarAsync("G_TABLA_TAMAM", "FALSE");
         }
 
+        // DÜZELTİLDİ: Tüm robotlara yazar (eskiden sadece 1. robota yazıyordu)
         public async Task WriteGlobalRobotOutVarAsync(string outVarName, string valueToWrite)
         {
             var gVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == outVarName);
@@ -258,10 +370,59 @@ namespace App4
                 await PlcService.Instance.WriteAsync(plcVar, valueToWrite);
             }
 
-            var robot = GetRobot();
-            if (robot != null && robot.IsConnected)
+            // TÜM robotlara yaz
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots != null)
             {
-                await KukaService.Instance.WriteVariableAsync(outVarName, valueToWrite);
+                foreach (var r in robots)
+                {
+                    if (r.IsConnected)
+                    {
+                        try { await r.WriteVariableAsync(outVarName, valueToWrite); } catch { }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Otomatik modda: Her robotun bulunduğu istasyondaki RFID'ye göre klima tipi index'i belirler
+        /// ve ilgili robota G_KLIMA_TIP olarak gönderir.
+        /// KnownRfids listesindeki sıra (0-based index + 1) = Klima Tipi numarası
+        /// </summary>
+        private async Task UpdateAutoKlimaTipFromRfid()
+        {
+            var stations = GlobalData.Stations;
+            var knownRfids = GlobalData.KnownRfids;
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (stations == null || knownRfids == null || robots == null || knownRfids.Count == 0) return;
+
+            foreach (var station in stations)
+            {
+                // İstasyondaki aktüel RFID'yi oku
+                string currentRfid = station.CurrentRfid;
+                if (string.IsNullOrEmpty(currentRfid)) continue;
+
+                // RFID'yi KnownRfids listesinde bul → index = klima tipi
+                int klimaIndex = -1;
+                for (int i = 0; i < knownRfids.Count; i++)
+                {
+                    if (knownRfids[i].Id == currentRfid.Trim())
+                    {
+                        klimaIndex = i + 1; // 1-based index
+                        break;
+                    }
+                }
+
+                if (klimaIndex < 0) continue;
+
+                // Bu istasyondaki tüm robotlara klima tipi gönder
+                foreach (var robot in robots)
+                {
+                    if (robot.IsConnected)
+                    {
+                        try { await robot.WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString()); } catch { }
+                    }
+                }
             }
         }
 

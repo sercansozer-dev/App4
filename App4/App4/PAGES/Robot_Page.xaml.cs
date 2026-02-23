@@ -502,13 +502,14 @@ namespace App4.Pages
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });   // #
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });  // Yön (Robot→PLC / PLC→Robot)
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Robot
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Robot Tag
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // PLC Tag
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });   // Değer
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });   // Aktif
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });   // Sil
 
             // # Sıra numarası
             var numText = new TextBlock
@@ -521,6 +522,27 @@ namespace App4.Pages
             };
             Grid.SetColumn(numText, 0);
             grid.Children.Add(numText);
+
+            // Yön seçimi ComboBox (Robot→PLC / PLC→Robot)
+            var directionCombo = new ComboBox
+            {
+                FontSize = 9,
+                Height = 28,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 45, 48)),
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            directionCombo.Items.Add("Robot→PLC");
+            directionCombo.Items.Add("PLC→Robot");
+            directionCombo.SelectedItem = mapping.Direction ?? "Robot→PLC";
+            directionCombo.SelectionChanged += (s, e) =>
+            {
+                mapping.Direction = directionCombo.SelectedItem?.ToString() ?? "Robot→PLC";
+                SaveMappings();
+            };
+            Grid.SetColumn(directionCombo, 1);
+            grid.Children.Add(directionCombo);
 
             // Robot seçimi ComboBox
             var robotCombo = new ComboBox
@@ -540,7 +562,7 @@ namespace App4.Pages
             {
                 robotCombo.SelectedItem = mapping.RobotName;
             }
-            Grid.SetColumn(robotCombo, 1);
+            Grid.SetColumn(robotCombo, 2);
             grid.Children.Add(robotCombo);
 
             // Robot Tag seçimi ComboBox
@@ -553,7 +575,7 @@ namespace App4.Pages
                 Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
                 Margin = new Thickness(2, 0, 2, 0)
             };
-            Grid.SetColumn(robotTagCombo, 2);
+            Grid.SetColumn(robotTagCombo, 3);
             grid.Children.Add(robotTagCombo);
 
             // PLC Tag seçimi ComboBox
@@ -582,7 +604,7 @@ namespace App4.Pages
                     }
                 }
             }
-            Grid.SetColumn(plcTagCombo, 3);
+            Grid.SetColumn(plcTagCombo, 4);
             grid.Children.Add(plcTagCombo);
 
             // Değer gösterimi
@@ -602,7 +624,7 @@ namespace App4.Pages
                     this.DispatcherQueue.TryEnqueue(() => valueText.Text = mapping.LastValue ?? "-");
                 }
             };
-            Grid.SetColumn(valueText, 4);
+            Grid.SetColumn(valueText, 5);
             grid.Children.Add(valueText);
 
             // Aktif/Pasif toggle
@@ -619,7 +641,7 @@ namespace App4.Pages
                 mapping.IsActive = activeToggle.IsOn;
                 SaveMappings();
             };
-            Grid.SetColumn(activeToggle, 5);
+            Grid.SetColumn(activeToggle, 6);
             grid.Children.Add(activeToggle);
 
             // Sil butonu
@@ -642,7 +664,7 @@ namespace App4.Pages
                 SaveMappings();
                 LogMessage($"🗑️ Köprü eşleşmesi silindi");
             };
-            Grid.SetColumn(deleteBtn, 6);
+            Grid.SetColumn(deleteBtn, 7);
             grid.Children.Add(deleteBtn);
 
             // Robot tag listesini güncelleme
@@ -720,7 +742,7 @@ namespace App4.Pages
                     var robot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
                     if (robot == null || !robot.IsConnected) continue;
 
-                    // Robot tag'inden değeri bul
+                    // Robot tag'inden değişkeni bul
                     string robotTagDisplay = mapping.RobotTag;
                     PlcVariable robotVar = null;
 
@@ -733,10 +755,7 @@ namespace App4.Pages
                         }
                     }
 
-                    if (robotVar == null || string.IsNullOrEmpty(robotVar.Value)) continue;
-
-                    string currentValue = robotVar.Value;
-                    mapping.LastValue = currentValue;
+                    if (robotVar == null) continue;
 
                     // PLC tag'ini bul
                     string plcTagDisplay = mapping.PlcTag;
@@ -753,10 +772,32 @@ namespace App4.Pages
 
                     if (plcVar == null) continue;
 
-                    // PLC'ye yaz
-                    if (PlcService.Instance.IsConnected && plcVar.Value != currentValue)
+                    // ÇİFT YÖNLÜ AKTARIM
+                    string direction = mapping.Direction ?? "Robot→PLC";
+
+                    if (direction == "Robot→PLC")
                     {
-                        await PlcService.Instance.WriteAsync(plcVar, currentValue);
+                        // Robot'tan oku → PLC'ye yaz
+                        if (string.IsNullOrEmpty(robotVar.Value)) continue;
+                        string currentValue = robotVar.Value;
+                        mapping.LastValue = currentValue;
+
+                        if (PlcService.Instance.IsConnected && plcVar.Value != currentValue)
+                        {
+                            await PlcService.Instance.WriteAsync(plcVar, currentValue);
+                        }
+                    }
+                    else // PLC→Robot
+                    {
+                        // PLC'den oku → Robot'a yaz
+                        string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                        if (string.IsNullOrEmpty(plcValue)) continue;
+                        mapping.LastValue = plcValue;
+
+                        if (robot.IsConnected && robotVar.Value != plcValue)
+                        {
+                            await robot.WriteVariableAsync(robotVar.PlcTag, plcValue);
+                        }
                     }
                 }
                 catch { }

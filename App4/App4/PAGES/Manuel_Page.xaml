@@ -44,6 +44,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- 1. SÜTUN: ROBOT KONTROL -->
@@ -131,8 +132,64 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 4. TAM GENİŞLİK: GOCATOR TABLA OFFSET -->
+                <!-- 4. KAMERA ÖLÇÜM PANELİ (Sadeleştirilmiş) -->
                 <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#1A1A1C" CornerRadius="8" Padding="15">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="KAMERA ÖLÇÜM (MANUEL)" FontWeight="Bold" Foreground="#00BCD4"/>
+                        <Rectangle Height="1" Fill="#333" Margin="0,0,0,5"/>
+
+                        <Grid ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- RFID Değeri -->
+                            <TextBlock Grid.Column="0" Text="RFID:" Foreground="#888" VerticalAlignment="Center"/>
+                            <TextBox x:Name="TxtManuelRfid" Grid.Column="1" PlaceholderText="RFID değeri girin..."
+                                     Background="#252528" Foreground="White" FontSize="12" Height="32"/>
+
+                            <!-- Index Değeri -->
+                            <TextBlock Grid.Column="2" Text="Index:" Foreground="#888" VerticalAlignment="Center"/>
+                            <TextBox x:Name="TxtManuelIndex" Grid.Column="3" PlaceholderText="Job Index"
+                                     Background="#252528" Foreground="White" FontSize="12" Height="32"/>
+
+                            <!-- Ölçüm Başlat Butonu -->
+                            <Button x:Name="BtnManuelOlcumBaslat" Grid.Column="4"
+                                    Content="ÖLÇÜM AL" Background="#00BCD4" Foreground="White"
+                                    FontWeight="Bold" Padding="20,6" Click="BtnManuelOlcumBaslat_Click"/>
+
+                            <!-- Son Ölçüm Durumu -->
+                            <TextBlock x:Name="TxtOlcumDurum" Grid.Column="5" Text="Bekleniyor..."
+                                       Foreground="#888" VerticalAlignment="Center" FontSize="12"/>
+                        </Grid>
+
+                        <!-- Ölçüm Sonuçları -->
+                        <ItemsControl x:Name="OlcumSonuclariList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="8,4" Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Id}" Foreground="#555" FontSize="11"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#00BCD4" FontWeight="SemiBold" FontSize="12"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Value}" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- 5. TAM GENİŞLİK: GOCATOR TABLA OFFSET -->
+                <Border Grid.Row="2" Grid.ColumnSpan="3" Background="#1A1A1C" CornerRadius="8" Padding="15">
                     <StackPanel Spacing="10">
                         <TextBlock Text="GOCATOR TABLA OFFSET" FontWeight="Bold" Foreground="#E67E22"/>
                         <Rectangle Height="1" Fill="#333" Margin="0,0,0,5"/>
