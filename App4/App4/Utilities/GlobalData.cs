@@ -543,19 +543,84 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
             AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
             
-            // ROBOT DEĞİŞKENLERİ (Default - Input ve Output)
+            // ═══════════════════════════════════════════════════════════════
+            // ROBOT → PLC DEĞİŞKENLERİ (Input - Robottan gelen sinyaller)
+            // $CONFIG.dat USER GLOBALS ile birebir eşleşir
+            // ═══════════════════════════════════════════════════════════════
             if (RobotInputVars.Count == 0)
             {
-                RobotInputVars.Add(Create("ROBOT_X", "REAL", "Input", "0.0"));
-                RobotInputVars.Add(Create("ROBOT_Y", "REAL", "Input", "0.0"));
-                RobotInputVars.Add(Create("ROBOT_Z", "REAL", "Input", "0.0"));
-                RobotInputVars.Add(Create("ROBOT_STATUS", "STRING", "Input", "HAZIR"));
+                // --- ROBOT GENEL DURUM ---
+                RobotInputVars.Add(Create("G_ROBOT_DURUM", "INT", "Input", 0));          // 0=Bosta 1=Calisiyor 2=Hata 10=GocatorBekle 11=GocatorOK 20=InficonBekle 21=InficonOK 22=InficonNOK
+                RobotInputVars.Add(Create("G_IS_BITTI", "BOOL", "Input", false));         // Is tamamlandi bayragi
+                RobotInputVars.Add(Create("G_HATA_VAR", "BOOL", "Input", false));         // Hata var bayragi
+                RobotInputVars.Add(Create("G_HATA_KODU", "INT", "Input", 0));             // Hata kodu
+                // --- KLIMA SECIMI ---
+                RobotInputVars.Add(Create("G_KLIMA_TIP", "INT", "Input", 0));             // 0=Secilmedi 1..11=Klima tipi
+                RobotInputVars.Add(Create("G_AKTIF_NOKTA", "INT", "Input", 0));           // Suanki olcum noktasi (1..7)
+                RobotInputVars.Add(Create("G_TOPLAM_NOKTA", "INT", "Input", 0));          // Toplam olcum noktasi
+                RobotInputVars.Add(Create("G_NOK_SAYISI", "INT", "Input", 0));            // Basarisiz nokta sayisi
+                RobotInputVars.Add(Create("G_NOK_NOKTA", "INT", "Input", 0));             // Son NOK olan nokta numarasi
+                RobotInputVars.Add(Create("G_NOK_BILDIRIM", "BOOL", "Input", false));     // NOK bildirimi bayragi
+                // --- GOCATOR BORU KAYNAK OFFSET ---
+                RobotInputVars.Add(Create("G_OFFSET_X", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_OFFSET_Y", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_OFFSET_Z", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_OFFSET_A", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_OFFSET_B", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_OFFSET_C", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_GOCATOR_TARA", "BOOL", "Input", false));     // Robot -> PC : Gocator cekimi baslat
+                RobotInputVars.Add(Create("G_GOCATOR_TAMAM", "BOOL", "Input", false));    // PC -> Robot : Gocator cekim tamamlandi
+                RobotInputVars.Add(Create("G_OFFSET_HAZIR", "BOOL", "Input", false));     // Offset degerleri hazir bayragi
+                // --- GOCATOR TABLA OFFSET ---
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_Y", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_Z", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_A", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_B", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_C", "REAL", "Input", 0.0));
+                RobotInputVars.Add(Create("G_TABLA_TARA", "BOOL", "Input", false));       // Robot -> PC : Tabla tarama baslat
+                RobotInputVars.Add(Create("G_TABLA_TAMAM", "BOOL", "Input", false));      // PC -> Robot : Tabla tarama tamamlandi
+                // --- INFICON OLCUM ---
+                RobotInputVars.Add(Create("G_INFICON_DEGER", "REAL", "Input", 0.0));      // Inficon olcum degeri
+                RobotInputVars.Add(Create("G_INFICON_OLCUM_YAP", "BOOL", "Input", false)); // Robot -> PC : Inficon olcum baslat
+                RobotInputVars.Add(Create("G_INFICON_TAMAM", "BOOL", "Input", false));    // PC -> Robot : Inficon olcum tamamlandi
+                RobotInputVars.Add(Create("G_INFICON_OK", "BOOL", "Input", false));       // PC -> Robot : Olcum sonucu OK/NOK
+                // --- DURUM MESAJI ---
+                RobotInputVars.Add(Create("G_DURUM_MESAJ", "INT", "Input", 0));           // Durum mesaj kodu (INT)
+                // --- RESET ---
+                RobotInputVars.Add(Create("G_RESET", "BOOL", "Input", false));            // Reset komutu bayragi
             }
+
+            // ═══════════════════════════════════════════════════════════════
+            // PLC → ROBOT DEĞİŞKENLERİ (Output - Robota gönderilecek sinyaller)
+            // PC uygulamasi bu degiskenlere yazar, robot okur
+            // ═══════════════════════════════════════════════════════════════
             if (RobotOutputVars.Count == 0)
             {
-                RobotOutputVars.Add(Create("CMD_START_ROBOT", "BOOL", "Output", false));
-                RobotOutputVars.Add(Create("CMD_STOP_ROBOT", "BOOL", "Output", false));
-                RobotOutputVars.Add(Create("TARGET_POS_X", "REAL", "Output", "100.0"));
+                // --- KONTROL ---
+                RobotOutputVars.Add(Create("G_RESET", "BOOL", "Output", false));          // Reset komutu (PC'den yazilir)
+                RobotOutputVars.Add(Create("G_KLIMA_TIP", "INT", "Output", 0));           // Klima tipi secimi (PC'den yazilir)
+                // --- GOCATOR BORU OFFSET (PC yazar) ---
+                RobotOutputVars.Add(Create("G_OFFSET_X", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_OFFSET_Y", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_OFFSET_Z", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_OFFSET_A", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_OFFSET_B", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_OFFSET_C", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_OFFSET_HAZIR", "BOOL", "Output", false));   // Offset degerleri hazir
+                RobotOutputVars.Add(Create("G_GOCATOR_TAMAM", "BOOL", "Output", false));  // Gocator cekim tamamlandi
+                // --- GOCATOR TABLA OFFSET (PC yazar) ---
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_Y", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_Z", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_A", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_B", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_C", "REAL", "Output", 0.0));
+                RobotOutputVars.Add(Create("G_TABLA_TAMAM", "BOOL", "Output", false));    // Tabla tarama tamamlandi
+                // --- INFICON (PC yazar) ---
+                RobotOutputVars.Add(Create("G_INFICON_TAMAM", "BOOL", "Output", false));  // Inficon olcum tamamlandi
+                RobotOutputVars.Add(Create("G_INFICON_OK", "BOOL", "Output", false));     // Olcum sonucu OK/NOK
+                RobotOutputVars.Add(Create("G_INFICON_DEGER", "REAL", "Output", 0.0));    // Inficon olcum degeri (ppm)
             }
         }
 

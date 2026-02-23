@@ -319,7 +319,11 @@ namespace App4.Utilities
 
         private void InitializeDefaultVariables()
         {
-            // TCP Pozisyon değişkenleri (Input - Okunacak)
+            // ═══════════════════════════════════════════════════════════════
+            // STANDART KUKA SİSTEM DEĞİŞKENLERİ (Input - Okunacak)
+            // ═══════════════════════════════════════════════════════════════
+
+            // TCP Pozisyon değişkenleri
             InputVars.Add(new PlcVariable { Name = "TCP_X", Type = "REAL", PlcTag = "$POS_ACT.X", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "TCP_Y", Type = "REAL", PlcTag = "$POS_ACT.Y", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "TCP_Z", Type = "REAL", PlcTag = "$POS_ACT.Z", Direction = "Input" });
@@ -327,7 +331,7 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "TCP_B", Type = "REAL", PlcTag = "$POS_ACT.B", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "TCP_C", Type = "REAL", PlcTag = "$POS_ACT.C", Direction = "Input" });
 
-            // Eksen açıları (Input - Okunacak)
+            // Eksen açıları
             InputVars.Add(new PlcVariable { Name = "AXIS_A1", Type = "REAL", PlcTag = "$AXIS_ACT.A1", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "AXIS_A2", Type = "REAL", PlcTag = "$AXIS_ACT.A2", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "AXIS_A3", Type = "REAL", PlcTag = "$AXIS_ACT.A3", Direction = "Input" });
@@ -335,21 +339,120 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "AXIS_A5", Type = "REAL", PlcTag = "$AXIS_ACT.A5", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "AXIS_A6", Type = "REAL", PlcTag = "$AXIS_ACT.A6", Direction = "Input" });
 
-            // Override değerleri (Input - Okunacak)
+            // Override değerleri
             InputVars.Add(new PlcVariable { Name = "OV_PRO", Type = "INT", PlcTag = "$OV_PRO", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "OV_JOG", Type = "INT", PlcTag = "$OV_JOG", Direction = "Input" });
 
-            // Durum değişkenleri (Input - Okunacak)
+            // Durum değişkenleri
             InputVars.Add(new PlcVariable { Name = "ROBOT_READY", Type = "BOOL", PlcTag = "Robot_Ready", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "ROBOT_ERROR", Type = "BOOL", PlcTag = "Robot_Error", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "ROBOT_RUNNING", Type = "BOOL", PlcTag = "Robot_Running", Direction = "Input" });
 
-            // Output değişkenleri (Yazılacak)
+            // ═══════════════════════════════════════════════════════════════
+            // KRL GLOBAL DEĞİŞKENLER - Robot → Masaüstü (Input - Okunacak)
+            // Robot yazar, uygulama okur (KukaVarProxy ile)
+            // ═══════════════════════════════════════════════════════════════
+
+            // Robot Durum Sinyalleri
+            InputVars.Add(new PlcVariable { Name = "G_ROBOT_HAZIR", Type = "BOOL", PlcTag = "G_ROBOT_HAZIR", Direction = "Input", Description = "Robot hazır mı?" });
+            InputVars.Add(new PlcVariable { Name = "G_IS_BITTI", Type = "BOOL", PlcTag = "G_IS_BITTI", Direction = "Input", Description = "Tüm işlem tamamlandı" });
+            InputVars.Add(new PlcVariable { Name = "G_HATA_VAR", Type = "BOOL", PlcTag = "G_HATA_VAR", Direction = "Input", Description = "Hata var mı?" });
+            InputVars.Add(new PlcVariable { Name = "G_HATA_KODU", Type = "INT", PlcTag = "G_HATA_KODU", Direction = "Input", Description = "Hata kodu" });
+            InputVars.Add(new PlcVariable { Name = "G_ROBOT_DURUM", Type = "INT", PlcTag = "G_ROBOT_DURUM", Direction = "Input", Description = "0=Idle, 1=Çalışıyor, 2=Hata, 3=Bekliyor" });
+
+            // İşlem İlerleme
+            InputVars.Add(new PlcVariable { Name = "G_AKTIF_NOKTA", Type = "INT", PlcTag = "G_AKTIF_NOKTA", Direction = "Input", Description = "Şu an hangi noktada (1,2,3...)" });
+            InputVars.Add(new PlcVariable { Name = "G_TOPLAM_NOKTA", Type = "INT", PlcTag = "G_TOPLAM_NOKTA", Direction = "Input", Description = "Toplam nokta sayısı" });
+
+            // NOK Bildirim
+            InputVars.Add(new PlcVariable { Name = "G_NOK_NOKTA", Type = "INT", PlcTag = "G_NOK_NOKTA", Direction = "Input", Description = "Hangi noktada NOK çıktı" });
+            InputVars.Add(new PlcVariable { Name = "G_NOK_SAYISI", Type = "INT", PlcTag = "G_NOK_SAYISI", Direction = "Input", Description = "Toplam NOK sayısı" });
+            InputVars.Add(new PlcVariable { Name = "G_NOK_BILDIRIM", Type = "BOOL", PlcTag = "G_NOK_BILDIRIM", Direction = "Input", Description = "Yeni NOK var" });
+
+            // Sensör İstekleri (Robot ister, uygulama karşılar)
+            InputVars.Add(new PlcVariable { Name = "G_GOCATOR_TARA", Type = "BOOL", PlcTag = "G_GOCATOR_TARA", Direction = "Input", Description = "Robot 'tara' istedi" });
+            InputVars.Add(new PlcVariable { Name = "G_INFICON_OLCUM_YAP", Type = "BOOL", PlcTag = "G_INFICON_OLCUM_YAP", Direction = "Input", Description = "Robot 'ölçüm yap' istedi" });
+
+            // Durum Mesajı (INT kod - PC bu kodu okuyarak ekranda mesaj gösterir)
+            InputVars.Add(new PlcVariable { Name = "G_DURUM_MESAJ", Type = "INT", PlcTag = "G_DURUM_MESAJ", Direction = "Input", Description = "Durum mesaj kodu (0=Bosta, 1=Baslatiliyor, 2=Tamam, 3=Hata...)" });
+
+            // ═══ GOCATOR BORU KAYNAK OFFSET (Robot'tan geri okuma) ═══
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_X_RD", Type = "REAL", PlcTag = "G_OFFSET_X", Direction = "Input", Description = "Boru offset X geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_Y_RD", Type = "REAL", PlcTag = "G_OFFSET_Y", Direction = "Input", Description = "Boru offset Y geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_Z_RD", Type = "REAL", PlcTag = "G_OFFSET_Z", Direction = "Input", Description = "Boru offset Z geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_A_RD", Type = "REAL", PlcTag = "G_OFFSET_A", Direction = "Input", Description = "Boru offset A geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_B_RD", Type = "REAL", PlcTag = "G_OFFSET_B", Direction = "Input", Description = "Boru offset B geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_C_RD", Type = "REAL", PlcTag = "G_OFFSET_C", Direction = "Input", Description = "Boru offset C geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_OFFSET_HAZIR_RD", Type = "BOOL", PlcTag = "G_OFFSET_HAZIR", Direction = "Input", Description = "Offset hazir bayragi geri okuma" });
+
+            // ═══ GOCATOR TABLA OFFSET (Robot → PC) ═══
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_X", Type = "REAL", PlcTag = "G_TABLA_OFFSET_X", Direction = "Input", Description = "Tabla offset X (mm)" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_Y", Type = "REAL", PlcTag = "G_TABLA_OFFSET_Y", Direction = "Input", Description = "Tabla offset Y (mm)" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_Z", Type = "REAL", PlcTag = "G_TABLA_OFFSET_Z", Direction = "Input", Description = "Tabla offset Z (mm)" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_A", Type = "REAL", PlcTag = "G_TABLA_OFFSET_A", Direction = "Input", Description = "Tabla offset A (derece)" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_B", Type = "REAL", PlcTag = "G_TABLA_OFFSET_B", Direction = "Input", Description = "Tabla offset B (derece)" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_C", Type = "REAL", PlcTag = "G_TABLA_OFFSET_C", Direction = "Input", Description = "Tabla offset C (derece)" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_TARA", Type = "BOOL", PlcTag = "G_TABLA_TARA", Direction = "Input", Description = "Robot tabla taramasi istedi" });
+
+            // ═══ INFICON ÖLÇÜM (Geri okuma) ═══
+            InputVars.Add(new PlcVariable { Name = "G_INFICON_DEGER_RD", Type = "REAL", PlcTag = "G_INFICON_DEGER", Direction = "Input", Description = "Inficon olcum degeri geri okuma" });
+
+            // ═══ KLIMA SEÇİMİ (Geri okuma) ═══
+            InputVars.Add(new PlcVariable { Name = "G_KLIMA_TIP_RD", Type = "INT", PlcTag = "G_KLIMA_TIP", Direction = "Input", Description = "Klima tipi geri okuma (0=Secilmedi, 1..11)" });
+            InputVars.Add(new PlcVariable { Name = "G_NOK_SAYISI_RD", Type = "INT", PlcTag = "G_NOK_SAYISI", Direction = "Input", Description = "Basarisiz nokta sayisi" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // STANDART KONTROL (Output - Yazılacak)
+            // ═══════════════════════════════════════════════════════════════
+
             OutputVars.Add(new PlcVariable { Name = "PC_START", Type = "BOOL", PlcTag = "PC_Start", Direction = "Output" });
             OutputVars.Add(new PlcVariable { Name = "PC_STOP", Type = "BOOL", PlcTag = "PC_Stop", Direction = "Output" });
             OutputVars.Add(new PlcVariable { Name = "PC_RESET", Type = "BOOL", PlcTag = "PC_Reset", Direction = "Output" });
             OutputVars.Add(new PlcVariable { Name = "PC_RECIPE", Type = "INT", PlcTag = "PC_RecipeNo", Direction = "Output" });
             OutputVars.Add(new PlcVariable { Name = "SET_JOG_OV", Type = "INT", PlcTag = "$OV_JOG", Direction = "Output" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // KRL GLOBAL DEĞİŞKENLER - Masaüstü → Robot (Output - Yazılacak)
+            // Uygulama yazar, robot okur (KukaVarProxy ile)
+            // ═══════════════════════════════════════════════════════════════
+
+            // Kontrol Sinyalleri
+            OutputVars.Add(new PlcVariable { Name = "G_BASLAT", Type = "BOOL", PlcTag = "G_BASLAT", Direction = "Output", Description = "Başla tetikle" });
+            OutputVars.Add(new PlcVariable { Name = "G_RESET", Type = "BOOL", PlcTag = "G_RESET", Direction = "Output", Description = "Hata reset" });
+            OutputVars.Add(new PlcVariable { Name = "G_DUR", Type = "BOOL", PlcTag = "G_DUR", Direction = "Output", Description = "Acil dur" });
+
+            // Klima Bilgisi
+            OutputVars.Add(new PlcVariable { Name = "G_KLIMA_TIP", Type = "INT", PlcTag = "G_KLIMA_TIP", Direction = "Output", Description = "1=Tip1, 2=Tip2, 3=Tip3" });
+            OutputVars.Add(new PlcVariable { Name = "G_KLIMA_ID", Type = "INT", PlcTag = "G_KLIMA_ID", Direction = "Output", Description = "Kaçıncı klima" });
+
+            // Gocator Offset (Uygulama Gocator'dan alıp buraya yazar)
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_X", Type = "REAL", PlcTag = "G_OFFSET_X", Direction = "Output", Description = "Boru X kayması (mm)" });
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_Y", Type = "REAL", PlcTag = "G_OFFSET_Y", Direction = "Output", Description = "Boru Y kayması (mm)" });
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_Z", Type = "REAL", PlcTag = "G_OFFSET_Z", Direction = "Output", Description = "Boru Z kayması (mm)" });
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_A", Type = "REAL", PlcTag = "G_OFFSET_A", Direction = "Output", Description = "Boru A dönüşü (derece)" });
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_B", Type = "REAL", PlcTag = "G_OFFSET_B", Direction = "Output", Description = "Boru B dönüşü (derece)" });
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_C", Type = "REAL", PlcTag = "G_OFFSET_C", Direction = "Output", Description = "Boru C dönüşü (derece)" });
+            OutputVars.Add(new PlcVariable { Name = "G_OFFSET_HAZIR", Type = "BOOL", PlcTag = "G_OFFSET_HAZIR", Direction = "Output", Description = "Offset yazıldı mı?" });
+
+            // Inficon Sonuçları (Uygulama yazar)
+            OutputVars.Add(new PlcVariable { Name = "G_INFICON_TAMAM", Type = "BOOL", PlcTag = "G_INFICON_TAMAM", Direction = "Output", Description = "Ölçüm tamam" });
+            OutputVars.Add(new PlcVariable { Name = "G_INFICON_OK", Type = "BOOL", PlcTag = "G_INFICON_OK", Direction = "Output", Description = "TRUE=Kaçak yok, FALSE=Kaçak var" });
+            OutputVars.Add(new PlcVariable { Name = "G_INFICON_DEGER", Type = "REAL", PlcTag = "G_INFICON_DEGER", Direction = "Output", Description = "Ölçüm değeri (ppm)" });
+
+            // Gocator Tarama Cevabı
+            OutputVars.Add(new PlcVariable { Name = "G_GOCATOR_TAMAM", Type = "BOOL", PlcTag = "G_GOCATOR_TAMAM", Direction = "Output", Description = "Boru tarama tamam + offset yazıldı" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // GOCATOR TABLA OFFSET - Masaüstü → Robot (Output - Yazılacak)
+            // Uygulama tabla taramadan alıp buraya yazar
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_X", Type = "REAL", PlcTag = "G_TABLA_OFFSET_X", Direction = "Output", Description = "Tabla X kayması (mm)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_Y", Type = "REAL", PlcTag = "G_TABLA_OFFSET_Y", Direction = "Output", Description = "Tabla Y kayması (mm)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_Z", Type = "REAL", PlcTag = "G_TABLA_OFFSET_Z", Direction = "Output", Description = "Tabla Z kayması (mm)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_A", Type = "REAL", PlcTag = "G_TABLA_OFFSET_A", Direction = "Output", Description = "Tabla A dönüşü (derece)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_B", Type = "REAL", PlcTag = "G_TABLA_OFFSET_B", Direction = "Output", Description = "Tabla B dönüşü (derece)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_C", Type = "REAL", PlcTag = "G_TABLA_OFFSET_C", Direction = "Output", Description = "Tabla C dönüşü (derece)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_TAMAM", Type = "BOOL", PlcTag = "G_TABLA_TAMAM", Direction = "Output", Description = "Tabla tarama tamam" });
         }
 
         #region Bağlantı Yönetimi
