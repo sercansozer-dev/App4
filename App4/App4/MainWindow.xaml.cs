@@ -242,8 +242,8 @@ namespace App4
                 case "settings": ContentFrame.Navigate(typeof(Settings_Page), null, transition); break;
                 case "robot": ContentFrame.Navigate(typeof(Robot_Page), null, transition); break;
                 case "multirobot": ContentFrame.Navigate(typeof(MultiRobot_Page), null, transition); break;
-                case "recipes": ContentFrame.Navigate(typeof(Recipes_Page), null, transition); break;
-                case "Klima_Editor_Page": ContentFrame.Navigate(typeof(Klima_Editor_Page)); break;
+                //case "recipes": ContentFrame.Navigate(typeof(Recipes_Page), null, transition); break;
+                //case "Klima_Editor_Page": ContentFrame.Navigate(typeof(Klima_Editor_Page)); break;
             }
         }
 
