@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(xxd:*)",
+      "Bash(dotnet build:*)",
+      "Bash(ls:*)",
+      "Bash(/tmp/gen_robot2.ps1:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)"
+    ]
+  }
+}

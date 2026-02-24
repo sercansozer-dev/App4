@@ -169,6 +169,9 @@ namespace App4
             // 6. Robot Slider Pozisyonlarını ve Sinyal Panellerini Bağla
             InitializeRobotSliderPositions();
             InitializeRobotSignalPanels();
+
+            // 7. Robot Durum İzleme Panelini Bağla
+            InitializeRobotStatusMonitoring();
         }
 
         private void InitializeRobotSliderPositions()
@@ -1577,6 +1580,248 @@ namespace App4
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // ROBOT DURUM İZLEME PANELİ
+        // ═══════════════════════════════════════════════════════════════
+
+        private void InitializeRobotStatusMonitoring()
+        {
+            var robots = KukaRobotManager.Instance.Robots;
+
+            // İlk güncellemeyi yap
+            if (robots.Count > 0) UpdateRobotStatusPanel(robots[0], 1);
+            if (robots.Count > 1) UpdateRobotStatusPanel(robots[1], 2);
+
+            // PropertyChanged ile canlı güncelle
+            if (robots.Count > 0)
+            {
+                robots[0].PropertyChanged += (s, e) =>
+                {
+                    this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[0], 1));
+                };
+
+                // InputVars değişikliklerini dinle
+                foreach (var v in robots[0].InputVars)
+                {
+                    v.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName == nameof(PlcVariable.Value))
+                            this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[0], 1));
+                    };
+                }
+            }
+            if (robots.Count > 1)
+            {
+                robots[1].PropertyChanged += (s, e) =>
+                {
+                    this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[1], 2));
+                };
+
+                foreach (var v in robots[1].InputVars)
+                {
+                    v.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName == nameof(PlcVariable.Value))
+                            this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[1], 2));
+                    };
+                }
+            }
+        }
+
+        private void UpdateRobotStatusPanel(KukaRobotInstance robot, int robotNo)
+        {
+            try
+            {
+                // Değişkenleri oku
+                string GetVar(string name) => robot.InputVars.FirstOrDefault(v => v.Name == name)?.Value ?? "";
+
+                int robotDurum = int.TryParse(GetVar("G_ROBOT_DURUM"), out var rd) ? rd : -1;
+                int durumMesaj = int.TryParse(GetVar("G_DURUM_MESAJ"), out var dm) ? dm : -1;
+                bool hataVar = GetVar("G_HATA_VAR")?.ToUpper() == "TRUE" || GetVar("G_HATA_VAR") == "1";
+                int hataKodu = int.TryParse(GetVar("G_HATA_KODU"), out var hk) ? hk : 0;
+                int aktifNokta = int.TryParse(GetVar("G_AKTIF_NOKTA"), out var an) ? an : 0;
+                int toplamNokta = int.TryParse(GetVar("G_TOPLAM_NOKTA"), out var tn) ? tn : 0;
+                int aktifCizgi = int.TryParse(GetVar("G_AKTIF_CIZGI"), out var ac) ? ac : 0;
+                int toplamCizgi = int.TryParse(GetVar("G_TOPLAM_CIZGI"), out var tc) ? tc : 0;
+                int nokSayisi = int.TryParse(GetVar("G_NOK_SAYISI"), out var ns) ? ns : 0;
+
+                // Durum metni
+                string durumText = robotDurum switch
+                {
+                    0 => "Bosta",
+                    1 => "Calisiyor",
+                    2 => "HATA!",
+                    10 => "Gocator Tarama",
+                    11 => "Gocator OK",
+                    20 => "Olcum Yapiliyor",
+                    21 => "Olcum OK",
+                    50 => "Tabla Tarama",
+                    51 => "Tabla OK",
+                    _ => $"Bilinmiyor ({robotDurum})"
+                };
+
+                // Durum rengi
+                string durumColor = robotDurum switch
+                {
+                    0 => "#4CAF50",
+                    1 => "#FF9800",
+                    2 => "#F44336",
+                    10 or 11 => "#00BCD4",
+                    20 or 21 => "#2196F3",
+                    50 or 51 => "#FF5722",
+                    _ => "#888"
+                };
+
+                // Mesaj metni
+                string mesajText = DecodeDurumMesaj(durumMesaj, robotNo);
+
+                // Hata metni
+                string hataText = "Yok";
+                string hataColor = "#4CAF50";
+                if (hataVar || hataKodu > 0)
+                {
+                    hataText = hataKodu switch
+                    {
+                        5 => "Tabla Timeout!",
+                        10 => "Gocator Timeout!",
+                        20 => robotNo == 1 ? "Inficon Timeout!" : "Sniffer Timeout!",
+                        _ => hataKodu > 0 ? $"Kod: {hataKodu}" : "Hata Var!"
+                    };
+                    hataColor = "#F44336";
+                }
+
+                // Status dot rengi
+                string dotColor = "#555";
+                if (!robot.IsConnected) dotColor = "#555";
+                else if (hataVar || robotDurum == 2) dotColor = "#F44336";
+                else if (robotDurum == 1 || robotDurum >= 10) dotColor = "#FF9800";
+                else dotColor = "#4CAF50";
+
+                // Warning
+                string warningText = "";
+                if (hataVar || hataKodu > 0)
+                {
+                    warningText = $"HATA: {hataText}";
+                }
+                else if (nokSayisi > 0)
+                {
+                    warningText = $"NOK: {nokSayisi} basarisiz olcum";
+                }
+
+                // UI Guncelle
+                if (robotNo == 1)
+                {
+                    SetTextSafe(Robot1DurumText, durumText, durumColor);
+                    SetTextSafe(Robot1MesajText, mesajText, "#888");
+                    SetTextSafe(Robot1HataText, hataText, hataColor);
+                    SetTextSafe(Robot1NoktaText, aktifNokta > 0 ? $"{aktifNokta} / {toplamNokta}" : "---", "#888");
+                    SetDotColor(Robot1StatusDot, dotColor);
+                    SetWarning(Robot1WarningBorder, Robot1WarningText, warningText);
+                }
+                else
+                {
+                    SetTextSafe(Robot2DurumText, durumText, durumColor);
+                    SetTextSafe(Robot2MesajText, mesajText, "#888");
+                    SetTextSafe(Robot2HataText, hataText, hataColor);
+                    SetTextSafe(Robot2CizgiText, aktifCizgi > 0 ? $"{aktifCizgi} / {toplamCizgi}" : "---", "#888");
+                    SetDotColor(Robot2StatusDot, dotColor);
+                    SetWarning(Robot2WarningBorder, Robot2WarningText, warningText);
+                }
+            }
+            catch { /* Güvenli hata yutma */ }
+        }
+
+        private string DecodeDurumMesaj(int mesaj, int robotNo)
+        {
+            // Genel kodlar (her iki robot icin ortak)
+            switch (mesaj)
+            {
+                case 0: return "Bosta";
+                case 2: return "Is bitti";
+                case 3: return "Hata ile bitti";
+                case 5: return "Klima tipi bekleniyor";
+                case 10: return "Home'a gidiyor";
+                case 11: return "Home tamam";
+            }
+
+            // Tabla kontrol (Robot 1)
+            if (robotNo == 1)
+            {
+                switch (mesaj)
+                {
+                    case 50: return "Tabla kontrol basladi";
+                    case 51: return "Tabla taranıyor";
+                    case 52: return "Tabla offset tamam";
+                }
+            }
+
+            // Klima tip kodlari: N*100 serisi
+            if (mesaj >= 100 && mesaj <= 1199)
+            {
+                int tipNo = mesaj / 100;
+                int alt = mesaj % 100;
+
+                if (robotNo == 1)
+                {
+                    // Robot 1: N*100=basladi, +1=gocator ok, +2=olcum, +3=bitis
+                    return alt switch
+                    {
+                        0 => $"Tip {tipNo}: Taramaya basladi",
+                        1 => $"Tip {tipNo}: Gocator OK, olcume geciyor",
+                        2 => $"Tip {tipNo}: Inficon olcum yapiliyor",
+                        3 => $"Tip {tipNo}: Bitti",
+                        _ => $"Tip {tipNo}: Kod {alt}"
+                    };
+                }
+                else
+                {
+                    // Robot 2: N*100=gecis, +1..+7=cizgi no
+                    if (alt == 0) return $"Tip {tipNo}: Gecis pozisyonu";
+                    if (alt >= 1 && alt <= 7) return $"Tip {tipNo}: Cizgi {alt} olcum";
+                    return $"Tip {tipNo}: Kod {alt}";
+                }
+            }
+
+            return mesaj >= 0 ? $"Kod: {mesaj}" : "---";
+        }
+
+        private void SetTextSafe(TextBlock tb, string text, string color)
+        {
+            if (tb == null) return;
+            tb.Text = text;
+            try { tb.Foreground = new SolidColorBrush(ParseHexColor(color)); } catch { }
+        }
+
+        private void SetDotColor(Border dot, string color)
+        {
+            if (dot == null) return;
+            try { dot.Background = new SolidColorBrush(ParseHexColor(color)); } catch { }
+        }
+
+        private void SetWarning(Border border, TextBlock text, string message)
+        {
+            if (border == null || text == null) return;
+            if (string.IsNullOrEmpty(message))
+            {
+                border.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                border.Visibility = Visibility.Visible;
+                text.Text = message;
+            }
+        }
+
+        private static Windows.UI.Color ParseHexColor(string hex)
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 6)
+                return Windows.UI.Color.FromArgb(255,
+                    Convert.ToByte(hex.Substring(0, 2), 16),
+                    Convert.ToByte(hex.Substring(2, 2), 16),
+                    Convert.ToByte(hex.Substring(4, 2), 16));
+            return Windows.UI.Color.FromArgb(255, 136, 136, 136);
+        }
 
 
     }
