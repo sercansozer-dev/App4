@@ -157,6 +157,69 @@ namespace App4.Utilities
 
             // Değişiklikleri İzle
             StartMonitoring();
+
+            // Robot köprü için gerekli PLC değişkenlerini garanti et
+            EnsureRobotBridgeVariables();
+        }
+
+        /// <summary>
+        /// Robot-PLC köprü haberleşmesi için gerekli PLC değişkenlerini ekler (yoksa).
+        /// Mevcut olanları dokunmaz, sadece eksikleri ekler.
+        /// </summary>
+        public void EnsureRobotBridgeVariables()
+        {
+            void EnsureInput(string name, string type)
+            {
+                if (!InputVariables.Any(v => v.Name == name))
+                    InputVariables.Add(new PlcVariable { Name = name, Type = type, Direction = "Input" });
+            }
+            void EnsureOutput(string name, string type)
+            {
+                if (!OutputVariables.Any(v => v.Name == name))
+                    OutputVariables.Add(new PlcVariable { Name = name, Type = type, Direction = "Output" });
+            }
+
+            // ═══════════════════════════════════════════════════
+            // PLC → PC (Input) — PLC'den okunan sinyaller
+            // ═══════════════════════════════════════════════════
+            EnsureInput("SAFETY_OK", "BOOL");
+            EnsureInput("LINE_AUTO_MODE", "BOOL");
+            EnsureInput("FIRST_ROBOT_GO", "BOOL");              // PLC Robot 1 başlat
+            EnsureInput("SECOND_ROBOT_GO", "BOOL");             // PLC Robot 2 başlat
+            EnsureInput("AKTUEL_KLIMA_INDEX", "WORD");          // Aktüel klima tipi
+
+            // ═══════════════════════════════════════════════════
+            // PC → PLC (Output) — PLC'ye yazılan sinyaller
+            // ═══════════════════════════════════════════════════
+            EnsureOutput("CMD_LINE_START", "BOOL");
+            EnsureOutput("CMD_LINE_STOP", "BOOL");
+            EnsureOutput("CMD_LINE_RESET", "BOOL");
+
+            // --- Robot 1 Durum Bilgileri (PC \u2192 PLC) ---
+            EnsureOutput("RB1_ROBOT_DURUM", "INT");             // 0=Bo\u015fta 1=\u00c7al\u0131\u015f\u0131yor 2=Hata
+            EnsureOutput("RB1_IS_BITTI", "BOOL");               // Robot 1 i\u015f tamamland\u0131
+            EnsureOutput("RB1_HATA_VAR", "BOOL");               // Robot 1 hata var
+            EnsureOutput("RB1_HATA_KODU", "INT");               // Robot 1 hata kodu
+            EnsureOutput("RB1_HOME_OK", "BOOL");                // Robot 1 home pozisyonunda
+            EnsureOutput("RB1_AKTIF_NOKTA", "INT");             // Robot 1 aktif \u00f6l\u00e7\u00fcm noktas\u0131
+            EnsureOutput("RB1_DURUM_MESAJ", "INT");             // Robot 1 durum mesaj kodu
+            EnsureOutput("RB1_NOK_SAYISI", "INT");              // Robot 1 NOK say\u0131s\u0131
+            EnsureOutput("RB1_TOPLAM_NOKTA", "INT");            // Robot 1 toplam nokta
+            EnsureOutput("RB1_NOK_BILDIRIM", "BOOL");           // Robot 1 yeni NOK bildirimi
+            EnsureOutput("RB1_NOK_NOKTA", "INT");               // Robot 1 son NOK nokta no
+
+            // --- Robot 2 Durum Bilgileri (PC \u2192 PLC) ---
+            EnsureOutput("RB2_ROBOT_DURUM", "INT");             // 0=Bo\u015fta 1=\u00c7al\u0131\u015f\u0131yor 2=Hata
+            EnsureOutput("RB2_IS_BITTI", "BOOL");               // Robot 2 i\u015f tamamland\u0131
+            EnsureOutput("RB2_HATA_VAR", "BOOL");               // Robot 2 hata var
+            EnsureOutput("RB2_HATA_KODU", "INT");               // Robot 2 hata kodu
+            EnsureOutput("RB2_HOME_OK", "BOOL");                // Robot 2 home pozisyonunda
+            EnsureOutput("RB2_AKTIF_CIZGI", "INT");             // Robot 2 aktif sniffer \u00e7izgi
+            EnsureOutput("RB2_DURUM_MESAJ", "INT");             // Robot 2 durum mesaj kodu
+            EnsureOutput("RB2_NOK_SAYISI", "INT");              // Robot 2 NOK say\u0131s\u0131
+            EnsureOutput("RB2_TOPLAM_CIZGI", "INT");            // Robot 2 toplam \u00e7izgi
+            EnsureOutput("RB2_NOK_BILDIRIM", "BOOL");           // Robot 2 yeni NOK bildirimi
+            EnsureOutput("RB2_NOK_CIZGI", "INT");               // Robot 2 son NOK \u00e7izgi no
         }
 
         private void StartMonitoring()

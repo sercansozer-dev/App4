@@ -962,6 +962,132 @@ namespace App4.Pages
                 }
             }
             catch { }
+
+            // Bo\u015f girdileri temizle
+            var emptyEntries = _mappings.Where(m => string.IsNullOrEmpty(m.RobotTag) && string.IsNullOrEmpty(m.PlcTag)).ToList();
+            foreach (var e in emptyEntries)
+                _mappings.Remove(e);
+
+            // Her zaman eksik varsay\u0131lan e\u015fle\u015fmeleri kontrol et ve ekle (merge)
+            MergeDefaultBridgeMappings();
+        }
+
+        /// <summary>
+        /// Robot-PLC k\u00f6pr\u00fc tablolar\u0131na eksik varsay\u0131lan e\u015fle\u015fmeleri ekler.
+        /// Mevcut e\u015fle\u015fmeleri korur, sadece eksikleri ekler (merge).
+        /// </summary>
+        private void MergeDefaultBridgeMappings()
+        {
+            PlcService.Instance.EnsureRobotBridgeVariables();
+
+            // Mevcut e\u015fle\u015fmelerin anahtar seti (RobotName | Robot de\u011fi\u015fken ad\u0131)
+            var existingKeys = new HashSet<string>(
+                _mappings.Where(m => !string.IsNullOrEmpty(m.RobotTag))
+                    .Select(m => $"{m.RobotName}|{m.RobotTag.Split(' ')[0]}"),
+                StringComparer.OrdinalIgnoreCase);
+
+            string FindPlcTag(string name)
+            {
+                var v = PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables)
+                    .FirstOrDefault(x => x.Name == name);
+                return v != null ? $"{v.Name} ({v.Address})" : null;
+            }
+
+            string FindRobotTag(KukaRobotInstance robot, string name)
+            {
+                var v = robot.InputVars.Concat(robot.OutputVars)
+                    .FirstOrDefault(x => x.Name == name);
+                return v != null ? $"{v.Name} ({v.PlcTag})" : null;
+            }
+
+            bool added = false;
+            void AddIfMissing(KukaRobotInstance robot, string plcVarName, string robotVarName,
+                string tableType, string direction)
+            {
+                var key = $"{robot.Name}|{robotVarName}";
+                if (existingKeys.Contains(key)) return;
+
+                var plcTag = FindPlcTag(plcVarName);
+                var robotTag = FindRobotTag(robot, robotVarName);
+                if (plcTag == null || robotTag == null) return;
+
+                _mappings.Add(new RobotPlcMapping
+                {
+                    RobotName = robot.Name,
+                    PlcTag = plcTag,
+                    RobotTag = robotTag,
+                    Direction = direction,
+                    TableType = tableType,
+                    IsActive = true
+                });
+                existingKeys.Add(key);
+                added = true;
+            }
+
+            foreach (var robot in KukaRobotManager.Instance.Robots)
+            {
+                if (robot.Name == "ROBOT 1")
+                {
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    // ROBOT 1 INPUT (PLC \u2192 Robot 1)
+                    // PLC'den okunan de\u011ferler \u2192 Robot 1'e yaz\u0131l\u0131r
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    AddIfMissing(robot, "SAFETY_OK", "G_SAFETY_OK", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "FIRST_ROBOT_GO", "G_SISTEM_START", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "CMD_LINE_STOP", "G_SISTEM_STOP", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "CMD_LINE_RESET", "G_RESET", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "LINE_AUTO_MODE", "G_OTO_MOD", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "AKTUEL_KLIMA_INDEX", "G_KLIMA_TIP", "Input", "PLC\u2192Robot");
+
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    // ROBOT 1 OUTPUT (Robot 1 \u2192 PLC)
+                    // Robot 1'den okunan de\u011ferler \u2192 PLC'ye yaz\u0131l\u0131r
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    AddIfMissing(robot, "RB1_ROBOT_DURUM", "G_ROBOT_DURUM", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_IS_BITTI", "G_IS_BITTI", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_HATA_VAR", "G_HATA_VAR", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_HATA_KODU", "G_HATA_KODU", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_HOME_OK", "G_R1_HOME", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_AKTIF_NOKTA", "G_AKTIF_NOKTA", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_DURUM_MESAJ", "G_DURUM_MESAJ", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_NOK_SAYISI", "G_NOK_SAYISI", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_TOPLAM_NOKTA", "G_TOPLAM_NOKTA", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_NOK_BILDIRIM", "G_NOK_BILDIRIM", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB1_NOK_NOKTA", "G_NOK_NOKTA", "Output", "Robot\u2192PLC");
+                }
+                else if (robot.Name == "ROBOT 2")
+                {
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    // ROBOT 2 INPUT (PLC \u2192 Robot 2)
+                    // PLC'den okunan de\u011ferler \u2192 Robot 2'ye yaz\u0131l\u0131r
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    AddIfMissing(robot, "SAFETY_OK", "G_SAFETY_OK", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "SECOND_ROBOT_GO", "G_SISTEM_START", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "CMD_LINE_STOP", "G_SISTEM_STOP", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "CMD_LINE_RESET", "G_RESET", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "LINE_AUTO_MODE", "G_OTO_MOD", "Input", "PLC\u2192Robot");
+                    AddIfMissing(robot, "AKTUEL_KLIMA_INDEX", "G_KLIMA_TIP", "Input", "PLC\u2192Robot");
+
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    // ROBOT 2 OUTPUT (Robot 2 \u2192 PLC)
+                    // Robot 2'den okunan de\u011ferler \u2192 PLC'ye yaz\u0131l\u0131r
+                    // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+                    AddIfMissing(robot, "RB2_ROBOT_DURUM", "G_ROBOT_DURUM", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_IS_BITTI", "G_IS_BITTI", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_HATA_VAR", "G_HATA_VAR", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_HATA_KODU", "G_HATA_KODU", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_HOME_OK", "G_R2_HOME", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_AKTIF_CIZGI", "G_AKTIF_CIZGI", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_DURUM_MESAJ", "G_DURUM_MESAJ", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_NOK_SAYISI", "G_NOK_SAYISI", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_TOPLAM_CIZGI", "G_TOPLAM_CIZGI", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_NOK_BILDIRIM", "G_NOK_BILDIRIM", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_NOK_CIZGI", "G_NOK_CIZGI", "Output", "Robot\u2192PLC");
+                }
+            }
+
+            if (added)
+                SaveMappings();
         }
 
         private void SaveMappings()
@@ -1238,6 +1364,106 @@ namespace App4.Pages
                 }
             }
             catch { }
+
+            // Bo\u015f girdileri temizle
+            var emptyEntries = _robotRobotMappings.Where(m => string.IsNullOrEmpty(m.SourceTag) && string.IsNullOrEmpty(m.TargetTag)).ToList();
+            foreach (var e in emptyEntries)
+                _robotRobotMappings.Remove(e);
+
+            // Her zaman eksik varsay\u0131lan e\u015fle\u015fmeleri kontrol et ve ekle (merge)
+            MergeDefaultRobotRobotMappings();
+        }
+
+        /// <summary>
+        /// Robot\u2194Robot haberle\u015fme tablosuna eksik varsay\u0131lan e\u015fle\u015fmeleri ekler.
+        /// Mevcut e\u015fle\u015fmeleri korur, sadece eksikleri ekler (merge).
+        /// </summary>
+        private void MergeDefaultRobotRobotMappings()
+        {
+            var robots = KukaRobotManager.Instance.Robots;
+            var robot1 = robots.FirstOrDefault(r => r.Name == "ROBOT 1");
+            var robot2 = robots.FirstOrDefault(r => r.Name == "ROBOT 2");
+            if (robot1 == null || robot2 == null) return;
+
+            // Mevcut e\u015fle\u015fmelerin anahtar seti (Source|SourceVar|Target|TargetVar)
+            var existingKeys = new HashSet<string>(
+                _robotRobotMappings
+                    .Where(m => !string.IsNullOrEmpty(m.SourceTag) && !string.IsNullOrEmpty(m.TargetTag))
+                    .Select(m => $"{m.SourceRobotName}|{m.SourceTag.Split(' ')[0]}|{m.TargetRobotName}|{m.TargetTag.Split(' ')[0]}"),
+                StringComparer.OrdinalIgnoreCase);
+
+            string FindTag(KukaRobotInstance robot, string name)
+            {
+                var v = robot.InputVars.Concat(robot.OutputVars)
+                    .FirstOrDefault(x => x.Name == name);
+                return v != null ? $"{v.Name} ({v.PlcTag})" : null;
+            }
+
+            bool added = false;
+            void AddRRIfMissing(string srcRobotName, KukaRobotInstance srcRobot,
+                       string srcVarName, string tgtRobotName,
+                       KukaRobotInstance tgtRobot, string tgtVarName)
+            {
+                var key = $"{srcRobotName}|{srcVarName}|{tgtRobotName}|{tgtVarName}";
+                if (existingKeys.Contains(key)) return;
+
+                var sourceTag = FindTag(srcRobot, srcVarName);
+                var targetTag = FindTag(tgtRobot, tgtVarName);
+                if (sourceTag == null || targetTag == null) return;
+
+                _robotRobotMappings.Add(new RobotRobotMapping
+                {
+                    SourceRobotName = srcRobotName,
+                    SourceTag = sourceTag,
+                    TargetRobotName = tgtRobotName,
+                    TargetTag = targetTag,
+                    IsActive = true
+                });
+                existingKeys.Add(key);
+                added = true;
+            }
+
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            // ROBOT 1 \u2192 ROBOT 2 : Tabla Offset Aktar\u0131m\u0131
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_X", "ROBOT 2", robot2, "G_TABLA_OFFSET_X");
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_Y", "ROBOT 2", robot2, "G_TABLA_OFFSET_Y");
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_Z", "ROBOT 2", robot2, "G_TABLA_OFFSET_Z");
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_A", "ROBOT 2", robot2, "G_TABLA_OFFSET_A");
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_B", "ROBOT 2", robot2, "G_TABLA_OFFSET_B");
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_C", "ROBOT 2", robot2, "G_TABLA_OFFSET_C");
+            AddRRIfMissing("ROBOT 1", robot1, "G_TABLA_OFFSET_HAZIR", "ROBOT 2", robot2, "G_TABLA_OFFSET_HAZIR");
+
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            // ROBOT 1 \u2192 ROBOT 2 : Home + Durum Bilgileri
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            AddRRIfMissing("ROBOT 1", robot1, "G_R1_HOME", "ROBOT 2", robot2, "G_R1_HOME");
+            AddRRIfMissing("ROBOT 1", robot1, "G_IS_BITTI", "ROBOT 2", robot2, "G_R1_IS_BITTI");
+            AddRRIfMissing("ROBOT 1", robot1, "G_ROBOT_DURUM", "ROBOT 2", robot2, "G_R1_ROBOT_DURUM");
+            AddRRIfMissing("ROBOT 1", robot1, "G_HATA_VAR", "ROBOT 2", robot2, "G_R1_HATA_VAR");
+            AddRRIfMissing("ROBOT 1", robot1, "G_HATA_KODU", "ROBOT 2", robot2, "G_R1_HATA_KODU");
+
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            // ROBOT 1 \u2192 ROBOT 2 : Harici Eksen Pozisyonu
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            AddRRIfMissing("ROBOT 1", robot1, "AXIS_E1", "ROBOT 2", robot2, "G_R1_EKSEN_E1");
+
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            // ROBOT 2 \u2192 ROBOT 1 : Home + Durum Bilgileri
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            AddRRIfMissing("ROBOT 2", robot2, "G_R2_HOME", "ROBOT 1", robot1, "G_R2_HOME");
+            AddRRIfMissing("ROBOT 2", robot2, "G_IS_BITTI", "ROBOT 1", robot1, "G_R2_IS_BITTI");
+            AddRRIfMissing("ROBOT 2", robot2, "G_ROBOT_DURUM", "ROBOT 1", robot1, "G_R2_ROBOT_DURUM");
+            AddRRIfMissing("ROBOT 2", robot2, "G_HATA_VAR", "ROBOT 1", robot1, "G_R2_HATA_VAR");
+            AddRRIfMissing("ROBOT 2", robot2, "G_HATA_KODU", "ROBOT 1", robot1, "G_R2_HATA_KODU");
+
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            // ROBOT 2 \u2192 ROBOT 1 : Harici Eksen (KL100 Slider) Pozisyonu
+            // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+            AddRRIfMissing("ROBOT 2", robot2, "AXIS_E1", "ROBOT 1", robot1, "G_R2_EKSEN_E1");
+
+            if (added)
+                SaveRobotRobotMappings();
         }
 
         private void SaveRobotRobotMappings()

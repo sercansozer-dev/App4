@@ -652,6 +652,29 @@ namespace App4.Utilities
                 GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
                 GeneralOutputVars.Add(Create("KL100_HEDEF_POZ", "REAL", "Output", "0"));         // KL100 slider hedef pozisyon (mm)
                 GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
+                // ▼▼▼ ROBOT GİT KOMUTLARI (PLC → PC) ▼▼▼
+                GeneralInputVars.Add(Create("FIRST_ROBOT_GO", "BOOL", "Input", false));           // PLC Robot 1 başlat komutu
+                GeneralInputVars.Add(Create("SECOND_ROBOT_GO", "BOOL", "Input", false));          // PLC Robot 2 başlat komutu
+                // ▼▼▼ ROBOT 1 DURUM BİLGİLERİ (PC → PLC) ▼▼▼
+                GeneralOutputVars.Add(Create("RB1_ROBOT_DURUM", "INT", "Output", 0));             // Robot 1 durum kodu
+                GeneralOutputVars.Add(Create("RB1_IS_BITTI", "BOOL", "Output", false));           // Robot 1 iş bitti
+                GeneralOutputVars.Add(Create("RB1_HATA_VAR", "BOOL", "Output", false));           // Robot 1 hata var
+                GeneralOutputVars.Add(Create("RB1_HATA_KODU", "INT", "Output", 0));               // Robot 1 hata kodu
+                GeneralOutputVars.Add(Create("RB1_HOME_OK", "BOOL", "Output", false));            // Robot 1 home OK
+                GeneralOutputVars.Add(Create("RB1_AKTIF_NOKTA", "INT", "Output", 0));             // Robot 1 aktif ölçüm noktası
+                GeneralOutputVars.Add(Create("RB1_DURUM_MESAJ", "INT", "Output", 0));             // Robot 1 durum mesajı
+                GeneralOutputVars.Add(Create("RB1_NOK_SAYISI", "INT", "Output", 0));              // Robot 1 NOK sayısı
+                GeneralOutputVars.Add(Create("RB1_TOPLAM_NOKTA", "INT", "Output", 0));            // Robot 1 toplam nokta
+                // ▼▼▼ ROBOT 2 DURUM BİLGİLERİ (PC → PLC) ▼▼▼
+                GeneralOutputVars.Add(Create("RB2_ROBOT_DURUM", "INT", "Output", 0));             // Robot 2 durum kodu
+                GeneralOutputVars.Add(Create("RB2_IS_BITTI", "BOOL", "Output", false));           // Robot 2 iş bitti
+                GeneralOutputVars.Add(Create("RB2_HATA_VAR", "BOOL", "Output", false));           // Robot 2 hata var
+                GeneralOutputVars.Add(Create("RB2_HATA_KODU", "INT", "Output", 0));               // Robot 2 hata kodu
+                GeneralOutputVars.Add(Create("RB2_HOME_OK", "BOOL", "Output", false));            // Robot 2 home OK
+                GeneralOutputVars.Add(Create("RB2_AKTIF_CIZGI", "INT", "Output", 0));             // Robot 2 aktif sniffer çizgi
+                GeneralOutputVars.Add(Create("RB2_DURUM_MESAJ", "INT", "Output", 0));             // Robot 2 durum mesajı
+                GeneralOutputVars.Add(Create("RB2_NOK_SAYISI", "INT", "Output", 0));              // Robot 2 NOK sayısı
+                GeneralOutputVars.Add(Create("RB2_TOPLAM_CIZGI", "INT", "Output", 0));            // Robot 2 toplam çizgi
                 AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
             }
             
@@ -761,6 +784,17 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
                 // --- ROBOT 2 TABLA OFFSET (Robot 1 -> Robot 2 bridge uzerinden) ---
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Output", false)); // Tabla offset hazir bayragi
+                // --- ÇAPRAZ ROBOT DURUM (Robot-Robot haberleşme) ---
+                RobotOutputVars.Add(Create("G_R1_IS_BITTI", "BOOL", "Output", false));       // Robot 1 iş bitti (Robot 2'ye yazılır)
+                RobotOutputVars.Add(Create("G_R1_ROBOT_DURUM", "INT", "Output", 0));         // Robot 1 durum (Robot 2'ye yazılır)
+                RobotOutputVars.Add(Create("G_R1_HATA_VAR", "BOOL", "Output", false));       // Robot 1 hata var (Robot 2'ye yazılır)
+                RobotOutputVars.Add(Create("G_R1_HATA_KODU", "INT", "Output", 0));           // Robot 1 hata kodu (Robot 2'ye yazılır)
+                RobotOutputVars.Add(Create("G_R1_EKSEN_E1", "REAL", "Output", 0.0));         // Robot 1 harici eksen E1 (Robot 2'ye yazılır)
+                RobotOutputVars.Add(Create("G_R2_IS_BITTI", "BOOL", "Output", false));       // Robot 2 iş bitti (Robot 1'e yazılır)
+                RobotOutputVars.Add(Create("G_R2_ROBOT_DURUM", "INT", "Output", 0));         // Robot 2 durum (Robot 1'e yazılır)
+                RobotOutputVars.Add(Create("G_R2_HATA_VAR", "BOOL", "Output", false));       // Robot 2 hata var (Robot 1'e yazılır)
+                RobotOutputVars.Add(Create("G_R2_HATA_KODU", "INT", "Output", 0));           // Robot 2 hata kodu (Robot 1'e yazılır)
+                RobotOutputVars.Add(Create("G_R2_EKSEN_E1", "REAL", "Output", 0.0));         // Robot 2 KL100 slider E1 (Robot 1'e yazılır)
             }
         }
 
@@ -806,7 +840,16 @@ namespace App4.Utilities
                         newList.Add(v);
                     }
 
-                    // Replace collection contents while keeping the same ObservableCollection instance
+                    // Merge: Kaydedilmiş dosyada olmayan varsayılan değişkenleri de koru
+                    var savedNames = new HashSet<string>(
+                        newList.Select(nv2 => nv2.Name),
+                        StringComparer.OrdinalIgnoreCase);
+                    foreach (var defaultVar in t.ToList())
+                    {
+                        if (!savedNames.Contains(defaultVar.Name))
+                            newList.Add(defaultVar);
+                    }
+
                     t.Clear();
                     foreach (var nv in newList)
                         t.Add(nv);
@@ -921,6 +964,9 @@ namespace App4.Utilities
             settings["Gocator_IpAddress"] = Gocator_IpAddress;
             settings["Gocator_Port"] = Gocator_Port;
 
+            // KL100 Slider R1/R2 Home sinyal se\u00e7imleri
+            settings["KL100_R1Home"] = KL100_Robot1HomeSignal ?? "";
+            settings["KL100_R2Home"] = KL100_Robot2HomeSignal ?? "";
 
             StartAutomationListener(); 
         }

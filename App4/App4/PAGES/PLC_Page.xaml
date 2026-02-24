@@ -89,10 +89,6 @@
         <Grid Background="#0D0D0D">
             <Grid.RowDefinitions>
                 <RowDefinition Height="60"/>
-                <RowDefinition Height="420"/>
-                <RowDefinition Height="200"/>
-                <RowDefinition Height="280"/>
-                <RowDefinition Height="300"/>
                 <RowDefinition Height="250"/>
                 <RowDefinition Height="800"/>
                 <RowDefinition Height="50"/>
@@ -117,253 +113,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="1" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0" Margin="20,20,20,20">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="40"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                            <FontIcon Glyph="&#xE71C;" Foreground="#00A4EF" FontSize="18"/>
-                            <TextBlock Text="TEST İSTATİSTİKLERİ DASHBOARD" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                            <Ellipse Width="8" Height="8" Fill="#4CAF50" Margin="0,0,0,0" HorizontalAlignment="Right"/>
-                            <TextBlock Text="Aktif" FontSize="9" Foreground="#4CAF50" FontWeight="Bold"/>
-                        </StackPanel>
-                    </Border>
-                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
-                        <Grid ColumnSpacing="12" RowSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Border Grid.Column="0" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#00A4EF">
-                                <Grid RowSpacing="8">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Text="📊 TOPLAM TEST" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                    <TextBlock Grid.Row="1" x:Name="TotalTestsLabel" Text="1,247" FontSize="28" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono"/>
-                                    <TextBlock Grid.Row="2" Text="Tümü" FontSize="9" Foreground="#888888"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="1" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#4CAF50">
-                                <Grid RowSpacing="8">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Text="✅ BAŞARILI" FontSize="11" FontWeight="Bold" Foreground="#4CAF50"/>
-                                    <TextBlock Grid.Row="1" x:Name="SuccessTestsLabel" Text="1,186" FontSize="28" FontWeight="Bold" Foreground="#4CAF50" FontFamily="Cascadia Mono"/>
-                                    <TextBlock Grid.Row="2" Text="95.1% Başarı Oranı" FontSize="9" Foreground="#888888"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="2" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#FF5252">
-                                <Grid RowSpacing="8">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Text="❌ BAŞARISIZ" FontSize="11" FontWeight="Bold" Foreground="#FF5252"/>
-                                    <TextBlock Grid.Row="1" x:Name="FailedTestsLabel" Text="61" FontSize="28" FontWeight="Bold" Foreground="#FF5252" FontFamily="Cascadia Mono"/>
-                                    <TextBlock Grid.Row="2" Text="4.9% Hata Oranı" FontSize="9" Foreground="#888888"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="3" Grid.Row="0" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#FFB81C">
-                                <Grid RowSpacing="8">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Text="⏱️ ÇALIŞMA" FontSize="11" FontWeight="Bold" Foreground="#FFB81C"/>
-                                    <TextBlock Grid.Row="1" x:Name="UptimeLabel" Text="47.3h" FontSize="28" FontWeight="Bold" Foreground="#FFB81C" FontFamily="Cascadia Mono"/>
-                                    <TextBlock Grid.Row="2" Text="Kesintisiz Çalışma" FontSize="9" Foreground="#888888"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="0" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="🕐 Son Test" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                    <TextBlock x:Name="LastTestLabel" Text="2025-01-14 14:32:45" FontSize="14" Foreground="#00FF88" FontFamily="Cascadia Mono" FontWeight="Bold"/>
-                                    <TextBlock Text="5 dakika önce" FontSize="9" Foreground="#888888"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="1" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="⏲️ Ort. Test Süresi" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                    <TextBlock x:Name="AvgDurationLabel" Text="2.36 sn" FontSize="14" Foreground="#00A4EF" FontFamily="Cascadia Mono" FontWeight="Bold"/>
-                                    <TextBlock Text="Hedef: 2.50 sn" FontSize="9" Foreground="#4CAF50"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="2" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="📅 Bugün" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                    <TextBlock x:Name="TodayTestsLabel" Text="47 Test" FontSize="14" Foreground="#FFB81C" FontFamily="Cascadia Mono" FontWeight="Bold"/>
-                                    <TextBlock Text="45 Başarılı, 2 Başarısız" FontSize="9" Foreground="#888888"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="3" Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15" BorderThickness="1" BorderBrush="#333333">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="⭐ Sistem Kalitesi" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                    <TextBlock x:Name="SystemQualityLabel" Text="A+" FontSize="14" Foreground="#4CAF50" FontFamily="Cascadia Mono" FontWeight="Bold"/>
-                                    <TextBlock Text="Mükemmel Performans" FontSize="9" Foreground="#4CAF50"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="12" BorderThickness="2" BorderBrush="#00A4EF" Padding="0" Margin="20,0,20,20">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="40"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                            <FontIcon Glyph="&#xE71A;" Foreground="#00A4EF" FontSize="18"/>
-                            <TextBlock Text="ROBOT KONTROL (KUKA)" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                            <Ellipse Width="8" Height="8" Fill="#FFB81C" Margin="0,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                            <TextBlock Text="Bekleme" FontSize="9" Foreground="#FFB81C" FontWeight="Bold"/>
-                        </StackPanel>
-                    </Border>
-                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15" ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="📍 X KOORDİNATI" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <TextBlock Text="125.5" FontSize="20" FontWeight="Bold" Foreground="#00FF88" FontFamily="Cascadia Mono"/>
-                                <TextBlock Text="mm" FontSize="9" Foreground="#888888"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="📍 Y KOORDİNATI" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <TextBlock Text="245.3" FontSize="20" FontWeight="Bold" Foreground="#00FF88" FontFamily="Cascadia Mono"/>
-                                <TextBlock Text="mm" FontSize="9" Foreground="#888888"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="2" Background="#1A1A1C" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="#333333">
-                            <StackPanel Spacing="6">
-                                <TextBlock Text="📍 Z KOORDİNATI" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <TextBlock Text="450.8" FontSize="20" FontWeight="Bold" Foreground="#00FF88" FontFamily="Cascadia Mono"/>
-                                <TextBlock Text="mm" FontSize="9" Foreground="#888888"/>
-                            </StackPanel>
-                        </Border>
-                        <Button Grid.Column="3" Background="#FF5252" CornerRadius="6" FontWeight="Bold" Foreground="White" VerticalAlignment="Stretch">
-                            <StackPanel Orientation="Vertical" Spacing="4">
-                                <FontIcon Glyph="&#xE71E;" FontSize="18"/>
-                                <TextBlock Text="ACİL" TextAlignment="Center" FontSize="10"/>
-                                <TextBlock Text="DURDUR" TextAlignment="Center" FontSize="10"/>
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="3" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="40"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                            <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
-                            <TextBlock Text="GERÇEK ZAMANLI I/O MAPPING" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                            <TextBlock Text="PLC ↔ Robot ↔ 3D Kamera Veri Akışı" FontSize="10" Foreground="#888888" Margin="0,0,0,0" HorizontalAlignment="Right"/>
-                        </StackPanel>
-                    </Border>
-                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="12">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                            <StackPanel x:Name="IOMapContainer" Spacing="6"/>
-                        </ScrollViewer>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="4" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="40"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                            <FontIcon Glyph="&#xE7F8;" Foreground="#00A4EF" FontSize="16"/>
-                            <TextBlock Text="SİSTEM SAĞLIK MONİTÖRÜ" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                        </StackPanel>
-                    </Border>
-                    <Grid Grid.Row="1" Background="#0D0D0D" Padding="15">
-                        <Grid ColumnSpacing="15">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Spacing="8">
-                                <TextBlock Text="🎛️ PLC SİSTEMİ" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="CPU: 68%" FontSize="10" Foreground="#FFB81C"/>
-                                        <TextBlock Text="Hafıza: 45%" FontSize="10" Foreground="#4CAF50"/>
-                                        <TextBlock Text="I/O: 12/16 Aktif" FontSize="10" Foreground="#00FF88"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Spacing="8">
-                                <TextBlock Text="🤖 ROBOT KONTROL" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="Eksen: 6/6 OK" FontSize="10" Foreground="#4CAF50"/>
-                                        <TextBlock Text="Sensör: 8/8 Aktif" FontSize="10" Foreground="#00FF88"/>
-                                        <TextBlock Text="Hata: Yok" FontSize="10" Foreground="#4CAF50"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Spacing="8">
-                                <TextBlock Text="📷 3D KAMERA" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="FPS: 30" FontSize="10" Foreground="#4CAF50"/>
-                                        <TextBlock Text="Çözünürlük: 2K" FontSize="10" Foreground="#00FF88"/>
-                                        <TextBlock Text="Gecikme: 45ms" FontSize="10" Foreground="#FFB81C"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="3" Spacing="8">
-                                <TextBlock Text="🌐 İLETİŞİM" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
-                                <Border Background="#1A1A1C" CornerRadius="4" Padding="10">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="Ethernet: OK" FontSize="10" Foreground="#4CAF50"/>
-                                        <TextBlock Text="Protokol: TCP/IP" FontSize="10" Foreground="#00FF88"/>
-                                        <TextBlock Text="Ping: 2ms" FontSize="10" Foreground="#4CAF50"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="5" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+            <Border Grid.Row="1" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
@@ -407,7 +157,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="6" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+            <Border Grid.Row="2" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
@@ -521,7 +271,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="7" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
+            <Border Grid.Row="3" Background="#252526" BorderThickness="0,2,0,0" BorderBrush="#00A4EF" Padding="25,0">
                 <Grid VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="15" HorizontalAlignment="Left">
                         <Ellipse Width="10" Height="10" Fill="#4CAF50" VerticalAlignment="Center"/>

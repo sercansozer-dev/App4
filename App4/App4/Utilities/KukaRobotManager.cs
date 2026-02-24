@@ -481,6 +481,21 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "G_OTO_MOD", Type = "BOOL", PlcTag = "G_OTO_MOD", Direction = "Output", Description = "Otomatik/Manuel mod" });
 
             // ═══════════════════════════════════════════════════════════════
+            // ROBOT-ROBOT HABERLEŞMEDEKİ ÇAPRAZ DURUM DEĞİŞKENLERİ
+            // Diğer robotun durumunu bu robota yazar (PC köprüsü ile)
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_R1_IS_BITTI", Type = "BOOL", PlcTag = "G_R1_IS_BITTI", Direction = "Output", Description = "Robot 1 iş bitti (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R1_ROBOT_DURUM", Type = "INT", PlcTag = "G_R1_ROBOT_DURUM", Direction = "Output", Description = "Robot 1 durum kodu (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R1_HATA_VAR", Type = "BOOL", PlcTag = "G_R1_HATA_VAR", Direction = "Output", Description = "Robot 1 hata var (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R1_HATA_KODU", Type = "INT", PlcTag = "G_R1_HATA_KODU", Direction = "Output", Description = "Robot 1 hata kodu (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R1_EKSEN_E1", Type = "REAL", PlcTag = "G_R1_EKSEN_E1", Direction = "Output", Description = "Robot 1 harici eksen E1 (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R2_IS_BITTI", Type = "BOOL", PlcTag = "G_R2_IS_BITTI", Direction = "Output", Description = "Robot 2 iş bitti (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R2_ROBOT_DURUM", Type = "INT", PlcTag = "G_R2_ROBOT_DURUM", Direction = "Output", Description = "Robot 2 durum kodu (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R2_HATA_VAR", Type = "BOOL", PlcTag = "G_R2_HATA_VAR", Direction = "Output", Description = "Robot 2 hata var (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R2_HATA_KODU", Type = "INT", PlcTag = "G_R2_HATA_KODU", Direction = "Output", Description = "Robot 2 hata kodu (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R2_EKSEN_E1", Type = "REAL", PlcTag = "G_R2_EKSEN_E1", Direction = "Output", Description = "Robot 2 KL100 slider E1 (Robot-Robot)" });
+
+            // ═══════════════════════════════════════════════════════════════
             // ROBOT 2 - SNİFFER SONUÇLARI - Masaüstü → Robot (Output)
             // ═══════════════════════════════════════════════════════════════
             OutputVars.Add(new PlcVariable { Name = "G_SNIFFER_TAMAM", Type = "BOOL", PlcTag = "G_SNIFFER_TAMAM", Direction = "Output", Description = "Sniffer olcum tamamlandi" });
@@ -1077,7 +1092,17 @@ namespace App4.Utilities
                             newList.Add(nv);
                         }
 
-                        // Replace target collection contents (remove defaults not present in saved file)
+                        // Merge: Kaydedilmiş dosyada olmayan varsayılan değişkenleri de koru
+                        // (Yeni eklenen değişkenler kaybolmasın)
+                        var savedNames = new HashSet<string>(
+                            newList.Select(v => v.Name),
+                            StringComparer.OrdinalIgnoreCase);
+                        foreach (var defaultVar in target.ToList())
+                        {
+                            if (!savedNames.Contains(defaultVar.Name))
+                                newList.Add(defaultVar);
+                        }
+
                         target.Clear();
                         foreach (var nv in newList) target.Add(nv);
                     }

@@ -29,8 +29,7 @@ namespace App4.PAGES
             this.InitializeComponent();
 
             // İstatistik ve IO haritası (Görsel veriler - Demodur)
-            InitializeIOMapping();
-            InitializeStatistics();
+            // Kald\u0131r\u0131lan paneller: Test \u0130statistikleri, Robot Kontrol, I/O Mapping, Sistem Sa\u011fl\u0131k
 
             // Mevcut bağlantı durumunu kontrol et ve butonu güncelle
             UpdateConnectionStatus(PlcService.Instance.IsConnected);
@@ -216,67 +215,6 @@ namespace App4.PAGES
         // ════════════════════════════════════════════════════════════
         // 4. GÖRSEL DEMO VERİLERİ (İSTATİSTİK TABLOLARI İÇİN)
         // ════════════════════════════════════════════════════════════
-        private void InitializeStatistics()
-        {
-            if (TotalTestsLabel != null) TotalTestsLabel.Text = "1,247";
-            if (SuccessTestsLabel != null) SuccessTestsLabel.Text = "1,186";
-            if (FailedTestsLabel != null) FailedTestsLabel.Text = "61";
-            if (UptimeLabel != null) UptimeLabel.Text = "47.3h";
-            if (LastTestLabel != null) LastTestLabel.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            if (AvgDurationLabel != null) AvgDurationLabel.Text = "2.36 sn";
-            if (TodayTestsLabel != null) TodayTestsLabel.Text = "47 Test";
-            if (SystemQualityLabel != null) SystemQualityLabel.Text = "A+";
-        }
-
-        private void InitializeIOMapping()
-        {
-            if (IOMapContainer == null) return;
-            IOMapContainer.Children.Clear();
-
-            var mappings = new List<(string, string, string, string, string)>
-            {
-                ("PLC", "D0", "Robot", "Aktif", "1"),
-                ("Robot", "X1", "Kamera", "Aktif", "1"),
-                ("Kamera", "Result", "PLC", "Aktif", "Pass"),
-                ("Sensor", "I0.0", "PLC", "Pasif", "0"),
-                ("PLC", "Q0.4", "Valf", "Aktif", "1")
-            };
-
-            foreach (var mapping in mappings)
-            {
-                IOMapContainer.Children.Add(CreateIORow(mapping.Item1, mapping.Item2, mapping.Item3, mapping.Item4, mapping.Item5));
-            }
-        }
-
-        // IO Mapping tablosu için statik satır oluşturucu (Sadece görsel amaçlı)
-        private Grid CreateIORow(string source, string channel, string destination, string status, string value)
-        {
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-
-            grid.Background = new SolidColorBrush(Color.FromArgb(255, 26, 26, 28));
-            grid.Padding = new Thickness(12, 8, 12, 8);
-            grid.CornerRadius = new CornerRadius(4);
-            grid.Margin = new Thickness(0, 2, 0, 2);
-            grid.BorderThickness = new Thickness(0, 0, 0, 1);
-            grid.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 0, 164, 239));
-
-            // Hücreleri ekle
-            grid.Children.Add(CreateTextCell(source, 0, Color.FromArgb(255, 0, 164, 239)));
-            grid.Children.Add(CreateTextCell(channel, 1, Color.FromArgb(255, 255, 184, 28)));
-            grid.Children.Add(CreateTextCell(destination, 2, Color.FromArgb(255, 0, 255, 136)));
-            grid.Children.Add(CreateTextCell(status, 3, Color.FromArgb(255, 76, 175, 80)));
-
-            var valText = CreateTextCell(value, 4, Colors.White);
-            valText.TextAlignment = TextAlignment.Right;
-            grid.Children.Add(valText);
-
-            return grid;
-        }
 
         private async void ValueTextBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
