@@ -401,6 +401,24 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "G_KLIMA_TIP_RD", Type = "INT", PlcTag = "G_KLIMA_TIP", Direction = "Input", Description = "Klima tipi geri okuma (0=Secilmedi, 1..11)" });
             InputVars.Add(new PlcVariable { Name = "G_NOK_SAYISI_RD", Type = "INT", PlcTag = "G_NOK_SAYISI", Direction = "Input", Description = "Basarisiz nokta sayisi" });
 
+            // ═══ SİSTEM KONTROL (Robot'tan Okunacak) ═══
+            InputVars.Add(new PlcVariable { Name = "G_R1_HOME", Type = "BOOL", PlcTag = "G_R1_HOME", Direction = "Input", Description = "Robot 1 home pozisyonunda" });
+            InputVars.Add(new PlcVariable { Name = "G_R2_HOME", Type = "BOOL", PlcTag = "G_R2_HOME", Direction = "Input", Description = "Robot 2 home pozisyonunda" });
+
+            // ═══ ROBOT 2 - SNİFFER ÖLÇÜM (Robot → PC) ═══
+            InputVars.Add(new PlcVariable { Name = "G_SNIFFER_OLCUM_YAP", Type = "BOOL", PlcTag = "G_SNIFFER_OLCUM_YAP", Direction = "Input", Description = "Robot 2 sniffer olcum istedi" });
+            InputVars.Add(new PlcVariable { Name = "G_AKTIF_CIZGI", Type = "INT", PlcTag = "G_AKTIF_CIZGI", Direction = "Input", Description = "Robot 2 aktif sniffer cizgi no" });
+            InputVars.Add(new PlcVariable { Name = "G_TOPLAM_CIZGI", Type = "INT", PlcTag = "G_TOPLAM_CIZGI", Direction = "Input", Description = "Robot 2 toplam cizgi sayisi" });
+            InputVars.Add(new PlcVariable { Name = "G_NOK_CIZGI", Type = "INT", PlcTag = "G_NOK_CIZGI", Direction = "Input", Description = "Robot 2 son NOK cizgi no" });
+
+            // ═══ ROBOT 2 - SLİDER (KL100) DURUM (Robot → PC) ═══
+            InputVars.Add(new PlcVariable { Name = "G_SLIDER_HAREKET", Type = "BOOL", PlcTag = "G_SLIDER_HAREKET", Direction = "Input", Description = "Slider hareket ediyor" });
+            InputVars.Add(new PlcVariable { Name = "G_SLIDER_TAMAM", Type = "BOOL", PlcTag = "G_SLIDER_TAMAM", Direction = "Input", Description = "Slider hedefe ulasti" });
+            InputVars.Add(new PlcVariable { Name = "G_SLIDER_HOME", Type = "BOOL", PlcTag = "G_SLIDER_HOME", Direction = "Input", Description = "Slider home pozisyonunda" });
+
+            // ═══ ROBOT 2 - TABLA OFFSET DURUMU ═══
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_HAZIR", Type = "BOOL", PlcTag = "G_TABLA_OFFSET_HAZIR", Direction = "Input", Description = "Robot 1'den tabla offset alindi mi" });
+
             // ═══════════════════════════════════════════════════════════════
             // STANDART KONTROL (Output - Yazılacak)
             // ═══════════════════════════════════════════════════════════════
@@ -453,6 +471,26 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_B", Type = "REAL", PlcTag = "G_TABLA_OFFSET_B", Direction = "Output", Description = "Tabla B dönüşü (derece)" });
             OutputVars.Add(new PlcVariable { Name = "G_TABLA_OFFSET_C", Type = "REAL", PlcTag = "G_TABLA_OFFSET_C", Direction = "Output", Description = "Tabla C dönüşü (derece)" });
             OutputVars.Add(new PlcVariable { Name = "G_TABLA_TAMAM", Type = "BOOL", PlcTag = "G_TABLA_TAMAM", Direction = "Output", Description = "Tabla tarama tamam" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // SİSTEM KONTROL - Masaüstü → Robot (Output - Yazılacak)
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_SAFETY_OK", Type = "BOOL", PlcTag = "G_SAFETY_OK", Direction = "Output", Description = "Safety sinyali uygun (PLC'den robot'a)" });
+            OutputVars.Add(new PlcVariable { Name = "G_SISTEM_START", Type = "BOOL", PlcTag = "G_SISTEM_START", Direction = "Output", Description = "Sistem baslatma komutu" });
+            OutputVars.Add(new PlcVariable { Name = "G_SISTEM_STOP", Type = "BOOL", PlcTag = "G_SISTEM_STOP", Direction = "Output", Description = "Sistem durdurma komutu" });
+            OutputVars.Add(new PlcVariable { Name = "G_OTO_MOD", Type = "BOOL", PlcTag = "G_OTO_MOD", Direction = "Output", Description = "Otomatik/Manuel mod" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // ROBOT 2 - SNİFFER SONUÇLARI - Masaüstü → Robot (Output)
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_SNIFFER_TAMAM", Type = "BOOL", PlcTag = "G_SNIFFER_TAMAM", Direction = "Output", Description = "Sniffer olcum tamamlandi" });
+            OutputVars.Add(new PlcVariable { Name = "G_SNIFFER_OK", Type = "BOOL", PlcTag = "G_SNIFFER_OK", Direction = "Output", Description = "Sniffer sonuc OK/NOK" });
+            OutputVars.Add(new PlcVariable { Name = "G_SNIFFER_DEGER", Type = "REAL", PlcTag = "G_SNIFFER_DEGER", Direction = "Output", Description = "Sniffer olcum degeri" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // ROBOT 2 - SLİDER KONTROL - Masaüstü → Robot (Output)
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HEDEF_POZ", Type = "REAL", PlcTag = "G_SLIDER_HEDEF_POZ", Direction = "Output", Description = "Slider hedef pozisyon (mm)" });
         }
 
         #region Bağlantı Yönetimi

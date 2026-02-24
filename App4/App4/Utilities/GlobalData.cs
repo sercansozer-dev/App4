@@ -701,6 +701,21 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_DURUM_MESAJ", "INT", "Input", 0));           // Durum mesaj kodu (INT)
                 // --- RESET ---
                 RobotInputVars.Add(Create("G_RESET", "BOOL", "Input", false));            // Reset komutu bayragi
+                // --- SISTEM KONTROL (Her iki robot) ---
+                RobotInputVars.Add(Create("G_R1_HOME", "BOOL", "Input", false));           // Robot 1 home pozisyonunda
+                RobotInputVars.Add(Create("G_R2_HOME", "BOOL", "Input", false));           // Robot 2 home pozisyonunda
+                // --- ROBOT 2 SNIFFER OLCUM ---
+                RobotInputVars.Add(Create("G_SNIFFER_OLCUM_YAP", "BOOL", "Input", false)); // Robot 2 -> PC : Sniffer olcum baslat
+                RobotInputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Input", 0.0));      // Sniffer olcum degeri (geri okuma)
+                RobotInputVars.Add(Create("G_AKTIF_CIZGI", "INT", "Input", 0));           // Robot 2 aktif sniffer cizgi no
+                RobotInputVars.Add(Create("G_TOPLAM_CIZGI", "INT", "Input", 0));          // Robot 2 toplam cizgi sayisi
+                RobotInputVars.Add(Create("G_NOK_CIZGI", "INT", "Input", 0));             // Robot 2 son NOK cizgi no
+                // --- ROBOT 2 SLIDER (KL100) DURUM ---
+                RobotInputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Input", false));    // Slider hareket ediyor
+                RobotInputVars.Add(Create("G_SLIDER_TAMAM", "BOOL", "Input", false));      // Slider hedefe ulasti
+                RobotInputVars.Add(Create("G_SLIDER_HOME", "BOOL", "Input", false));       // Slider home pozisyonunda
+                // --- ROBOT 2 TABLA OFFSET DURUMU ---
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Input", false)); // Robot 1'den tabla offset alindi mi
             }
 
             // ═══════════════════════════════════════════════════════════════
@@ -733,6 +748,19 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_INFICON_TAMAM", "BOOL", "Output", false));  // Inficon olcum tamamlandi
                 RobotOutputVars.Add(Create("G_INFICON_OK", "BOOL", "Output", false));     // Olcum sonucu OK/NOK
                 RobotOutputVars.Add(Create("G_INFICON_DEGER", "REAL", "Output", 0.0));    // Inficon olcum degeri (ppm)
+                // --- SISTEM KONTROL (PC -> Her iki Robot) ---
+                RobotOutputVars.Add(Create("G_SAFETY_OK", "BOOL", "Output", false));      // Safety sinyali uygun
+                RobotOutputVars.Add(Create("G_SISTEM_START", "BOOL", "Output", false));   // Sistem baslatma komutu
+                RobotOutputVars.Add(Create("G_SISTEM_STOP", "BOOL", "Output", false));    // Sistem durdurma komutu
+                RobotOutputVars.Add(Create("G_OTO_MOD", "BOOL", "Output", false));        // Otomatik/Manuel mod
+                // --- ROBOT 2 SNIFFER SONUCLARI (PC -> Robot 2) ---
+                RobotOutputVars.Add(Create("G_SNIFFER_TAMAM", "BOOL", "Output", false));  // Sniffer olcum tamamlandi
+                RobotOutputVars.Add(Create("G_SNIFFER_OK", "BOOL", "Output", false));     // Sniffer sonuc OK/NOK
+                RobotOutputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Output", 0.0));    // Sniffer olcum degeri
+                // --- ROBOT 2 SLIDER KONTROL (PC -> Robot 2) ---
+                RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
+                // --- ROBOT 2 TABLA OFFSET (Robot 1 -> Robot 2 bridge uzerinden) ---
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Output", false)); // Tabla offset hazir bayragi
             }
         }
 

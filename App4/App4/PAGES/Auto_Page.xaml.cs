@@ -36,6 +36,10 @@ namespace App4
         public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableModels { get; set; } = new();
 
+        // --- ARIZA MÜHÜRLEME (LATCHING) DEĞİŞKENLERİ ---
+        private bool _isLatchedFault = false;
+        private string _latchedErrorMessage = "";
+
         public Auto_Page()
         {
             this.InitializeComponent();
@@ -1279,82 +1283,102 @@ namespace App4
         private void UpdateLineStatusVisuals()
         {
             bool isRunning = IsConditionMet("LINE_RUNNING", true);
+            string physicalErrorMessage = null;
 
-            string activeErrorMessage = null;
-
-            // 1. KULLANICININ EKLEDİĞİ LİSTEYİ TARA
-            // Sizin eklediğiniz her maddeyi tek tek kontrol eder
+            // 1. FİZİKSEL DURUM KONTROLÜ (SystemCheckList + İstasyonlar)
             foreach (var check in GlobalData.SystemCheckList)
             {
-                // Tag'i bul
-                var variable = GeneralInputVars.FirstOrDefault(v => v.Name == check.TagName);
-
-                // Tag varsa ve değeri "1" veya "True" DEĞİLSE hata var demektir.
-                // (IsConditionMet false dönerse hata var)
                 if (!IsConditionMet(check.TagName, true))
                 {
-                    activeErrorMessage = check.ErrorMessage;
-                    break; // İlk hatayı bulup çık, ekrana onu yazalım
+                    physicalErrorMessage = check.ErrorMessage;
+                    break; // İlk hatayı bul
                 }
             }
 
-            // 2. İstasyon Alarmlarına Bak (Eğer listede hata yoksa)
-            if (string.IsNullOrEmpty(activeErrorMessage))
+            if (string.IsNullOrEmpty(physicalErrorMessage))
             {
                 if (Stations.Any(s => s.HasAlarm))
                 {
-                    activeErrorMessage = "İSTASYON ARIZA";
+                    physicalErrorMessage = "İSTASYON ARIZASI (İSTASYONLARI KONTROL EDİN)";
                 }
             }
 
-            // --- GÖRSEL GÜNCELLEME (AYNEN KALIYOR) ---
+            // 2. ARIZA MÜHÜRLEME (LATCHING) VE OTOMATİK DURDURMA MANTIĞI
+            if (physicalErrorMessage != null)
+            {
+                // ▼▼▼ YENİ EKLENEN GÜVENLİK BLOĞU ▼▼▼
+                // Eğer hata İLK DEFA oluşuyorsa (daha önce mühürlenmemişse), SİSTEMİ DURDUR!
+                if (!_isLatchedFault)
+                {
+                    AddLog($"ARIZA TESPİT EDİLDİ: {physicalErrorMessage}. Sistem otomatik durduruldu.", "Red");
 
-            // Buradan sonrası önceki kodla aynıdır, sadece activeErrorMessage'ı ekrana basar.
+                    // PLC'ye durma sinyali gönder ve start'ı iptal et
+                    SetBtn("CMD_LINE_STOP", true);
+                    SetBtn("CMD_LINE_START", false);
 
-            // ALARM IŞIĞI GÜNCELLEME
-            if (activeErrorMessage == null)
+                    // Simülasyon/İç durumu sıfırla ki Reset atıldığında direk başlamasın
+                    SetIn("LINE_RUNNING", false);
+                    isRunning = false;
+                }
+                // ▲▲▲ YENİ EKLENEN GÜVENLİK BLOĞU ▲▲▲
+
+                _isLatchedFault = true;
+                _latchedErrorMessage = physicalErrorMessage;
+            }
+
+            // --- GÖRSEL KARTLARIN GÜNCELLENMESİ ---
+            if (physicalErrorMessage == null)
             {
                 CheckAlarmBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkGreen);
                 CheckAlarmBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
                 CheckAlarmIcon.Glyph = "\uE73E";
-                CheckAlarmIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
                 CheckAlarmText.Text = "SİSTEM TEMİZ";
-                CheckAlarmText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
             }
             else
             {
-                // HATA VAR!
                 CheckAlarmBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkRed);
                 CheckAlarmBorder.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Red);
                 CheckAlarmIcon.Glyph = "\uE7BA";
-                CheckAlarmIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
-
-                // Hatanın adını yazıyoruz (Örn: HAVA BASINCI DÜŞÜK)
-                CheckAlarmText.Text = activeErrorMessage;
-                CheckAlarmText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                CheckAlarmText.Text = physicalErrorMessage;
             }
+            CheckAlarmText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+            CheckAlarmIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
 
-            // START BUTONU KİLİDİ
-            bool canStart = (activeErrorMessage == null) && !isRunning;
-            BtnStart.IsEnabled = canStart;
-            BtnStart.Opacity = canStart ? 1.0 : 0.4;
+            // --- BUTONLARIN KİLİT MANTIĞI ---
 
-            // ANA DURUM METNİ
-            if (activeErrorMessage != null)
+            // BAŞLAT: Arıza mühürü yoksa VE sistem zaten çalışmıyorsa aktif
+            BtnStart.IsEnabled = !_isLatchedFault && !isRunning;
+            BtnStart.Opacity = BtnStart.IsEnabled ? 1.0 : 0.3;
+
+            // DURDUR: Sadece sistem ÇALIŞIYORSA aktif
+            BtnStop.IsEnabled = isRunning;
+            BtnStop.Opacity = BtnStop.IsEnabled ? 1.0 : 0.3;
+
+            // RESET: Sadece arıza mühürü varsa aktif
+            BtnReset.IsEnabled = _isLatchedFault;
+            BtnReset.Opacity = BtnReset.IsEnabled ? 1.0 : 0.3;
+
+            // --- ANA DURUM (KONTROL PANELİ ÜST METNİ) ---
+            if (_isLatchedFault)
             {
-                SetStatus(activeErrorMessage, Microsoft.UI.Colors.Red, "\uE7BA");
+                if (physicalErrorMessage != null)
+                {
+                    // Hata hala devam ediyor
+                    SetStatus($"ARIZA DEVAM EDİYOR!", Microsoft.UI.Colors.Red, "\uE7BA");
+                }
+                else
+                {
+                    // Hata fiziksel olarak düzelmiş ama RESET'e basılmamış
+                    SetStatus($"RESET BEKLENİYOR...", Microsoft.UI.Colors.Orange, "\uE72C");
+                }
             }
             else if (isRunning)
             {
                 SetStatus("HAT ÇALIŞIYOR", Microsoft.UI.Colors.LimeGreen, "\uE768");
-                BtnReset.IsEnabled = false;
-                BtnReset.Opacity = 0.5;
             }
             else
             {
                 SetStatus("BAŞLATMAYA HAZIR", Microsoft.UI.Colors.LightBlue, "\uE73E");
-                BtnReset.IsEnabled = true;
-                BtnReset.Opacity = 1;
             }
         }
 
@@ -1373,60 +1397,86 @@ namespace App4
         // Tüm ön koşullar SystemCheckList + İstasyon alarmları üzerinden kontrol edilir.
         private void BtnStart_Click(object sender, RoutedEventArgs e)
         {
-            // 1. SystemCheckList kurallarını kontrol et
-            foreach (var check in GlobalData.SystemCheckList)
+            // Son güvenlik kontrolü
+            if (_isLatchedFault)
             {
-                if (!IsConditionMet(check.TagName, true))
-                {
-                    AddLog($"BAŞLATILAMADI: {check.ErrorMessage}", "Red");
-                    return;
-                }
-            }
-
-            // 2. İstasyon alarmlarını kontrol et
-            if (Stations.Any(s => s.HasAlarm))
-            {
-                AddLog("BAŞLATILAMADI: İstasyonlarda arıza var.", "Red");
+                AddLog("BAŞLATILAMADI: Önce arızayı giderip RESET atmanız gerekmektedir.", "Red");
                 return;
             }
 
-            // Başlat
             SetBtn("CMD_LINE_START", true);
             SetBtn("CMD_LINE_STOP", false);
 
-            // Simülasyon geri bildirimi
+            // Simülasyon geri bildirimi (Gerçekte bu PLC'den gelecektir)
             SetIn("LINE_RUNNING", true);
 
             AddLog("Hat Başlatıldı.", "Green");
             UpdateLineStatusVisuals();
         }
 
-        // --- DİĞER BUTONLAR ---
         private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
             SetBtn("CMD_LINE_STOP", true);
             SetBtn("CMD_LINE_START", false);
+
+            // Simülasyon geri bildirimi
             SetIn("LINE_RUNNING", false);
-            AddLog("Hat Durduruldu.", "Red");
+
+            AddLog("Hat Durduruldu.", "Yellow");
             UpdateLineStatusVisuals();
         }
 
         private async void BtnReset_Click(object sender, RoutedEventArgs e)
         {
+            if (!_isLatchedFault) return; // Mühür yoksa reset atılamaz
+
+            BtnReset.IsEnabled = false; // Çift tıklamayı önle
+
+            // PLC'ye Reset Sinyali Gönder
             var resetVar = GeneralOutputVars.FirstOrDefault(x => x.Name == "CMD_LINE_RESET");
             if (resetVar != null)
             {
                 resetVar.CurrentValue = true;
-                AddLog("Resetleniyor...", "Yellow");
-                await System.Threading.Tasks.Task.Delay(1000);
+                AddLog("Reset sinyali PLC'ye gönderiliyor...", "Orange");
+                await Task.Delay(1000);
                 resetVar.CurrentValue = false;
-
-                // Simülasyon: Alarmları temizle
-                foreach (var s in Stations) s.HasAlarm = false;
-
-                AddLog("Reset Tamamlandı.", "White");
-                UpdateLineStatusVisuals();
             }
+
+            // Simülasyon: İstasyon alarmlarını temizlemeyi dene
+            foreach (var s in Stations) s.HasAlarm = false;
+
+            // --- RESET SONRASI TEKRAR KONTROL ET ---
+            string remainingError = null;
+            foreach (var check in GlobalData.SystemCheckList)
+            {
+                if (!IsConditionMet(check.TagName, true))
+                {
+                    remainingError = check.ErrorMessage;
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(remainingError) && Stations.Any(s => s.HasAlarm))
+            {
+                remainingError = "İSTASYON ARIZASI";
+            }
+
+            // Karar: Arızalar tamamen gitti mi?
+            if (remainingError == null)
+            {
+                _isLatchedFault = false; // Mühürü Kır!
+                _latchedErrorMessage = "";
+                AddLog("Arızalar giderildi, sistem temiz.", "Green");
+            }
+            else
+            {
+                // Arıza hala devam ediyor, mühür kırılmıyor
+                _latchedErrorMessage = remainingError;
+                AddLog($"Reset atıldı ancak arıza devam ediyor: {remainingError}", "Red");
+            }
+
+            // Ekranı yeni duruma göre güncelle
+            UpdateLineStatusVisuals();
         }
 
         private void SetBtn(string n, bool v) { var var = GeneralOutputVars.FirstOrDefault(x => x.Name == n); if (var != null) var.CurrentValue = v; }
