@@ -95,6 +95,15 @@ namespace App4.Utilities
             OnPropertyChanged(nameof(IndexedJobSequence));
         }
 
+        // INDEX DISPLAY - Listedeki sıra numarası (1-based)
+        private int _indexDisplay;
+        [JsonIgnore]
+        public int IndexDisplay
+        {
+            get => _indexDisplay;
+            set { if (_indexDisplay != value) { _indexDisplay = value; OnPropertyChanged(); } }
+        }
+
         public override string ToString() => $"{Id} ({Description})";
 
         public event PropertyChangedEventHandler PropertyChanged;
