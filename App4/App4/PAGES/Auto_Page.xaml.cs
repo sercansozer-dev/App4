@@ -141,6 +141,13 @@ namespace App4
             // 3. Hat Durum Işıklarını Yak
             UpdateLineStatusVisuals();
 
+            // 3.5. OTO/MANUEL Switch'i PLC değişkeniyle senkronize et
+            var switchVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
+            if (switchVar != null && LineAutoManualSwitch != null)
+            {
+                LineAutoManualSwitch.IsOn = switchVar.Value?.ToUpper() == "TRUE" || switchVar.Value == "1";
+            }
+
              // 4. Viewerları Başlat
             _ = InitializeStationViewers();
 
@@ -164,6 +171,7 @@ namespace App4
             var robotPlatform = this.FindName("RobotPlatform") as Grid;
             var sliderActualPosText = this.FindName("SliderActualPosText") as TextBlock;
             var sliderStationText = this.FindName("SliderStationText") as TextBlock;
+            var sliderHedefStationText = this.FindName("SliderHedefStationText") as TextBlock;
 
             if (sliderCanvas == null || robotPlatform == null) return;
 
@@ -183,6 +191,17 @@ namespace App4
                 // Aktüel pozisyon (mm - görseli etkilemez)
                 double actualPos = GlobalData.GetSliderActualPosition();
                 if (sliderActualPosText != null) sliderActualPosText.Text = $"{actualPos:F1} mm";
+
+                // Hedef istasyon gösterimi
+                if (sliderHedefStationText != null)
+                {
+                    var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+                    string hedefVal = hedefVar?.Value ?? "0";
+                    if (int.TryParse(hedefVal, out int hedef) && hedef >= 1 && hedef <= 3)
+                        sliderHedefStationText.Text = $"İSTASYON {hedef}";
+                    else
+                        sliderHedefStationText.Text = "---";
+                }
             }
 
             RefreshSlider();
@@ -1131,6 +1150,13 @@ namespace App4
                 // Slider vb. görsel güncellemeler
                 if (localVar.Name == "SLIDER_POS_ACT") UpdateSliderPosition(localVar.CurrentValue?.ToString());
                 else UpdateStationStatus(localVar.Name, localVar.CurrentValue?.ToString());
+
+                // OTO/MANUEL switch senkronizasyonu (PLC'den gelen değeri UI'a yansıt)
+                if (localVar.Name == "LINE_AUTO_MANUAL_CMD" && LineAutoManualSwitch != null)
+                {
+                    bool isOn = localVar.Value?.ToUpper() == "TRUE" || localVar.Value == "1";
+                    if (LineAutoManualSwitch.IsOn != isOn) LineAutoManualSwitch.IsOn = isOn;
+                }
             }
         }
 
@@ -1180,6 +1206,20 @@ namespace App4
         private void PlcTagComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (sender is ComboBox cb && cb.DataContext is PlcVariable v) { if (v.PlcTag != cb.SelectedItem as string) { v.PlcTag = cb.SelectedItem as string; GlobalData.SavePlcVariableTagsToFile(); ConnectToPlcVariable(v); } }
+        }
+
+        // ═══ HAT OTO/MANUEL SWITCH ═══
+        private void LineAutoManualSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleSwitch ts)
+            {
+                var switchVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
+                if (switchVar != null)
+                {
+                    switchVar.Value = ts.IsOn ? "True" : "False";
+                    switchVar.CurrentValue = ts.IsOn;
+                }
+            }
         }
 
         private void RfidModel_SelectionChanged(object sender, SelectionChangedEventArgs e)

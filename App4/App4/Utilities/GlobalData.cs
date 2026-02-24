@@ -525,22 +525,31 @@ namespace App4.Utilities
             PlcVariable Create(string name, string type, string dir, object val) => new PlcVariable { Name = name, Type = type, Direction = dir, CurrentValue = val, IsEditable = true };
             // DÜZELTİLDİ: ST{id}_ALARM başlangıç değeri true (fail-safe: 1=normal, 0=alarm)
             // Böylece PLC bağlanmadan önce istasyonlar "alarm yok" durumunda başlar
-            void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); }
+            void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); c.Add(Create($"ST{id}_YENI_URUN", "BOOL", "Input", false)); c.Add(Create($"ST{id}_ISLEM_BITTI", "BOOL", "Input", false)); }
             void AddOutputs(ObservableCollection<PlcVariable> c, int id) { c.Add(new PlcVariable { Name = $"ST{id}_RFID_MODE", Value = "0", Description = "RFID Mod", PlcTag = $"DB10.W{(id - 1) * 20}.0" }); c.Add(new PlcVariable { Name = $"ST{id}_RFID_TARGET", Value = "", Type="STRING", Description = "Hedef RFID", PlcTag = $"DB10.S{(id - 1) * 20}.4" }); c.Add(new PlcVariable { Name = $"ST{id}_ID_MATCHED", Value = "0", Description = "ID Eşleşti", PlcTag = $"DB10.W{(id - 1) * 20}.20" }); c.Add(new PlcVariable { Name = $"ST{id}_PROCESS_RESULT", Value = "0", Description = "Sonuç", PlcTag = $"DB10.W{(id - 1) * 20}.22" }); c.Add(new PlcVariable { Name = $"ST{id}_CONVEYOR_PERM", Value = "0", Description = "Konveyör", PlcTag = $"DB10.W{(id - 1) * 20}.24" }); c.Add(new PlcVariable { Name = $"ST{id}_MODE_CMD", Value = "1", Description = "Mod Cmd", PlcTag = $"DB10.W{(id - 1) * 20}.26" }); }
-            GeneralInputVars.Add(Create("SLIDER_POS_ACT", "WORD", "Input", "0")); 
-            GeneralInputVars.Add(Create("ROBOT_SPEED", "WORD", "Input", "100")); 
-            GeneralInputVars.Add(Create("GOCATOR_STATUS", "STRING", "Input", "READY")); 
-            GeneralInputVars.Add(Create("SAFETY_OK", "BOOL", "Input", true)); 
-            GeneralInputVars.Add(Create("LINE_RUNNING", "BOOL", "Input", false)); 
-            GeneralInputVars.Add(Create("LINE_AUTO_MODE", "BOOL", "Input", false)); 
+            GeneralInputVars.Add(Create("SLIDER_POS_ACT", "WORD", "Input", "0"));
+            GeneralInputVars.Add(Create("ROBOT_SPEED", "WORD", "Input", "100"));
+            GeneralInputVars.Add(Create("GOCATOR_STATUS", "STRING", "Input", "READY"));
+            GeneralInputVars.Add(Create("SAFETY_OK", "BOOL", "Input", true));
+            GeneralInputVars.Add(Create("LINE_RUNNING", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("LINE_AUTO_MODE", "BOOL", "Input", false));
             GeneralInputVars.Add(Create("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
             // ▼▼▼ KAMERA ÖLÇÜM SİNYALİ - Yeni ölçüm geldiğinde 1, sıfırlandığında 0 ▼▼▼
             GeneralInputVars.Add(Create("MEASUREMENT_NEW_DATA", "BOOL", "Input", false));
-            GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false)); 
-            GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false)); 
+            // ▼▼▼ AKTÜEL İSTASYON VE KLİMA INDEX ▼▼▼
+            GeneralInputVars.Add(Create("AKTUEL_ISTASYON", "WORD", "Input", "0"));           // Robotun aktüel olduğu istasyon numarası
+            GeneralInputVars.Add(Create("ROBOT_HOME", "BOOL", "Input", false));              // Robot HOME pozisyonunda mı
+            GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false));
             GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
             // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
             GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
+            // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
+            GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
+            // ▼▼▼ AKTÜEL KLİMA INDEX VE KL100 HEDEF ▼▼▼
+            GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (Mix/Specific moda göre)
+            GeneralOutputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Output", "0"));    // KL100 slider hedef istasyon numarası
+            GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
             AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
             
             // ═══════════════════════════════════════════════════════════════

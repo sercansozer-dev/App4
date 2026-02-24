@@ -117,6 +117,9 @@ namespace App4
             {
                 OlcumSonuclariList.ItemsSource = GlobalData.LastMeasurements;
             }
+
+            // ═══ KL100 SLIDER KONTROL GÜNCELLEMESİ ═══
+            UpdateKL100SliderPanel();
         }
 
         // --- KAMERA ÖLÇÜM (MANUEL BAŞLAT) ---
@@ -423,6 +426,114 @@ namespace App4
                         try { await robot.WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString()); } catch { }
                     }
                 }
+            }
+        }
+
+        // ═══ KL100 SLIDER KONTROL ═══
+        private void UpdateKL100SliderPanel()
+        {
+            try
+            {
+                var gInput = GlobalData.GeneralInputVars;
+                var gOutput = GlobalData.GeneralOutputVars;
+
+                // Hat otomatik modda mı?
+                var lineAutoVar = gInput.FirstOrDefault(v => v.Name == "LINE_AUTO_MODE");
+                var lineAutoCmdVar = gOutput.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
+                bool isLineAuto = (lineAutoVar?.Value?.ToUpper() == "TRUE" || lineAutoVar?.Value == "1")
+                               || (lineAutoCmdVar?.Value?.ToUpper() == "TRUE" || lineAutoCmdVar?.Value == "1");
+
+                // Robot home pozisyonunda mı?
+                var robotHomeVar = gInput.FirstOrDefault(v => v.Name == "ROBOT_HOME");
+                bool isRobotHome = robotHomeVar?.Value?.ToUpper() == "TRUE" || robotHomeVar?.Value == "1";
+
+                // Aktüel istasyon
+                var aktuelIstVar = gInput.FirstOrDefault(v => v.Name == "AKTUEL_ISTASYON");
+                string aktuelVal = aktuelIstVar?.Value ?? "0";
+                if (int.TryParse(aktuelVal, out int aktuelIst) && aktuelIst >= 1 && aktuelIst <= 4)
+                    KL100AktuelIstasyon.Text = aktuelIst == 4 ? "BAKIM" : $"IST {aktuelIst}";
+                else
+                    KL100AktuelIstasyon.Text = "---";
+
+                // Robot Home LED
+                KL100HomeLed.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    isRobotHome ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
+                KL100HomeStatus.Text = isRobotHome ? "EVDE" : "EVDE DEGiL";
+
+                // Hat modu gösterimi
+                KL100HatModText.Text = isLineAuto ? "OTOMATiK" : "MANUEL";
+                KL100HatModBorder.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    isLineAuto ? Windows.UI.Color.FromArgb(255, 46, 125, 50) : Windows.UI.Color.FromArgb(255, 255, 152, 0));
+
+                // Uyarı mesajları
+                KL100AutoWarning.Visibility = isLineAuto ? Visibility.Visible : Visibility.Collapsed;
+                KL100HomeWarning.Visibility = (!isLineAuto && !isRobotHome) ? Visibility.Visible : Visibility.Collapsed;
+
+                // Kontrol aktifliği: sadece hat MANUEL ve robot HOME iken
+                bool canControl = !isLineAuto && isRobotHome;
+                KL100HedefCombo.IsEnabled = canControl;
+                BtnKL100HedefGit.IsEnabled = canControl;
+            }
+            catch { }
+        }
+
+        private async void BtnKL100HedefGit_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            try
+            {
+                // Hedef istasyon değerini al
+                if (KL100HedefCombo.SelectedItem is ComboBoxItem selected && selected.Tag is string tagStr)
+                {
+                    int hedefIstasyon = int.Parse(tagStr);
+
+                    // PLC değişkenine hedef istasyonu yaz
+                    var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+                    if (hedefVar != null)
+                    {
+                        hedefVar.Value = hedefIstasyon.ToString();
+                        hedefVar.CurrentValue = hedefIstasyon;
+                    }
+
+                    // PLC'ye doğrudan yaz
+                    if (PlcService.Instance != null)
+                    {
+                        var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+                        if (plcVar != null) await PlcService.Instance.WriteAsync(plcVar, hedefIstasyon);
+                    }
+
+                    // Git komutunu gönder (pulse)
+                    var gitVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
+                    if (gitVar != null)
+                    {
+                        gitVar.Value = "True";
+                        gitVar.CurrentValue = true;
+
+                        if (PlcService.Instance != null)
+                        {
+                            var plcGitVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
+                            if (plcGitVar != null) await PlcService.Instance.WriteAsync(plcGitVar, true);
+                        }
+
+                        await Task.Delay(500);
+
+                        gitVar.Value = "False";
+                        gitVar.CurrentValue = false;
+
+                        if (PlcService.Instance != null)
+                        {
+                            var plcGitVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
+                            if (plcGitVar != null) await PlcService.Instance.WriteAsync(plcGitVar, false);
+                        }
+                    }
+                }
+            }
+            catch { }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
             }
         }
 
