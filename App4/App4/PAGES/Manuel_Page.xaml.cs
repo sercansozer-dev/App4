@@ -40,6 +40,14 @@ namespace App4
             _refreshTimer.Start();
             BuildValueDisplayMap();
             SignalListView.ItemsSource = SignalList;
+
+            // ▼▼▼ R1/R2 HOME SİNYALİ VE HEDEF İSTASYON ▼▼▼
+            RefreshHomeSignalCombos();
+
+            // KL100 İstasyon pozisyon değerlerini yükle
+            TxtKL100St1Pos.Text = GlobalData.KL100_Station1Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            TxtKL100St2Pos.Text = GlobalData.KL100_Station2Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            TxtKL100St3Pos.Text = GlobalData.KL100_Station3Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -388,9 +396,10 @@ namespace App4
         }
 
         /// <summary>
-        /// Otomatik modda: Her robotun bulunduğu istasyondaki RFID'ye göre klima tipi index'i belirler
-        /// ve ilgili robota G_KLIMA_TIP olarak gönderir.
-        /// KnownRfids listesindeki sıra (0-based index + 1) = Klima Tipi numarası
+        /// Otomatik modda: Robotun bulunduğu istasyonun RFID/Mod bilgisine göre klima tipi index'i belirler.
+        /// - Mixed modda: İstasyondaki okunan (CurrentRfid) RFID'nin KnownRfids listesindeki sırası
+        /// - Specific modda: İstasyonun beklenen (TargetRfid) RFID'sinin KnownRfids listesindeki sırası
+        /// Sonuç hem robotlara G_KLIMA_TIP olarak, hem de PLC'ye AKTUEL_KLIMA_INDEX olarak yazılır.
         /// </summary>
         private async Task UpdateAutoKlimaTipFromRfid()
         {
@@ -399,32 +408,96 @@ namespace App4
             var robots = KukaRobotManager.Instance?.Robots;
             if (stations == null || knownRfids == null || robots == null || knownRfids.Count == 0) return;
 
-            foreach (var station in stations)
-            {
-                // İstasyondaki aktüel RFID'yi oku
-                string currentRfid = station.CurrentRfid;
-                if (string.IsNullOrEmpty(currentRfid)) continue;
+            // Robotun aktüel istasyonunu bul
+            var aktuelIstVar = GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "AKTUEL_ISTASYON");
+            int aktuelIstasyon = 0;
+            if (aktuelIstVar != null) int.TryParse(aktuelIstVar.Value, out aktuelIstasyon);
 
-                // RFID'yi KnownRfids listesinde bul → index = klima tipi
-                int klimaIndex = -1;
-                for (int i = 0; i < knownRfids.Count; i++)
+            int klimaIndex = -1;
+
+            // Aktüel istasyona göre klima index'ini belirle
+            if (aktuelIstasyon >= 1 && aktuelIstasyon <= stations.Count)
+            {
+                var station = stations[aktuelIstasyon - 1];
+                string rfidToLookup = null;
+
+                if (station is ExtendedStationViewModel ext)
                 {
-                    if (knownRfids[i].Id == currentRfid.Trim())
+                    if (ext.RfidOpMode.Equals(RfidOperationMode.Specific))
                     {
-                        klimaIndex = i + 1; // 1-based index
-                        break;
+                        // Specific mod: Beklenen (TargetRfid) RFID'nin index'i
+                        rfidToLookup = ext.TargetRfid;
+                    }
+                    else
+                    {
+                        // Mixed mod: Okunan (CurrentRfid) RFID'nin index'i
+                        rfidToLookup = station.CurrentRfid;
                     }
                 }
-
-                if (klimaIndex < 0) continue;
-
-                // Bu istasyondaki tüm robotlara klima tipi gönder
-                foreach (var robot in robots)
+                else
                 {
-                    if (robot.IsConnected)
+                    rfidToLookup = station.CurrentRfid;
+                }
+
+                if (!string.IsNullOrEmpty(rfidToLookup))
+                {
+                    for (int i = 0; i < knownRfids.Count; i++)
                     {
-                        try { await robot.WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString()); } catch { }
+                        if (knownRfids[i].Id == rfidToLookup.Trim())
+                        {
+                            klimaIndex = i + 1; // 1-based index
+                            break;
+                        }
                     }
+                }
+            }
+            else
+            {
+                // Aktüel istasyon bilinmiyorsa, tüm istasyonları tara (eski davranış fallback)
+                foreach (var station in stations)
+                {
+                    string rfidToLookup = null;
+                    if (station is ExtendedStationViewModel ext)
+                    {
+                        rfidToLookup = ext.RfidOpMode.Equals(RfidOperationMode.Specific)
+                            ? ext.TargetRfid
+                            : station.CurrentRfid;
+                    }
+                    else
+                    {
+                        rfidToLookup = station.CurrentRfid;
+                    }
+
+                    if (string.IsNullOrEmpty(rfidToLookup)) continue;
+
+                    for (int i = 0; i < knownRfids.Count; i++)
+                    {
+                        if (knownRfids[i].Id == rfidToLookup.Trim())
+                        {
+                            klimaIndex = i + 1;
+                            break;
+                        }
+                    }
+                    if (klimaIndex > 0) break;
+                }
+            }
+
+            if (klimaIndex < 0) return;
+
+            // PLC'ye AKTUEL_KLIMA_INDEX yaz
+            var aktuelKlimaVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
+            if (aktuelKlimaVar != null && aktuelKlimaVar.Value != klimaIndex.ToString())
+            {
+                aktuelKlimaVar.Value = klimaIndex.ToString();
+                aktuelKlimaVar.CurrentValue = klimaIndex;
+            }
+
+            // Tüm robotlara G_KLIMA_TIP olarak gönder
+            foreach (var robot in robots)
+            {
+                if (robot.IsConnected)
+                {
+                    try { await robot.WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString()); } catch { }
                 }
             }
         }
@@ -443,40 +516,115 @@ namespace App4
                 bool isLineAuto = (lineAutoVar?.Value?.ToUpper() == "TRUE" || lineAutoVar?.Value == "1")
                                || (lineAutoCmdVar?.Value?.ToUpper() == "TRUE" || lineAutoCmdVar?.Value == "1");
 
-                // Robot home pozisyonunda mı?
-                var robotHomeVar = gInput.FirstOrDefault(v => v.Name == "ROBOT_HOME");
-                bool isRobotHome = robotHomeVar?.Value?.ToUpper() == "TRUE" || robotHomeVar?.Value == "1";
-
                 // Aktüel istasyon
                 var aktuelIstVar = gInput.FirstOrDefault(v => v.Name == "AKTUEL_ISTASYON");
                 string aktuelVal = aktuelIstVar?.Value ?? "0";
                 if (int.TryParse(aktuelVal, out int aktuelIst) && aktuelIst >= 1 && aktuelIst <= 4)
-                    KL100AktuelIstasyon.Text = aktuelIst == 4 ? "BAKIM" : $"IST {aktuelIst}";
+                    KL100AktuelIstasyon.Text = aktuelIst == 4 ? "BAKIM" : $"İST {aktuelIst}";
                 else
                     KL100AktuelIstasyon.Text = "---";
 
-                // Robot Home LED
-                KL100HomeLed.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(
-                    isRobotHome ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
-                KL100HomeStatus.Text = isRobotHome ? "EVDE" : "EVDE DEGiL";
+                // ▼▼▼ ÇİFT ROBOT HOME GÜVENLİK KONTROLÜ ▼▼▼
+                // Sinyal seçilmemişse → güvenli kabul et (robot yok veya kontrol yapılandırılmamış)
+                bool isR1SignalConfigured = !string.IsNullOrEmpty(GlobalData.KL100_Robot1HomeSignal);
+                bool isR2SignalConfigured = !string.IsNullOrEmpty(GlobalData.KL100_Robot2HomeSignal);
+
+                bool isR1Home = isR1SignalConfigured ? IsRobotSignalTrue(0, GlobalData.KL100_Robot1HomeSignal) : true;
+                bool isR2Home = isR2SignalConfigured ? IsRobotSignalTrue(1, GlobalData.KL100_Robot2HomeSignal) : true;
+                bool isBothRobotsHome = isR1Home && isR2Home; // İkisi de güvende mi?
+
+                // R1 LED
+                if (isR1SignalConfigured)
+                {
+                    LedR1Home.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(isR1Home ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
+                    TxtR1HomeStatus.Text = isR1Home ? "EVDE" : "EVDE DEĞİL";
+                }
+                else
+                {
+                    LedR1Home.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.DimGray);
+                    TxtR1HomeStatus.Text = "Sinyal Yok";
+                }
+
+                // R2 LED
+                if (isR2SignalConfigured)
+                {
+                    LedR2Home.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(isR2Home ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
+                    TxtR2HomeStatus.Text = isR2Home ? "EVDE" : "EVDE DEĞİL";
+                }
+                else
+                {
+                    LedR2Home.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.DimGray);
+                    TxtR2HomeStatus.Text = "Sinyal Yok";
+                }
 
                 // Hat modu gösterimi
-                KL100HatModText.Text = isLineAuto ? "OTOMATiK" : "MANUEL";
+                KL100HatModText.Text = isLineAuto ? "OTOMATİK" : "MANUEL";
                 KL100HatModBorder.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
                     isLineAuto ? Windows.UI.Color.FromArgb(255, 46, 125, 50) : Windows.UI.Color.FromArgb(255, 255, 152, 0));
 
                 // Uyarı mesajları
                 KL100AutoWarning.Visibility = isLineAuto ? Visibility.Visible : Visibility.Collapsed;
-                KL100HomeWarning.Visibility = (!isLineAuto && !isRobotHome) ? Visibility.Visible : Visibility.Collapsed;
+                KL100HomeWarning.Visibility = (!isLineAuto && !isBothRobotsHome) ? Visibility.Visible : Visibility.Collapsed;
 
-                // Kontrol aktifliği: sadece hat MANUEL ve robot HOME iken
-                bool canControl = !isLineAuto && isRobotHome;
+                // KONTROL AKTİFLİĞİ: Hat MANUEL ise ve İKİ ROBOT DA HOME ise çalışsın
+                bool canControl = !isLineAuto && isBothRobotsHome;
                 KL100HedefCombo.IsEnabled = canControl;
                 BtnKL100HedefGit.IsEnabled = canControl;
+                if (TxtKL100ManualPos != null) TxtKL100ManualPos.IsEnabled = canControl;
+
+                // Seçili istasyonun kayıtlı pozisyonunu güncelle
+                UpdateSelectedStationPosDisplay();
+                // ▲▲▲ ▲▲▲ ▲▲▲
             }
             catch { }
         }
 
+        // ═══ KL100 MOD DEĞİŞİMİ (İstasyona Git / Pozisyona Git) ═══
+        private void KL100Mode_Changed(object sender, RoutedEventArgs e)
+        {
+            bool isStationMode = RbKL100StationMode?.IsChecked == true;
+            if (KL100StationPanel != null)
+                KL100StationPanel.Visibility = isStationMode ? Visibility.Visible : Visibility.Collapsed;
+            if (KL100PositionPanel != null)
+                KL100PositionPanel.Visibility = isStationMode ? Visibility.Collapsed : Visibility.Visible;
+            if (TxtKL100GoButtonLabel != null)
+                TxtKL100GoButtonLabel.Text = isStationMode ? "İSTASYONA GİT" : "POZİSYONA GİT";
+        }
+
+        // ═══ İSTASYON POZİSYON KAYIT (TextBox LostFocus) ═══
+        private void KL100StationPos_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (TxtKL100St1Pos != null && double.TryParse(TxtKL100St1Pos.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p1))
+                GlobalData.KL100_Station1Pos = p1;
+            if (TxtKL100St2Pos != null && double.TryParse(TxtKL100St2Pos.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p2))
+                GlobalData.KL100_Station2Pos = p2;
+            if (TxtKL100St3Pos != null && double.TryParse(TxtKL100St3Pos.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p3))
+                GlobalData.KL100_Station3Pos = p3;
+        }
+
+        // ═══ HEDEF İSTASYON SEÇİLDİĞİNDE KAYITLI POZİSYONU GÖSTER ═══
+        private void UpdateSelectedStationPosDisplay()
+        {
+            if (KL100HedefCombo?.SelectedItem is ComboBoxItem selected && selected.Tag is string tagStr && int.TryParse(tagStr, out int st))
+            {
+                double pos = st switch
+                {
+                    1 => GlobalData.KL100_Station1Pos,
+                    2 => GlobalData.KL100_Station2Pos,
+                    3 => GlobalData.KL100_Station3Pos,
+                    _ => 0
+                };
+                if (TxtKL100SelectedStationPos != null)
+                    TxtKL100SelectedStationPos.Text = $"{pos:F1} mm";
+            }
+            else
+            {
+                if (TxtKL100SelectedStationPos != null)
+                    TxtKL100SelectedStationPos.Text = "---";
+            }
+        }
+
+        // ═══ ANA GİT BUTONU ═══
         private async void BtnKL100HedefGit_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
@@ -484,50 +632,63 @@ namespace App4
 
             try
             {
-                // Hedef istasyon değerini al
-                if (KL100HedefCombo.SelectedItem is ComboBoxItem selected && selected.Tag is string tagStr)
+                double hedefPoz = 0;
+                bool isStationMode = RbKL100StationMode?.IsChecked == true;
+
+                if (isStationMode)
                 {
-                    int hedefIstasyon = int.Parse(tagStr);
-
-                    // PLC değişkenine hedef istasyonu yaz
-                    var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
-                    if (hedefVar != null)
+                    // ═══ İSTASYONA GİT MODU ═══
+                    if (KL100HedefCombo.SelectedItem is ComboBoxItem selected && selected.Tag is string tagStr && int.TryParse(tagStr, out int st))
                     {
-                        hedefVar.Value = hedefIstasyon.ToString();
-                        hedefVar.CurrentValue = hedefIstasyon;
-                    }
-
-                    // PLC'ye doğrudan yaz
-                    if (PlcService.Instance != null)
-                    {
-                        var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
-                        if (plcVar != null) await PlcService.Instance.WriteAsync(plcVar, hedefIstasyon);
-                    }
-
-                    // Git komutunu gönder (pulse)
-                    var gitVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
-                    if (gitVar != null)
-                    {
-                        gitVar.Value = "True";
-                        gitVar.CurrentValue = true;
-
-                        if (PlcService.Instance != null)
+                        // Kayıtlı istasyon pozisyonunu al
+                        hedefPoz = st switch
                         {
-                            var plcGitVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
-                            if (plcGitVar != null) await PlcService.Instance.WriteAsync(plcGitVar, true);
-                        }
+                            1 => GlobalData.KL100_Station1Pos,
+                            2 => GlobalData.KL100_Station2Pos,
+                            3 => GlobalData.KL100_Station3Pos,
+                            _ => 0
+                        };
 
-                        await Task.Delay(500);
-
-                        gitVar.Value = "False";
-                        gitVar.CurrentValue = false;
-
-                        if (PlcService.Instance != null)
+                        // İstasyon numarasını da PLC'ye yaz
+                        var hedefIstVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON")
+                                       ?? GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+                        if (hedefIstVar != null)
                         {
-                            var plcGitVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
-                            if (plcGitVar != null) await PlcService.Instance.WriteAsync(plcGitVar, false);
+                            hedefIstVar.Value = st.ToString();
+                            hedefIstVar.CurrentValue = st;
                         }
                     }
+                    else
+                    {
+                        return; // İstasyon seçilmemiş
+                    }
+                }
+                else
+                {
+                    // ═══ POZİSYONA GİT MODU ═══
+                    if (!double.TryParse(TxtKL100ManualPos?.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out hedefPoz))
+                        return; // Geçerli pozisyon girilmemiş
+                }
+
+                // Hedef pozisyonu PLC'ye yaz
+                var hedefPozVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_POZ");
+                if (hedefPozVar != null)
+                {
+                    hedefPozVar.Value = hedefPoz.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    hedefPozVar.CurrentValue = hedefPoz;
+                }
+
+                // Git komutunu gönder (pulse)
+                var gitVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
+                if (gitVar != null)
+                {
+                    gitVar.Value = "True";
+                    gitVar.CurrentValue = true;
+
+                    await Task.Delay(500);
+
+                    gitVar.Value = "False";
+                    gitVar.CurrentValue = false;
                 }
             }
             catch { }
@@ -536,6 +697,64 @@ namespace App4
                 if (btn != null) btn.IsEnabled = true;
             }
         }
+
+        private void CmbR1HomeSignal_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CmbR1HomeSignal.SelectedItem is string sig)
+                GlobalData.KL100_Robot1HomeSignal = sig;
+        }
+
+        private void CmbR2HomeSignal_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CmbR2HomeSignal.SelectedItem is string sig)
+                GlobalData.KL100_Robot2HomeSignal = sig;
+        }
+
+        /// <summary>R1/R2 Home Signal ComboBox'larını güncel robot sinyalleriyle doldurur ve seçimi geri yükler</summary>
+        private void RefreshHomeSignalCombos()
+        {
+            // Mevcut seçimleri koru
+            string prevR1 = CmbR1HomeSignal.SelectedItem as string ?? GlobalData.KL100_Robot1HomeSignal;
+            string prevR2 = CmbR2HomeSignal.SelectedItem as string ?? GlobalData.KL100_Robot2HomeSignal;
+
+            // Listeleri yeniden doldur
+            var r1Signals = GlobalData.GetAvailableRobotSignals(0);
+            var r2Signals = GlobalData.GetAvailableRobotSignals(1);
+
+            CmbR1HomeSignal.ItemsSource = r1Signals;
+            CmbR2HomeSignal.ItemsSource = r2Signals;
+
+            // Seçimi geri yükle
+            if (!string.IsNullOrEmpty(prevR1) && r1Signals.Contains(prevR1))
+                CmbR1HomeSignal.SelectedItem = prevR1;
+
+            if (!string.IsNullOrEmpty(prevR2) && r2Signals.Contains(prevR2))
+                CmbR2HomeSignal.SelectedItem = prevR2;
+        }
+
+        // Seçilen KUKA Değişkeninin anlık "True/1" olup olmadığını kontrol eden yardımcı metod
+        private bool IsRobotSignalTrue(int robotIndex, string signalName)
+        {
+            if (string.IsNullOrEmpty(signalName) || KukaRobotManager.Instance?.Robots == null || KukaRobotManager.Instance.Robots.Count <= robotIndex)
+                return false;
+
+            var robot = KukaRobotManager.Instance.Robots[robotIndex];
+
+            // Sabit Durum Sinyalleri mi?
+            if (signalName.Equals("ROBOT_READY", StringComparison.OrdinalIgnoreCase)) return robot.RobotReady;
+            if (signalName.Equals("ROBOT_ERROR", StringComparison.OrdinalIgnoreCase)) return robot.RobotError;
+            if (signalName.Equals("ROBOT_RUNNING", StringComparison.OrdinalIgnoreCase)) return robot.RobotRunning;
+
+            // Dinamik KRL Input / Output değişkeni mi?
+            var variable = robot.InputVars.FirstOrDefault(v => v.Name == signalName) ?? robot.OutputVars.FirstOrDefault(v => v.Name == signalName);
+            if (variable != null && variable.Value != null)
+            {
+                string val = variable.Value.ToUpper();
+                return val == "TRUE" || val == "1" || val == "ON";
+            }
+            return false;
+        }
+
 
         private void BuildValueDisplayMap()
         {

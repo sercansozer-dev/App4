@@ -289,6 +289,7 @@ namespace App4.Pages
                     IsEditable = true,
                     Direction = isInput ? "Input" : "Output"
                 });
+                try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { }
             };
             headerGrid.Children.Add(addBtn);
             headerBorder.Child = headerGrid;
@@ -424,15 +425,32 @@ namespace App4.Pages
         {
             if (sender is Button btn && btn.Tag is PlcVariable v)
             {
+                bool removed = false;
                 foreach (var robot in KukaRobotManager.Instance.Robots)
                 {
-                    if (robot.InputVars.Contains(v)) { robot.InputVars.Remove(v); return; }
-                    if (robot.OutputVars.Contains(v)) { robot.OutputVars.Remove(v); return; }
+                    if (robot.InputVars.Contains(v)) { robot.InputVars.Remove(v); removed = true; break; }
+                    if (robot.OutputVars.Contains(v)) { robot.OutputVars.Remove(v); removed = true; break; }
+                }
+                if (removed)
+                {
+                    try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { }
                 }
             }
         }
 
-        private void Variable_Edited_LostFocus(object sender, RoutedEventArgs e) { }
+        private void Variable_Edited_LostFocus(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is TextBox tb && tb.DataContext is PlcVariable v)
+                {
+                    // Binding updates should already have modified the PlcVariable instance.
+                    // Persist robot variable definitions to disk so they survive restart.
+                    try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { }
+                }
+            }
+            catch { }
+        }
 
         private async void ValueTextBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
@@ -722,6 +740,13 @@ namespace App4.Pages
             if (!string.IsNullOrEmpty(mapping.RobotName))
             {
                 UpdateRobotTags();
+                // Also subscribe to collection changes so newly added tags appear
+                var sel = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
+                if (sel != null)
+                {
+                    sel.InputVars.CollectionChanged += (ss, ee) => this.DispatcherQueue.TryEnqueue(() => UpdateRobotTags());
+                    sel.OutputVars.CollectionChanged += (ss, ee) => this.DispatcherQueue.TryEnqueue(() => UpdateRobotTags());
+                }
             }
 
             rowBorder.Child = grid;
@@ -732,7 +757,7 @@ namespace App4.Pages
         {
             foreach (var mapping in _mappings)
             {
-                if (!mapping.IsActive || string.IsNullOrEmpty(mapping.RobotName) ||
+                if (string.IsNullOrEmpty(mapping.RobotName) ||
                     string.IsNullOrEmpty(mapping.RobotTag) || string.IsNullOrEmpty(mapping.PlcTag))
                     continue;
 
@@ -740,7 +765,7 @@ namespace App4.Pages
                 {
                     // Robotu bul
                     var robot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
-                    if (robot == null || !robot.IsConnected) continue;
+                    if (robot == null) continue;
 
                     // Robot tag'inden değişkeni bul
                     string robotTagDisplay = mapping.RobotTag;
@@ -755,8 +780,6 @@ namespace App4.Pages
                         }
                     }
 
-                    if (robotVar == null) continue;
-
                     // PLC tag'ini bul
                     string plcTagDisplay = mapping.PlcTag;
                     PlcVariable plcVar = null;
@@ -770,19 +793,31 @@ namespace App4.Pages
                         }
                     }
 
-                    if (plcVar == null) continue;
-
-                    // ÇİFT YÖNLÜ AKTARIM
+                    // ANLIK DEĞER GÖSTERİMİ: Aktif olmasa bile mevcut değeri oku ve göster
                     string direction = mapping.Direction ?? "Robot→PLC";
+                    if (direction == "Robot→PLC" && robotVar != null && !string.IsNullOrEmpty(robotVar.Value))
+                    {
+                        mapping.LastValue = robotVar.Value;
+                    }
+                    else if (direction == "PLC→Robot" && plcVar != null)
+                    {
+                        string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                        if (!string.IsNullOrEmpty(plcValue))
+                            mapping.LastValue = plcValue;
+                    }
 
+                    // Aktif değilse sadece okuma yap, yazma yapma
+                    if (!mapping.IsActive) continue;
+                    if (robotVar == null || plcVar == null) continue;
+
+                    // ÇİFT YÖNLÜ AKTARIM (sadece aktif mapping'ler için)
                     if (direction == "Robot→PLC")
                     {
                         // Robot'tan oku → PLC'ye yaz
                         if (string.IsNullOrEmpty(robotVar.Value)) continue;
                         string currentValue = robotVar.Value;
-                        mapping.LastValue = currentValue;
 
-                        if (PlcService.Instance.IsConnected && plcVar.Value != currentValue)
+                        if (robot.IsConnected && PlcService.Instance.IsConnected && plcVar.Value != currentValue)
                         {
                             await PlcService.Instance.WriteAsync(plcVar, currentValue);
                         }
@@ -792,7 +827,6 @@ namespace App4.Pages
                         // PLC'den oku → Robot'a yaz
                         string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
                         if (string.IsNullOrEmpty(plcValue)) continue;
-                        mapping.LastValue = plcValue;
 
                         if (robot.IsConnected && robotVar.Value != plcValue)
                         {

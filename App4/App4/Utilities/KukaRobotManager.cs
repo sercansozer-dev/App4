@@ -925,6 +925,8 @@ namespace App4.Utilities
                         {
                             Robots.Add(new KukaRobotInstance(cfg.Name, cfg.IpAddress, cfg.Port));
                         }
+                        // load persisted robot variable definitions if present
+                        LoadRobotVariables();
                         return;
                     }
                 }
@@ -935,6 +937,8 @@ namespace App4.Utilities
             Robots.Add(new KukaRobotInstance("ROBOT 1", "192.168.251.71", 7000));
             Robots.Add(new KukaRobotInstance("ROBOT 2", "192.168.251.72", 7000));
             SaveRobots();
+            // After creating default robots, try to load any saved variable definitions
+            LoadRobotVariables();
         }
 
         public void SaveRobots()
@@ -953,6 +957,96 @@ namespace App4.Utilities
                 var dir = Path.GetDirectoryName(_configPath);
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 File.WriteAllText(_configPath, json);
+            }
+            catch { }
+        }
+
+        // Persist robot-specific Input/Output variable definitions to disk
+        private readonly string _robotVarsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Variables.json");
+
+        public void SaveRobotVariables()
+        {
+            try
+            {
+                var list = new List<object>();
+                foreach (var r in Robots)
+                {
+                    object MapVars(ObservableCollection<PlcVariable> vars) => vars.Select(v => new { name = v.Name, type = v.Type, plcTag = v.PlcTag, value = v.Value, direction = v.Direction }).ToList();
+                    list.Add(new { robot = r.Name, inputs = MapVars(r.InputVars), outputs = MapVars(r.OutputVars) });
+                }
+
+                var json = JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true });
+                var dir = System.IO.Path.GetDirectoryName(_robotVarsPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                // If a previous file exists, back it up (preserve current table values before overwriting)
+                try
+                {
+                    if (File.Exists(_robotVarsPath))
+                    {
+                        var backupsDir = System.IO.Path.Combine(dir, "Backups");
+                        if (!Directory.Exists(backupsDir)) Directory.CreateDirectory(backupsDir);
+                        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                        var backupFile = System.IO.Path.Combine(backupsDir, $"Robot_Variables_{timestamp}.json");
+                        File.Copy(_robotVarsPath, backupFile, true);
+                    }
+                }
+                catch { /* ignore backup errors */ }
+
+                File.WriteAllText(_robotVarsPath, json);
+            }
+            catch { }
+        }
+
+        private void LoadRobotVariables()
+        {
+            try
+            {
+                if (!File.Exists(_robotVarsPath)) return;
+                var json = File.ReadAllText(_robotVarsPath);
+                var doc = JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+                if (doc.ValueKind != System.Text.Json.JsonValueKind.Array) return;
+
+                foreach (var entry in doc.EnumerateArray())
+                {
+                    string robotName = entry.GetProperty("robot").GetString();
+                    var robot = Robots.FirstOrDefault(r => r.Name == robotName);
+                    if (robot == null) continue;
+
+                    void LoadVars(string propName, ObservableCollection<PlcVariable> target)
+                    {
+                        if (!entry.TryGetProperty(propName, out var arr)) return;
+
+                        var newList = new List<PlcVariable>();
+
+                        foreach (var v in arr.EnumerateArray())
+                        {
+                            string name = v.GetProperty("name").GetString();
+                            string type = v.TryGetProperty("type", out var t) ? t.GetString() : "STRING";
+                            string plcTag = v.TryGetProperty("plcTag", out var p) ? p.GetString() : null;
+                            string value = v.TryGetProperty("value", out var val) && val.ValueKind != System.Text.Json.JsonValueKind.Null ? val.ToString() : null;
+
+                            var nv = new PlcVariable { Name = name, Type = type, PlcTag = plcTag, Value = value, Direction = target == robot.InputVars ? "Input" : "Output" };
+
+                            // preserve runtime CurrentValue when possible (match by PlcTag first, then Name)
+                            var existing = target.FirstOrDefault(x => !string.IsNullOrEmpty(x.PlcTag) && !string.IsNullOrEmpty(nv.PlcTag) && string.Equals(x.PlcTag?.Trim(), nv.PlcTag?.Trim(), StringComparison.OrdinalIgnoreCase))
+                                           ?? target.FirstOrDefault(x => string.Equals(x.Name?.Trim(), nv.Name?.Trim(), StringComparison.OrdinalIgnoreCase));
+                            if (existing != null)
+                            {
+                                nv.CurrentValue = existing.CurrentValue;
+                            }
+
+                            newList.Add(nv);
+                        }
+
+                        // Replace target collection contents (remove defaults not present in saved file)
+                        target.Clear();
+                        foreach (var nv in newList) target.Add(nv);
+                    }
+
+                    LoadVars("inputs", robot.InputVars);
+                    LoadVars("outputs", robot.OutputVars);
+                }
             }
             catch { }
         }

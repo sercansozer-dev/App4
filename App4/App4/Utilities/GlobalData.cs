@@ -81,6 +81,77 @@ namespace App4.Utilities
             set { if (_sliderSourceSignalName != value) { _sliderSourceSignalName = value; SaveRobotSliderMappings(); } }
         }
 
+        // KL100 R1 ve R2 Home Sinyal Seçimleri
+        private static string _kl100Robot1HomeSignal = "";
+        public static string KL100_Robot1HomeSignal
+        {
+            get => _kl100Robot1HomeSignal;
+            set { if (_kl100Robot1HomeSignal != value) { _kl100Robot1HomeSignal = value; SaveAutomationSettings(); } }
+        }
+
+        private static string _kl100Robot2HomeSignal = "";
+        public static string KL100_Robot2HomeSignal
+        {
+            get => _kl100Robot2HomeSignal;
+            set { if (_kl100Robot2HomeSignal != value) { _kl100Robot2HomeSignal = value; SaveAutomationSettings(); } }
+        }
+
+        // ═══ KL100 İSTASYON POZİSYONLARI (mm cinsinden kaydedilen konum verileri) ═══
+        private static double _kl100Station1Pos = 0;
+        public static double KL100_Station1Pos
+        {
+            get => _kl100Station1Pos;
+            set { if (_kl100Station1Pos != value) { _kl100Station1Pos = value; SaveKL100StationPositions(); } }
+        }
+
+        private static double _kl100Station2Pos = 0;
+        public static double KL100_Station2Pos
+        {
+            get => _kl100Station2Pos;
+            set { if (_kl100Station2Pos != value) { _kl100Station2Pos = value; SaveKL100StationPositions(); } }
+        }
+
+        private static double _kl100Station3Pos = 0;
+        public static double KL100_Station3Pos
+        {
+            get => _kl100Station3Pos;
+            set { if (_kl100Station3Pos != value) { _kl100Station3Pos = value; SaveKL100StationPositions(); } }
+        }
+
+        private static readonly string _kl100PosFilePath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "KL100_StationPositions.json");
+
+        public static void SaveKL100StationPositions()
+        {
+            try
+            {
+                var data = new { Station1 = _kl100Station1Pos, Station2 = _kl100Station2Pos, Station3 = _kl100Station3Pos };
+                var json = System.Text.Json.JsonSerializer.Serialize(data, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var dir = System.IO.Path.GetDirectoryName(_kl100PosFilePath);
+                if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+                System.IO.File.WriteAllText(_kl100PosFilePath, json);
+            }
+            catch { }
+        }
+
+        public static void LoadKL100StationPositions()
+        {
+            try
+            {
+                if (System.IO.File.Exists(_kl100PosFilePath))
+                {
+                    var json = System.IO.File.ReadAllText(_kl100PosFilePath);
+                    var doc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+                    if (doc.TryGetProperty("Station1", out var s1)) _kl100Station1Pos = s1.GetDouble();
+                    if (doc.TryGetProperty("Station2", out var s2)) _kl100Station2Pos = s2.GetDouble();
+                    if (doc.TryGetProperty("Station3", out var s3)) _kl100Station3Pos = s3.GetDouble();
+                }
+            }
+            catch { }
+        }
+
+
+
         // Aktüel pozisyon sinyali: Gerçek mm değerini gösterir (görseli etkilemez)
         private static string _sliderActualPosSignalName = "E1";
         public static string SliderActualPosSignalName
@@ -359,6 +430,7 @@ namespace App4.Utilities
             LoadMeasurements();
             LoadTransferRows();
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
+            LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
 
             // Modelleri Yükle
             RefreshAvailableModels();
@@ -500,14 +572,25 @@ namespace App4.Utilities
                 // Mevcut öğeleri dinle
                 foreach (var item in KnownRfids) item.PropertyChanged += RfidDef_PropertyChanged;
 
-                KnownRfids.CollectionChanged += (s, e) => 
+                KnownRfids.CollectionChanged += (s, e) =>
                 {
                     if (e.NewItems != null) foreach (RfidDef item in e.NewItems) item.PropertyChanged += RfidDef_PropertyChanged;
                     if (e.OldItems != null) foreach (RfidDef item in e.OldItems) item.PropertyChanged -= RfidDef_PropertyChanged;
+                    // Index numaralarını yeniden ata (ekleme/silme sonrası)
+                    RefreshRfidIndexes();
                     SaveRfids();
                 }; 
             } 
             catch { } 
+        }
+
+        /// <summary>RFID listesindeki index numaralarını yeniden atar (1-based)</summary>
+        public static void RefreshRfidIndexes()
+        {
+            for (int i = 0; i < KnownRfids.Count; i++)
+            {
+                KnownRfids[i].IndexDisplay = i + 1;
+            }
         }
 
         private static void RfidDef_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -540,24 +623,37 @@ namespace App4.Utilities
             GeneralInputVars.Add(Create("LINE_RUNNING", "BOOL", "Input", false));
             GeneralInputVars.Add(Create("LINE_AUTO_MODE", "BOOL", "Input", false));
             GeneralInputVars.Add(Create("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
-            // ▼▼▼ KAMERA ÖLÇÜM SİNYALİ - Yeni ölçüm geldiğinde 1, sıfırlandığında 0 ▼▼▼
-            GeneralInputVars.Add(Create("MEASUREMENT_NEW_DATA", "BOOL", "Input", false));
-            // ▼▼▼ AKTÜEL İSTASYON VE KLİMA INDEX ▼▼▼
-            GeneralInputVars.Add(Create("AKTUEL_ISTASYON", "WORD", "Input", "0"));           // Robotun aktüel olduğu istasyon numarası
-            GeneralInputVars.Add(Create("ROBOT_HOME", "BOOL", "Input", false));              // Robot HOME pozisyonunda mı
-            GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
-            // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
-            GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
-            // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
-            GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
-            // ▼▼▼ AKTÜEL KLİMA INDEX VE KL100 HEDEF ▼▼▼
-            GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (Mix/Specific moda göre)
-            // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
-            GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
-            GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
-            AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
+            // If a saved Auto Page variables file exists, load it instead of adding defaults
+            if (File.Exists(_autoPageVariablesFilePath))
+            {
+                try
+                {
+                    LoadPlcVariableTagsFromFile();
+                }
+                catch { }
+            }
+            else
+            {
+                // ▼▼▼ KAMERA ÖLÇÜM SİNYALİ - Yeni ölçüm geldiğinde 1, sıfırlandığında 0 ▼▼▼
+                GeneralInputVars.Add(Create("MEASUREMENT_NEW_DATA", "BOOL", "Input", false));
+                // ▼▼▼ AKTÜEL İSTASYON VE KLİMA INDEX ▼▼▼
+                GeneralInputVars.Add(Create("AKTUEL_ISTASYON", "WORD", "Input", "0"));           // Robotun aktüel olduğu istasyon numarası
+                GeneralInputVars.Add(Create("ROBOT_HOME", "BOOL", "Input", false));              // Robot HOME pozisyonunda mı
+                GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false));
+                GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false));
+                GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
+                // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
+                GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
+                // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
+                GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
+                // ▼▼▼ AKTÜEL KLİMA INDEX VE KL100 HEDEF ▼▼▼
+                GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (Mix/Specific moda göre)
+                // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
+                GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
+                GeneralOutputVars.Add(Create("KL100_HEDEF_POZ", "REAL", "Output", "0"));         // KL100 slider hedef pozisyon (mm)
+                GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
+                AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
+            }
             
             // ═══════════════════════════════════════════════════════════════
             // ROBOT → PLC DEĞİŞKENLERİ (Input - Robottan gelen sinyaller)
@@ -641,7 +737,66 @@ namespace App4.Utilities
         }
 
         public static void SavePlcVariableTagsToFile() { try { object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new { name = v.Name, plcTag = v.PlcTag, value = v.Value }).ToList(); var data = new { GeneralInputVars = Map(GeneralInputVars), GeneralOutputVars = Map(GeneralOutputVars), Station1Vars = Map(Station1Vars), Station1Outputs = Map(Station1Outputs), Station2Vars = Map(Station2Vars), Station2Outputs = Map(Station2Outputs), Station3Vars = Map(Station3Vars), Station3Outputs = Map(Station3Outputs), RobotInputVars = Map(RobotInputVars), RobotOutputVars = Map(RobotOutputVars) }; File.WriteAllText(_autoPageVariablesFilePath, System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
-        private static void LoadPlcVariableTagsFromFile() { try { if (File.Exists(_autoPageVariablesFilePath)) { var json = File.ReadAllText(_autoPageVariablesFilePath); var data = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json); void Load(string p, ObservableCollection<PlcVariable> t) { if (data.TryGetProperty(p, out var a)) foreach (var i in a.EnumerateArray()) { if (i.TryGetProperty("name", out var n)) { var v = t.FirstOrDefault(x => x.Name == n.GetString()); if (v == null) { v = new PlcVariable { Name = n.GetString(), Type = "STRING", Direction = "Input" }; if (i.TryGetProperty("plcTag", out var pt)) v.PlcTag = pt.GetString(); if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) v.Value = val.ToString(); t.Add(v); } else { if (i.TryGetProperty("plcTag", out var pt)) v.PlcTag = pt.GetString(); if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) v.Value = val.ToString(); } } } } Load("GeneralInputVars", GeneralInputVars); Load("GeneralOutputVars", GeneralOutputVars); Load("Station1Vars", Station1Vars); Load("Station1Outputs", Station1Outputs); Load("Station2Vars", Station2Vars); Load("Station2Outputs", Station2Outputs); Load("Station3Vars", Station3Vars); Load("Station3Outputs", Station3Outputs); Load("RobotInputVars", RobotInputVars); Load("RobotOutputVars", RobotOutputVars); } } catch { } }
+        private static void LoadPlcVariableTagsFromFile()
+        {
+            try
+            {
+                if (!File.Exists(_autoPageVariablesFilePath)) return;
+                var json = File.ReadAllText(_autoPageVariablesFilePath);
+                var data = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
+
+                void Load(string p, ObservableCollection<PlcVariable> t)
+                {
+                    if (!data.TryGetProperty(p, out var a)) return;
+
+                    // Build new list from file but preserve runtime CurrentValue from existing items
+                    var newList = new List<PlcVariable>();
+
+                    foreach (var i in a.EnumerateArray())
+                    {
+                        if (!i.TryGetProperty("name", out var n)) continue;
+                        string name = n.GetString()?.Trim();
+                        string plcTag = i.TryGetProperty("plcTag", out var pt) ? pt.GetString()?.Trim() : null;
+                        string type = i.TryGetProperty("type", out var tt) ? tt.GetString() : null;
+                        string value = null;
+                        if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) value = val.ToString();
+
+                        var v = new PlcVariable { Name = name ?? "", Type = type ?? "STRING", Direction = "Input", IsEditable = true };
+                        if (!string.IsNullOrEmpty(plcTag)) v.PlcTag = plcTag;
+                        if (!string.IsNullOrEmpty(value)) v.Value = value;
+
+                        // Try to find existing runtime item to preserve CurrentValue
+                        var existing = t.FirstOrDefault(x => !string.IsNullOrEmpty(x.PlcTag) && !string.IsNullOrEmpty(v.PlcTag) && string.Equals(x.PlcTag?.Trim(), v.PlcTag?.Trim(), StringComparison.OrdinalIgnoreCase))
+                                       ?? t.FirstOrDefault(x => string.Equals(x.Name?.Trim(), v.Name?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                        if (existing != null)
+                        {
+                            // Preserve runtime CurrentValue
+                            v.CurrentValue = existing.CurrentValue;
+                        }
+
+                        newList.Add(v);
+                    }
+
+                    // Replace collection contents while keeping the same ObservableCollection instance
+                    t.Clear();
+                    foreach (var nv in newList)
+                        t.Add(nv);
+                }
+
+                Load("GeneralInputVars", GeneralInputVars);
+                Load("GeneralOutputVars", GeneralOutputVars);
+                Load("Station1Vars", Station1Vars);
+                Load("Station1Outputs", Station1Outputs);
+                Load("Station2Vars", Station2Vars);
+                Load("Station2Outputs", Station2Outputs);
+                Load("Station3Vars", Station3Vars);
+                Load("Station3Outputs", Station3Outputs);
+                Load("RobotInputVars", RobotInputVars);
+                Load("RobotOutputVars", RobotOutputVars);
+            }
+            catch { }
+        }
 
         private static void LoadAutomationSettings() 
         { 
@@ -688,6 +843,10 @@ namespace App4.Utilities
                 else if (val is string s && int.TryParse(s, out int p)) _robotPort = p;
             }
 
+            if (settings.ContainsKey("KL100_R1Home")) _kl100Robot1HomeSignal = settings["KL100_R1Home"] as string;
+            if (settings.ContainsKey("KL100_R2Home")) _kl100Robot2HomeSignal = settings["KL100_R2Home"] as string;
+
+
             // PLC Ayarları
             if (settings.ContainsKey("Plc_IpAddress"))
             {
@@ -733,6 +892,7 @@ namespace App4.Utilities
 
             settings["Gocator_IpAddress"] = Gocator_IpAddress;
             settings["Gocator_Port"] = Gocator_Port;
+
 
             StartAutomationListener(); 
         }

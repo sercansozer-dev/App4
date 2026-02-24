@@ -224,79 +224,156 @@
                 <!-- 6. KL100 SLIDER KONTROL (Manuel) -->
                 <Border Grid.Row="3" Grid.ColumnSpan="3" Background="#1A1A1C" CornerRadius="8" Padding="15">
                     <StackPanel Spacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon Glyph="&#xE71D;" Foreground="#E91E63" FontSize="14"/>
-                            <TextBlock Text="KL100 SLIDER KONTROL" FontWeight="Bold" Foreground="#E91E63"/>
-                        </StackPanel>
-                        <Rectangle Height="1" Fill="#333" Margin="0,0,0,5"/>
+                        <!-- Başlık + Durum -->
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon Glyph="&#xE71D;" Foreground="#E91E63" FontSize="14"/>
+                                <TextBlock Text="KL100 SLIDER KONTROL" FontWeight="Bold" Foreground="#E91E63"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="Aktüel:" Foreground="#888" FontSize="10" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="KL100AktuelIstasyon" Text="---" FontSize="12" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Border x:Name="KL100HatModBorder" Background="#333" CornerRadius="4" Padding="8,3">
+                                    <TextBlock x:Name="KL100HatModText" Text="---" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                        <Rectangle Height="1" Fill="#333" Margin="0,0,0,2"/>
 
-                        <!-- Uyari: Hat Otomatik iken -->
+                        <!-- Uyarılar -->
                         <Border x:Name="KL100AutoWarning" Background="#331E16" CornerRadius="4" Padding="10,6" Visibility="Collapsed">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE7BA;" Foreground="#FF9800" FontSize="12"/>
-                                <TextBlock Text="Hat OTOMATiK moddayken slider manuel kontrol edilemez!" Foreground="#FF9800" FontSize="11"/>
+                                <TextBlock Text="Hat OTOMATİK moddayken slider manuel kontrol edilemez!" Foreground="#FF9800" FontSize="11"/>
                             </StackPanel>
                         </Border>
-
-                        <!-- Uyari: Robot Home degil -->
                         <Border x:Name="KL100HomeWarning" Background="#2D1616" CornerRadius="4" Padding="10,6" Visibility="Collapsed">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE7BA;" Foreground="#F44336" FontSize="12"/>
-                                <TextBlock Text="Robot HOME pozisyonunda degil! Slider hareket ettirilemez." Foreground="#F44336" FontSize="11"/>
+                                <TextBlock Text="Robot HOME pozisyonunda değil! Slider hareket ettirilemez." Foreground="#F44336" FontSize="11"/>
                             </StackPanel>
                         </Border>
 
+                        <!-- ANA KONTROL ALANI -->
                         <Grid ColumnSpacing="15">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Aktuel Istasyon -->
-                            <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="Aktuel Istasyon:" Foreground="#888" FontSize="10"/>
-                                <TextBlock x:Name="KL100AktuelIstasyon" Text="---" FontSize="16" FontWeight="Bold" Foreground="#4CAF50"/>
-                            </StackPanel>
+                            <!-- SOL: Robot Home Durumu -->
+                            <Border Grid.Column="0" Background="#202020" CornerRadius="6" Padding="10,8">
+                                <Grid RowSpacing="6">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="ROBOT HOME DURUMU" FontSize="9" FontWeight="Bold" Foreground="#666" HorizontalAlignment="Center"/>
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="R1:" Foreground="#888" FontSize="10" VerticalAlignment="Center" Width="22"/>
+                                        <ComboBox x:Name="CmbR1HomeSignal" Width="120" Background="#252528" Foreground="White" FontSize="10" Height="26"
+                                                  PlaceholderText="Sinyal Seç..." SelectionChanged="CmbR1HomeSignal_SelectionChanged"/>
+                                        <Ellipse x:Name="LedR1Home" Width="10" Height="10" Fill="Gray" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="TxtR1HomeStatus" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" Width="65"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="R2:" Foreground="#888" FontSize="10" VerticalAlignment="Center" Width="22"/>
+                                        <ComboBox x:Name="CmbR2HomeSignal" Width="120" Background="#252528" Foreground="White" FontSize="10" Height="26"
+                                                  PlaceholderText="Sinyal Seç..." SelectionChanged="CmbR2HomeSignal_SelectionChanged"/>
+                                        <Ellipse x:Name="LedR2Home" Width="10" Height="10" Fill="Gray" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="TxtR2HomeStatus" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" Width="65"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
 
-                            <!-- Robot Home Durumu -->
-                            <StackPanel Grid.Column="1" Spacing="2">
-                                <TextBlock Text="Robot Home:" Foreground="#888" FontSize="10"/>
-                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <Ellipse x:Name="KL100HomeLed" Width="10" Height="10" Fill="Gray" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="KL100HomeStatus" Text="---" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                            <!-- ORTA: İstasyon Pozisyon Ayarları -->
+                            <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="10,8">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="İSTASYON POZİSYONLARI (mm)" FontSize="9" FontWeight="Bold" Foreground="#666" HorizontalAlignment="Center"/>
+                                    <Grid ColumnSpacing="8" RowSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="90"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="İSTASYON 1:" Foreground="#888" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="TxtKL100St1Pos" Grid.Row="0" Grid.Column="1" PlaceholderText="0.0"
+                                                 Background="#252528" Foreground="#4CAF50" FontSize="11" Height="26" FontWeight="Bold"
+                                                 LostFocus="KL100StationPos_LostFocus" BorderBrush="#333"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="İSTASYON 2:" Foreground="#888" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="TxtKL100St2Pos" Grid.Row="1" Grid.Column="1" PlaceholderText="0.0"
+                                                 Background="#252528" Foreground="#4CAF50" FontSize="11" Height="26" FontWeight="Bold"
+                                                 LostFocus="KL100StationPos_LostFocus" BorderBrush="#333"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="İSTASYON 3:" Foreground="#888" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="TxtKL100St3Pos" Grid.Row="2" Grid.Column="1" PlaceholderText="0.0"
+                                                 Background="#252528" Foreground="#4CAF50" FontSize="11" Height="26" FontWeight="Bold"
+                                                 LostFocus="KL100StationPos_LostFocus" BorderBrush="#333"/>
+                                    </Grid>
                                 </StackPanel>
-                            </StackPanel>
+                            </Border>
 
-                            <!-- Hedef Istasyon Girisi -->
-                            <StackPanel Grid.Column="2" Spacing="2">
-                                <TextBlock Text="Hedef Istasyon:" Foreground="#888" FontSize="10"/>
-                                <ComboBox x:Name="KL100HedefCombo" Width="140" Background="#252528" Foreground="White" FontSize="12" Height="32"
-                                          IsEnabled="False">
-                                    <ComboBoxItem Content="ISTASYON 1" Tag="1"/>
-                                    <ComboBoxItem Content="ISTASYON 2" Tag="2"/>
-                                    <ComboBoxItem Content="ISTASYON 3" Tag="3"/>
-                                    <ComboBoxItem Content="BAKIM" Tag="4"/>
-                                </ComboBox>
-                            </StackPanel>
+                            <!-- SAĞ: Hareket Kontrol -->
+                            <Border Grid.Column="2" Background="#202020" CornerRadius="6" Padding="12,8">
+                                <Grid RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                            <!-- Hedef Istasyona Git Butonu -->
-                            <Button x:Name="BtnKL100HedefGit" Grid.Column="3" Content="HEDEFE GIT"
-                                    Background="#E91E63" Foreground="White" FontWeight="Bold"
-                                    Padding="20,6" VerticalAlignment="Bottom"
-                                    IsEnabled="False"
-                                    Click="BtnKL100HedefGit_Click"/>
+                                    <!-- Mod Seçimi -->
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="HAREKET MODU:" FontSize="9" FontWeight="Bold" Foreground="#666" VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="RbKL100StationMode" Content="İSTASYONA GİT" GroupName="KL100Mode" IsChecked="True"
+                                                     Foreground="White" FontSize="11" FontWeight="SemiBold" Checked="KL100Mode_Changed"/>
+                                        <RadioButton x:Name="RbKL100PositionMode" Content="POZİSYONA GİT" GroupName="KL100Mode"
+                                                     Foreground="White" FontSize="11" FontWeight="SemiBold" Checked="KL100Mode_Changed"/>
+                                    </StackPanel>
 
-                            <!-- Hat Modu Durumu -->
-                            <StackPanel Grid.Column="4" Spacing="2" VerticalAlignment="Bottom">
-                                <TextBlock Text="Hat Modu:" Foreground="#888" FontSize="10"/>
-                                <Border x:Name="KL100HatModBorder" Background="#333" CornerRadius="4" Padding="8,4">
-                                    <TextBlock x:Name="KL100HatModText" Text="---" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                </Border>
-                            </StackPanel>
+                                    <!-- İstasyona Git Paneli -->
+                                    <Border x:Name="KL100StationPanel" Grid.Row="1" Background="#252528" CornerRadius="4" Padding="10,8">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <TextBlock Text="Hedef İstasyon:" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                                            <ComboBox x:Name="KL100HedefCombo" Width="140" Background="#1A1A1C" Foreground="White" FontSize="12" Height="32" IsEnabled="False">
+                                                <ComboBoxItem Content="İSTASYON 1" Tag="1"/>
+                                                <ComboBoxItem Content="İSTASYON 2" Tag="2"/>
+                                                <ComboBoxItem Content="İSTASYON 3" Tag="3"/>
+                                            </ComboBox>
+                                            <StackPanel Spacing="1">
+                                                <TextBlock Text="Kayıtlı Poz:" Foreground="#666" FontSize="9"/>
+                                                <TextBlock x:Name="TxtKL100SelectedStationPos" Text="---" FontSize="12" FontWeight="Bold" Foreground="#FF9800"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Pozisyona Git Paneli -->
+                                    <Border x:Name="KL100PositionPanel" Grid.Row="1" Background="#252528" CornerRadius="4" Padding="10,8" Visibility="Collapsed">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <TextBlock Text="Hedef Pozisyon (mm):" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="TxtKL100ManualPos" PlaceholderText="Pozisyon gir..." Width="130"
+                                                     Background="#1A1A1C" Foreground="#FF9800" FontSize="13" FontWeight="Bold" Height="32" BorderBrush="#555"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Git Butonu -->
+                                    <Button x:Name="BtnKL100HedefGit" Grid.Row="2" Click="BtnKL100HedefGit_Click"
+                                            HorizontalAlignment="Stretch" Height="38" IsEnabled="False"
+                                            Background="#E91E63" CornerRadius="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE768;" Foreground="White" FontSize="14"/>
+                                            <TextBlock x:Name="TxtKL100GoButtonLabel" Text="İSTASYONA GİT" FontWeight="Bold" Foreground="White" FontSize="12"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </StackPanel>
                 </Border>
