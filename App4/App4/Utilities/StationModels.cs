@@ -364,6 +364,7 @@ namespace App4.Utilities
 
         public ExtendedStationViewModel()
         {
+            // React to mode changes (existing behavior) and to RFID/robot presence changes
             this.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(Mode))
@@ -372,7 +373,59 @@ namespace App4.Utilities
                     OnPropertyChanged(nameof(AutoBtnBg)); OnPropertyChanged(nameof(AutoBtnFg));
                     OnPropertyChanged(nameof(ManualBtnBg)); OnPropertyChanged(nameof(ManualBtnFg));
                 }
+
+                // When RFID, target or robot presence changes, try to update the global current klima index
+                if (e.PropertyName == nameof(CurrentRfid) || e.PropertyName == nameof(TargetRfid) || e.PropertyName == nameof(RfidOpMode) || e.PropertyName == nameof(IsRobotPresent))
+                {
+                    TryUpdateAktuelKlimaIndex();
+                }
             };
+        }
+
+        // Update GlobalData AKTUEL_KLIMA_INDEX based on station mode and RFID values when robot is in front of this station
+        private void TryUpdateAktuelKlimaIndex()
+        {
+            try
+            {
+                // Determine this station number (1-based) from GlobalData.Stations ordering
+                int stationNumber = GlobalData.Stations.IndexOf(this) + 1;
+                if (stationNumber <= 0) return;
+
+                int sliderStation = GlobalData.GetSliderStationNumber();
+                // Only act if the robot/slider is currently at this station
+                if (sliderStation != stationNumber) return;
+
+                int newIndex = -1; // 1-based klima index to write
+
+                if (RfidOpMode == RfidOperationMode.Specific)
+                {
+                    // Specific: use TargetRfid (AllowedRfid) mapping
+                    if (!string.IsNullOrEmpty(TargetRfid))
+                    {
+                        var k = GlobalData.KnownRfids.ToList().FindIndex(r => r.Id == TargetRfid);
+                        if (k >= 0) newIndex = k + 1;
+                    }
+                }
+                else // Mixed
+                {
+                    if (!string.IsNullOrEmpty(CurrentRfid))
+                    {
+                        var k = GlobalData.KnownRfids.ToList().FindIndex(r => r.Id == CurrentRfid);
+                        if (k >= 0) newIndex = k + 1;
+                    }
+                }
+
+                if (newIndex > 0)
+                {
+                    // Find the output variable and set its CurrentValue
+                    var outVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
+                    if (outVar != null)
+                    {
+                        outVar.CurrentValue = newIndex; // write int
+                    }
+                }
+            }
+            catch { }
         }
 
 

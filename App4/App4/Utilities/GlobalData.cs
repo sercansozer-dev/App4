@@ -490,7 +490,13 @@ namespace App4.Utilities
                     KnownRfids.Add(new RfidDef { Id = "RF123", Description = "Klima A Tipi" }); 
                     SaveRfids(); 
                 }
-                
+
+                // 1. YENİLİK: Uygulama ilk açıldığında yüklenen mevcut kayıtların Index değerlerini sırayla ata
+                for (int i = 0; i < KnownRfids.Count; i++)
+                {
+                    KnownRfids[i].IndexDisplay = i + 1;
+                }
+
                 // Mevcut öğeleri dinle
                 foreach (var item in KnownRfids) item.PropertyChanged += RfidDef_PropertyChanged;
 
@@ -548,7 +554,8 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
             // ▼▼▼ AKTÜEL KLİMA INDEX VE KL100 HEDEF ▼▼▼
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (Mix/Specific moda göre)
-            GeneralOutputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Output", "0"));    // KL100 slider hedef istasyon numarası
+            // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
+            GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
             AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
             
