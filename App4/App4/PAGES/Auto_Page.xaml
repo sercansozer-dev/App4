@@ -467,6 +467,24 @@
                                     <TextBlock Text="RESET" FontWeight="Bold" Foreground="White" FontSize="11"/>
                                 </StackPanel>
                             </Button>
+
+                            <Rectangle Height="1" Fill="#333"/>
+
+                            <!-- Hat Oto/Manuel Modu -->
+                            <Border Background="#252528" CornerRadius="6" Padding="10,8">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="HAT MODU" FontSize="9" FontWeight="Bold" Foreground="#888" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ToggleSwitch x:Name="KontrolLineAutoManualSwitch" Grid.Row="1"
+                                                  OnContent="OTOMATİK" OffContent="MANUEL"
+                                                  Toggled="LineAutoManualSwitch_Toggled"
+                                                  HorizontalAlignment="Center"
+                                                  MinWidth="120"/>
+                                </Grid>
+                            </Border>
                         </StackPanel>
                     </Border>
                     </Grid>

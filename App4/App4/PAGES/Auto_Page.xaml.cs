@@ -141,11 +141,13 @@ namespace App4
             // 3. Hat Durum Işıklarını Yak
             UpdateLineStatusVisuals();
 
-            // 3.5. OTO/MANUEL Switch'i PLC değişkeniyle senkronize et
+            // 3.5. OTO/MANUEL Switch'leri PLC değişkeniyle senkronize et
             var switchVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
-            if (switchVar != null && LineAutoManualSwitch != null)
+            if (switchVar != null)
             {
-                LineAutoManualSwitch.IsOn = switchVar.Value?.ToUpper() == "TRUE" || switchVar.Value == "1";
+                bool isOn = switchVar.Value?.ToUpper() == "TRUE" || switchVar.Value == "1";
+                if (LineAutoManualSwitch != null) LineAutoManualSwitch.IsOn = isOn;
+                if (KontrolLineAutoManualSwitch != null) KontrolLineAutoManualSwitch.IsOn = isOn;
             }
 
              // 4. Viewerları Başlat
@@ -1152,10 +1154,11 @@ namespace App4
                 else UpdateStationStatus(localVar.Name, localVar.CurrentValue?.ToString());
 
                 // OTO/MANUEL switch senkronizasyonu (PLC'den gelen değeri UI'a yansıt)
-                if (localVar.Name == "LINE_AUTO_MANUAL_CMD" && LineAutoManualSwitch != null)
+                if (localVar.Name == "LINE_AUTO_MANUAL_CMD")
                 {
                     bool isOn = localVar.Value?.ToUpper() == "TRUE" || localVar.Value == "1";
-                    if (LineAutoManualSwitch.IsOn != isOn) LineAutoManualSwitch.IsOn = isOn;
+                    if (LineAutoManualSwitch != null && LineAutoManualSwitch.IsOn != isOn) LineAutoManualSwitch.IsOn = isOn;
+                    if (KontrolLineAutoManualSwitch != null && KontrolLineAutoManualSwitch.IsOn != isOn) KontrolLineAutoManualSwitch.IsOn = isOn;
                 }
             }
         }
@@ -1219,6 +1222,12 @@ namespace App4
                     switchVar.Value = ts.IsOn ? "True" : "False";
                     switchVar.CurrentValue = ts.IsOn;
                 }
+
+                // İki switch'i senkronize et
+                if (ts == LineAutoManualSwitch && KontrolLineAutoManualSwitch != null && KontrolLineAutoManualSwitch.IsOn != ts.IsOn)
+                    KontrolLineAutoManualSwitch.IsOn = ts.IsOn;
+                else if (ts == KontrolLineAutoManualSwitch && LineAutoManualSwitch != null && LineAutoManualSwitch.IsOn != ts.IsOn)
+                    LineAutoManualSwitch.IsOn = ts.IsOn;
             }
         }
 
