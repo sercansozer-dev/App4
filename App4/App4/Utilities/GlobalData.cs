@@ -44,6 +44,10 @@ namespace App4.Utilities
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> PlcTransferRows { get; private set; } = new();
 
+        // TABLA KAÇIKLIK İÇİN AYRI LİSTELER
+        public static ObservableCollection<GocatorMeasurement> TablaLastMeasurements { get; private set; } = new();
+        public static ObservableCollection<PlcTransferItem> TablaTransferRows { get; private set; } = new();
+
         // PLC Değişken Listeleri
         public static ObservableCollection<PlcVariable> GeneralInputVars { get; private set; } = new();
         public static ObservableCollection<PlcVariable> GeneralOutputVars { get; private set; } = new();
@@ -255,16 +259,30 @@ namespace App4.Utilities
         }
 
         private static string _autoTriggerTag;
-        public static string Auto_TriggerTag 
-        { 
-            get => _autoTriggerTag; 
-            set 
-            { 
-                if (_autoTriggerTag == value) return; 
-                _autoTriggerTag = value; 
-                SaveAutomationSettings(); 
-                StartAutomationListener(); 
-            } 
+        public static string Auto_TriggerTag
+        {
+            get => _autoTriggerTag;
+            set
+            {
+                if (_autoTriggerTag == value) return;
+                _autoTriggerTag = value;
+                SaveAutomationSettings();
+                StartAutomationListener();
+            }
+        }
+
+        // TABLA KAÇIKLIK TETİK SİNYALİ (ikinci trigger)
+        private static string _autoTriggerTag2;
+        public static string Auto_TriggerTag2
+        {
+            get => _autoTriggerTag2;
+            set
+            {
+                if (_autoTriggerTag2 == value) return;
+                _autoTriggerTag2 = value;
+                SaveAutomationSettings();
+                StartAutomationListener();
+            }
         }
 
         // ÖLÇÜMEvent SINYALI AYARLARI (Yeni ölçüm geldiğinde output sinyali)
@@ -429,6 +447,8 @@ namespace App4.Utilities
             LoadSystemChecks();
             LoadMeasurements();
             LoadTransferRows();
+            LoadTablaMeasurements();
+            LoadTablaTransferRows();
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
 
@@ -547,6 +567,46 @@ namespace App4.Utilities
 
         public static void SaveMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_measurementsFilePath, json); } catch { } }
         private static void LoadMeasurements() { try { if (File.Exists(_measurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath)); if (list != null) { LastMeasurements.Clear(); foreach (var item in list) LastMeasurements.Add(item); } } } catch { } }
+
+        // --- TABLA KAÇIKLIK ÖLÇÜM KAYIT ---
+        private static readonly string _tablaMeasurementsFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_Tabla_Measurements.json");
+        private static readonly string _tablaTransferFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Tabla_Transfer_Rows.json");
+
+        public static void SaveTablaMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(TablaLastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_tablaMeasurementsFilePath, json); } catch { } }
+        private static void LoadTablaMeasurements() { try { if (File.Exists(_tablaMeasurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_tablaMeasurementsFilePath)); if (list != null) { TablaLastMeasurements.Clear(); foreach (var item in list) TablaLastMeasurements.Add(item); } } } catch { } }
+
+        public static void SaveTablaTransferRows()
+        {
+            try
+            {
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(TablaTransferRows, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(_tablaTransferFilePath, json);
+            }
+            catch { }
+        }
+        private static void LoadTablaTransferRows()
+        {
+            try
+            {
+                if (!File.Exists(_tablaTransferFilePath)) return;
+                string json = File.ReadAllText(_tablaTransferFilePath);
+                var settings = new Newtonsoft.Json.JsonSerializerSettings { MissingMemberHandling = Newtonsoft.Json.MissingMemberHandling.Ignore };
+                var items = Newtonsoft.Json.JsonConvert.DeserializeObject<List<PlcTransferItem>>(json, settings);
+                if (items != null)
+                {
+                    TablaTransferRows.Clear();
+                    foreach (var item in items)
+                    {
+                        item.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") SaveTablaTransferRows(); };
+                        TablaTransferRows.Add(item);
+                    }
+                }
+                TablaTransferRows.CollectionChanged += (s, e) => SaveTablaTransferRows();
+            }
+            catch { }
+        }
 
         private static void LoadRfids() 
         { 
@@ -748,6 +808,8 @@ namespace App4.Utilities
             if (RobotOutputVars.Count == 0)
             {
                 // --- KONTROL ---
+                RobotOutputVars.Add(Create("G_BASLAT", "BOOL", "Output", false));         // Baslat komutu (PC'den yazilir)
+                RobotOutputVars.Add(Create("G_DUR", "BOOL", "Output", false));            // Dur komutu (PC'den yazilir)
                 RobotOutputVars.Add(Create("G_RESET", "BOOL", "Output", false));          // Reset komutu (PC'den yazilir)
                 RobotOutputVars.Add(Create("G_KLIMA_TIP", "INT", "Output", 0));           // Klima tipi secimi (PC'den yazilir)
                 // --- GOCATOR BORU OFFSET (PC yazar) ---
@@ -768,6 +830,8 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_C", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_TABLA_TAMAM", "BOOL", "Output", false));    // Tabla tarama tamamlandi
                 // --- INFICON (PC yazar) ---
+                RobotOutputVars.Add(Create("G_INFICON_OLCUM", "BOOL", "Output", false));  // Inficon olcum baslat (manuel buton)
+                RobotOutputVars.Add(Create("G_INFICON_RESET", "BOOL", "Output", false));  // Inficon cihaz reset (manuel buton)
                 RobotOutputVars.Add(Create("G_INFICON_TAMAM", "BOOL", "Output", false));  // Inficon olcum tamamlandi
                 RobotOutputVars.Add(Create("G_INFICON_OK", "BOOL", "Output", false));     // Olcum sonucu OK/NOK
                 RobotOutputVars.Add(Create("G_INFICON_DEGER", "REAL", "Output", 0.0));    // Inficon olcum degeri (ppm)
@@ -895,6 +959,12 @@ namespace App4.Utilities
                 if (!string.IsNullOrEmpty(val)) _autoTriggerTag = val;
             }
 
+            if (settings.ContainsKey("Auto_TriggerTag2"))
+            {
+                var val = settings["Auto_TriggerTag2"] as string;
+                if (!string.IsNullOrEmpty(val)) _autoTriggerTag2 = val;
+            }
+
             if (settings.ContainsKey("MeasurementOutputTag"))
             {
                 var val = settings["MeasurementOutputTag"] as string;
@@ -953,6 +1023,7 @@ namespace App4.Utilities
             settings["Auto_RfidTag"] = Auto_RfidTag ?? ""; 
             settings["Auto_IndexTag"] = Auto_IndexTag ?? ""; 
             settings["Auto_TriggerTag"] = Auto_TriggerTag ?? "";
+            settings["Auto_TriggerTag2"] = Auto_TriggerTag2 ?? "";
             settings["MeasurementOutputTag"] = MeasurementOutputTag ?? "";
 
             settings["Robot_IpAddress"] = Robot_IpAddress;
@@ -971,42 +1042,71 @@ namespace App4.Utilities
             StartAutomationListener(); 
         }
 
-        // --- PLC DİNLEYİCİSİ ---
-        private static PlcVariable _currentTriggerVar; // Referansı tutmak için
+        // --- PLC DİNLEYİCİSİ (Çift Trigger) ---
+        private static PlcVariable _currentTriggerVar;  // Boru ölçüm tetik
+        private static PlcVariable _currentTriggerVar2; // Tabla kaçıklık tetik
+
+        private static PlcVariable FindPlcVarByName(string tagName)
+        {
+            if (string.IsNullOrEmpty(tagName)) return null;
+            var v = GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+            v = GeneralOutputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+            if (PlcService.Instance != null)
+            {
+                v = PlcService.Instance.InputVariables.FirstOrDefault(x => x.Name == tagName);
+                if (v != null) return v;
+                v = PlcService.Instance.OutputVariables.FirstOrDefault(x => x.Name == tagName);
+                if (v != null) return v;
+            }
+            return null;
+        }
 
         private static void StartAutomationListener()
         {
-            if (string.IsNullOrEmpty(Auto_TriggerTag)) return;
-
-            // Önceki dinleyiciyi temizle
+            // --- Trigger 1: Boru Ölçüm ---
             if (_currentTriggerVar != null)
             {
                 _currentTriggerVar.PropertyChanged -= TriggerVar_PropertyChanged;
                 _currentTriggerVar = null;
             }
-            
-            // 1. Önce Global Input listesine bak
-            var triggerVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_TriggerTag);
 
-            // 2. Bulamazsak PlcService Input/Output listelerine bak
-            if (triggerVar == null && PlcService.Instance != null)
+            if (!string.IsNullOrEmpty(Auto_TriggerTag))
             {
-                triggerVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == Auto_TriggerTag);
-                if (triggerVar == null)
+                var triggerVar = FindPlcVarByName(Auto_TriggerTag);
+                if (triggerVar != null)
                 {
-                    triggerVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == Auto_TriggerTag);
+                    _currentTriggerVar = triggerVar;
+                    _currentTriggerVar.PropertyChanged += TriggerVar_PropertyChanged;
+                    OnAutomationLog?.Invoke($"Boru tetik devrede: {Auto_TriggerTag} izleniyor.");
+                }
+                else
+                {
+                    OnAutomationLog?.Invoke($"⚠ UYARI: Boru Trigger Tag '{Auto_TriggerTag}' bulunamadı.");
                 }
             }
 
-            if (triggerVar != null)
+            // --- Trigger 2: Tabla Kaçıklık ---
+            if (_currentTriggerVar2 != null)
             {
-                _currentTriggerVar = triggerVar;
-                _currentTriggerVar.PropertyChanged += TriggerVar_PropertyChanged;
-                OnAutomationLog?.Invoke($"Otomasyon devrede: {Auto_TriggerTag} izleniyor.");
+                _currentTriggerVar2.PropertyChanged -= TriggerVar_PropertyChanged;
+                _currentTriggerVar2 = null;
             }
-            else
+
+            if (!string.IsNullOrEmpty(Auto_TriggerTag2))
             {
-                OnAutomationLog?.Invoke($"⚠ UYARI: Trigger Tag '{Auto_TriggerTag}' sistemde bulunamadı.");
+                var triggerVar2 = FindPlcVarByName(Auto_TriggerTag2);
+                if (triggerVar2 != null)
+                {
+                    _currentTriggerVar2 = triggerVar2;
+                    _currentTriggerVar2.PropertyChanged += TriggerVar_PropertyChanged;
+                    OnAutomationLog?.Invoke($"Tabla tetik devrede: {Auto_TriggerTag2} izleniyor.");
+                }
+                else
+                {
+                    OnAutomationLog?.Invoke($"⚠ UYARI: Tabla Trigger Tag '{Auto_TriggerTag2}' bulunamadı.");
+                }
             }
         }
 

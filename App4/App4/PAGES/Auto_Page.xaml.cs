@@ -182,6 +182,9 @@ namespace App4
             var sliderStationText = this.FindName("SliderStationText") as TextBlock;
             var sliderHedefStationText = this.FindName("SliderHedefStationText") as TextBlock;
 
+            // İstasyon pozisyon label'larını güncelle (Manuel sayfadan girilen KL100 değerleri)
+            UpdateSliderStationPosLabels();
+
             if (sliderCanvas == null || robotPlatform == null) return;
 
             var robots = KukaRobotManager.Instance.Robots;
@@ -1584,6 +1587,12 @@ namespace App4
         // ROBOT DURUM İZLEME PANELİ
         // ═══════════════════════════════════════════════════════════════
 
+        // --- ROBOT SİNYAL İZLEME BAYRAKLARI ---
+        private bool _gocatorTaraProcessing = false;
+        private bool _tablaTaraProcessing = false;
+        private bool _inficonOlcumProcessing = false;
+        private bool _snifferOlcumProcessing = false;
+
         private void InitializeRobotStatusMonitoring()
         {
             var robots = KukaRobotManager.Instance.Robots;
@@ -1592,7 +1601,7 @@ namespace App4
             if (robots.Count > 0) UpdateRobotStatusPanel(robots[0], 1);
             if (robots.Count > 1) UpdateRobotStatusPanel(robots[1], 2);
 
-            // PropertyChanged ile canlı güncelle
+            // PropertyChanged ile canlı güncelle + sinyal dinleme
             if (robots.Count > 0)
             {
                 robots[0].PropertyChanged += (s, e) =>
@@ -1606,7 +1615,11 @@ namespace App4
                     v.PropertyChanged += (s, e) =>
                     {
                         if (e.PropertyName == nameof(PlcVariable.Value))
+                        {
                             this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[0], 1));
+                            // Robot 1 sinyal tetiklemeleri
+                            CheckRobotTriggerSignal(v, robots[0], 1);
+                        }
                     };
                 }
             }
@@ -1622,10 +1635,267 @@ namespace App4
                     v.PropertyChanged += (s, e) =>
                     {
                         if (e.PropertyName == nameof(PlcVariable.Value))
+                        {
                             this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[1], 2));
+                            // Robot 2 sinyal tetiklemeleri
+                            CheckRobotTriggerSignal(v, robots[1], 2);
+                        }
                     };
                 }
             }
+        }
+
+        // =====================================================
+        // ROBOT SİNYAL TETİKLEME SİSTEMİ
+        // Robot InputVar değiştiğinde otomatik cevap verir
+        // =====================================================
+        private void CheckRobotTriggerSignal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
+        {
+            bool isTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+            if (!isTrue) return;
+
+            switch (changedVar.Name)
+            {
+                case "G_GOCATOR_TARA":
+                    if (!_gocatorTaraProcessing)
+                        _ = HandleGocatorTaraAsync(robot, robotNo);
+                    break;
+
+                case "G_TABLA_TARA":
+                    if (!_tablaTaraProcessing)
+                        _ = HandleTablaTaraAsync(robot, robotNo);
+                    break;
+
+                case "G_INFICON_OLCUM_YAP":
+                    if (!_inficonOlcumProcessing)
+                        _ = HandleInficonOlcumAsync(robot, robotNo);
+                    break;
+
+                case "G_SNIFFER_OLCUM_YAP":
+                    if (!_snifferOlcumProcessing)
+                        _ = HandleSnifferOlcumAsync(robot, robotNo);
+                    break;
+            }
+        }
+
+        // --- YARDIMCI: Robota output değişken yaz ---
+        private async Task WriteRobotOutVarAsync(string outVarName, string valueToWrite)
+        {
+            // GlobalData güncelle
+            var gVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == outVarName);
+            if (gVar != null) gVar.Value = valueToWrite;
+
+            // PLC'ye yaz
+            var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == outVarName);
+            if (plcVar != null)
+            {
+                plcVar.Value = valueToWrite;
+                await PlcService.Instance.WriteAsync(plcVar, valueToWrite);
+            }
+
+            // Tüm robotlara yaz
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                foreach (var r in robots)
+                {
+                    if (r.IsConnected)
+                    {
+                        try { await r.WriteVariableAsync(outVarName, valueToWrite); } catch { }
+                    }
+                }
+            }
+        }
+
+        // =====================================================
+        // 1. GOCATOR BORU TARAMA
+        // Robot G_GOCATOR_TARA=TRUE → PC Gocator'dan ölçüm al → offset yaz → G_GOCATOR_TAMAM=TRUE
+        // =====================================================
+        private async Task HandleGocatorTaraAsync(KukaRobotInstance robot, int robotNo)
+        {
+            _gocatorTaraProcessing = true;
+            try
+            {
+                AddAutoLog($"[Robot {robotNo}] Gocator boru tarama isteği alındı");
+
+                // 1. Gocator'dan ölçüm al
+                var (status, results) = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(
+                    msg => AddAutoLog($"[Gocator] {msg}"),
+                    this.DispatcherQueue);
+
+                if (status == 1 && results != null && results.Count > 0)
+                {
+                    // 2. Ölçüm sonuçlarından offset değerlerini yaz
+                    // Gocator ölçümleri sırasıyla X,Y,Z,A,B,C offset olarak yorumlanır
+                    string[] offsetNames = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
+                    for (int i = 0; i < Math.Min(results.Count, offsetNames.Length); i++)
+                    {
+                        await WriteRobotOutVarAsync(offsetNames[i], results[i].Value.ToString("F3"));
+                    }
+
+                    // 3. Offset hazır sinyali
+                    await WriteRobotOutVarAsync("G_OFFSET_HAZIR", "TRUE");
+
+                    AddAutoLog($"[Robot {robotNo}] Gocator tarama OK - {results.Count} ölçüm alındı");
+                }
+                else
+                {
+                    AddAutoLog($"[Robot {robotNo}] Gocator tarama BAŞARISIZ!");
+                }
+
+                // 4. Tamamlandı sinyali gönder
+                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "FALSE");
+            }
+            catch (Exception ex)
+            {
+                AddAutoLog($"[Robot {robotNo}] Gocator tarama hatası: {ex.Message}");
+                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "FALSE");
+            }
+            finally
+            {
+                _gocatorTaraProcessing = false;
+            }
+        }
+
+        // =====================================================
+        // 2. GOCATOR TABLA TARAMA
+        // Robot G_TABLA_TARA=TRUE → PC Gocator'dan tabla ölçümü → tabla offset yaz → G_TABLA_TAMAM=TRUE
+        // =====================================================
+        private async Task HandleTablaTaraAsync(KukaRobotInstance robot, int robotNo)
+        {
+            _tablaTaraProcessing = true;
+            try
+            {
+                AddAutoLog($"[Robot {robotNo}] Tabla tarama isteği alındı");
+
+                var (status, results) = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(
+                    msg => AddAutoLog($"[Gocator-Tabla] {msg}"),
+                    this.DispatcherQueue);
+
+                if (status == 1 && results != null && results.Count > 0)
+                {
+                    string[] offsetNames = { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z", "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
+                    for (int i = 0; i < Math.Min(results.Count, offsetNames.Length); i++)
+                    {
+                        await WriteRobotOutVarAsync(offsetNames[i], results[i].Value.ToString("F3"));
+                    }
+
+                    await WriteRobotOutVarAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
+
+                    AddAutoLog($"[Robot {robotNo}] Tabla tarama OK - {results.Count} ölçüm alındı");
+                }
+                else
+                {
+                    AddAutoLog($"[Robot {robotNo}] Tabla tarama BAŞARISIZ!");
+                }
+
+                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "FALSE");
+            }
+            catch (Exception ex)
+            {
+                AddAutoLog($"[Robot {robotNo}] Tabla tarama hatası: {ex.Message}");
+                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "FALSE");
+            }
+            finally
+            {
+                _tablaTaraProcessing = false;
+            }
+        }
+
+        // =====================================================
+        // 3. INFICON ÖLÇÜM
+        // Robot G_INFICON_OLCUM_YAP=TRUE → PC ölçüm değerini okur → G_INFICON_OK + G_INFICON_TAMAM
+        // NOT: Inficon cihaz entegrasyonu henüz yok, sinyal handshake'i hazır
+        // =====================================================
+        private async Task HandleInficonOlcumAsync(KukaRobotInstance robot, int robotNo)
+        {
+            _inficonOlcumProcessing = true;
+            try
+            {
+                AddAutoLog($"[Robot {robotNo}] Inficon ölçüm isteği alındı");
+
+                // TODO: Inficon cihazından gerçek ölçüm alma kodu buraya eklenecek
+                // Şu an sinyal handshake'i hazır, cihaz entegrasyonu yapılacak
+                // Örnek: var result = await InficonService.MeasureAsync();
+                //        double deger = result.Value;
+                //        bool ok = deger < threshold;
+
+                // Geçici: Ölçüm değeri ve sonucu robottan okunan/sabit değerle doldurulacak
+                // Gerçek entegrasyonda burası InficonService ile değiştirilecek
+                AddAutoLog($"[Robot {robotNo}] Inficon ölçüm - cihaz entegrasyonu bekleniyor (handshake hazır)");
+
+                // Tamamlandı sinyali gönder (robot timeout'a düşmesin)
+                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "FALSE");
+            }
+            catch (Exception ex)
+            {
+                AddAutoLog($"[Robot {robotNo}] Inficon ölçüm hatası: {ex.Message}");
+                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "FALSE");
+            }
+            finally
+            {
+                _inficonOlcumProcessing = false;
+            }
+        }
+
+        // =====================================================
+        // 4. SNIFFER ÖLÇÜM (Robot 2)
+        // Robot G_SNIFFER_OLCUM_YAP=TRUE → PC ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
+        // NOT: Sniffer cihaz entegrasyonu henüz yok, sinyal handshake'i hazır
+        // =====================================================
+        private async Task HandleSnifferOlcumAsync(KukaRobotInstance robot, int robotNo)
+        {
+            _snifferOlcumProcessing = true;
+            try
+            {
+                AddAutoLog($"[Robot {robotNo}] Sniffer ölçüm isteği alındı");
+
+                // TODO: Sniffer cihazından gerçek ölçüm alma kodu buraya eklenecek
+                // Örnek: var result = await SnifferService.MeasureAsync();
+                AddAutoLog($"[Robot {robotNo}] Sniffer ölçüm - cihaz entegrasyonu bekleniyor (handshake hazır)");
+
+                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "FALSE");
+            }
+            catch (Exception ex)
+            {
+                AddAutoLog($"[Robot {robotNo}] Sniffer ölçüm hatası: {ex.Message}");
+                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "TRUE");
+                await Task.Delay(500);
+                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "FALSE");
+            }
+            finally
+            {
+                _snifferOlcumProcessing = false;
+            }
+        }
+
+        // --- LOG YARDIMCISI ---
+        private void AddAutoLog(string message)
+        {
+            this.DispatcherQueue.TryEnqueue(() =>
+            {
+                SystemLogs.Insert(0, new App4.Utilities.LogEntry
+                {
+                    TimeStr = DateTime.Now.ToString("HH:mm:ss"),
+                    Message = message,
+                    ColorCode = "White"
+                });
+                if (SystemLogs.Count > 200) SystemLogs.RemoveAt(SystemLogs.Count - 1);
+            });
         }
 
         private void UpdateRobotStatusPanel(KukaRobotInstance robot, int robotNo)
@@ -1810,6 +2080,17 @@ namespace App4
                 border.Visibility = Visibility.Visible;
                 text.Text = message;
             }
+        }
+
+        // --- İSTASYON POZİSYON LABEL GÜNCELLEMESİ ---
+        private void UpdateSliderStationPosLabels()
+        {
+            if (SliderSt1PosLabel != null)
+                SliderSt1PosLabel.Text = $"{GlobalData.KL100_Station1Pos:F0} mm";
+            if (SliderSt2PosLabel != null)
+                SliderSt2PosLabel.Text = $"{GlobalData.KL100_Station2Pos:F0} mm";
+            if (SliderSt3PosLabel != null)
+                SliderSt3PosLabel.Text = $"{GlobalData.KL100_Station3Pos:F0} mm";
         }
 
         private static Windows.UI.Color ParseHexColor(string hex)

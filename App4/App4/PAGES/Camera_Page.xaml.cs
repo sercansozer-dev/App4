@@ -133,6 +133,21 @@ namespace App4.PAGES
                 }
             }
         }
+
+        public string SelectedTriggerTag2
+        {
+            get => App4.Utilities.GlobalData.Auto_TriggerTag2;
+            set
+            {
+                if (App4.Utilities.GlobalData.Auto_TriggerTag2 != value)
+                {
+                    App4.Utilities.GlobalData.Auto_TriggerTag2 = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(TriggerTag2Value));
+                    UpdateTrigger2Watcher();
+                }
+            }
+        }
         public string SelectedMeasurementOutputTag
         {
             get => App4.Utilities.GlobalData.MeasurementOutputTag;
@@ -154,6 +169,7 @@ namespace App4.PAGES
         public string RfidTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_RfidTag);
         public string IndexTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_IndexTag);
         public string TriggerTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_TriggerTag);
+        public string TriggerTag2Value => GetTagValue(App4.Utilities.GlobalData.Auto_TriggerTag2);
         
         // Output Value
         public string MeasurementOutputValue => GetTagValue(App4.Utilities.GlobalData.MeasurementOutputTag);
@@ -182,6 +198,7 @@ namespace App4.PAGES
         private PlcVariable _watchedRfidVar;
         private PlcVariable _watchedIndexVar;
         private PlcVariable _watchedTriggerVar;
+        private PlcVariable _watchedTriggerVar2;
         private PlcVariable _watchedOutputVar;
 
         private void SetupWatchers()
@@ -189,6 +206,7 @@ namespace App4.PAGES
             UpdateRfidWatcher();
             UpdateIndexWatcher();
             UpdateTriggerWatcher();
+            UpdateTrigger2Watcher();
             UpdateOutputWatcher();
         }
 
@@ -214,6 +232,14 @@ namespace App4.PAGES
             _watchedTriggerVar = FindPlcVariable(SelectedTriggerTag);
             if (_watchedTriggerVar != null) _watchedTriggerVar.PropertyChanged += OnPlcDisplayValueChanged;
             OnPropertyChanged(nameof(TriggerTagValue));
+        }
+
+        private void UpdateTrigger2Watcher()
+        {
+            if (_watchedTriggerVar2 != null) _watchedTriggerVar2.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedTriggerVar2 = FindPlcVariable(SelectedTriggerTag2);
+            if (_watchedTriggerVar2 != null) _watchedTriggerVar2.PropertyChanged += OnPlcDisplayValueChanged;
+            OnPropertyChanged(nameof(TriggerTag2Value));
         }
 
         private void UpdateOutputWatcher()
@@ -254,6 +280,7 @@ namespace App4.PAGES
                     if (sender == _watchedRfidVar) OnPropertyChanged(nameof(RfidTagValue));
                     else if (sender == _watchedIndexVar) OnPropertyChanged(nameof(IndexTagValue));
                     else if (sender == _watchedTriggerVar) OnPropertyChanged(nameof(TriggerTagValue));
+                    else if (sender == _watchedTriggerVar2) OnPropertyChanged(nameof(TriggerTag2Value));
                     else if (sender == _watchedOutputVar)
                     {
                         OnPropertyChanged(nameof(MeasurementOutputValue));
@@ -300,6 +327,9 @@ namespace App4.PAGES
         // Global listeye referans (Ok işareti => ile)
         public ObservableCollection<PlcTransferItem> PlcTransferRows => App4.Utilities.GlobalData.PlcTransferRows;
 
+        // ▼▼▼ TABLA KAÇIKLIK PLC AKTARIM REFERANSI ▼▼▼
+        public ObservableCollection<PlcTransferItem> TablaTransferRows => App4.Utilities.GlobalData.TablaTransferRows;
+
         private List<string> _logHistory = new();
         private bool _isWebViewInitialized = false;
       
@@ -331,9 +361,11 @@ namespace App4.PAGES
                     OnPropertyChanged(nameof(SelectedRfidTag));
                     OnPropertyChanged(nameof(SelectedIndexTag));
                     OnPropertyChanged(nameof(SelectedTriggerTag));
+                    OnPropertyChanged(nameof(SelectedTriggerTag2));
                     OnPropertyChanged(nameof(RfidTagValue));
                     OnPropertyChanged(nameof(IndexTagValue));
                     OnPropertyChanged(nameof(TriggerTagValue));
+                    OnPropertyChanged(nameof(TriggerTag2Value));
                     OnPropertyChanged(nameof(MeasurementOutputValue));
                     OnPropertyChanged(nameof(MeasurementOutputStatusText));
                     OnPropertyChanged(nameof(MeasurementOutputStatusColor));
@@ -357,6 +389,7 @@ namespace App4.PAGES
             if (_watchedRfidVar != null) _watchedRfidVar.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedIndexVar != null) _watchedIndexVar.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedTriggerVar != null) _watchedTriggerVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            if (_watchedTriggerVar2 != null) _watchedTriggerVar2.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
         }
 
@@ -467,8 +500,24 @@ namespace App4.PAGES
                 if (!string.IsNullOrEmpty(output) && PlcOutputTags.Contains(output))
                     CmbMeasurementOutputTag.SelectedItem = output;
 
+                // Trigger2 ComboBox güncelle
+                string trigger2 = App4.Utilities.GlobalData.Auto_TriggerTag2;
+                if (!string.IsNullOrEmpty(trigger2) && PlcInputTags.Contains(trigger2))
+                    CmbTriggerTag2.SelectedItem = trigger2;
+
                 // Transfer satır seçimlerini toplu güncelle (null -> değer ile binding tetiklenir)
                 foreach (var row in PlcTransferRows)
+                {
+                    if (!string.IsNullOrEmpty(row.SelectedTag) && PlcOutputTags.Contains(row.SelectedTag))
+                    {
+                        string saved = row.SelectedTag;
+                        row.SelectedTag = null;
+                        row.SelectedTag = saved;
+                    }
+                }
+
+                // Tabla Transfer satır seçimlerini de güncelle
+                foreach (var row in TablaTransferRows)
                 {
                     if (!string.IsNullOrEmpty(row.SelectedTag) && PlcOutputTags.Contains(row.SelectedTag))
                     {
@@ -1207,6 +1256,159 @@ namespace App4.PAGES
                 App4.Utilities.GlobalData.SaveTransferRows();
             }
         }
+
+        #region ═══ TABLA KAÇIKLIK ÖLÇÜM & PLC AKTARIM ═══
+
+        // --- TABLA ÖLÇÜMÜ AL (JOB 0) ---
+        private async void BtnGetTablaMeasurement_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            try
+            {
+                AddLog("► [TABLA] Job 0 yükleniyor...");
+
+                // 1. Job listesinden ilk job'u (index 0) al
+                if (AvailableJobs.Count == 0)
+                {
+                    AddLog("⚠ [TABLA] Job listesi boş, sensörden çekiliyor...");
+                    await RefreshJobList();
+                }
+
+                if (AvailableJobs.Count == 0)
+                {
+                    AddLog("❌ [TABLA] Sensörde hiç job bulunamadı.");
+                    return;
+                }
+
+                string job0Name = AvailableJobs[0]; // Job 0 = listedeki ilk job
+                AddLog($"► [TABLA] Job 0: {job0Name}");
+
+                // 2. Job 0'ı yükle
+                bool loadOk = await GocatorJobLogic.LoadJob(job0Name, AddLog);
+                if (!loadOk)
+                {
+                    AddLog($"❌ [TABLA] Job yüklenemedi: {job0Name}");
+                    return;
+                }
+
+                AddLog($"✓ [TABLA] {job0Name} aktif edildi");
+
+                // 3. Ölçüm al (dispatcher=null → GlobalData.LastMeasurements'a yazmaz)
+                AddLog("► [TABLA] Sensörden tabla ölçüm verisi alınıyor...");
+                var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, null);
+
+                if (result.Item1 == 1 && result.Item2 != null)
+                {
+                    // 4. TablaLastMeasurements koleksiyonunu güncelle (UI thread'de)
+                    this.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
+                        foreach (var m in result.Item2)
+                        {
+                            App4.Utilities.GlobalData.TablaLastMeasurements.Add(m);
+                        }
+                        App4.Utilities.GlobalData.SaveTablaMeasurements();
+
+                        // 5. Tabla PLC satırlarına aktar
+                        TransferTablaToPlcRows();
+                    });
+
+                    AddLog($"✅ [TABLA] {result.Item2.Count} adet tabla kaçıklık ölçümü alındı.");
+                }
+                else
+                {
+                    AddLog("❌ [TABLA] Sensör verisi alınamadı.");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ [TABLA] Hata: {ex.Message}");
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
+            }
+        }
+
+        // --- TABLA ÖLÇÜMLERİNİ PLC SATIRLARINA AKTAR ---
+        private void TransferTablaToPlcRows()
+        {
+            try
+            {
+                var measurements = App4.Utilities.GlobalData.TablaLastMeasurements;
+                if (measurements.Count == 0) return;
+
+                int count = Math.Min(measurements.Count, TablaTransferRows.Count);
+
+                for (int i = 0; i < count; i++)
+                {
+                    TablaTransferRows[i].Value = measurements[i].Value.ToString();
+                    TablaTransferRows[i].Status = "WAIT";
+                    TablaTransferRows[i].StatusColor = BrushOrange;
+                }
+
+                AddLog($"► [TABLA] {count} adet veri tabla PLC tablosuna aktarıldı.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"[TABLA] Veri aktarım hatası: {ex.Message}");
+            }
+        }
+
+        // --- TABLA PLC YENİ SATIR EKLEME ---
+        private void BtnAddTablaPlcRow_Click(object sender, RoutedEventArgs e)
+        {
+            var index = TablaTransferRows.Count + 1;
+            var color = (index % 2 == 1)
+                ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
+                : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+
+            var newItem = new PlcTransferItem
+            {
+                Index = index,
+                SelectedTag = null,
+                Value = "0",
+                Status = "WAIT",
+                StatusColor = BrushOrange,
+                BackgroundColor = color
+            };
+
+            // Tag seçimi değişirse kaydet
+            newItem.PropertyChanged += (s, ev) =>
+            {
+                if (ev.PropertyName == "SelectedTag")
+                {
+                    App4.Utilities.GlobalData.SaveTablaTransferRows();
+                }
+            };
+
+            TablaTransferRows.Add(newItem);
+            App4.Utilities.GlobalData.SaveTablaTransferRows();
+        }
+
+        // --- TABLA PLC SATIR SİLME ---
+        private void BtnDeleteTablaPlcRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is PlcTransferItem item)
+            {
+                TablaTransferRows.Remove(item);
+
+                // Sıra numaralarını ve renkleri düzelt
+                for (int i = 0; i < TablaTransferRows.Count; i++)
+                {
+                    TablaTransferRows[i].Index = i + 1;
+                    TablaTransferRows[i].BackgroundColor = ((i + 1) % 2 == 1)
+                        ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
+                        : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+                }
+
+                App4.Utilities.GlobalData.SaveTablaTransferRows();
+            }
+        }
+
+        #endregion
 
         #region ═══ WebView2 Initialization (Modern Approach) ═══
 

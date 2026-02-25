@@ -675,16 +675,28 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Background="#9E9E9E" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                        <TextBlock Text="BAKIM" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="BAKIM" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="0 mm" FontSize="9" Foreground="#DDD" HorizontalAlignment="Center" Opacity="0.7"/>
+                                        </StackPanel>
                                     </Border>
                                     <Border Grid.Column="1" Background="#FF5722" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                        <TextBlock Text="İSTASYON 1" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="İSTASYON 1" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="SliderSt1PosLabel" Text="0 mm" FontSize="9" Foreground="#FFE0B2" HorizontalAlignment="Center" Opacity="0.9"/>
+                                        </StackPanel>
                                     </Border>
                                     <Border Grid.Column="2" Background="#FF9800" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                        <TextBlock Text="İSTASYON 2" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="İSTASYON 2" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="SliderSt2PosLabel" Text="0 mm" FontSize="9" Foreground="#FFF3E0" HorizontalAlignment="Center" Opacity="0.9"/>
+                                        </StackPanel>
                                     </Border>
                                     <Border Grid.Column="3" Background="#4CAF50" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                        <TextBlock Text="İSTASYON 3" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="İSTASYON 3" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                            <TextBlock x:Name="SliderSt3PosLabel" Text="0 mm" FontSize="9" Foreground="#C8E6C9" HorizontalAlignment="Center" Opacity="0.9"/>
+                                        </StackPanel>
                                     </Border>
                                 </Grid>
                             </Grid>
