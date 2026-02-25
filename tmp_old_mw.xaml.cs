@@ -76,32 +76,11 @@ namespace App4
             }
         }
 
-        // Adım göstergesi yardımcıları
-        private void ActivateStep(Grid panel, TextBlock icon)
-        {
-            panel.Opacity = 1;
-            icon.Text = "◆";
-            icon.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0, 162, 255));
-        }
-        private void CompleteStep(Grid panel, TextBlock icon)
-        {
-            icon.Text = "✓";
-            icon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-            panel.Opacity = 0.7;
-        }
-        private void FailStep(Grid panel, TextBlock icon)
-        {
-            icon.Text = "✕";
-            icon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.OrangeRed);
-            panel.Opacity = 0.7;
-        }
-
         // --- GÜNCELLENEN BAŞLANGIÇ SENARYOSU ---
         private async Task SimulateStartup()
         {
-            // Animasyonları başlat
+            // Animasyonu başlat
             PulseLogoAnim.Begin();
-            SpinnerAnim.Begin();
 
             try
             {
@@ -116,37 +95,23 @@ namespace App4
                 SplashStatusText.Foreground = normalColor;
 
                 // 1. YÜKLEME AŞAMALARI
-                ActivateStep(Step1Panel, Step1Icon);
                 SplashStatusText.Text = "Sistem yapılandırması okunuyor...";
                 await Task.Delay(1000);
-                CompleteStep(Step1Panel, Step1Icon);
 
                 // --- 2. PLC BAĞLANTISINI GERÇEKLEŞTİR (Burada yapıyoruz) ---
-                ActivateStep(Step2Panel, Step2Icon);
                 SplashStatusText.Text = $"PLC Bağlantısı kuruluyor ({GlobalData.Plc_IpAddress}:{GlobalData.Plc_Port})...";
                 SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
 
                 await Task.Delay(500);
-                // PLC bağlantısı: Task.Run + 5s timeout (takılma fix)
-                bool connected = false;
-                try
-                {
-                    var plcTask = Task.Run(() =>
-                        PlcService.Instance.ConnectAsync(GlobalData.Plc_IpAddress, GlobalData.Plc_Port));
-                    if (await Task.WhenAny(plcTask, Task.Delay(5000)) == plcTask)
-                        connected = await plcTask;
-                }
-                catch { }
+                bool connected = await PlcService.Instance.ConnectAsync(GlobalData.Plc_IpAddress, GlobalData.Plc_Port);
 
                 if (connected)
                 {
-                    CompleteStep(Step2Panel, Step2Icon);
                     SplashStatusText.Text = "✓ PLC Bağlantısı Başarılı!";
                     SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
                 }
                 else
                 {
-                    FailStep(Step2Panel, Step2Icon);
                     SplashStatusText.Text = "⚠ PLC Bağlantısı Başarısız! (Offline Mod)";
                     SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
                 }
@@ -156,12 +121,9 @@ namespace App4
                 // Rengi normale döndür
                 SplashStatusText.Foreground = normalColor;
 
-                ActivateStep(Step3Panel, Step3Icon);
                 SplashStatusText.Text = "Gocator 3D Sensör bağlantısı kuruluyor...";
                 await Task.Delay(1000);
-                CompleteStep(Step3Panel, Step3Icon);
 
-                ActivateStep(Step4Panel, Step4Icon);
                 SplashStatusText.Text = "KUKA Robot arayüzü başlatılıyor...";
                 App4.Utilities.KukaService.Instance.UiDispatcher = this.DispatcherQueue;
                 App4.Utilities.KukaService.Instance.Start();
@@ -169,12 +131,9 @@ namespace App4
                 // Multi-Robot Manager'ı başlat (Robotlar otomatik bağlanmaya başlar)
                 KukaRobotManager.Instance.Initialize(this.DispatcherQueue);
                 await Task.Delay(1000);
-                CompleteStep(Step4Panel, Step4Icon);
 
-                ActivateStep(Step5Panel, Step5Icon);
                 SplashStatusText.Text = "Arayüz hazırlanıyor...";
                 await Task.Delay(800);
-                CompleteStep(Step5Panel, Step5Icon);
 
 
                 // 3. LOGOYU VE YAZILARI SİL (Fade Out)
@@ -221,9 +180,9 @@ namespace App4
             {
                 m_AppWindow.Title = "Simbiosis Mekatronik";
 
-                // Splash Ekranı Boyutu
-                int splashWidth = 1350;
-                int splashHeight = 900;
+                // Splash Ekranı Boyutu (Küçük Başlasın)
+                int splashWidth = 900;
+                int splashHeight = 600;
 
                 m_AppWindow.SetPresenter(AppWindowPresenterKind.Default);
                 m_AppWindow.Resize(new Windows.Graphics.SizeInt32(splashWidth, splashHeight));

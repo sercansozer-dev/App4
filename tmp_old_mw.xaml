@@ -215,165 +215,59 @@
         </Grid>
 
         <Grid x:Name="AppSplashScreen" Canvas.ZIndex="9999" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <!-- Background -->
             <Grid>
                 <Grid.Background>
-                    <RadialGradientBrush Center="0.5,0.45" GradientOrigin="0.5,0.45" RadiusX="0.7" RadiusY="0.7">
-                        <GradientStop Color="#0B1220" Offset="0"/>
-                        <GradientStop Color="#050810" Offset="0.5"/>
-                        <GradientStop Color="#020304" Offset="1"/>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.8" RadiusY="0.8">
+                        <GradientStop Color="#1A202C" Offset="0"/>
+                        <GradientStop Color="#050505" Offset="1"/>
                     </RadialGradientBrush>
                 </Grid.Background>
+                <Viewbox Stretch="Uniform" Opacity="0.03">
+                    <Grid Width="1000" Height="1000">
+                        <Path Data="M0,0 H1000 M0,100 H1000 M0,200 H1000 M0,300 H1000 M0,400 H1000 M0,500 H1000 M0,600 H1000 M0,700 H1000 M0,800 H1000 M0,900 H1000 M0,1000 H1000 M0,0 V1000 M100,0 V1000 M200,0 V1000 M300,0 V1000 M400,0 V1000 M500,0 V1000 M600,0 V1000 M700,0 V1000 M800,0 V1000 M900,0 V1000 M1000,0 V1000" Stroke="White" StrokeThickness="2"/>
+                    </Grid>
+                </Viewbox>
             </Grid>
 
-            <StackPanel x:Name="SplashContent" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24">
-
-                <!-- Logo + Spinner -->
-                <Grid Width="250" Height="250" HorizontalAlignment="Center">
+            <StackPanel x:Name="SplashContent" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="40">
+                <Grid Width="200" Height="200">
                     <Grid.Resources>
                         <Storyboard x:Name="PulseLogoAnim" RepeatBehavior="Forever" AutoReverse="True">
-                            <DoubleAnimation Storyboard.TargetName="GlowEffect" Storyboard.TargetProperty="Opacity"
-                                             From="0.05" To="0.2" Duration="0:0:2.5"/>
-                            <DoubleAnimation Storyboard.TargetName="GlowEffect"
-                                             Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                             From="1" To="1.15" Duration="0:0:2.5"/>
-                            <DoubleAnimation Storyboard.TargetName="GlowEffect"
-                                             Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                             From="1" To="1.15" Duration="0:0:2.5"/>
-                        </Storyboard>
-                        <Storyboard x:Name="SpinnerAnim" RepeatBehavior="Forever">
-                            <DoubleAnimation Storyboard.TargetName="SpinnerRing"
-                                             Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
-                                             From="0" To="360" Duration="0:0:2.8"/>
+                            <DoubleAnimation Storyboard.TargetName="GlowEffect" Storyboard.TargetProperty="Opacity" From="0.1" To="0.4" Duration="0:0:1.5"/>
+                            <DoubleAnimation Storyboard.TargetName="GlowEffect" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" From="1" To="1.2" Duration="0:0:1.5"/>
+                            <DoubleAnimation Storyboard.TargetName="GlowEffect" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="1" To="1.2" Duration="0:0:1.5"/>
                         </Storyboard>
                     </Grid.Resources>
-
-                    <!-- Glow -->
-                    <Ellipse x:Name="GlowEffect" Width="190" Height="190" Fill="#00A2FF"
-                             HorizontalAlignment="Center" VerticalAlignment="Center"
-                             RenderTransformOrigin="0.5,0.5" Opacity="0.05">
+                    <Ellipse x:Name="GlowEffect" Width="140" Height="140" Fill="#00A2FF" VerticalAlignment="Center" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
                         <Ellipse.RenderTransform>
                             <ScaleTransform/>
                         </Ellipse.RenderTransform>
                     </Ellipse>
-
-                    <!-- Outer static ring -->
-                    <Ellipse Width="238" Height="238" Stroke="#0D1E35" StrokeThickness="1"
-                             Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                    <!-- Spinner ring -->
-                    <Grid x:Name="SpinnerRing" RenderTransformOrigin="0.5,0.5">
-                        <Grid.RenderTransform>
-                            <RotateTransform/>
-                        </Grid.RenderTransform>
-                        <!-- Primary arc -->
-                        <Path Data="M125,10 A115,115 0 0 1 224,68"
-                              Stroke="#00A2FF" StrokeThickness="2"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.7"/>
-                        <!-- Counter arc -->
-                        <Path Data="M125,240 A115,115 0 0 1 26,68"
-                              Stroke="#00A2FF" StrokeThickness="1.2"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.2"/>
-                        <!-- Endpoint dot -->
-                        <Ellipse Width="7" Height="7" Fill="#00A2FF"
-                                 HorizontalAlignment="Center" VerticalAlignment="Top"
-                                 Margin="0,6,0,0" Opacity="0.9"/>
-                    </Grid>
-
-                    <!-- Logo card -->
-                    <Border Background="#0A0F1A" CornerRadius="26" BorderBrush="#1A2540" BorderThickness="1"
-                            Padding="26" Translation="0,0,32" Width="150" Height="150"
-                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Background="#121212" CornerRadius="30" BorderBrush="#333333" BorderThickness="1" Padding="30" Translation="0,0,32">
                         <Border.Shadow>
-                            <ThemeShadow/>
+                            <ThemeShadow />
                         </Border.Shadow>
                         <Image Source="Assets/SBS_Logo.png"/>
                     </Border>
                 </Grid>
 
-                <!-- Brand -->
-                <StackPanel Spacing="6" HorizontalAlignment="Center">
-                    <TextBlock Text="SİMBİOSİS" FontSize="34" FontWeight="Black" Foreground="White"
-                               HorizontalAlignment="Center" CharacterSpacing="200"/>
-                    <TextBlock Text="MEKATRONİK" FontSize="11" FontWeight="SemiBold" Foreground="#00A2FF"
-                               HorizontalAlignment="Center" CharacterSpacing="500"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,8,0,0">
-                        <Rectangle Width="45" Height="1" VerticalAlignment="Center" Opacity="0.6">
-                            <Rectangle.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="Transparent" Offset="0"/>
-                                    <GradientStop Color="#00A2FF" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Rectangle.Fill>
-                        </Rectangle>
-                        <TextBlock Text="LEAK TEST &amp; VISION SYSTEM" FontSize="9" FontWeight="SemiBold"
-                                   Foreground="#6A8DAD" CharacterSpacing="350" VerticalAlignment="Center"/>
-                        <Rectangle Width="45" Height="1" VerticalAlignment="Center" Opacity="0.6">
-                            <Rectangle.Fill>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#00A2FF" Offset="0"/>
-                                    <GradientStop Color="Transparent" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Rectangle.Fill>
-                        </Rectangle>
+                <StackPanel Spacing="5">
+                    <TextBlock Text="SİMBİOSİS MEKATRONİK" FontSize="32" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" CharacterSpacing="150"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                        <Rectangle Width="30" Height="1" Fill="#00A2FF"/>
+                        <TextBlock Text="LEAK TEST &amp; VISION SYSTEM" FontSize="12" FontWeight="Bold" Foreground="#00A2FF" Opacity="0.9" CharacterSpacing="400"/>
+                        <Rectangle Width="30" Height="1" Fill="#00A2FF"/>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Loading Steps -->
-                <StackPanel Width="340" Spacing="7" HorizontalAlignment="Center">
-                    <Grid x:Name="Step1Panel" Opacity="0.5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="Step1Icon" Text="○" FontSize="12" Foreground="#4A7090" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="Step1Text" Text="Sistem yapılandırması" FontSize="11" Foreground="#7A9AB8" Grid.Column="1" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Grid x:Name="Step2Panel" Opacity="0.5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="Step2Icon" Text="○" FontSize="12" Foreground="#4A7090" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="Step2Text" Text="PLC bağlantısı" FontSize="11" Foreground="#7A9AB8" Grid.Column="1" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Grid x:Name="Step3Panel" Opacity="0.5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="Step3Icon" Text="○" FontSize="12" Foreground="#4A7090" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="Step3Text" Text="Gocator 3D sensör" FontSize="11" Foreground="#7A9AB8" Grid.Column="1" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Grid x:Name="Step4Panel" Opacity="0.5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="Step4Icon" Text="○" FontSize="12" Foreground="#4A7090" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="Step4Text" Text="KUKA robot arayüzü" FontSize="11" Foreground="#7A9AB8" Grid.Column="1" VerticalAlignment="Center"/>
-                    </Grid>
-                    <Grid x:Name="Step5Panel" Opacity="0.5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="Step5Icon" Text="○" FontSize="12" Foreground="#4A7090" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="Step5Text" Text="Arayüz hazırlanıyor" FontSize="11" Foreground="#7A9AB8" Grid.Column="1" VerticalAlignment="Center"/>
-                    </Grid>
+                <Grid Width="350" Margin="0,20,0,0">
+                    <ProgressBar IsIndeterminate="True" Height="3" Foreground="#00A2FF" Background="#222222"/>
+                    <TextBlock x:Name="SplashStatusText" Text="Sistem başlatılıyor..." FontSize="10" Foreground="Gray" HorizontalAlignment="Center" Margin="0,10,0,0" FontStyle="Italic"/>
+                </Grid>
 
-                    <!-- Thin progress bar -->
-                    <ProgressBar IsIndeterminate="True" Height="2" Foreground="#00A2FF" Background="#0A1525" CornerRadius="1" Margin="0,5,0,0"/>
-                    <TextBlock x:Name="SplashStatusText" Text="Sistem başlatılıyor..." FontSize="10"
-                               Foreground="#7090AA" HorizontalAlignment="Center"/>
-                </StackPanel>
-
-                <!-- Footer -->
-                <StackPanel HorizontalAlignment="Center" Opacity="0.5" Spacing="3">
-                    <TextBlock Text="v2.0  •  GOCATOR  •  KUKA  •  WinUI 3" FontSize="9"
-                               Foreground="#5A7A98" HorizontalAlignment="Center" CharacterSpacing="150"/>
-                    <TextBlock Text="© 2025 Simbiosis Mekatronik" FontSize="8"
-                               Foreground="#3A5A78" HorizontalAlignment="Center"/>
+                <StackPanel HorizontalAlignment="Center" Opacity="0.4" Spacing="2">
+                    <TextBlock Text="POWERED BY" FontSize="8" Foreground="Gray" HorizontalAlignment="Center" CharacterSpacing="200"/>
+                    <TextBlock Text="GOCATOR • KUKA • WINUI 3" FontSize="10" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

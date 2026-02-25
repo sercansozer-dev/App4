@@ -6,7 +6,8 @@
       "Bash(dotnet build:*)",
       "Bash(ls:*)",
       "Bash(/tmp/gen_robot2.ps1:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File:*)"
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(powershell -NoProfile -File -:*)"
     ]
   }
 }
