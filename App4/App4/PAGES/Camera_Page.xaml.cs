@@ -165,15 +165,33 @@ namespace App4.PAGES
             }
         }
 
+        // ▼▼▼ TABLA OUTPUT TAG ▼▼▼
+        public string SelectedTablaOutputTag
+        {
+            get => App4.Utilities.GlobalData.TablaOutputTag;
+            set
+            {
+                if (App4.Utilities.GlobalData.TablaOutputTag != value)
+                {
+                    App4.Utilities.GlobalData.TablaOutputTag = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(TablaOutputValue));
+                    OnPropertyChanged(nameof(TablaOutputStatusText));
+                    OnPropertyChanged(nameof(TablaOutputStatusColor));
+                    UpdateTablaOutputWatcher();
+                }
+            }
+        }
+
         // ▼▼▼ TAG VALUE GÖSTERME (PLC'DEN OKUNAN DEĞERLER) ▼▼▼
         public string RfidTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_RfidTag);
         public string IndexTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_IndexTag);
         public string TriggerTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_TriggerTag);
         public string TriggerTag2Value => GetTagValue(App4.Utilities.GlobalData.Auto_TriggerTag2);
-        
-        // Output Value
+
+        // Boru Output Value
         public string MeasurementOutputValue => GetTagValue(App4.Utilities.GlobalData.MeasurementOutputTag);
-        
+
         public string MeasurementOutputStatusText
         {
             get
@@ -189,7 +207,30 @@ namespace App4.PAGES
             get
             {
                 var val = MeasurementOutputValue;
-                if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen); 
+                if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
+                return new SolidColorBrush(Microsoft.UI.Colors.Orange);
+            }
+        }
+
+        // Tabla Output Value
+        public string TablaOutputValue => GetTagValue(App4.Utilities.GlobalData.TablaOutputTag);
+
+        public string TablaOutputStatusText
+        {
+            get
+            {
+                var val = TablaOutputValue;
+                if (val == "1" || val.ToLower() == "true") return "HAZIR (1)";
+                return "BEKLİYOR (0)";
+            }
+        }
+
+        public SolidColorBrush TablaOutputStatusColor
+        {
+            get
+            {
+                var val = TablaOutputValue;
+                if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
                 return new SolidColorBrush(Microsoft.UI.Colors.Orange);
             }
         }
@@ -200,6 +241,7 @@ namespace App4.PAGES
         private PlcVariable _watchedTriggerVar;
         private PlcVariable _watchedTriggerVar2;
         private PlcVariable _watchedOutputVar;
+        private PlcVariable _watchedTablaOutputVar;
 
         private void SetupWatchers()
         {
@@ -208,6 +250,7 @@ namespace App4.PAGES
             UpdateTriggerWatcher();
             UpdateTrigger2Watcher();
             UpdateOutputWatcher();
+            UpdateTablaOutputWatcher();
         }
 
         private void UpdateRfidWatcher()
@@ -252,6 +295,16 @@ namespace App4.PAGES
             OnPropertyChanged(nameof(MeasurementOutputStatusColor));
         }
 
+        private void UpdateTablaOutputWatcher()
+        {
+            if (_watchedTablaOutputVar != null) _watchedTablaOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedTablaOutputVar = FindPlcVariable(SelectedTablaOutputTag);
+            if (_watchedTablaOutputVar != null) _watchedTablaOutputVar.PropertyChanged += OnPlcDisplayValueChanged;
+            OnPropertyChanged(nameof(TablaOutputValue));
+            OnPropertyChanged(nameof(TablaOutputStatusText));
+            OnPropertyChanged(nameof(TablaOutputStatusColor));
+        }
+
         private PlcVariable FindPlcVariable(string tagName)
         {
             if (string.IsNullOrEmpty(tagName)) return null;
@@ -286,6 +339,12 @@ namespace App4.PAGES
                         OnPropertyChanged(nameof(MeasurementOutputValue));
                         OnPropertyChanged(nameof(MeasurementOutputStatusText));
                         OnPropertyChanged(nameof(MeasurementOutputStatusColor));
+                    }
+                    else if (sender == _watchedTablaOutputVar)
+                    {
+                        OnPropertyChanged(nameof(TablaOutputValue));
+                        OnPropertyChanged(nameof(TablaOutputStatusText));
+                        OnPropertyChanged(nameof(TablaOutputStatusColor));
                     }
                 });
             }
@@ -369,6 +428,9 @@ namespace App4.PAGES
                     OnPropertyChanged(nameof(MeasurementOutputValue));
                     OnPropertyChanged(nameof(MeasurementOutputStatusText));
                     OnPropertyChanged(nameof(MeasurementOutputStatusColor));
+                    OnPropertyChanged(nameof(TablaOutputValue));
+                    OnPropertyChanged(nameof(TablaOutputStatusText));
+                    OnPropertyChanged(nameof(TablaOutputStatusColor));
                 });
             };
 
@@ -391,6 +453,7 @@ namespace App4.PAGES
             if (_watchedTriggerVar != null) _watchedTriggerVar.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedTriggerVar2 != null) _watchedTriggerVar2.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            if (_watchedTablaOutputVar != null) _watchedTablaOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
         }
 
         private async void BtnGetMeasurement_Click(object sender, RoutedEventArgs e)
@@ -499,6 +562,11 @@ namespace App4.PAGES
 
                 if (!string.IsNullOrEmpty(output) && PlcOutputTags.Contains(output))
                     CmbMeasurementOutputTag.SelectedItem = output;
+
+                // Tabla Output ComboBox güncelle
+                string tablaOutput = App4.Utilities.GlobalData.TablaOutputTag;
+                if (!string.IsNullOrEmpty(tablaOutput) && PlcOutputTags.Contains(tablaOutput))
+                    CmbTablaOutputTag.SelectedItem = tablaOutput;
 
                 // Trigger2 ComboBox güncelle
                 string trigger2 = App4.Utilities.GlobalData.Auto_TriggerTag2;
@@ -1301,7 +1369,10 @@ namespace App4.PAGES
 
                 if (result.Item1 == 1 && result.Item2 != null)
                 {
-                    // 4. TablaLastMeasurements koleksiyonunu güncelle (UI thread'de)
+                    // 4. Tabla sinyal gönder
+                    App4.Utilities.GlobalData.SetTablaMeasurementSignal();
+
+                    // 5. TablaLastMeasurements koleksiyonunu güncelle (UI thread'de)
                     this.DispatcherQueue.TryEnqueue(() =>
                     {
                         App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
@@ -1311,7 +1382,7 @@ namespace App4.PAGES
                         }
                         App4.Utilities.GlobalData.SaveTablaMeasurements();
 
-                        // 5. Tabla PLC satırlarına aktar
+                        // 6. Tabla PLC satırlarına aktar
                         TransferTablaToPlcRows();
                     });
 

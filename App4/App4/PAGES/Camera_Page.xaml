@@ -207,6 +207,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="140"/>
                                 </Grid.ColumnDefinitions>
 
@@ -388,35 +389,66 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- OUTPUT SIGNAL TAG SECTION -->
-                                <Border Grid.Column="3" Background="#1A2A3A" CornerRadius="8" BorderBrush="#2A4A5A" BorderThickness="1" Padding="12">
-                                    <StackPanel Spacing="8">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="ÖLÇÜM SONUCU (OUTPUT)" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
-                                            <TextBlock Text="Tamamlandı Sinyali" FontSize="8" Foreground="#666"/>
+                                <!-- BORU ÖLÇÜM ÇIKTISI -->
+                                <Border Grid.Column="3" Background="#1A2A1A" CornerRadius="8" BorderBrush="#3A5A2A" BorderThickness="1" Padding="10">
+                                    <StackPanel Spacing="6">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Ellipse Width="8" Height="8" Fill="#FF9800"/>
+                                            <TextBlock Text="BORU ÇIKTI" FontSize="9" FontWeight="Bold" Foreground="#FF9800"/>
                                         </StackPanel>
-                                        
-                                        <Border Background="#0F1F2F" CornerRadius="6" BorderBrush="#00A4EF" BorderThickness="1" Padding="8">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="SİNYAL DURUMU:" FontSize="8" Foreground="#888"/>
-                                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <TextBlock Text="{x:Bind MeasurementOutputStatusText, Mode=OneWay}" Foreground="{x:Bind MeasurementOutputStatusColor, Mode=OneWay}" FontSize="11" FontWeight="Bold"/> 
-                                                </StackPanel>
+
+                                        <Border Background="#0F1F0F" CornerRadius="6" BorderBrush="#FF9800" BorderThickness="1" Padding="6">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="SİNYAL:" FontSize="7" Foreground="#888"/>
+                                                <TextBlock Text="{x:Bind MeasurementOutputStatusText, Mode=OneWay}" Foreground="{x:Bind MeasurementOutputStatusColor, Mode=OneWay}" FontSize="11" FontWeight="Bold"/>
                                             </StackPanel>
                                         </Border>
-                                        
-                                        <ComboBox x:Name="CmbMeasurementOutputTag" 
-                                            ItemsSource="{x:Bind PlcOutputTags, Mode=OneWay}" 
+
+                                        <ComboBox x:Name="CmbMeasurementOutputTag"
+                                            ItemsSource="{x:Bind PlcOutputTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedMeasurementOutputTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Tag Seçiniz..."
-                                            HorizontalAlignment="Stretch" FontSize="11" Height="34" VerticalAlignment="Center"
-                                            Foreground="White" Background="#0F1F2F" BorderBrush="#00A4EF" BorderThickness="2" CornerRadius="6">
+                                            HorizontalAlignment="Stretch" FontSize="10" Height="32" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F0F" BorderBrush="#FF9800" BorderThickness="1.5" CornerRadius="5">
                                             <ComboBox.Resources>
-                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A3A"/>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A1A"/>
                                                 <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
                                                 <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
-                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#00A4EF"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#FF9800"/>
+                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
+                                            </ComboBox.Resources>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- TABLA ÖLÇÜM ÇIKTISI -->
+                                <Border Grid.Column="4" Background="#1A2A1A" CornerRadius="8" BorderBrush="#2A5A3A" BorderThickness="1" Padding="10">
+                                    <StackPanel Spacing="6">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Ellipse Width="8" Height="8" Fill="#4CAF50"/>
+                                            <TextBlock Text="TABLA ÇIKTI" FontSize="9" FontWeight="Bold" Foreground="#4CAF50"/>
+                                        </StackPanel>
+
+                                        <Border Background="#0F1F0F" CornerRadius="6" BorderBrush="#4CAF50" BorderThickness="1" Padding="6">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="SİNYAL:" FontSize="7" Foreground="#888"/>
+                                                <TextBlock Text="{x:Bind TablaOutputStatusText, Mode=OneWay}" Foreground="{x:Bind TablaOutputStatusColor, Mode=OneWay}" FontSize="11" FontWeight="Bold"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <ComboBox x:Name="CmbTablaOutputTag"
+                                            ItemsSource="{x:Bind PlcOutputTags, Mode=OneWay}"
+                                            SelectedItem="{x:Bind SelectedTablaOutputTag, Mode=TwoWay}"
+                                            SelectionChanged="AutomationComboBox_SelectionChanged"
+                                            PlaceholderText="Tag Seçiniz..."
+                                            HorizontalAlignment="Stretch" FontSize="10" Height="32" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F0F" BorderBrush="#4CAF50" BorderThickness="1.5" CornerRadius="5">
+                                            <ComboBox.Resources>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A1A"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#4CAF50"/>
                                                 <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
                                             </ComboBox.Resources>
                                         </ComboBox>
@@ -424,7 +456,7 @@
                                 </Border>
 
                                 <!-- MANUEL START BUTTON -->
-                                <Border Grid.Column="4" Background="#27AE60" CornerRadius="8" BorderBrush="#2ECC71" BorderThickness="2" Padding="0">
+                                <Border Grid.Column="5" Background="#27AE60" CornerRadius="8" BorderBrush="#2ECC71" BorderThickness="2" Padding="0">
                                     <Button Click="BtnManualTrigger_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" BorderThickness="0" Padding="0">
                                         <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                                             <FontIcon Glyph="&#xE768;" Foreground="#2ECC71" FontSize="28"/>

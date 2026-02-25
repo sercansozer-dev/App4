@@ -114,6 +114,10 @@ namespace App4
                 }
             }
 
+            // 2.5. PlcService'de AKTUEL_RFID ve diğer köprü değişkenlerini oluştur
+            // (ConnectToPlcVariable'ın bu değişkenleri bulabilmesi için BindVars'tan ÖNCE çağrılmalı)
+            try { PlcService.Instance.EnsureRobotBridgeVariables(); } catch { }
+
             // Listeleri bağla
             BindVars(GeneralInputVars); BindVars(GeneralOutputVars);
             BindVars(Station1Vars); BindVars(Station1Outputs);
@@ -150,7 +154,6 @@ namespace App4
             if (switchVar != null)
             {
                 bool isOn = switchVar.Value?.ToUpper() == "TRUE" || switchVar.Value == "1";
-                if (LineAutoManualSwitch != null) LineAutoManualSwitch.IsOn = isOn;
                 if (KontrolLineAutoManualSwitch != null) KontrolLineAutoManualSwitch.IsOn = isOn;
             }
 
@@ -1030,54 +1033,69 @@ namespace App4
                     return;
                 }
 
-                // Determine which RFID to use based on operation mode
+                // ▼▼▼ MOD BAZLI RFID ÇÖZÜMLEME ▼▼▼
                 string rfidToLookup;
+                string modeStr;
+
                 if (station.RfidOpMode.Equals(App4.Utilities.RfidOperationMode.Mixed))
                 {
-                    // Mixed: Okunan (CurrentRfid) RFID'nin modeli
+                    // MIX MOD → Okunan (CurrentRfid) RFID'ye eşleşen model
                     rfidToLookup = station.CurrentRfid;
+                    modeStr = "MIX";
                 }
                 else
                 {
-                    // Specific: Beklenen (TargetRfid) RFID'nin modeli
+                    // SPECIFIC MOD → Beklenen (TargetRfid) RFID'ye eşleşen model
                     rfidToLookup = station.TargetRfid;
+                    modeStr = "SPECIFIC";
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Model güncelleniyor. Mod: {station.RfidOpMode}, RFID: {rfidToLookup ?? "(boş)"}");
+                System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Mode={modeStr}, TargetRfid={station.TargetRfid ?? "null"}, CurrentRfid={station.CurrentRfid ?? "null"}, Seçilen={rfidToLookup ?? "null"}");
 
-                // RFID boşsa modeli temizle
+                // ▼▼▼ RFID BOŞSA → ÖNCEKİ MODELİ TEMİZLE ▼▼▼
                 if (string.IsNullOrEmpty(rfidToLookup))
                 {
                     System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] RFID boş - model temizleniyor");
-                    await targetWebView.ExecuteScriptAsync("if(currentModel) { scene.remove(currentModel); currentModel = null; } document.getElementById('debug').textContent = 'RFID bekleniyor...';");
+                    await targetWebView.ExecuteScriptAsync(
+                        "if(currentModel) { scene.remove(currentModel); currentModel = null; } " +
+                        $"document.getElementById('debug').textContent = '{modeStr}: RFID bekleniyor...';");
                     return;
                 }
 
+                // ▼▼▼ KnownRfids'TE ARA ▼▼▼
                 var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidToLookup);
 
-                if (rfidDef == null || string.IsNullOrEmpty(rfidDef.ModelFileName))
+                if (rfidDef == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] RFID '{rfidToLookup}' için model tanımlı değil");
-                    await targetWebView.ExecuteScriptAsync($"if(currentModel) {{ scene.remove(currentModel); currentModel = null; }} document.getElementById('debug').textContent = 'RFID: {rfidToLookup} - Model tanımsız';");
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] RFID '{rfidToLookup}' KnownRfids'te bulunamadı! Mevcut Id'ler: [{string.Join(", ", GlobalData.KnownRfids.Select(r => r.Id))}]");
+                    await targetWebView.ExecuteScriptAsync(
+                        "if(currentModel) { scene.remove(currentModel); currentModel = null; } " +
+                        $"document.getElementById('debug').textContent = '{modeStr}: \\'{rfidToLookup}\\' tanımsız';");
                     return;
                 }
 
+                if (string.IsNullOrEmpty(rfidDef.ModelFileName))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] RFID '{rfidToLookup}' model dosyası atanmamış");
+                    await targetWebView.ExecuteScriptAsync(
+                        "if(currentModel) { scene.remove(currentModel); currentModel = null; } " +
+                        $"document.getElementById('debug').textContent = '{modeStr}: {rfidToLookup} - Model atanmadı';");
+                    return;
+                }
+
+                // ▼▼▼ MODEL DOSYASINI YÜKLEme ▼▼▼
                 string modelPath = rfidDef.ModelFileName.Replace("\\", "/");
                 string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
                 string fullPath = Path.Combine(modelsRoot, modelPath);
 
-                // Try exact path first, then search
                 if (!File.Exists(fullPath))
                 {
                     try
                     {
                         var foundFile = Directory.GetFiles(modelsRoot, Path.GetFileName(modelPath), SearchOption.AllDirectories).FirstOrDefault();
-                        if (foundFile != null)
-                        {
-                            fullPath = foundFile;
-                        }
+                        if (foundFile != null) fullPath = foundFile;
                     }
-                    catch { /* Models klasörü yoksa hata vermesin */ }
+                    catch { }
                 }
 
                 if (File.Exists(fullPath))
@@ -1085,16 +1103,18 @@ namespace App4
                     string fileUri = new Uri(fullPath).AbsoluteUri;
                     string jsCode = $"if(window.loadModel) {{ window.loadModel('{fileUri.Replace("'", "\\'")}'); }} else {{ console.error('loadModel not ready'); }}";
 
-                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Yükleniyor: {Path.GetFileName(fullPath)}");
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] {modeStr} | RFID={rfidToLookup} | Model={Path.GetFileName(fullPath)}");
                     await targetWebView.ExecuteScriptAsync(jsCode);
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Model dosyası bulunamadı: {fullPath}");
-                    await targetWebView.ExecuteScriptAsync($"document.getElementById('debug').textContent = 'Dosya bulunamadı: {Path.GetFileName(modelPath)}';");
+                    System.Diagnostics.Debug.WriteLine($"[Station {index + 1}] Dosya bulunamadı: {fullPath}");
+                    await targetWebView.ExecuteScriptAsync(
+                        "if(currentModel) { scene.remove(currentModel); currentModel = null; } " +
+                        $"document.getElementById('debug').textContent = '{modeStr}: Dosya bulunamadı: {Path.GetFileName(modelPath)}';");
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"UpdateStationModel Error: {ex.Message}");
             }
@@ -1115,11 +1135,16 @@ namespace App4
                 }
 
                 // Model Update Triggering:
-                // TargetRfid değişirse (Specific mod), CurrentRfid değişirse (Mixed mod), veya OpMode değişirse
-                if (e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) || 
-                    e.PropertyName == nameof(StationViewModel.CurrentRfid) ||
-                    e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode))
+                // RfidOpMode, TargetRfid VEYA CurrentRfid değişirse → modeli güncelle
+                // (UpdateStationModelAsync zaten mod bazlı doğru RFID'yi seçiyor)
+                bool shouldUpdateModel =
+                    e.PropertyName == nameof(ExtendedStationViewModel.RfidOpMode) ||
+                    e.PropertyName == nameof(ExtendedStationViewModel.TargetRfid) ||
+                    e.PropertyName == nameof(StationViewModel.CurrentRfid);
+
+                if (shouldUpdateModel)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[MODEL] {station.Name}: Property={e.PropertyName} → Model güncelleniyor (Mode={station.RfidOpMode})");
                     this.DispatcherQueue.TryEnqueue(() => UpdateStationModel(station));
                 }
 
@@ -1167,7 +1192,6 @@ namespace App4
                 if (localVar.Name == "LINE_AUTO_MANUAL_CMD")
                 {
                     bool isOn = localVar.Value?.ToUpper() == "TRUE" || localVar.Value == "1";
-                    if (LineAutoManualSwitch != null && LineAutoManualSwitch.IsOn != isOn) LineAutoManualSwitch.IsOn = isOn;
                     if (KontrolLineAutoManualSwitch != null && KontrolLineAutoManualSwitch.IsOn != isOn) KontrolLineAutoManualSwitch.IsOn = isOn;
                 }
             }
@@ -1221,7 +1245,7 @@ namespace App4
             if (sender is ComboBox cb && cb.DataContext is PlcVariable v) { if (v.PlcTag != cb.SelectedItem as string) { v.PlcTag = cb.SelectedItem as string; GlobalData.SavePlcVariableTagsToFile(); ConnectToPlcVariable(v); } }
         }
 
-        // ═══ HAT OTO/MANUEL SWITCH ═══
+        // ═══ HAT OTO/MANUEL SWITCH (KONTROL PANELİNDEN) ═══
         private void LineAutoManualSwitch_Toggled(object sender, RoutedEventArgs e)
         {
             if (sender is ToggleSwitch ts)
@@ -1232,12 +1256,6 @@ namespace App4
                     switchVar.Value = ts.IsOn ? "True" : "False";
                     switchVar.CurrentValue = ts.IsOn;
                 }
-
-                // İki switch'i senkronize et
-                if (ts == LineAutoManualSwitch && KontrolLineAutoManualSwitch != null && KontrolLineAutoManualSwitch.IsOn != ts.IsOn)
-                    KontrolLineAutoManualSwitch.IsOn = ts.IsOn;
-                else if (ts == KontrolLineAutoManualSwitch && LineAutoManualSwitch != null && LineAutoManualSwitch.IsOn != ts.IsOn)
-                    LineAutoManualSwitch.IsOn = ts.IsOn;
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -382,50 +383,78 @@ namespace App4.Utilities
             };
         }
 
-        // Update GlobalData AKTUEL_KLIMA_INDEX based on station mode and RFID values when robot is in front of this station
+        // Update GlobalData AKTUEL_KLIMA_INDEX + AKTUEL_RFID based on station mode and RFID values
         private void TryUpdateAktuelKlimaIndex()
         {
             try
             {
-                // Determine this station number (1-based) from GlobalData.Stations ordering
-                int stationNumber = GlobalData.Stations.IndexOf(this) + 1;
-                if (stationNumber <= 0) return;
+                System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] TryUpdate çağrıldı: Station={Name}, IsRobotPresent={IsRobotPresent}, Mode={RfidOpMode}, TargetRfid={TargetRfid ?? "null"}, CurrentRfid={CurrentRfid ?? "null"}");
 
-                int sliderStation = GlobalData.GetSliderStationNumber();
-                // Only act if the robot/slider is currently at this station
-                if (sliderStation != stationNumber) return;
-
-                int newIndex = -1; // 1-based klima index to write
-
-                if (RfidOpMode == RfidOperationMode.Specific)
+                // Sadece slider bu istasyonun önündeyse çalış
+                if (!IsRobotPresent)
                 {
-                    // Specific: use TargetRfid (AllowedRfid) mapping
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] {Name}: IsRobotPresent=false, atlanıyor");
+                    return;
+                }
+
+                // Aktüel RFID değerini belirle: SPECIFIC → TargetRfid, MIX → CurrentRfid
+                string aktuelRfid = null;
+
+                if (RfidOpMode.Equals(RfidOperationMode.Specific))
+                {
                     if (!string.IsNullOrEmpty(TargetRfid))
-                    {
-                        var k = GlobalData.KnownRfids.ToList().FindIndex(r => r.Id == TargetRfid);
-                        if (k >= 0) newIndex = k + 1;
-                    }
+                        aktuelRfid = TargetRfid;
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] SPECIFIC mod → TargetRfid kullanılıyor: '{aktuelRfid ?? "BOŞ"}'");
                 }
                 else // Mixed
                 {
                     if (!string.IsNullOrEmpty(CurrentRfid))
-                    {
-                        var k = GlobalData.KnownRfids.ToList().FindIndex(r => r.Id == CurrentRfid);
-                        if (k >= 0) newIndex = k + 1;
-                    }
+                        aktuelRfid = CurrentRfid;
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] MIX mod → CurrentRfid kullanılıyor: '{aktuelRfid ?? "BOŞ"}'");
                 }
 
-                if (newIndex > 0)
+                // 1. AKTUEL_RFID → String RFID Id değeri
+                var rfidVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
+                if (rfidVar != null)
                 {
-                    // Find the output variable and set its CurrentValue
-                    var outVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
-                    if (outVar != null)
+                    rfidVar.CurrentValue = aktuelRfid ?? "";
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ✅ AKTUEL_RFID değeri yazıldı: '{aktuelRfid ?? ""}'");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ❌ AKTUEL_RFID değişkeni GeneralOutputVars'ta bulunamadı!");
+                }
+
+                // 2. AKTUEL_KLIMA_INDEX → KnownRfids listesindeki sıra numarası (1-based)
+                var indexVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
+                if (indexVar != null)
+                {
+                    if (!string.IsNullOrEmpty(aktuelRfid))
                     {
-                        outVar.CurrentValue = newIndex; // write int
+                        var knownList = GlobalData.KnownRfids.ToList();
+                        var k = knownList.FindIndex(r => r.Id == aktuelRfid);
+                        indexVar.CurrentValue = (k >= 0) ? k + 1 : 0;
+                        System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ✅ AKTUEL_KLIMA_INDEX={((k >= 0) ? k + 1 : 0)} (KnownRfids count={knownList.Count}, found at={k})");
+                        if (k < 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ⚠️ RFID '{aktuelRfid}' KnownRfids'te yok! Mevcut Id'ler: [{string.Join(", ", knownList.Select(r => r.Id))}]");
+                        }
+                    }
+                    else
+                    {
+                        indexVar.CurrentValue = 0;
+                        System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] AKTUEL_KLIMA_INDEX=0 (RFID boş)");
                     }
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ❌ AKTUEL_KLIMA_INDEX değişkeni GeneralOutputVars'ta bulunamadı!");
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] HATA: {ex.Message}");
+            }
         }
 
 

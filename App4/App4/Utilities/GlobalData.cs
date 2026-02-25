@@ -298,6 +298,19 @@ namespace App4.Utilities
             }
         }
 
+        // --- TABLA ÖLÇÜM ÇIKTI TAG ---
+        private static string _tablaOutputTag;
+        public static string TablaOutputTag
+        {
+            get => _tablaOutputTag;
+            set
+            {
+                if (_tablaOutputTag == value) return;
+                _tablaOutputTag = value;
+                SaveAutomationSettings();
+            }
+        }
+
         // --- ROBOT BAĞLANTI AYARLARI ---
         private static string _robotIpAddress = "127.0.0.1";
         public static string Robot_IpAddress
@@ -443,7 +456,8 @@ namespace App4.Utilities
             InitializeStations();
             LoadStationStates();
             InitializeVariables();
-            LoadPlcVariableTagsFromFile();
+            // NOT: LoadPlcVariableTagsFromFile() artık InitializeVariables() içinde çağrılıyor.
+            // İkinci kez çağrılırsa dosyadan RB1/RB2 gibi kaldırılmış değişkenleri geri yükler.
             LoadSystemChecks();
             LoadMeasurements();
             LoadTransferRows();
@@ -683,7 +697,34 @@ namespace App4.Utilities
             GeneralInputVars.Add(Create("LINE_RUNNING", "BOOL", "Input", false));
             GeneralInputVars.Add(Create("LINE_AUTO_MODE", "BOOL", "Input", false));
             GeneralInputVars.Add(Create("SYS_RESET_FEEDBACK", "BOOL", "Input", false));
-            // If a saved Auto Page variables file exists, load it instead of adding defaults
+            // ▼▼▼ VARSAYILAN DEĞİŞKENLERİ HER ZAMAN EKLE (yeni eklenenler kayıp olmasın) ▼▼▼
+            // ▼▼▼ KAMERA ÖLÇÜM SİNYALİ - Yeni ölçüm geldiğinde 1, sıfırlandığında 0 ▼▼▼
+            GeneralInputVars.Add(Create("MEASUREMENT_NEW_DATA", "BOOL", "Input", false));
+            // ▼▼▼ AKTÜEL İSTASYON VE KLİMA INDEX ▼▼▼
+            GeneralInputVars.Add(Create("AKTUEL_ISTASYON", "WORD", "Input", "0"));           // Robotun aktüel olduğu istasyon numarası
+            GeneralInputVars.Add(Create("ROBOT_HOME", "BOOL", "Input", false));              // Robot HOME pozisyonunda mı
+            GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
+            // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
+            GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
+            // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
+            GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
+            // ▼▼▼ AKTÜEL KLİMA INDEX VE RFID ▼▼▼
+            GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
+            GeneralOutputVars.Add(Create("AKTUEL_RFID", "STRING", "Output", ""));            // Aktüel RFID Id string değeri
+            // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
+            GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
+            GeneralOutputVars.Add(Create("KL100_HEDEF_POZ", "REAL", "Output", "0"));         // KL100 slider hedef pozisyon (mm)
+            GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
+            // ▼▼▼ ROBOT GİT KOMUTLARI (PLC → PC) ▼▼▼
+            GeneralInputVars.Add(Create("FIRST_ROBOT_GO", "BOOL", "Input", false));           // PLC Robot 1 başlat komutu
+            GeneralInputVars.Add(Create("SECOND_ROBOT_GO", "BOOL", "Input", false));          // PLC Robot 2 başlat komutu
+            // NOT: RB1/RB2 robot durum değişkenleri burada değil, PlcService.EnsureRobotBridgeVariables() içinde
+            // ve Robot sayfasının kendi değişken koleksiyonlarında yönetilir.
+            AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
+
+            // ▼▼▼ Kaydedilmiş ayarlar varsa, PlcTag ve Value bilgilerini üzerine yaz (merge) ▼▼▼
             if (File.Exists(_autoPageVariablesFilePath))
             {
                 try
@@ -692,51 +733,11 @@ namespace App4.Utilities
                 }
                 catch { }
             }
-            else
-            {
-                // ▼▼▼ KAMERA ÖLÇÜM SİNYALİ - Yeni ölçüm geldiğinde 1, sıfırlandığında 0 ▼▼▼
-                GeneralInputVars.Add(Create("MEASUREMENT_NEW_DATA", "BOOL", "Input", false));
-                // ▼▼▼ AKTÜEL İSTASYON VE KLİMA INDEX ▼▼▼
-                GeneralInputVars.Add(Create("AKTUEL_ISTASYON", "WORD", "Input", "0"));           // Robotun aktüel olduğu istasyon numarası
-                GeneralInputVars.Add(Create("ROBOT_HOME", "BOOL", "Input", false));              // Robot HOME pozisyonunda mı
-                GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false));
-                GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false));
-                GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
-                // ▼▼▼ KAMERA ÖLÇÜM OUTPUT - Manuel başla butonuyla sıfırlanır ▼▼▼
-                GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
-                // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
-                GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
-                // ▼▼▼ AKTÜEL KLİMA INDEX VE KL100 HEDEF ▼▼▼
-                GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (Mix/Specific moda göre)
-                // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
-                GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
-                GeneralOutputVars.Add(Create("KL100_HEDEF_POZ", "REAL", "Output", "0"));         // KL100 slider hedef pozisyon (mm)
-                GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
-                // ▼▼▼ ROBOT GİT KOMUTLARI (PLC → PC) ▼▼▼
-                GeneralInputVars.Add(Create("FIRST_ROBOT_GO", "BOOL", "Input", false));           // PLC Robot 1 başlat komutu
-                GeneralInputVars.Add(Create("SECOND_ROBOT_GO", "BOOL", "Input", false));          // PLC Robot 2 başlat komutu
-                // ▼▼▼ ROBOT 1 DURUM BİLGİLERİ (PC → PLC) ▼▼▼
-                GeneralOutputVars.Add(Create("RB1_ROBOT_DURUM", "INT", "Output", 0));             // Robot 1 durum kodu
-                GeneralOutputVars.Add(Create("RB1_IS_BITTI", "BOOL", "Output", false));           // Robot 1 iş bitti
-                GeneralOutputVars.Add(Create("RB1_HATA_VAR", "BOOL", "Output", false));           // Robot 1 hata var
-                GeneralOutputVars.Add(Create("RB1_HATA_KODU", "INT", "Output", 0));               // Robot 1 hata kodu
-                GeneralOutputVars.Add(Create("RB1_HOME_OK", "BOOL", "Output", false));            // Robot 1 home OK
-                GeneralOutputVars.Add(Create("RB1_AKTIF_NOKTA", "INT", "Output", 0));             // Robot 1 aktif ölçüm noktası
-                GeneralOutputVars.Add(Create("RB1_DURUM_MESAJ", "INT", "Output", 0));             // Robot 1 durum mesajı
-                GeneralOutputVars.Add(Create("RB1_NOK_SAYISI", "INT", "Output", 0));              // Robot 1 NOK sayısı
-                GeneralOutputVars.Add(Create("RB1_TOPLAM_NOKTA", "INT", "Output", 0));            // Robot 1 toplam nokta
-                // ▼▼▼ ROBOT 2 DURUM BİLGİLERİ (PC → PLC) ▼▼▼
-                GeneralOutputVars.Add(Create("RB2_ROBOT_DURUM", "INT", "Output", 0));             // Robot 2 durum kodu
-                GeneralOutputVars.Add(Create("RB2_IS_BITTI", "BOOL", "Output", false));           // Robot 2 iş bitti
-                GeneralOutputVars.Add(Create("RB2_HATA_VAR", "BOOL", "Output", false));           // Robot 2 hata var
-                GeneralOutputVars.Add(Create("RB2_HATA_KODU", "INT", "Output", 0));               // Robot 2 hata kodu
-                GeneralOutputVars.Add(Create("RB2_HOME_OK", "BOOL", "Output", false));            // Robot 2 home OK
-                GeneralOutputVars.Add(Create("RB2_AKTIF_CIZGI", "INT", "Output", 0));             // Robot 2 aktif sniffer çizgi
-                GeneralOutputVars.Add(Create("RB2_DURUM_MESAJ", "INT", "Output", 0));             // Robot 2 durum mesajı
-                GeneralOutputVars.Add(Create("RB2_NOK_SAYISI", "INT", "Output", 0));              // Robot 2 NOK sayısı
-                GeneralOutputVars.Add(Create("RB2_TOPLAM_CIZGI", "INT", "Output", 0));            // Robot 2 toplam çizgi
-                AddVars(Station1Vars, 1); AddVars(Station2Vars, 2); AddVars(Station3Vars, 3); AddOutputs(Station1Outputs, 1); AddOutputs(Station2Outputs, 2); AddOutputs(Station3Outputs, 3);
-            }
+
+            // ▼▼▼ Temizlik: Eski dosyada kalmış RB1/RB2 robot değişkenlerini GeneralOutputVars'tan kaldır ▼▼▼
+            // (Bu değişkenler artık sadece PlcService.EnsureRobotBridgeVariables'da yönetiliyor)
+            var robotVarsToRemove = GeneralOutputVars.Where(v => v.Name.StartsWith("RB1_") || v.Name.StartsWith("RB2_")).ToList();
+            foreach (var rv in robotVarsToRemove) GeneralOutputVars.Remove(rv);
             
             // ═══════════════════════════════════════════════════════════════
             // ROBOT → PLC DEĞİŞKENLERİ (Input - Robottan gelen sinyaller)
@@ -971,6 +972,12 @@ namespace App4.Utilities
                 if (!string.IsNullOrEmpty(val)) _measurementOutputTag = val;
             }
 
+            if (settings.ContainsKey("TablaOutputTag"))
+            {
+                var val = settings["TablaOutputTag"] as string;
+                if (!string.IsNullOrEmpty(val)) _tablaOutputTag = val;
+            }
+
             // Robot Ayarları
             if (settings.ContainsKey("Robot_IpAddress"))
             {
@@ -1025,6 +1032,7 @@ namespace App4.Utilities
             settings["Auto_TriggerTag"] = Auto_TriggerTag ?? "";
             settings["Auto_TriggerTag2"] = Auto_TriggerTag2 ?? "";
             settings["MeasurementOutputTag"] = MeasurementOutputTag ?? "";
+            settings["TablaOutputTag"] = TablaOutputTag ?? "";
 
             settings["Robot_IpAddress"] = Robot_IpAddress;
             settings["Robot_Port"] = Robot_Port;
@@ -1270,6 +1278,87 @@ namespace App4.Utilities
             catch (Exception ex)
             {
                 OnAutomationLog?.Invoke($"✗ Sinyal ayarlama hatası: {ex.Message}");
+            }
+        }
+
+        // ▼▼▼ TABLA ÖLÇÜM SİNYALLERİ ▼▼▼
+
+        public static async void ResetTablaMeasurementSignal()
+        {
+            try
+            {
+                string targetTag = TablaOutputTag;
+                if (string.IsNullOrEmpty(targetTag)) return;
+
+                var outputVar = GeneralOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (outputVar != null) outputVar.CurrentValue = 0;
+
+                var inputVar = GeneralInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (inputVar != null) inputVar.CurrentValue = 0;
+
+                if (PlcService.Instance != null)
+                {
+                    var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
+                    if (plcVar != null) { await PlcService.Instance.WriteAsync(plcVar, 0); plcVar.CurrentValue = 0; }
+                    else
+                    {
+                        var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
+                        if (plcIn != null) { await PlcService.Instance.WriteAsync(plcIn, 0); plcIn.CurrentValue = 0; }
+                    }
+                }
+
+                OnAutomationLog?.Invoke($"✓ Tabla sinyal sıfırlandı: {targetTag} = 0");
+                OnAutomationStatusChanged?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                OnAutomationLog?.Invoke($"✗ Tabla sinyal sıfırlama hatası: {ex.Message}");
+            }
+        }
+
+        public static async void SetTablaMeasurementSignal()
+        {
+            try
+            {
+                string targetTag = TablaOutputTag;
+                if (string.IsNullOrEmpty(targetTag))
+                {
+                    OnAutomationLog?.Invoke("⚠ SetTablaSignal: Tag seçili değil.");
+                    return;
+                }
+
+                bool found = false;
+
+                var outputVar = GeneralOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (outputVar != null) { outputVar.CurrentValue = 1; found = true; }
+
+                var inputVar = GeneralInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (inputVar != null) { inputVar.CurrentValue = 1; found = true; }
+
+                if (PlcService.Instance != null)
+                {
+                    var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
+                    if (plcVar != null) { await PlcService.Instance.WriteAsync(plcVar, 1); plcVar.CurrentValue = 1; found = true; }
+                    else
+                    {
+                        var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
+                        if (plcIn != null) { await PlcService.Instance.WriteAsync(plcIn, 1); plcIn.CurrentValue = 1; found = true; }
+                    }
+                }
+
+                if (found)
+                {
+                    OnAutomationLog?.Invoke($"✓ Tabla sinyal gönderildi: {targetTag} = 1");
+                    OnAutomationStatusChanged?.Invoke();
+                }
+                else
+                {
+                    OnAutomationLog?.Invoke($"⚠ Tabla sinyal Tag bulunamadı: {targetTag}");
+                }
+            }
+            catch (Exception ex)
+            {
+                OnAutomationLog?.Invoke($"✗ Tabla sinyal ayarlama hatası: {ex.Message}");
             }
         }
 

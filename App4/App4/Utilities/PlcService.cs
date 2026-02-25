@@ -186,7 +186,6 @@ namespace App4.Utilities
             EnsureInput("LINE_AUTO_MODE", "BOOL");
             EnsureInput("FIRST_ROBOT_GO", "BOOL");              // PLC Robot 1 başlat
             EnsureInput("SECOND_ROBOT_GO", "BOOL");             // PLC Robot 2 başlat
-            EnsureInput("AKTUEL_KLIMA_INDEX", "WORD");          // Aktüel klima tipi
 
             // ═══════════════════════════════════════════════════
             // PC → PLC (Output) — PLC'ye yazılan sinyaller
@@ -194,6 +193,10 @@ namespace App4.Utilities
             EnsureOutput("CMD_LINE_START", "BOOL");
             EnsureOutput("CMD_LINE_STOP", "BOOL");
             EnsureOutput("CMD_LINE_RESET", "BOOL");
+
+            // --- Aktüel Klima / RFID Bilgileri (PC → PLC) ---
+            EnsureOutput("AKTUEL_KLIMA_INDEX", "WORD");         // Aktüel klima tipi index (1-based)
+            EnsureOutput("AKTUEL_RFID", "STRING");              // Aktüel RFID Id string değeri
 
             // --- Robot 1 Durum Bilgileri (PC \u2192 PLC) ---
             EnsureOutput("RB1_ROBOT_DURUM", "INT");             // 0=Bo\u015fta 1=\u00c7al\u0131\u015f\u0131yor 2=Hata
