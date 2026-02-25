@@ -351,6 +351,20 @@ namespace App4
             await WriteGlobalRobotOutVarAsync("G_GOCATOR_TAMAM", "FALSE");
         }
 
+        private async void BtnInficonOlcum_Click(object sender, RoutedEventArgs e)
+        {
+            await WriteGlobalRobotOutVarAsync("G_INFICON_OLCUM", "TRUE");
+            await Task.Delay(500);
+            await WriteGlobalRobotOutVarAsync("G_INFICON_OLCUM", "FALSE");
+        }
+
+        private async void BtnInficonReset_Click(object sender, RoutedEventArgs e)
+        {
+            await WriteGlobalRobotOutVarAsync("G_INFICON_RESET", "TRUE");
+            await Task.Delay(500);
+            await WriteGlobalRobotOutVarAsync("G_INFICON_RESET", "FALSE");
+        }
+
         private async void BtnInficonTamam_Click(object sender, RoutedEventArgs e)
         {
             await WriteGlobalRobotOutVarAsync("G_INFICON_TAMAM", "TRUE");
