@@ -645,15 +645,33 @@ namespace App4.Utilities
             return result;
         }
 
-        /// <summary>Robot hatalarını resetler</summary>
+        /// <summary>Robot hatalarını resetler ve G_KLIMA_TIP değerini yeniden gönderir</summary>
         public async Task<bool> ResetErrorAsync()
         {
             if (!IsConnected) return false;
             OnLog?.Invoke($"[{Name}] 🔄 RESET komutu gönderiliyor...");
+
+            // Reset öncesi: G_KLIMA_TIP değerini yeniden gönder
+            // KRL programı reset sırasında G_KLIMA_TIP'i dahili olarak sıfırlayabilir.
+            int klimaIndex = GlobalData.AktuelKlimaIndex;
+            if (klimaIndex > 0)
+            {
+                await WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString());
+            }
+
             bool result = await WriteVariableAsync("PC_Reset", "TRUE");
             if (result) OnLog?.Invoke($"[{Name}] ✅ Reset tamamlandı");
             await Task.Delay(200);
             await WriteVariableAsync("PC_Reset", "FALSE");
+
+            // Reset sonrası: G_KLIMA_TIP değerini bir kez daha gönder (KRL reset gecikmesi için)
+            if (klimaIndex > 0)
+            {
+                await Task.Delay(300);
+                await WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString());
+                OnLog?.Invoke($"[{Name}] G_KLIMA_TIP={klimaIndex} yeniden gönderildi");
+            }
+
             return result;
         }
 

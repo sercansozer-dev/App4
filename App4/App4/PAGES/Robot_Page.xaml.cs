@@ -1037,9 +1037,23 @@ namespace App4.Pages
                         string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
                         if (string.IsNullOrEmpty(plcValue)) continue;
 
-                        if (robot.IsConnected && robotVar.Value != plcValue)
+                        // G_KLIMA_TIP için ek kontrol: Robot reset aldığında değeri dahili olarak
+                        // sıfırlayabilir, ancak cache'deki değer aynı kalır. Readback (G_KLIMA_TIP_RD)
+                        // ile robotun gerçek değerini kontrol edip uyumsuzluk varsa yeniden yaz.
+                        bool forceWrite = false;
+                        if (robotVar.PlcTag == "G_KLIMA_TIP")
+                        {
+                            var readbackVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP_RD");
+                            if (readbackVar != null && !string.IsNullOrEmpty(readbackVar.Value) && readbackVar.Value != plcValue)
+                            {
+                                forceWrite = true;
+                            }
+                        }
+
+                        if (robot.IsConnected && (robotVar.Value != plcValue || forceWrite))
                         {
                             await robot.WriteVariableAsync(robotVar.PlcTag, plcValue);
+                            robotVar.Value = plcValue;
                         }
                     }
                 }

@@ -1518,6 +1518,12 @@ namespace App4
 
             BtnReset.IsEnabled = false; // Çift tıklamayı önle
 
+            // Reset öncesi: G_KLIMA_TIP değerini robotlara yeniden gönder
+            // Robot KRL programı reset sırasında G_KLIMA_TIP'i dahili olarak sıfırlayabilir.
+            // Bridge cache'deki değer aynı kaldığı için otomatik yeniden yazma tetiklenmez.
+            // Bu yüzden reset öncesinde değeri zorla yeniden yazıyoruz.
+            await ResendKlimaTipToRobots();
+
             // PLC'ye Reset Sinyali Gönder
             var resetVar = GeneralOutputVars.FirstOrDefault(x => x.Name == "CMD_LINE_RESET");
             if (resetVar != null)
@@ -1527,6 +1533,10 @@ namespace App4
                 await Task.Delay(1000);
                 resetVar.CurrentValue = false;
             }
+
+            // Reset sonrası: G_KLIMA_TIP değerini bir kez daha gönder (KRL reset gecikmesi için)
+            await Task.Delay(500);
+            await ResendKlimaTipToRobots();
 
             // Simülasyon: İstasyon alarmlarını temizlemeyi dene
             foreach (var s in Stations) s.HasAlarm = false;
@@ -1597,6 +1607,41 @@ namespace App4
                 KnownRfids.Remove(item);
             }
         }
+        /// <summary>
+        /// Reset sırasında G_KLIMA_TIP değerini tüm bağlı robotlara zorla yeniden gönderir.
+        /// Robot KRL programı reset aldığında G_KLIMA_TIP'i dahili olarak 0'a temizler.
+        /// Bridge cache'deki değer hala aynı olduğu için otomatik yazma tetiklenmez,
+        /// bu yüzden değeri açıkça yeniden yazmamız gerekir.
+        /// </summary>
+        private async Task ResendKlimaTipToRobots()
+        {
+            try
+            {
+                int klimaIndex = GlobalData.AktuelKlimaIndex;
+                if (klimaIndex <= 0) return;
+
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots == null) return;
+
+                foreach (var robot in robots)
+                {
+                    if (robot.IsConnected)
+                    {
+                        try
+                        {
+                            await robot.WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString());
+                            // Robot Output var cache'ini de güncelle ki bridge "aynı değer" diye atlamamasın
+                            var outputVar = robot.OutputVars.FirstOrDefault(v => v.PlcTag == "G_KLIMA_TIP");
+                            if (outputVar != null) outputVar.Value = klimaIndex.ToString();
+                            AddLog($"[{robot.Name}] G_KLIMA_TIP={klimaIndex} yeniden gönderildi", "Cyan");
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+
         private void BtnClearLogs_Click(object sender, RoutedEventArgs e) => SystemLogs.Clear();
 
         private void AddLog(string msg, string clr) => SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
