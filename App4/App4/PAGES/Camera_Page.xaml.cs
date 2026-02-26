@@ -308,7 +308,7 @@ namespace App4.PAGES
         private PlcVariable FindPlcVariable(string tagName)
         {
             if (string.IsNullOrEmpty(tagName)) return null;
-            // Sırayla Genel Input, Genel Output ve PlcService listelerini tara
+            // Sırayla Genel Input, Genel Output, PlcService ve Robot listelerini tara
             var v = App4.Utilities.GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
             if (v != null) return v;
             v = App4.Utilities.GlobalData.GeneralOutputVars.FirstOrDefault(x => x.Name == tagName);
@@ -321,6 +321,26 @@ namespace App4.PAGES
                 v = App4.Utilities.PlcService.Instance.OutputVariables.FirstOrDefault(x => x.Name == tagName);
                 if (v != null) return v;
             }
+
+            // Robot Instance Variables (canli degerler - oncelikli)
+            var robots = App4.Utilities.KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                foreach (var robot in robots)
+                {
+                    v = robot.InputVars.FirstOrDefault(x => x.Name == tagName);
+                    if (v != null) return v;
+                    v = robot.OutputVars.FirstOrDefault(x => x.Name == tagName);
+                    if (v != null) return v;
+                }
+            }
+
+            // Robot GlobalData sablonu (yedek)
+            v = App4.Utilities.GlobalData.RobotInputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+            v = App4.Utilities.GlobalData.RobotOutputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+
             return null;
         }
 
@@ -371,7 +391,27 @@ namespace App4.PAGES
                 var serviceOut = App4.Utilities.PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == tagName);
                 if (serviceOut != null) return serviceOut.Value ?? "---";
             }
-            
+
+            // 4. Robot Instance Variables (canli degerler)
+            var robots = App4.Utilities.KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                foreach (var robot in robots)
+                {
+                    var riVar = robot.InputVars.FirstOrDefault(v => v.Name == tagName);
+                    if (riVar != null) return riVar.Value ?? "---";
+                    var roVar = robot.OutputVars.FirstOrDefault(v => v.Name == tagName);
+                    if (roVar != null) return roVar.Value ?? "---";
+                }
+            }
+
+            // 5. Robot GlobalData sablonu (yedek)
+            var robotIn = App4.Utilities.GlobalData.RobotInputVars.FirstOrDefault(v => v.Name == tagName);
+            if (robotIn != null) return robotIn.Value ?? "---";
+
+            var robotOut = App4.Utilities.GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == tagName);
+            if (robotOut != null) return robotOut.Value ?? "---";
+
             return "---";
         }
 
@@ -511,6 +551,26 @@ namespace App4.PAGES
                 foreach (var v in App4.Utilities.GlobalData.GeneralInputVars)
                     if (!string.IsNullOrEmpty(v.Name)) newInputs.Add(v.Name);
 
+                // C. Robot Input/Output Variables (Robot tag'leri direkt secim icin)
+                foreach (var v in App4.Utilities.GlobalData.RobotInputVars)
+                    if (!string.IsNullOrEmpty(v.Name)) newInputs.Add(v.Name);
+
+                foreach (var v in App4.Utilities.GlobalData.RobotOutputVars)
+                    if (!string.IsNullOrEmpty(v.Name)) newOutputs.Add(v.Name);
+
+                // D. Robot Instance Variables (canli robot degiskenleri)
+                var robots = App4.Utilities.KukaRobotManager.Instance?.Robots;
+                if (robots != null)
+                {
+                    foreach (var robot in robots)
+                    {
+                        foreach (var v in robot.InputVars)
+                            if (!string.IsNullOrEmpty(v.Name)) newInputs.Add(v.Name);
+                        foreach (var v in robot.OutputVars)
+                            if (!string.IsNullOrEmpty(v.Name)) newOutputs.Add(v.Name);
+                    }
+                }
+
                 // ---------------------------------------------------------
                 // 2. AKILLI SENKRONİZASYON (Output Tags) - Asla Clear() Yapma!
                 // ---------------------------------------------------------
@@ -568,8 +628,8 @@ namespace App4.PAGES
                 if (!string.IsNullOrEmpty(rfid) && PlcAllTags.Contains(rfid))
                     CmbRfidTag.SelectedItem = rfid;
 
-                if (!string.IsNullOrEmpty(index) && PlcAllTags.Contains(index))
-                    CmbIndexTag.SelectedItem = index;
+                if (!string.IsNullOrEmpty(index))
+                    CmbIndexTag.Text = index;
 
                 if (!string.IsNullOrEmpty(trigger) && PlcInputTags.Contains(trigger))
                     CmbTriggerTag.SelectedItem = trigger;
@@ -1111,11 +1171,6 @@ namespace App4.PAGES
                     App4.Utilities.GlobalData.Auto_RfidTag = selectedTag;
                     AddLog($"✓ RFID Tag kaydedildi: {selectedTag}");
                 }
-                else if (cmb.Name == "CmbIndexTag")
-                {
-                    App4.Utilities.GlobalData.Auto_IndexTag = selectedTag;
-                    AddLog($"✓ Index Tag kaydedildi: {selectedTag}");
-                }
                 else if (cmb.Name == "CmbTriggerTag")
                 {
                     App4.Utilities.GlobalData.Auto_TriggerTag = selectedTag;
@@ -1133,7 +1188,57 @@ namespace App4.PAGES
             }
         }
 
-     
+        // --- JOB INDEX TAG ARAMA (AutoSuggestBox) ---
+        private void CmbIndexTag_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                var query = sender.Text?.Trim().ToUpperInvariant() ?? "";
+                if (string.IsNullOrEmpty(query))
+                {
+                    sender.ItemsSource = PlcAllTags.ToList();
+                }
+                else
+                {
+                    sender.ItemsSource = PlcAllTags
+                        .Where(t => t.ToUpperInvariant().Contains(query))
+                        .ToList();
+                }
+            }
+        }
+
+        private void CmbIndexTag_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is string selectedTag)
+            {
+                SelectedIndexTag = selectedTag;
+                App4.Utilities.GlobalData.SaveAutomationSettings();
+                AddLog($"✓ Index Tag kaydedildi: {selectedTag}");
+            }
+        }
+
+        private void CmbIndexTag_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            if (args.ChosenSuggestion is string selectedTag)
+            {
+                SelectedIndexTag = selectedTag;
+                App4.Utilities.GlobalData.SaveAutomationSettings();
+                AddLog($"✓ Index Tag kaydedildi: {selectedTag}");
+            }
+            else if (!string.IsNullOrEmpty(args.QueryText))
+            {
+                // Tam eşleşme kontrolü
+                var match = PlcAllTags.FirstOrDefault(t => t.Equals(args.QueryText, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    SelectedIndexTag = match;
+                    sender.Text = match;
+                    App4.Utilities.GlobalData.SaveAutomationSettings();
+                    AddLog($"✓ Index Tag kaydedildi: {match}");
+                }
+            }
+        }
+
         // --- 4. MANUEL BUTON & UI EVENTLERİ ---
         private async void BtnManualTrigger_Click(object sender, RoutedEventArgs e)
         {

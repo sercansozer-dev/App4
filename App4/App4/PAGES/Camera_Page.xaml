@@ -287,21 +287,22 @@
                                             </StackPanel>
                                         </Border>
                                         
-                                        <ComboBox x:Name="CmbIndexTag"
-                                            ItemsSource="{x:Bind PlcAllTags, Mode=OneWay}"
-                                            SelectedItem="{x:Bind SelectedIndexTag, Mode=TwoWay}"
-                                            SelectionChanged="AutomationComboBox_SelectionChanged"
-                                            PlaceholderText="Tag Seçiniz..."
-                                            HorizontalAlignment="Stretch" FontSize="11" Height="34" VerticalAlignment="Center"
+                                        <AutoSuggestBox x:Name="CmbIndexTag"
+                                            PlaceholderText="&#xE721; Tag ara ve sec..."
+                                            Text="{x:Bind SelectedIndexTag, Mode=TwoWay}"
+                                            TextChanged="CmbIndexTag_TextChanged"
+                                            SuggestionChosen="CmbIndexTag_SuggestionChosen"
+                                            QuerySubmitted="CmbIndexTag_QuerySubmitted"
+                                            HorizontalAlignment="Stretch" FontSize="11"
                                             Foreground="White" Background="#0F1F2F" BorderBrush="#00A4EF" BorderThickness="2" CornerRadius="6">
-                                            <ComboBox.Resources>
-                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A3A"/>
-                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
-                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
-                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#00A4EF"/>
-                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
-                                            </ComboBox.Resources>
-                                        </ComboBox>
+                                            <AutoSuggestBox.QueryIcon>
+                                                <SymbolIcon Symbol="Find"/>
+                                            </AutoSuggestBox.QueryIcon>
+                                            <AutoSuggestBox.Resources>
+                                                <SolidColorBrush x:Key="AutoSuggestBoxSuggestionsListBackground" Color="#1A2A3A"/>
+                                                <SolidColorBrush x:Key="AutoSuggestBoxSuggestionsListBorderBrush" Color="#00A4EF"/>
+                                            </AutoSuggestBox.Resources>
+                                        </AutoSuggestBox>
                                     </StackPanel>
                                 </Border>
 

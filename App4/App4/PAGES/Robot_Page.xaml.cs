@@ -924,9 +924,16 @@ namespace App4.Pages
                         if (string.IsNullOrEmpty(robotVar.Value)) continue;
                         string currentValue = robotVar.Value;
 
-                        if (robot.IsConnected && PlcService.Instance.IsConnected && plcVar.Value != currentValue)
+                        if (plcVar.Value != currentValue)
                         {
-                            await PlcService.Instance.WriteAsync(plcVar, currentValue);
+                            // 1. Lokal değeri güncelle (Camera_Page vb. hemen görsün)
+                            this.DispatcherQueue.TryEnqueue(() => plcVar.CurrentValue = currentValue);
+
+                            // 2. PLC'ye de yaz (bağlıysa)
+                            if (robot.IsConnected && PlcService.Instance?.IsConnected == true)
+                            {
+                                try { await PlcService.Instance.WriteAsync(plcVar, currentValue); } catch { }
+                            }
                         }
                     }
                     else // PLC→Robot
