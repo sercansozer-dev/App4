@@ -1213,6 +1213,18 @@ namespace App4
                 AvailableInputPlcTags.Clear(); AvailableOutputPlcTags.Clear();
                 foreach (var v in PlcService.Instance.InputVariables) AvailableInputPlcTags.Add(v.Name);
                 foreach (var v in PlcService.Instance.OutputVariables) AvailableOutputPlcTags.Add(v.Name);
+
+                // Robot InputVars'ları R1:/R2: prefix'iyle ekle (dinamik — Robot_Page'den eklenen/çıkarılan sinyaller burada görünür)
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null)
+                {
+                    for (int i = 0; i < robots.Count; i++)
+                    {
+                        foreach (var v in robots[i].InputVars)
+                            if (!string.IsNullOrEmpty(v.Name))
+                                AvailableInputPlcTags.Add($"R{i + 1}:{v.Name}");
+                    }
+                }
             }
             catch { }
         }
@@ -1299,11 +1311,26 @@ namespace App4
         }
 
         // --- GÜVENLİ DEĞER KONTROLÜ (BOOL, INT, STRING HEPSİNİ KABUL EDER) ---
-        // GENİŞLETİLDİ: GeneralInputVars + PlcService değişkenlerinde arar
+        // GENİŞLETİLDİ: GeneralInputVars + PlcService + Robot InputVars değişkenlerinde arar
         private bool IsConditionMet(string varName, bool expectedTrue)
         {
+            PlcVariable variable = null;
+
+            // 0. Robot prefix kontrolü (R1:xxx, R2:xxx)
+            if (varName.StartsWith("R") && varName.Contains(":"))
+            {
+                var parts = varName.Split(':', 2);
+                if (int.TryParse(parts[0].Substring(1), out int ri) && ri >= 1)
+                {
+                    var robots = KukaRobotManager.Instance?.Robots;
+                    if (robots != null && ri <= robots.Count)
+                        variable = robots[ri - 1].InputVars.FirstOrDefault(v => v.Name == parts[1]);
+                }
+            }
+
             // 1. Önce GeneralInputVars'ta ara
-            PlcVariable variable = GeneralInputVars.FirstOrDefault(v => v.Name == varName);
+            if (variable == null)
+                variable = GeneralInputVars.FirstOrDefault(v => v.Name == varName);
 
             // 2. Bulamazsa PlcService Input/Output değişkenlerinde ara
             if (variable == null && PlcService.Instance != null)
@@ -1347,6 +1374,13 @@ namespace App4
                 }
             }
 
+            // 1b. ROBOT HATA KONTROLÜ
+            if (string.IsNullOrEmpty(physicalErrorMessage))
+            {
+                physicalErrorMessage = CheckRobotAlarms();
+            }
+
+            // 1c. İSTASYON ALARM KONTROLÜ
             if (string.IsNullOrEmpty(physicalErrorMessage))
             {
                 if (Stations.Any(s => s.HasAlarm))
@@ -1511,6 +1545,12 @@ namespace App4
             if (string.IsNullOrEmpty(remainingError) && Stations.Any(s => s.HasAlarm))
             {
                 remainingError = "İSTASYON ARIZASI";
+            }
+
+            // Robot hata kontrolü
+            if (string.IsNullOrEmpty(remainingError))
+            {
+                remainingError = CheckRobotAlarms();
             }
 
             // Karar: Arızalar tamamen gitti mi?
@@ -1746,6 +1786,9 @@ namespace App4
                             this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[0], 1));
                             // Robot 1 sinyal tetiklemeleri
                             CheckRobotTriggerSignal(v, robots[0], 1);
+                            // Alarm sinyalleri değiştiğinde alarm sistemini güncelle
+                            if (v.Name == "G_HATA_VAR" || v.Name == "G_ROBOT_DURUM" || v.Name == "G_HATA_KODU")
+                                this.DispatcherQueue.TryEnqueue(() => UpdateLineStatusVisuals());
                         }
                     };
                 }
@@ -1766,6 +1809,9 @@ namespace App4
                             this.DispatcherQueue.TryEnqueue(() => UpdateRobotStatusPanel(robots[1], 2));
                             // Robot 2 sinyal tetiklemeleri
                             CheckRobotTriggerSignal(v, robots[1], 2);
+                            // Alarm sinyalleri değiştiğinde alarm sistemini güncelle
+                            if (v.Name == "G_HATA_VAR" || v.Name == "G_ROBOT_DURUM" || v.Name == "G_HATA_KODU")
+                                this.DispatcherQueue.TryEnqueue(() => UpdateLineStatusVisuals());
                         }
                     };
                 }
@@ -1984,6 +2030,41 @@ namespace App4
             });
         }
 
+        // =====================================================
+        // ROBOT ALARM KONTROLÜ
+        // Robot G_HATA_VAR veya G_ROBOT_DURUM=2 ise alarm döndürür
+        // =====================================================
+        private string CheckRobotAlarms()
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null) return null;
+
+            for (int i = 0; i < robots.Count; i++)
+            {
+                var robot = robots[i];
+                if (!robot.IsConnected) continue;
+
+                string GetVar(string name) => robot.InputVars.FirstOrDefault(v => v.Name == name)?.Value ?? "";
+
+                bool hataVar = GetVar("G_HATA_VAR")?.ToUpper() == "TRUE" || GetVar("G_HATA_VAR") == "1";
+                int robotDurum = int.TryParse(GetVar("G_ROBOT_DURUM"), out var rd) ? rd : -1;
+                int hataKodu = int.TryParse(GetVar("G_HATA_KODU"), out var hk) ? hk : 0;
+
+                if (hataVar || robotDurum == 2)
+                {
+                    string hataDesc = hataKodu switch
+                    {
+                        5 => "Tabla Timeout",
+                        6 => "Olcum Timeout",
+                        99 => "Genel Hata",
+                        _ => hataKodu > 0 ? $"Kod: {hataKodu}" : "Hata Var"
+                    };
+                    return $"ROBOT {i + 1} HATASI ({hataDesc})";
+                }
+            }
+            return null;
+        }
+
         private void UpdateRobotStatusPanel(KukaRobotInstance robot, int robotNo)
         {
             try
@@ -2064,24 +2145,31 @@ namespace App4
                     warningText = $"NOK: {nokSayisi} basarisiz olcum";
                 }
 
+                // Hata badge arkaplan rengi
+                string hataBadgeBg = (hataVar || hataKodu > 0) ? "#2A0A0A" : "#1A2A1A";
+                // Kart border rengi (hata varsa kırmızı, çalışıyorsa turuncu, normal gri)
+                string cardBorderColor = (hataVar || robotDurum == 2) ? "#F44336" :
+                    (robotDurum == 1 || robotDurum >= 10) ? "#FF9800" :
+                    robot.IsConnected ? "#333" : "#222";
+
                 // UI Guncelle
                 if (robotNo == 1)
                 {
                     SetTextSafe(Robot1DurumText, durumText, durumColor);
-                    SetTextSafe(Robot1MesajText, mesajText, "#888");
-                    SetTextSafe(Robot1HataText, hataText, hataColor);
-                    SetTextSafe(Robot1NoktaText, aktifNokta > 0 ? $"{aktifNokta} / {toplamNokta}" : "---", "#888");
+                    SetTextSafe(Robot1MesajText, mesajText, "#666");
+                    SetTextSafe(Robot1HataText, $"Hata: {hataText}", hataColor);
                     SetDotColor(Robot1StatusDot, dotColor);
-                    SetWarning(Robot1WarningBorder, Robot1WarningText, warningText);
+                    SetBorderBgSafe(Robot1HataBadge, hataBadgeBg);
+                    SetBorderColorSafe(Robot1StatusCard, cardBorderColor);
                 }
                 else
                 {
                     SetTextSafe(Robot2DurumText, durumText, durumColor);
-                    SetTextSafe(Robot2MesajText, mesajText, "#888");
-                    SetTextSafe(Robot2HataText, hataText, hataColor);
-                    SetTextSafe(Robot2CizgiText, aktifCizgi > 0 ? $"{aktifCizgi} / {toplamCizgi}" : "---", "#888");
+                    SetTextSafe(Robot2MesajText, mesajText, "#666");
+                    SetTextSafe(Robot2HataText, $"Hata: {hataText}", hataColor);
                     SetDotColor(Robot2StatusDot, dotColor);
-                    SetWarning(Robot2WarningBorder, Robot2WarningText, warningText);
+                    SetBorderBgSafe(Robot2HataBadge, hataBadgeBg);
+                    SetBorderColorSafe(Robot2StatusCard, cardBorderColor);
                 }
             }
             catch { /* Güvenli hata yutma */ }
@@ -2152,6 +2240,18 @@ namespace App4
         {
             if (dot == null) return;
             try { dot.Background = new SolidColorBrush(ParseHexColor(color)); } catch { }
+        }
+
+        private void SetBorderBgSafe(Border border, string color)
+        {
+            if (border == null) return;
+            try { border.Background = new SolidColorBrush(ParseHexColor(color)); } catch { }
+        }
+
+        private void SetBorderColorSafe(Border border, string color)
+        {
+            if (border == null) return;
+            try { border.BorderBrush = new SolidColorBrush(ParseHexColor(color)); } catch { }
         }
 
         private void SetWarning(Border border, TextBlock text, string message)
