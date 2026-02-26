@@ -370,6 +370,104 @@ namespace App4.Pages
             // Köprü eşleşmelerini işle
             _ = ProcessMappingsAsync();
             _ = ProcessRobotRobotMappingsAsync();
+<<<<<<< Updated upstream
+=======
+
+            // Referans tablosundaki canlı sinyalleri güncelle
+            UpdateRefLiveSignals();
+        }
+
+        // ═══ REFERANS TABLOSU CANLI SİNYAL GÜNCELLEMESİ ═══
+        private void UpdateRefLiveSignals()
+        {
+            try
+            {
+                var robots = KukaRobotManager.Instance.Robots;
+
+                // Robot 1
+                if (robots.Count > 0)
+                {
+                    var r1 = robots[0];
+                    string GetVar(string name) => r1.InputVars.FirstOrDefault(v => v.Name == name)?.Value ?? "---";
+
+                    string r1Durum = GetVar("G_ROBOT_DURUM");
+                    string r1Mesaj = GetVar("G_DURUM_MESAJ");
+                    string r1HataVar = GetVar("G_HATA_VAR");
+                    string r1HataKodu = GetVar("G_HATA_KODU");
+
+                    int.TryParse(r1Durum, out int rd1);
+                    bool hata1 = r1HataVar?.ToUpper() == "TRUE" || r1HataVar == "1";
+
+                    // Durum rengi
+                    string durumColor1 = rd1 switch { 0 => "#4CAF50", 1 => "#FF9800", 2 => "#F44336", _ => "#888" };
+                    string dotColor1 = !r1.IsConnected ? "#555" : (hata1 || rd1 == 2) ? "#F44336" : (rd1 >= 1) ? "#FF9800" : "#4CAF50";
+                    string hataColor1 = (hata1 || r1HataKodu != "0" && r1HataKodu != "---") ? "#F44336" : "#4CAF50";
+
+                    SetRefText(RefR1RobotDurum, $"{r1Durum} ({DecodeDurum(rd1)})", durumColor1);
+                    SetRefText(RefR1DurumMesaj, r1Mesaj, "#888");
+                    SetRefText(RefR1HataVar, r1HataVar, hataColor1);
+                    SetRefText(RefR1HataKodu, r1HataKodu, hataColor1);
+                    SetRefDot(RefR1StatusDot, dotColor1);
+                }
+
+                // Robot 2
+                if (robots.Count > 1)
+                {
+                    var r2 = robots[1];
+                    string GetVar(string name) => r2.InputVars.FirstOrDefault(v => v.Name == name)?.Value ?? "---";
+
+                    string r2Durum = GetVar("G_ROBOT_DURUM");
+                    string r2Mesaj = GetVar("G_DURUM_MESAJ");
+                    string r2HataVar = GetVar("G_HATA_VAR");
+                    string r2HataKodu = GetVar("G_HATA_KODU");
+
+                    int.TryParse(r2Durum, out int rd2);
+                    bool hata2 = r2HataVar?.ToUpper() == "TRUE" || r2HataVar == "1";
+
+                    string durumColor2 = rd2 switch { 0 => "#4CAF50", 1 => "#FF9800", 2 => "#F44336", _ => "#888" };
+                    string dotColor2 = !r2.IsConnected ? "#555" : (hata2 || rd2 == 2) ? "#F44336" : (rd2 >= 1) ? "#FF9800" : "#4CAF50";
+                    string hataColor2 = (hata2 || r2HataKodu != "0" && r2HataKodu != "---") ? "#F44336" : "#4CAF50";
+
+                    SetRefText(RefR2RobotDurum, $"{r2Durum} ({DecodeDurum(rd2)})", durumColor2);
+                    SetRefText(RefR2DurumMesaj, r2Mesaj, "#888");
+                    SetRefText(RefR2HataVar, r2HataVar, hataColor2);
+                    SetRefText(RefR2HataKodu, r2HataKodu, hataColor2);
+                    SetRefDot(RefR2StatusDot, dotColor2);
+                }
+            }
+            catch { }
+        }
+
+        private static string DecodeDurum(int durum) => durum switch
+        {
+            0 => "Bosta",
+            1 => "Calisiyor",
+            2 => "HATA",
+            10 => "Gocator Bekleniyor",
+            11 => "Gocator OK",
+            12 => "Gocator NOK",
+            20 => "Sniffer Bekleniyor",
+            21 => "Sniffer OK",
+            22 => "Sniffer NOK",
+            30 => "Slider Hareket",
+            31 => "Slider Tamam",
+            50 => "Tabla Bekleniyor",
+            51 => "Tabla OK",
+            _ => $"Kod:{durum}"
+        };
+
+        private void SetRefText(TextBlock tb, string text, string color)
+        {
+            if (tb == null) return;
+            tb.Text = text ?? "---";
+            try { tb.Foreground = new SolidColorBrush(ParseColor(color)); } catch { }
+        }
+
+        private void SetRefDot(Border dot, string color)
+        {
+            if (dot == null) return;
+            try { dot.Background = new SolidColorBrush(ParseColor(color)); } catch { }
+>>>>>>> Stashed changes
         }
 
         private void LogMessage(string msg)
