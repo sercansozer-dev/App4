@@ -48,6 +48,60 @@ namespace App4.Utilities
         public static ObservableCollection<GocatorMeasurement> TablaLastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> TablaTransferRows { get; private set; } = new();
 
+        // ═══ AKTUEL RFID / KLİMA INDEX ═══
+        // Her yerden erişilebilir statik property'ler
+        private static string _aktuelRfid = "";
+        public static string AktuelRfid
+        {
+            get => _aktuelRfid;
+            set
+            {
+                if (_aktuelRfid != value)
+                {
+                    _aktuelRfid = value ?? "";
+                    // GeneralOutputVars'taki değişkeni de güncelle (UI tablosunda görünsün)
+                    var rfidVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
+                    if (rfidVar != null && rfidVar.Value != _aktuelRfid)
+                        rfidVar.Value = _aktuelRfid;
+                    // PlcService bridge değişkenini de güncelle (PLC'ye yazılsın)
+                    var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
+                    if (plcVar != null && plcVar.CurrentValue?.ToString() != _aktuelRfid)
+                        plcVar.CurrentValue = _aktuelRfid;
+                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelRfid = '{_aktuelRfid}'");
+                }
+            }
+        }
+
+        private static int _aktuelKlimaIndex = 0;
+        public static int AktuelKlimaIndex
+        {
+            get => _aktuelKlimaIndex;
+            set
+            {
+                if (_aktuelKlimaIndex != value)
+                {
+                    _aktuelKlimaIndex = value;
+                    // GeneralOutputVars'taki değişkeni de güncelle (UI tablosunda görünsün)
+                    var indexVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
+                    if (indexVar != null)
+                    {
+                        string idxStr = _aktuelKlimaIndex.ToString();
+                        if (indexVar.Value != idxStr)
+                            indexVar.Value = idxStr;
+                    }
+                    // PlcService bridge değişkenini de güncelle (PLC'ye yazılsın)
+                    var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
+                    if (plcVar != null)
+                    {
+                        object cv = plcVar.CurrentValue;
+                        if (cv?.ToString() != _aktuelKlimaIndex.ToString())
+                            plcVar.CurrentValue = _aktuelKlimaIndex;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelKlimaIndex = {_aktuelKlimaIndex}");
+                }
+            }
+        }
+
         // PLC Değişken Listeleri
         public static ObservableCollection<PlcVariable> GeneralInputVars { get; private set; } = new();
         public static ObservableCollection<PlcVariable> GeneralOutputVars { get; private set; } = new();
@@ -746,12 +800,13 @@ namespace App4.Utilities
             if (RobotInputVars.Count == 0)
             {
                 // --- ROBOT GENEL DURUM ---
-                RobotInputVars.Add(Create("G_ROBOT_DURUM", "INT", "Input", 0));          // 0=Bosta 1=Calisiyor 2=Hata 10=GocatorBekle 11=GocatorOK 20=InficonBekle 21=InficonOK 22=InficonNOK
+                RobotInputVars.Add(Create("G_ROBOT_DURUM", "INT", "Input", 0));          // R1: 0=Bosta 1=Calisiyor 2=Hata 10-12=Gocator 50-51=Tabla | R2: 5=Timeout 10-11=TablaOffset 20-22=Sniffer 30-31=Slider
                 RobotInputVars.Add(Create("G_IS_BITTI", "BOOL", "Input", false));         // Is tamamlandi bayragi
                 RobotInputVars.Add(Create("G_HATA_VAR", "BOOL", "Input", false));         // Hata var bayragi
                 RobotInputVars.Add(Create("G_HATA_KODU", "INT", "Input", 0));             // Hata kodu
                 // --- KLIMA SECIMI ---
-                RobotInputVars.Add(Create("G_KLIMA_TIP", "INT", "Input", 0));             // 0=Secilmedi 1..11=Klima tipi
+                RobotInputVars.Add(Create("G_KLIMA_TIP", "INT", "Input", 0));             // 0=Secilmedi 1..N=Klima tipi
+                RobotInputVars.Add(Create("G_KLIMA_ADET", "INT", "Input", 0));            // Toplam klima tipi sayisi
                 RobotInputVars.Add(Create("G_AKTIF_NOKTA", "INT", "Input", 0));           // Suanki olcum noktasi (1..7)
                 RobotInputVars.Add(Create("G_TOPLAM_NOKTA", "INT", "Input", 0));          // Toplam olcum noktasi
                 RobotInputVars.Add(Create("G_NOK_SAYISI", "INT", "Input", 0));            // Basarisiz nokta sayisi
@@ -764,9 +819,11 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_OFFSET_A", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_OFFSET_B", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_OFFSET_C", "REAL", "Input", 0.0));
-                RobotInputVars.Add(Create("G_GOCATOR_TARA", "BOOL", "Input", false));     // Robot -> PC : Gocator cekimi baslat
-                RobotInputVars.Add(Create("G_GOCATOR_TAMAM", "BOOL", "Input", false));    // PC -> Robot : Gocator cekim tamamlandi
-                RobotInputVars.Add(Create("G_OFFSET_HAZIR", "BOOL", "Input", false));     // Offset degerleri hazir bayragi
+                // --- GOCATOR OLCUM SISTEMI (TEKLI JOB INDEX) ---
+                RobotInputVars.Add(Create("G_JOB_INDEX", "INT", "Input", 0));             // Gocator job (0=tabla, 1..N=boru noktasi)
+                RobotInputVars.Add(Create("G_OLCUM_TETIK", "BOOL", "Input", false));      // Robot -> PC : Olcum baslat
+                RobotInputVars.Add(Create("G_OLCUM_TAMAM", "BOOL", "Input", false));      // PC -> Robot : Olcum tamamlandi
+                RobotInputVars.Add(Create("G_OLCUM_OK", "BOOL", "Input", false));         // PC -> Robot : Sonuc OK/NOK
                 // --- GOCATOR TABLA OFFSET ---
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_Y", "REAL", "Input", 0.0));
@@ -774,13 +831,6 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_A", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_B", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_C", "REAL", "Input", 0.0));
-                RobotInputVars.Add(Create("G_TABLA_TARA", "BOOL", "Input", false));       // Robot -> PC : Tabla tarama baslat
-                RobotInputVars.Add(Create("G_TABLA_TAMAM", "BOOL", "Input", false));      // PC -> Robot : Tabla tarama tamamlandi
-                // --- INFICON OLCUM ---
-                RobotInputVars.Add(Create("G_INFICON_DEGER", "REAL", "Input", 0.0));      // Inficon olcum degeri
-                RobotInputVars.Add(Create("G_INFICON_OLCUM_YAP", "BOOL", "Input", false)); // Robot -> PC : Inficon olcum baslat
-                RobotInputVars.Add(Create("G_INFICON_TAMAM", "BOOL", "Input", false));    // PC -> Robot : Inficon olcum tamamlandi
-                RobotInputVars.Add(Create("G_INFICON_OK", "BOOL", "Input", false));       // PC -> Robot : Olcum sonucu OK/NOK
                 // --- DURUM MESAJI ---
                 RobotInputVars.Add(Create("G_DURUM_MESAJ", "INT", "Input", 0));           // Durum mesaj kodu (INT)
                 // --- RESET ---
@@ -798,6 +848,7 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Input", false));    // Slider hareket ediyor
                 RobotInputVars.Add(Create("G_SLIDER_TAMAM", "BOOL", "Input", false));      // Slider hedefe ulasti
                 RobotInputVars.Add(Create("G_SLIDER_HOME", "BOOL", "Input", false));       // Slider home pozisyonunda
+                RobotInputVars.Add(Create("G_SLIDER_AKTUEL_POZ", "REAL", "Input", 0.0));   // Slider aktuel pozisyon (mm)
                 // --- ROBOT 2 TABLA OFFSET DURUMU ---
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Input", false)); // Robot 1'den tabla offset alindi mi
             }
@@ -813,6 +864,7 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_DUR", "BOOL", "Output", false));            // Dur komutu (PC'den yazilir)
                 RobotOutputVars.Add(Create("G_RESET", "BOOL", "Output", false));          // Reset komutu (PC'den yazilir)
                 RobotOutputVars.Add(Create("G_KLIMA_TIP", "INT", "Output", 0));           // Klima tipi secimi (PC'den yazilir)
+                RobotOutputVars.Add(Create("G_KLIMA_ADET", "INT", "Output", 0));          // Toplam klima tipi sayisi (PC'den yazilir)
                 // --- GOCATOR BORU OFFSET (PC yazar) ---
                 RobotOutputVars.Add(Create("G_OFFSET_X", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_OFFSET_Y", "REAL", "Output", 0.0));
@@ -820,8 +872,9 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_OFFSET_A", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_OFFSET_B", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_OFFSET_C", "REAL", "Output", 0.0));
-                RobotOutputVars.Add(Create("G_OFFSET_HAZIR", "BOOL", "Output", false));   // Offset degerleri hazir
-                RobotOutputVars.Add(Create("G_GOCATOR_TAMAM", "BOOL", "Output", false));  // Gocator cekim tamamlandi
+                // --- OLCUM SONUC (PC -> Robot) ---
+                RobotOutputVars.Add(Create("G_OLCUM_TAMAM", "BOOL", "Output", false));    // Olcum tamamlandi (PC -> Robot)
+                RobotOutputVars.Add(Create("G_OLCUM_OK", "BOOL", "Output", false));       // Sonuc OK/NOK (PC -> Robot)
                 // --- GOCATOR TABLA OFFSET (PC yazar) ---
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_Y", "REAL", "Output", 0.0));
@@ -829,13 +882,7 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_A", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_B", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_C", "REAL", "Output", 0.0));
-                RobotOutputVars.Add(Create("G_TABLA_TAMAM", "BOOL", "Output", false));    // Tabla tarama tamamlandi
-                // --- INFICON (PC yazar) ---
-                RobotOutputVars.Add(Create("G_INFICON_OLCUM", "BOOL", "Output", false));  // Inficon olcum baslat (manuel buton)
-                RobotOutputVars.Add(Create("G_INFICON_RESET", "BOOL", "Output", false));  // Inficon cihaz reset (manuel buton)
-                RobotOutputVars.Add(Create("G_INFICON_TAMAM", "BOOL", "Output", false));  // Inficon olcum tamamlandi
-                RobotOutputVars.Add(Create("G_INFICON_OK", "BOOL", "Output", false));     // Olcum sonucu OK/NOK
-                RobotOutputVars.Add(Create("G_INFICON_DEGER", "REAL", "Output", 0.0));    // Inficon olcum degeri (ppm)
+                RobotOutputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Output", false)); // Tabla offset hazir (R1 tabla olcum sonrasi)
                 // --- SISTEM KONTROL (PC -> Her iki Robot) ---
                 RobotOutputVars.Add(Create("G_SAFETY_OK", "BOOL", "Output", false));      // Safety sinyali uygun
                 RobotOutputVars.Add(Create("G_SISTEM_START", "BOOL", "Output", false));   // Sistem baslatma komutu
@@ -847,8 +894,11 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Output", 0.0));    // Sniffer olcum degeri
                 // --- ROBOT 2 SLIDER KONTROL (PC -> Robot 2) ---
                 RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
-                // --- ROBOT 2 TABLA OFFSET (Robot 1 -> Robot 2 bridge uzerinden) ---
-                RobotOutputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Output", false)); // Tabla offset hazir bayragi
+                RobotOutputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Output", false)); // Slider hareket komutu (PC -> Robot 2)
+                // --- ROBOT 2 SLIDER KOPRU (R2 -> R1 bridge) ---
+                RobotOutputVars.Add(Create("G_R2_SLIDER_TAMAM", "BOOL", "Output", false));  // R2 slider hedefe ulasti (Robot 1'e yazilir)
+                RobotOutputVars.Add(Create("G_R2_SLIDER_HOME", "BOOL", "Output", false));   // R2 slider home'da (Robot 1'e yazilir)
+                RobotOutputVars.Add(Create("G_R2_SLIDER_POZ", "REAL", "Output", 0.0));      // R2 slider aktuel poz (Robot 1'e yazilir)
                 // --- ÇAPRAZ ROBOT DURUM (Robot-Robot haberleşme) ---
                 RobotOutputVars.Add(Create("G_R1_IS_BITTI", "BOOL", "Output", false));       // Robot 1 iş bitti (Robot 2'ye yazılır)
                 RobotOutputVars.Add(Create("G_R1_ROBOT_DURUM", "INT", "Output", 0));         // Robot 1 durum (Robot 2'ye yazılır)

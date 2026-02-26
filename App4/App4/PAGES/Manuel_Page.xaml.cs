@@ -100,12 +100,12 @@ namespace App4
             TxtBoruC.Text = GetVar("G_GOCATOR_C");
 
             StatusBoruTara.Text = "TARA: " + (IsTrue("G_TARA") ? "Açık" : "Kapalı");
-            StatusBoruTamam.Text = "TAMAM: " + (IsTrue("G_GOCATOR_TAMAM") ? "Açık" : "Kapalı");
-            StatusBoruHazir.Text = "HAZIR: " + (IsTrue("G_OFFSET_HAZIR") ? "Açık" : "Kapalı");
+            StatusBoruTamam.Text = "TAMAM: " + (IsTrue("G_OLCUM_TAMAM") ? "Açık" : "Kapalı");
+            StatusBoruHazir.Text = "OK: " + (IsTrue("G_OLCUM_OK") ? "Başarılı" : "Bekleniyor");
 
             TxtInficonDeger.Text = GetVar("L_INFICON_DEGER");
-            StatusInficonTamam.Text = "TAMAM: " + (IsTrue("G_INFICON_TAMAM") ? "Açık" : "Kapalı");
-            StatusInficonOk.Text = "OK (Sonuç): " + (IsTrue("G_INFICON_OK") ? "Başarılı" : "Bekleniyor");
+            StatusInficonTamam.Text = "TAMAM: " + (IsTrue("G_OLCUM_TAMAM") ? "Açık" : "Kapalı");
+            StatusInficonOk.Text = "OK (Sonuç): " + (IsTrue("G_OLCUM_OK") ? "Başarılı" : "Bekleniyor");
 
             TxtTablaX.Text = GetVar("T_OFFSET_X");
             TxtTablaY.Text = GetVar("T_OFFSET_Y");
@@ -115,7 +115,7 @@ namespace App4
             TxtTablaC.Text = GetVar("T_OFFSET_C");
 
             StatusTablaTara.Text = "TARA: " + (IsTrue("T_TABLA_TARA") ? "Açık" : "Kapalı");
-            StatusTablaTamam.Text = "TAMAM: " + (IsTrue("G_TABLA_TAMAM") ? "Açık" : "Kapalı");
+            StatusTablaTamam.Text = "TAMAM: " + (IsTrue("G_OLCUM_TAMAM") ? "Açık" : "Kapalı");
 
             // Otomatik modda RFID'ye göre klima tipi index'ini robotlara gönder
             _ = UpdateAutoKlimaTipFromRfid();
@@ -339,44 +339,44 @@ namespace App4
 
         private async void BtnOffsetHazir_Click(object sender, RoutedEventArgs e)
         {
-            await WriteGlobalRobotOutVarAsync("G_OFFSET_HAZIR", "TRUE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_OK", "TRUE");
             await Task.Delay(500);
-            await WriteGlobalRobotOutVarAsync("G_OFFSET_HAZIR", "FALSE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_OK", "FALSE");
         }
 
         private async void BtnGocatorTamam_Click(object sender, RoutedEventArgs e)
         {
-            await WriteGlobalRobotOutVarAsync("G_GOCATOR_TAMAM", "TRUE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
             await Task.Delay(500);
-            await WriteGlobalRobotOutVarAsync("G_GOCATOR_TAMAM", "FALSE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
         }
 
         private async void BtnInficonOlcum_Click(object sender, RoutedEventArgs e)
         {
-            await WriteGlobalRobotOutVarAsync("G_INFICON_OLCUM", "TRUE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_OK", "TRUE");
             await Task.Delay(500);
-            await WriteGlobalRobotOutVarAsync("G_INFICON_OLCUM", "FALSE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_OK", "FALSE");
         }
 
         private async void BtnInficonReset_Click(object sender, RoutedEventArgs e)
         {
-            await WriteGlobalRobotOutVarAsync("G_INFICON_RESET", "TRUE");
-            await Task.Delay(500);
-            await WriteGlobalRobotOutVarAsync("G_INFICON_RESET", "FALSE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_OK", "FALSE");
+            await Task.Delay(200);
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
         }
 
         private async void BtnInficonTamam_Click(object sender, RoutedEventArgs e)
         {
-            await WriteGlobalRobotOutVarAsync("G_INFICON_TAMAM", "TRUE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
             await Task.Delay(500);
-            await WriteGlobalRobotOutVarAsync("G_INFICON_TAMAM", "FALSE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
         }
 
         private async void BtnTablaTamam_Click(object sender, RoutedEventArgs e)
         {
-            await WriteGlobalRobotOutVarAsync("G_TABLA_TAMAM", "TRUE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
             await Task.Delay(500);
-            await WriteGlobalRobotOutVarAsync("G_TABLA_TAMAM", "FALSE");
+            await WriteGlobalRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
         }
 
         // DÜZELTİLDİ: Tüm robotlara yazar (eskiden sadece 1. robota yazıyordu)

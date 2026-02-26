@@ -146,6 +146,10 @@ namespace App4
             ForceUpdateStations(Station3Vars);
             // ---------------------------------------------------------
 
+            // 2.9. AKTUEL_RFID ve AKTUEL_KLIMA_INDEX güncelle
+            // Tüm binding'ler tamamlandıktan sonra aktif istasyondan RFID bilgisini yaz
+            UpdateAktuelRfidFromStation();
+
             // 3. Hat Durum Işıklarını Yak
             UpdateLineStatusVisuals();
 
@@ -1146,6 +1150,10 @@ namespace App4
                 {
                     System.Diagnostics.Debug.WriteLine($"[MODEL] {station.Name}: Property={e.PropertyName} → Model güncelleniyor (Mode={station.RfidOpMode})");
                     this.DispatcherQueue.TryEnqueue(() => UpdateStationModel(station));
+
+                    // Her RFID/Mod değişikliğinde AKTUEL_RFID güncelle
+                    // (hangi istasyonun aktif olduğunu fonksiyon kendi belirler)
+                    UpdateAktuelRfidFromStation();
                 }
 
                 // PLC'ye Yazma İşlemleri (Eski kodunun aynısı)
@@ -1209,20 +1217,40 @@ namespace App4
             catch { }
         }
 
+        // PC tarafından yönetilen bridge değişkenler (PLC'den geri okuma yapılmaz, sadece yazılır)
+        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX" };
+
         private void ConnectToPlcVariable(PlcVariable localVar)
         {
             if (string.IsNullOrEmpty(localVar.PlcTag)) return;
             var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
-            
+
             if (sourceRealVar != null)
             {
-                // Okuma
-                localVar.Value = sourceRealVar.CurrentValue?.ToString();
-                sourceRealVar.PropertyChanged += (s, e) => { if (e.PropertyName == "CurrentValue") this.DispatcherQueue.TryEnqueue(() => localVar.Value = sourceRealVar.CurrentValue?.ToString()); };
-                // Yazma
+                bool isPcManaged = _pcManagedVars.Contains(localVar.Name);
+
+                if (!isPcManaged)
+                {
+                    // Normal değişken: PLC'den oku (initial sync + polling)
+                    localVar.Value = sourceRealVar.CurrentValue?.ToString();
+                    sourceRealVar.PropertyChanged += (s, e) => { if (e.PropertyName == "CurrentValue") this.DispatcherQueue.TryEnqueue(() => localVar.Value = sourceRealVar.CurrentValue?.ToString()); };
+                }
+                // else: PC-managed değişken → PLC'den okuma yapma, değer GlobalData'dan gelir
+
+                // Yazma (her iki tip için de): local değiştiğinde PLC'ye yaz
                 localVar.PropertyChanged += async (s, e) => {
                     if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
-                    { sourceRealVar.CurrentValue = localVar.CurrentValue; await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue); }
+                    {
+                        try
+                        {
+                            sourceRealVar.CurrentValue = localVar.CurrentValue;
+                            await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[PLC_WRITE] {localVar.Name} yazma hatası: {ex.Message}");
+                        }
+                    }
                 };
             }
             else
@@ -1533,7 +1561,90 @@ namespace App4
 
         private void AddLog(string msg, string clr) => SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
         private void UpdatePlcVar(ObservableCollection<PlcVariable> c, string n, string v) { var i = c.FirstOrDefault(x => x.Name == n); if (i != null && i.Value != v) i.Value = v; }
-        private void UpdateSliderPosition(string v) { foreach (var s in Stations) s.IsRobotPresent = false; if (int.TryParse(v, out int p) && p >= 1 && p <= 3) Stations[p - 1].IsRobotPresent = true; }
+        private void UpdateSliderPosition(string v)
+        {
+            foreach (var s in Stations) s.IsRobotPresent = false;
+            if (int.TryParse(v, out int p) && p >= 1 && p <= 3) Stations[p - 1].IsRobotPresent = true;
+            // Slider pozisyonu değişti → AKTUEL_RFID ve INDEX güncelle
+            UpdateAktuelRfidFromStation();
+        }
+
+        /// <summary>
+        /// Slider hangi istasyondaysa, o istasyonun moduna göre AKTUEL_RFID ve AKTUEL_KLIMA_INDEX günceller.
+        /// Specific mod → Beklenen ID (TargetRfid), Mixed mod → Okunan ID (CurrentRfid)
+        /// </summary>
+        private void UpdateAktuelRfidFromStation()
+        {
+            try
+            {
+                // 1. Slider hangi istasyonda?
+                // Ana kaynak: GlobalData.GetSliderStationNumber() (robot sinyalinden hesaplanır)
+                Utilities.ExtendedStationViewModel activeStation = null;
+
+                int sliderStation = GlobalData.GetSliderStationNumber();
+                if (sliderStation >= 1 && sliderStation <= 3)
+                {
+                    activeStation = Stations[sliderStation - 1] as Utilities.ExtendedStationViewModel;
+                }
+
+                // Fallback: IsRobotPresent'a bak
+                if (activeStation == null)
+                {
+                    var baseStation = Stations.FirstOrDefault(s => s.IsRobotPresent);
+                    if (baseStation != null)
+                        activeStation = baseStation as Utilities.ExtendedStationViewModel;
+                }
+
+                // Fallback 2: SLIDER_POS_ACT değişkeninden doğrudan oku
+                if (activeStation == null)
+                {
+                    var sliderVar = GeneralInputVars.FirstOrDefault(v => v.Name == "SLIDER_POS_ACT");
+                    string sliderVal = sliderVar?.Value ?? sliderVar?.CurrentValue?.ToString();
+                    if (int.TryParse(sliderVal, out int pos) && pos >= 1 && pos <= 3)
+                    {
+                        activeStation = Stations[pos - 1] as Utilities.ExtendedStationViewModel;
+                    }
+                }
+
+                if (activeStation == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ❌ Aktif istasyon bulunamadı! SliderStation={sliderStation}, IsRobotPresent={Stations.Any(s => s.IsRobotPresent)}");
+                    return;
+                }
+
+                // 2. İstasyonun moduna göre RFID belirle
+                string aktuelRfid = "";
+                if (activeStation.RfidOpMode == Utilities.RfidOperationMode.Specific)
+                {
+                    // Specific mod → Beklenen ID listbox'ta ne seçildiyse o
+                    aktuelRfid = activeStation.TargetRfid ?? "";
+                }
+                else
+                {
+                    // Mixed mod → Okunan RFID
+                    aktuelRfid = activeStation.CurrentRfid ?? "";
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] Station={activeStation.Name}, Mode={activeStation.RfidOpMode}, RFID='{aktuelRfid}'");
+
+                // 3. GlobalData üzerinden yaz (hem UI tablosu hem PlcService hem static erişim)
+                GlobalData.AktuelRfid = aktuelRfid;
+
+                // 4. AKTUEL_KLIMA_INDEX → KnownRfids listesinde kaçıncı sırada (1-based)
+                int idx = 0;
+                if (!string.IsNullOrEmpty(aktuelRfid))
+                {
+                    var knownList = GlobalData.KnownRfids.ToList();
+                    int k = knownList.FindIndex(r => r.Id == aktuelRfid);
+                    idx = (k >= 0) ? k + 1 : 0;
+                }
+                GlobalData.AktuelKlimaIndex = idx;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] UpdateAktuelRfidFromStation HATA: {ex.Message}");
+            }
+        }
         private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
@@ -1606,9 +1717,7 @@ namespace App4
         // ═══════════════════════════════════════════════════════════════
 
         // --- ROBOT SİNYAL İZLEME BAYRAKLARI ---
-        private bool _gocatorTaraProcessing = false;
-        private bool _tablaTaraProcessing = false;
-        private bool _inficonOlcumProcessing = false;
+        private bool _olcumTetikProcessing = false;
         private bool _snifferOlcumProcessing = false;
 
         private void InitializeRobotStatusMonitoring()
@@ -1674,19 +1783,9 @@ namespace App4
 
             switch (changedVar.Name)
             {
-                case "G_GOCATOR_TARA":
-                    if (!_gocatorTaraProcessing)
-                        _ = HandleGocatorTaraAsync(robot, robotNo);
-                    break;
-
-                case "G_TABLA_TARA":
-                    if (!_tablaTaraProcessing)
-                        _ = HandleTablaTaraAsync(robot, robotNo);
-                    break;
-
-                case "G_INFICON_OLCUM_YAP":
-                    if (!_inficonOlcumProcessing)
-                        _ = HandleInficonOlcumAsync(robot, robotNo);
+                case "G_OLCUM_TETIK":
+                    if (!_olcumTetikProcessing)
+                        _ = HandleOlcumTetikAsync(robot, robotNo);
                     break;
 
                 case "G_SNIFFER_OLCUM_YAP":
@@ -1726,145 +1825,114 @@ namespace App4
         }
 
         // =====================================================
-        // 1. GOCATOR BORU TARAMA
-        // Robot G_GOCATOR_TARA=TRUE → PC Gocator'dan ölçüm al → offset yaz → G_GOCATOR_TAMAM=TRUE
+        // 1. BİRLEŞİK ÖLÇÜM TETİK
+        // Robot G_OLCUM_TETIK=TRUE → PC, G_JOB_INDEX'e göre ölçüm yapar
+        //   JOB_INDEX=0 → Tabla ölçüm → TABLA_OFFSET_X/Y/Z/A/B/C yaz → TABLA_OFFSET_HAZIR=TRUE
+        //   JOB_INDEX>0 → Boru ölçüm  → OFFSET_X/Y/Z/A/B/C yaz → G_OLCUM_OK=TRUE/FALSE
+        // Her durumda G_OLCUM_TAMAM pulse gönderilir
         // =====================================================
-        private async Task HandleGocatorTaraAsync(KukaRobotInstance robot, int robotNo)
+        private async Task HandleOlcumTetikAsync(KukaRobotInstance robot, int robotNo)
         {
-            _gocatorTaraProcessing = true;
+            _olcumTetikProcessing = true;
             try
             {
-                AddAutoLog($"[Robot {robotNo}] Gocator boru tarama isteği alındı");
+                // 1. JOB_INDEX'i robottan oku
+                var jobIndexVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
+                int jobIndex = 0;
+                if (jobIndexVar != null)
+                    int.TryParse(jobIndexVar.Value, out jobIndex);
 
-                // 1. Gocator'dan ölçüm al
+                AddAutoLog($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex})");
+
+                // 2. Aktif RFID'den job adını bul
+                string currentRfid = GlobalData.AktuelRfid;
+                var recipe = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
+                string jobName = null;
+
+                if (recipe != null && recipe.JobSequence != null && jobIndex >= 0 && jobIndex < recipe.JobSequence.Count)
+                {
+                    jobName = recipe.JobSequence[jobIndex];
+                }
+
+                if (string.IsNullOrEmpty(jobName))
+                {
+                    AddAutoLog($"[Robot {robotNo}] Job bulunamadı (RFID={currentRfid}, Index={jobIndex})");
+                    await WriteRobotOutVarAsync("G_OLCUM_OK", "FALSE");
+                    await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
+                    await Task.Delay(500);
+                    await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
+                    return;
+                }
+
+                // 3. Gocator job yükle
+                AddAutoLog($"[Robot {robotNo}] Job yükleniyor: {jobName}");
+                bool loadOk = await GocatorJobLogic.LoadJob(jobName, msg => AddAutoLog($"[Gocator] {msg}"));
+                if (!loadOk)
+                {
+                    AddAutoLog($"[Robot {robotNo}] Job yüklenemedi: {jobName}");
+                    await WriteRobotOutVarAsync("G_OLCUM_OK", "FALSE");
+                    await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
+                    await Task.Delay(500);
+                    await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
+                    return;
+                }
+
+                // 4. Gocator'dan ölçüm al
+                AddAutoLog($"[Robot {robotNo}] Ölçüm alınıyor (Job: {jobName})...");
                 var (status, results) = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(
                     msg => AddAutoLog($"[Gocator] {msg}"),
                     this.DispatcherQueue);
 
-                if (status == 1 && results != null && results.Count > 0)
+                bool olcumBasarili = (status == 1 && results != null && results.Count > 0);
+
+                if (olcumBasarili)
                 {
-                    // 2. Ölçüm sonuçlarından offset değerlerini yaz
-                    // Gocator ölçümleri sırasıyla X,Y,Z,A,B,C offset olarak yorumlanır
-                    string[] offsetNames = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
-                    for (int i = 0; i < Math.Min(results.Count, offsetNames.Length); i++)
+                    if (jobIndex == 0)
                     {
-                        await WriteRobotOutVarAsync(offsetNames[i], results[i].Value.ToString("F3"));
+                        // --- TABLA ÖLÇÜM (JOB 0) ---
+                        string[] tablaOffsets = { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z", "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
+                        for (int i = 0; i < Math.Min(results.Count, tablaOffsets.Length); i++)
+                        {
+                            await WriteRobotOutVarAsync(tablaOffsets[i], results[i].Value.ToString("F3"));
+                        }
+                        await WriteRobotOutVarAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
+                        AddAutoLog($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı");
+                    }
+                    else
+                    {
+                        // --- BORU ÖLÇÜM (JOB 1..N) ---
+                        string[] boruOffsets = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
+                        for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                        {
+                            await WriteRobotOutVarAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                        }
+                        AddAutoLog($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} offset yazıldı");
                     }
 
-                    // 3. Offset hazır sinyali
-                    await WriteRobotOutVarAsync("G_OFFSET_HAZIR", "TRUE");
-
-                    AddAutoLog($"[Robot {robotNo}] Gocator tarama OK - {results.Count} ölçüm alındı");
+                    await WriteRobotOutVarAsync("G_OLCUM_OK", "TRUE");
                 }
                 else
                 {
-                    AddAutoLog($"[Robot {robotNo}] Gocator tarama BAŞARISIZ!");
+                    AddAutoLog($"[Robot {robotNo}] Ölçüm BAŞARISIZ (Job {jobIndex}: {jobName})");
+                    await WriteRobotOutVarAsync("G_OLCUM_OK", "FALSE");
                 }
 
-                // 4. Tamamlandı sinyali gönder
-                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "TRUE");
+                // 5. Tamamlandı sinyali (pulse)
+                await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
                 await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "FALSE");
+                await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
             }
             catch (Exception ex)
             {
-                AddAutoLog($"[Robot {robotNo}] Gocator tarama hatası: {ex.Message}");
-                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "TRUE");
+                AddAutoLog($"[Robot {robotNo}] Ölçüm tetik hatası: {ex.Message}");
+                await WriteRobotOutVarAsync("G_OLCUM_OK", "FALSE");
+                await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "TRUE");
                 await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_GOCATOR_TAMAM", "FALSE");
+                await WriteRobotOutVarAsync("G_OLCUM_TAMAM", "FALSE");
             }
             finally
             {
-                _gocatorTaraProcessing = false;
-            }
-        }
-
-        // =====================================================
-        // 2. GOCATOR TABLA TARAMA
-        // Robot G_TABLA_TARA=TRUE → PC Gocator'dan tabla ölçümü → tabla offset yaz → G_TABLA_TAMAM=TRUE
-        // =====================================================
-        private async Task HandleTablaTaraAsync(KukaRobotInstance robot, int robotNo)
-        {
-            _tablaTaraProcessing = true;
-            try
-            {
-                AddAutoLog($"[Robot {robotNo}] Tabla tarama isteği alındı");
-
-                var (status, results) = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(
-                    msg => AddAutoLog($"[Gocator-Tabla] {msg}"),
-                    this.DispatcherQueue);
-
-                if (status == 1 && results != null && results.Count > 0)
-                {
-                    string[] offsetNames = { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z", "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
-                    for (int i = 0; i < Math.Min(results.Count, offsetNames.Length); i++)
-                    {
-                        await WriteRobotOutVarAsync(offsetNames[i], results[i].Value.ToString("F3"));
-                    }
-
-                    await WriteRobotOutVarAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
-
-                    AddAutoLog($"[Robot {robotNo}] Tabla tarama OK - {results.Count} ölçüm alındı");
-                }
-                else
-                {
-                    AddAutoLog($"[Robot {robotNo}] Tabla tarama BAŞARISIZ!");
-                }
-
-                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "TRUE");
-                await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "FALSE");
-            }
-            catch (Exception ex)
-            {
-                AddAutoLog($"[Robot {robotNo}] Tabla tarama hatası: {ex.Message}");
-                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "TRUE");
-                await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_TABLA_TAMAM", "FALSE");
-            }
-            finally
-            {
-                _tablaTaraProcessing = false;
-            }
-        }
-
-        // =====================================================
-        // 3. INFICON ÖLÇÜM
-        // Robot G_INFICON_OLCUM_YAP=TRUE → PC ölçüm değerini okur → G_INFICON_OK + G_INFICON_TAMAM
-        // NOT: Inficon cihaz entegrasyonu henüz yok, sinyal handshake'i hazır
-        // =====================================================
-        private async Task HandleInficonOlcumAsync(KukaRobotInstance robot, int robotNo)
-        {
-            _inficonOlcumProcessing = true;
-            try
-            {
-                AddAutoLog($"[Robot {robotNo}] Inficon ölçüm isteği alındı");
-
-                // TODO: Inficon cihazından gerçek ölçüm alma kodu buraya eklenecek
-                // Şu an sinyal handshake'i hazır, cihaz entegrasyonu yapılacak
-                // Örnek: var result = await InficonService.MeasureAsync();
-                //        double deger = result.Value;
-                //        bool ok = deger < threshold;
-
-                // Geçici: Ölçüm değeri ve sonucu robottan okunan/sabit değerle doldurulacak
-                // Gerçek entegrasyonda burası InficonService ile değiştirilecek
-                AddAutoLog($"[Robot {robotNo}] Inficon ölçüm - cihaz entegrasyonu bekleniyor (handshake hazır)");
-
-                // Tamamlandı sinyali gönder (robot timeout'a düşmesin)
-                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "TRUE");
-                await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "FALSE");
-            }
-            catch (Exception ex)
-            {
-                AddAutoLog($"[Robot {robotNo}] Inficon ölçüm hatası: {ex.Message}");
-                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "TRUE");
-                await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_INFICON_TAMAM", "FALSE");
-            }
-            finally
-            {
-                _inficonOlcumProcessing = false;
+                _olcumTetikProcessing = false;
             }
         }
 

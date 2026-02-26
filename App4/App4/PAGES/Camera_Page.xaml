@@ -240,8 +240,8 @@
                                             </StackPanel>
                                         </Border>
                                         
-                                        <ComboBox x:Name="CmbRfidTag" 
-                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}" 
+                                        <ComboBox x:Name="CmbRfidTag"
+                                            ItemsSource="{x:Bind PlcAllTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedRfidTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Tag Seçiniz..." 
@@ -287,8 +287,8 @@
                                             </StackPanel>
                                         </Border>
                                         
-                                        <ComboBox x:Name="CmbIndexTag" 
-                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}" 
+                                        <ComboBox x:Name="CmbIndexTag"
+                                            ItemsSource="{x:Bind PlcAllTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedIndexTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Tag Seçiniz..."

@@ -208,17 +208,18 @@
 						<ScrollViewer Grid.Row="1" MaxHeight="500" VerticalScrollBarVisibility="Auto">
 							<StackPanel Padding="15,10" Spacing="12">
 
-								<!-- G_ROBOT_DURUM -->
+								<!-- G_ROBOT_DURUM - ROBOT 1 -->
 								<StackPanel Spacing="4">
-									<TextBlock Text="G_ROBOT_DURUM" FontSize="11" FontWeight="Bold" Foreground="#9C27B0"/>
+									<TextBlock Text="G_ROBOT_DURUM - ROBOT 1 (Sol)" FontSize="11" FontWeight="Bold" Foreground="#9C27B0"/>
 									<Grid Background="#151517" CornerRadius="4" Padding="10,6">
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="60"/>
 											<ColumnDefinition Width="*"/>
 										</Grid.ColumnDefinitions>
 										<Grid.RowDefinitions>
-											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
-											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/>
 										</Grid.RowDefinitions>
 										<TextBlock Grid.Row="0" Grid.Column="0" Text="0" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
 										<TextBlock Grid.Row="0" Grid.Column="1" Text="Bosta (Idle)" Foreground="#888" FontSize="10"/>
@@ -227,17 +228,53 @@
 										<TextBlock Grid.Row="2" Grid.Column="0" Text="2" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
 										<TextBlock Grid.Row="2" Grid.Column="1" Text="Hata" Foreground="#888" FontSize="10"/>
 										<TextBlock Grid.Row="3" Grid.Column="0" Text="10" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="3" Grid.Column="1" Text="Gocator tarama baslatildi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="3" Grid.Column="1" Text="Gocator olcum bekleniyor" Foreground="#888" FontSize="10"/>
 										<TextBlock Grid.Row="4" Grid.Column="0" Text="11" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="4" Grid.Column="1" Text="Gocator offset alindi" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="5" Grid.Column="0" Text="20" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="5" Grid.Column="1" Text="Inficon/Sniffer olcum baslatildi" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="6" Grid.Column="0" Text="21" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="6" Grid.Column="1" Text="Inficon/Sniffer olcum OK" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="7" Grid.Column="0" Text="50" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="7" Grid.Column="1" Text="Tabla tarama baslatildi" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="8" Grid.Column="0" Text="51" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="8" Grid.Column="1" Text="Tabla offset alindi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="4" Grid.Column="1" Text="Gocator olcum OK" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="5" Grid.Column="0" Text="12" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="5" Grid.Column="1" Text="Gocator olcum NOK" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="6" Grid.Column="0" Text="50" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="6" Grid.Column="1" Text="Tabla olcum bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="7" Grid.Column="0" Text="51" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="7" Grid.Column="1" Text="Tabla olcum OK" Foreground="#888" FontSize="10"/>
+									</Grid>
+								</StackPanel>
+
+								<!-- G_ROBOT_DURUM - ROBOT 2 -->
+								<StackPanel Spacing="4">
+									<TextBlock Text="G_ROBOT_DURUM - ROBOT 2 (Sag)" FontSize="11" FontWeight="Bold" Foreground="#E040FB"/>
+									<Grid Background="#151517" CornerRadius="4" Padding="10,6">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="60"/>
+											<ColumnDefinition Width="*"/>
+										</Grid.ColumnDefinitions>
+										<Grid.RowDefinitions>
+											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/>
+										</Grid.RowDefinitions>
+										<TextBlock Grid.Row="0" Grid.Column="0" Text="0" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="0" Grid.Column="1" Text="Bosta (Idle)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="1" Grid.Column="0" Text="1" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="1" Grid.Column="1" Text="Calisiyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="2" Grid.Column="0" Text="2" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="2" Grid.Column="1" Text="Hata" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="3" Grid.Column="0" Text="5" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="3" Grid.Column="1" Text="Tabla offset timeout hatasi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="4" Grid.Column="0" Text="10" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="4" Grid.Column="1" Text="Tabla offset bekleniyor (R1'den)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="5" Grid.Column="0" Text="11" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="5" Grid.Column="1" Text="Tabla offset alindi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="6" Grid.Column="0" Text="20" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="6" Grid.Column="1" Text="Sniffer olcum bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="7" Grid.Column="0" Text="21" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="7" Grid.Column="1" Text="Sniffer olcum OK" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="8" Grid.Column="0" Text="22" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="8" Grid.Column="1" Text="Sniffer olcum NOK" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="9" Grid.Column="0" Text="30" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="9" Grid.Column="1" Text="Slider hareket ediyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="10" Grid.Column="0" Text="31" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="10" Grid.Column="1" Text="Slider hedefe ulasti" Foreground="#888" FontSize="10"/>
 									</Grid>
 								</StackPanel>
 
@@ -255,17 +292,17 @@
 										<TextBlock Grid.Row="0" Grid.Column="0" Text="0" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
 										<TextBlock Grid.Row="0" Grid.Column="1" Text="Hata yok" Foreground="#888" FontSize="10"/>
 										<TextBlock Grid.Row="1" Grid.Column="0" Text="5" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="1" Grid.Column="1" Text="Tabla kontrol timeout (15s)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="2" Grid.Column="0" Text="10" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="2" Grid.Column="1" Text="Gocator timeout (15s)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="3" Grid.Column="0" Text="20" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="3" Grid.Column="1" Text="Inficon/Sniffer timeout (30s)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="1" Grid.Column="1" Text="Tabla kontrol hatasi (R1)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="2" Grid.Column="0" Text="6" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="2" Grid.Column="1" Text="Sistem stop hatasi (R1)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="3" Grid.Column="0" Text="99" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="3" Grid.Column="1" Text="Bilinmeyen klima tipi (R1+R2)" Foreground="#888" FontSize="10"/>
 									</Grid>
 								</StackPanel>
 
 								<!-- G_DURUM_MESAJ - ROBOT 1 -->
 								<StackPanel Spacing="4">
-									<TextBlock Text="G_DURUM_MESAJ - ROBOT 1 (Sol - Inficon)" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
+									<TextBlock Text="G_DURUM_MESAJ - ROBOT 1 (Sol - Gocator)" FontSize="11" FontWeight="Bold" Foreground="#00A4EF"/>
 									<Grid Background="#151517" CornerRadius="4" Padding="10,6">
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="80"/>
@@ -273,26 +310,38 @@
 										</Grid.ColumnDefinitions>
 										<Grid.RowDefinitions>
 											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
-											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/>
 										</Grid.RowDefinitions>
 										<TextBlock Grid.Row="0" Grid.Column="0" Text="0" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="0" Grid.Column="1" Text="Bosta / Idle" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="1" Grid.Column="0" Text="2" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="1" Grid.Column="1" Text="Is bitti (sonuc hazir)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="2" Grid.Column="0" Text="3" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="2" Grid.Column="1" Text="Hata ile bitti" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="3" Grid.Column="0" Text="5" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="3" Grid.Column="1" Text="Klima tipi bekleniyor" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="4" Grid.Column="0" Text="50-52" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="4" Grid.Column="1" Text="Tabla kontrol (50=basladi, 51=tarama, 52=tamam)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="5" Grid.Column="0" Text="10/11" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="5" Grid.Column="1" Text="Home pozisyonu (10=gidiyor, 11=tamam)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="6" Grid.Column="0" Text="N*100" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="6" Grid.Column="1" Text="Klima Tip N taramaya basladi (N=1..11)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="7" Grid.Column="0" Text="N*100+1" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="7" Grid.Column="1" Text="Gocator offset alindi, olcume geciliyor" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="8" Grid.Column="0" Text="N*100+2" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="8" Grid.Column="1" Text="Inficon olcum yapiliyor (N*100+3 = bitis)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="0" Grid.Column="1" Text="Bosta, klima bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="1" Grid.Column="0" Text="1" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="1" Grid.Column="1" Text="Start alindi, klima tipi bekleniyor (Oto)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="2" Grid.Column="0" Text="2" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="2" Grid.Column="1" Text="Is tamamlandi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="3" Grid.Column="0" Text="3" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="3" Grid.Column="1" Text="Hata, reset bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="4" Grid.Column="0" Text="4" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="4" Grid.Column="1" Text="Oto mod - sistem start bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="5" Grid.Column="0" Text="5" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="5" Grid.Column="1" Text="HATA - Tabla olcum basarisiz" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="6" Grid.Column="0" Text="8" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="6" Grid.Column="1" Text="Manuel mod - klima bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="7" Grid.Column="0" Text="20/21" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="7" Grid.Column="1" Text="Slider bekleniyor / ulasti" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="8" Grid.Column="0" Text="50" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="8" Grid.Column="1" Text="Tabla olcum pozisyonuna gidiliyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="9" Grid.Column="0" Text="51/52" Foreground="#FF5722" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="9" Grid.Column="1" Text="Tabla olcum bekleniyor (JOB 0) / OK" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="10" Grid.Column="0" Text="99" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="10" Grid.Column="1" Text="HATA - Bilinmeyen klima tipi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="11" Grid.Column="0" Text="N*100" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="11" Grid.Column="1" Text="Klima Tip N gecis (N=1..11)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="12" Grid.Column="0" Text="N*100+1" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="12" Grid.Column="1" Text="Hazir (olcum pozisyonunda)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="13" Grid.Column="0" Text="N*100+2/3" Foreground="#00BCD4" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="13" Grid.Column="1" Text="Olcum yapiliyor / Tamam" Foreground="#888" FontSize="10"/>
 									</Grid>
 								</StackPanel>
 
@@ -306,22 +355,36 @@
 										</Grid.ColumnDefinitions>
 										<Grid.RowDefinitions>
 											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
-											<RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+											<RowDefinition/>
 										</Grid.RowDefinitions>
 										<TextBlock Grid.Row="0" Grid.Column="0" Text="0" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="0" Grid.Column="1" Text="Bosta / Idle" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="1" Grid.Column="0" Text="2" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="1" Grid.Column="1" Text="Is bitti (sonuc hazir)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="2" Grid.Column="0" Text="3" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="2" Grid.Column="1" Text="Hata ile bitti" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="3" Grid.Column="0" Text="5" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="3" Grid.Column="1" Text="Klima tipi bekleniyor" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="4" Grid.Column="0" Text="10/11" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="4" Grid.Column="1" Text="Home pozisyonu (10=gidiyor, 11=tamam)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="5" Grid.Column="0" Text="N*100" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="5" Grid.Column="1" Text="Klima Tip N gecis pozisyonu (N=1..11)" Foreground="#888" FontSize="10"/>
-										<TextBlock Grid.Row="6" Grid.Column="0" Text="N*100+C" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
-										<TextBlock Grid.Row="6" Grid.Column="1" Text="Cizgi C sniffer olcum yapiliyor (C=1..7)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="0" Grid.Column="1" Text="Bosta, klima bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="1" Grid.Column="0" Text="1" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="1" Grid.Column="1" Text="Start alindi, klima tipi bekleniyor (Oto)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="2" Grid.Column="0" Text="2" Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="2" Grid.Column="1" Text="Is tamamlandi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="3" Grid.Column="0" Text="3" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="3" Grid.Column="1" Text="Hata, reset bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="4" Grid.Column="0" Text="4" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="4" Grid.Column="1" Text="Oto mod - sistem start bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="5" Grid.Column="0" Text="5" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="5" Grid.Column="1" Text="HATA - Tabla offset alinamadi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="6" Grid.Column="0" Text="8" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="6" Grid.Column="1" Text="Manuel mod - klima bekleniyor" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="7" Grid.Column="0" Text="10/11" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="7" Grid.Column="1" Text="Tabla offset bekleniyor (R1) / alindi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="8" Grid.Column="0" Text="20/21" Foreground="#2196F3" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="8" Grid.Column="1" Text="Slider pozisyona gidiyor / ulasti" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="9" Grid.Column="0" Text="99" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="9" Grid.Column="1" Text="HATA - Bilinmeyen klima tipi" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="10" Grid.Column="0" Text="N*100" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="10" Grid.Column="1" Text="Klima Tip N gecis pozisyonu (N=1..11)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="11" Grid.Column="0" Text="N*100+C" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="11" Grid.Column="1" Text="Cizgi C sniffer olcum yapiliyor (C=1..7)" Foreground="#888" FontSize="10"/>
+										<TextBlock Grid.Row="12" Grid.Column="0" Text="N*10" Foreground="#F44336" FontSize="10" FontFamily="Consolas" FontWeight="Bold"/>
+										<TextBlock Grid.Row="12" Grid.Column="1" Text="Klima Tip N hata kodu (10,20..110)" Foreground="#888" FontSize="10"/>
 									</Grid>
 								</StackPanel>
 

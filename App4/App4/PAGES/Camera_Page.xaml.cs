@@ -383,6 +383,8 @@ namespace App4.PAGES
         // Input Tagleri için liste (Otomasyon için gerekli)
         public ObservableCollection<string> PlcInputTags { get; set; } = new();
         public ObservableCollection<string> PlcOutputTags { get; set; } = new();
+        // Input + Output birleşik liste (RFID TAG seçimi için)
+        public ObservableCollection<string> PlcAllTags { get; set; } = new();
         // Global listeye referans (Ok işareti => ile)
         public ObservableCollection<PlcTransferItem> PlcTransferRows => App4.Utilities.GlobalData.PlcTransferRows;
 
@@ -531,7 +533,19 @@ namespace App4.PAGES
                 foreach (var t in newInputs)
                     if (!PlcInputTags.Contains(t)) PlcInputTags.Add(t);
 
-                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count})");
+                // ---------------------------------------------------------
+                // 4. AKILLI SENKRONİZASYON (All Tags = Input + Output birleşik)
+                // ---------------------------------------------------------
+                var allTags = new HashSet<string>(newInputs);
+                foreach (var t in newOutputs) allTags.Add(t);
+
+                var toRemoveAll = PlcAllTags.Where(t => !allTags.Contains(t)).ToList();
+                foreach (var t in toRemoveAll) PlcAllTags.Remove(t);
+
+                foreach (var t in allTags)
+                    if (!PlcAllTags.Contains(t)) PlcAllTags.Add(t);
+
+                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count}, All: {PlcAllTags.Count})");
             }
             catch (Exception ex)
             {
@@ -551,10 +565,10 @@ namespace App4.PAGES
                 string output = App4.Utilities.GlobalData.MeasurementOutputTag;
 
                 // ComboBox'ları doğrudan kod ile set et
-                if (!string.IsNullOrEmpty(rfid) && PlcInputTags.Contains(rfid))
+                if (!string.IsNullOrEmpty(rfid) && PlcAllTags.Contains(rfid))
                     CmbRfidTag.SelectedItem = rfid;
 
-                if (!string.IsNullOrEmpty(index) && PlcInputTags.Contains(index))
+                if (!string.IsNullOrEmpty(index) && PlcAllTags.Contains(index))
                     CmbIndexTag.SelectedItem = index;
 
                 if (!string.IsNullOrEmpty(trigger) && PlcInputTags.Contains(trigger))

@@ -223,6 +223,11 @@ namespace App4.Utilities
             EnsureOutput("RB2_TOPLAM_CIZGI", "INT");            // Robot 2 toplam \u00e7izgi
             EnsureOutput("RB2_NOK_BILDIRIM", "BOOL");           // Robot 2 yeni NOK bildirimi
             EnsureOutput("RB2_NOK_CIZGI", "INT");               // Robot 2 son NOK \u00e7izgi no
+
+            // --- Robot 2 Slider Bilgileri (PC \u2192 PLC) ---
+            EnsureOutput("RB2_SLIDER_TAMAM", "BOOL");            // Robot 2 slider hedefe ula\u015ft\u0131
+            EnsureOutput("RB2_SLIDER_HOME", "BOOL");             // Robot 2 slider home pozisyonunda
+            EnsureOutput("RB2_SLIDER_POZ", "REAL");              // Robot 2 slider akt\u00fcel pozisyon (mm)
         }
 
         private void StartMonitoring()

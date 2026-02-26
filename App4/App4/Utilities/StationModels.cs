@@ -383,6 +383,9 @@ namespace App4.Utilities
             };
         }
 
+        // Dışarıdan (örn. Page_Loaded) zorla tetiklemek için
+        public void RefreshAktuelRfid() => TryUpdateAktuelKlimaIndex();
+
         // Update GlobalData AKTUEL_KLIMA_INDEX + AKTUEL_RFID based on station mode and RFID values
         private void TryUpdateAktuelKlimaIndex()
         {

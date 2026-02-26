@@ -1083,6 +1083,10 @@ namespace App4.Pages
                     AddIfMissing(robot, "RB2_TOPLAM_CIZGI", "G_TOPLAM_CIZGI", "Output", "Robot\u2192PLC");
                     AddIfMissing(robot, "RB2_NOK_BILDIRIM", "G_NOK_BILDIRIM", "Output", "Robot\u2192PLC");
                     AddIfMissing(robot, "RB2_NOK_CIZGI", "G_NOK_CIZGI", "Output", "Robot\u2192PLC");
+                    // --- Robot 2 Slider (Robot 2 \u2192 PLC) ---
+                    AddIfMissing(robot, "RB2_SLIDER_TAMAM", "G_SLIDER_TAMAM", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_SLIDER_HOME", "G_SLIDER_HOME", "Output", "Robot\u2192PLC");
+                    AddIfMissing(robot, "RB2_SLIDER_POZ", "G_SLIDER_AKTUEL_POZ", "Output", "Robot\u2192PLC");
                 }
             }
 
