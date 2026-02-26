@@ -194,11 +194,20 @@ namespace App4.Utilities
         private string _efficiency = "0";
         public string Efficiency { get => _efficiency; set { _efficiency = value; OnPropertyChanged(); } }
 
+        // Robot HOME durumu
+        private bool _isRobotHome;
+        public bool IsRobotHome
+        {
+            get => _isRobotHome;
+            set { _isRobotHome = value; UpdateVisuals(); }
+        }
+
         // Görsel Özellikler
         public string ModeText => Mode.ToString().ToUpper();
         public SolidColorBrush ModeColor { get; private set; }
         public SolidColorBrush BorderColor { get; private set; }
         public string StateText { get; private set; }
+        public string StateGlyph { get; private set; } = "\uE9F5"; // Varsayılan: dişli ikon
         public SolidColorBrush StateColor { get; private set; }
         public string AlarmText => HasAlarm ? "ALARM VAR" : "NORMAL";
         public Visibility AlarmVisibility => HasAlarm ? Visibility.Visible : Visibility.Collapsed;
@@ -245,12 +254,22 @@ namespace App4.Utilities
             {
                 // Alarm varsa her şey kırmızı
                 StateText = "HATA";
+                StateGlyph = "\uE783"; // Uyarı ikonu
                 StateColor = new SolidColorBrush(Color.FromArgb(255, 231, 76, 60)); // Kırmızı
                 BorderColor = StateColor;
+            }
+            else if (IsRobotHome && !IsProducing)
+            {
+                // Robot bu istasyonda HOME pozisyonunda
+                StateText = "ROBOT HOME";
+                StateGlyph = "\uE80F"; // Ev ikonu
+                StateColor = new SolidColorBrush(Color.FromArgb(255, 0, 188, 212)); // Cyan
+                BorderColor = new SolidColorBrush(Color.FromArgb(255, 0, 150, 170));
             }
             else
             {
                 // Alarm yoksa ProcessStatus'a bak
+                StateGlyph = "\uE9F5"; // Varsayılan dişli ikon
                 string status = ProcessStatus;
 
                 // Özel Durumlar Listesi (Auto_Page.xaml.cs'deki MapStatus ile tam eşleşmeli)
@@ -304,7 +323,7 @@ namespace App4.Utilities
 
             // Değişiklikleri Arayüze Bildir
             OnPropertyChanged(nameof(ModeText)); OnPropertyChanged(nameof(ModeColor)); OnPropertyChanged(nameof(BorderColor));
-            OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(StateColor)); OnPropertyChanged(nameof(AlarmText));
+            OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(StateGlyph)); OnPropertyChanged(nameof(StateColor)); OnPropertyChanged(nameof(AlarmText));
             OnPropertyChanged(nameof(AlarmVisibility)); OnPropertyChanged(nameof(RobotVisibility)); OnPropertyChanged(nameof(RobotOpacity));
             OnPropertyChanged(nameof(BypassButtonText)); OnPropertyChanged(nameof(BypassButtonColor));
             OnPropertyChanged(nameof(RfidMatchIcon)); OnPropertyChanged(nameof(RfidMatchColor));

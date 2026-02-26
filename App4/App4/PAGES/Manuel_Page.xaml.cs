@@ -692,7 +692,53 @@ namespace App4
                     hedefPozVar.CurrentValue = hedefPoz;
                 }
 
-                // Git komutunu gönder (pulse)
+                // ═══ Robot 2'ye G_HEDEF_ISTASYON + G_SLIDER_HEDEF_POZ doğrudan yaz ═══
+                // Robot 2 KRL programı bu değerleri okuyarak istasyon bazlı HOME ve slider hareketi yapar.
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null && robots.Count >= 2 && robots[1].IsConnected)
+                {
+                    try
+                    {
+                        // 1. G_HEDEF_ISTASYON (INT) → istasyon numarası
+                        // İstasyon modu: 1-4 (istasyon bazlı HOME kullanılır)
+                        // Pozisyon modu: 0 (robot dinamik HOME yapar, E1 aktüel pozisyonda kalır)
+                        if (isStationMode && KL100HedefCombo.SelectedItem is ComboBoxItem selItem
+                            && selItem.Tag is string tStr && int.TryParse(tStr, out int stNum))
+                        {
+                            await robots[1].WriteVariableAsync("G_HEDEF_ISTASYON", stNum.ToString());
+                            var istVar = robots[1].OutputVars.FirstOrDefault(v => v.PlcTag == "G_HEDEF_ISTASYON");
+                            if (istVar != null) istVar.Value = stNum.ToString();
+                        }
+                        else
+                        {
+                            // Pozisyon modu: G_HEDEF_ISTASYON = 0 → dinamik HOME
+                            await robots[1].WriteVariableAsync("G_HEDEF_ISTASYON", "0");
+                            var istVar = robots[1].OutputVars.FirstOrDefault(v => v.PlcTag == "G_HEDEF_ISTASYON");
+                            if (istVar != null) istVar.Value = "0";
+                        }
+
+                        // 2. G_SLIDER_HEDEF_POZ (REAL) → mm pozisyonu
+                        string posStr = hedefPoz.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        await robots[1].WriteVariableAsync("G_SLIDER_HEDEF_POZ", posStr);
+                        var r2OutputVar = robots[1].OutputVars.FirstOrDefault(v => v.PlcTag == "G_SLIDER_HEDEF_POZ");
+                        if (r2OutputVar != null) r2OutputVar.Value = posStr;
+                    }
+                    catch { }
+                }
+
+                // Manuel slider hareket komutu → Robot 2'ye G_SLIDER_HAREKET = TRUE yaz
+                if (robots != null && robots.Count >= 2 && robots[1].IsConnected)
+                {
+                    try
+                    {
+                        await robots[1].WriteVariableAsync("G_SLIDER_HAREKET", "TRUE");
+                        var harVar = robots[1].OutputVars.FirstOrDefault(v => v.PlcTag == "G_SLIDER_HAREKET");
+                        if (harVar != null) harVar.Value = "TRUE";
+                    }
+                    catch { }
+                }
+
+                // Git komutunu gönder (pulse) - PLC'ye
                 var gitVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_GIT");
                 if (gitVar != null)
                 {
@@ -703,6 +749,38 @@ namespace App4
 
                     gitVar.Value = "False";
                     gitVar.CurrentValue = false;
+                }
+            }
+            catch { }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Slider HOME butonu: Robot 2'ye G_HEDEF_ISTASYON=0 + G_SLIDER_HAREKET=TRUE gönderir.
+        /// Robot dinamik HOME yapar: A1-A6 HOME, E1 aktüel pozisyonda kalır.
+        /// </summary>
+        private async void BtnKL100SliderHome_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            try
+            {
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null && robots.Count >= 2 && robots[1].IsConnected)
+                {
+                    // G_HEDEF_ISTASYON = 0 → dinamik HOME (E1 aktüel pozisyonda)
+                    await robots[1].WriteVariableAsync("G_HEDEF_ISTASYON", "0");
+                    var istVar = robots[1].OutputVars.FirstOrDefault(v => v.PlcTag == "G_HEDEF_ISTASYON");
+                    if (istVar != null) istVar.Value = "0";
+
+                    // G_SLIDER_HAREKET = TRUE → HOME komutunu tetikle
+                    await robots[1].WriteVariableAsync("G_SLIDER_HAREKET", "TRUE");
+                    var harVar = robots[1].OutputVars.FirstOrDefault(v => v.PlcTag == "G_SLIDER_HAREKET");
+                    if (harVar != null) harVar.Value = "TRUE";
                 }
             }
             catch { }

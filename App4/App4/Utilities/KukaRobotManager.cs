@@ -501,6 +501,7 @@ namespace App4.Utilities
             // ═══════════════════════════════════════════════════════════════
             OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HEDEF_POZ", Type = "REAL", PlcTag = "G_SLIDER_HEDEF_POZ", Direction = "Output", Description = "Slider hedef pozisyon (mm)" });
             OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HAREKET", Type = "BOOL", PlcTag = "G_SLIDER_HAREKET", Direction = "Output", Description = "Slider hareket komutu" });
+            OutputVars.Add(new PlcVariable { Name = "G_HEDEF_ISTASYON", Type = "INT", PlcTag = "G_HEDEF_ISTASYON", Direction = "Output", Description = "Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)" });
 
             // ═══════════════════════════════════════════════════════════════
             // ROBOT 2 - SLİDER KÖPRÜ (R2 → R1 bridge)

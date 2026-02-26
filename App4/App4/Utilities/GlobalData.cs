@@ -72,6 +72,30 @@ namespace App4.Utilities
             }
         }
 
+        // ═══ Slider Hedef İstasyon (otomasyon tarafından set edilir) ═══
+        private static int _targetSliderStation = 0;
+        /// <summary>
+        /// Slider'ın gitmesi gereken hedef istasyon numarası (1, 2, 3).
+        /// UpdateAktuelRfidFromStation tarafından set edilir.
+        /// </summary>
+        public static int TargetSliderStation
+        {
+            get => _targetSliderStation;
+            set => _targetSliderStation = value;
+        }
+
+        /// <summary>
+        /// Hedef istasyonun mm cinsinden slider pozisyonunu döndürür.
+        /// Manuel sayfada tanımlanan KL100_Station1/2/3Pos değerlerinden alır.
+        /// </summary>
+        public static double GetStationSliderPosition(int stationNumber) => stationNumber switch
+        {
+            1 => KL100_Station1Pos,
+            2 => KL100_Station2Pos,
+            3 => KL100_Station3Pos,
+            _ => 0
+        };
+
         private static int _aktuelKlimaIndex = 0;
         public static int AktuelKlimaIndex
         {
@@ -895,6 +919,7 @@ namespace App4.Utilities
                 // --- ROBOT 2 SLIDER KONTROL (PC -> Robot 2) ---
                 RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
                 RobotOutputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Output", false)); // Slider hareket komutu (PC -> Robot 2)
+                RobotOutputVars.Add(Create("G_HEDEF_ISTASYON", "INT", "Output", 0));      // Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)
                 // --- ROBOT 2 SLIDER KOPRU (R2 -> R1 bridge) ---
                 RobotOutputVars.Add(Create("G_R2_SLIDER_TAMAM", "BOOL", "Output", false));  // R2 slider hedefe ulasti (Robot 1'e yazilir)
                 RobotOutputVars.Add(Create("G_R2_SLIDER_HOME", "BOOL", "Output", false));   // R2 slider home'da (Robot 1'e yazilir)

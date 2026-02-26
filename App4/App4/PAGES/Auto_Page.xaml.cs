@@ -1196,6 +1196,13 @@ namespace App4
                 if (localVar.Name == "SLIDER_POS_ACT") UpdateSliderPosition(localVar.CurrentValue?.ToString());
                 else UpdateStationStatus(localVar.Name, localVar.CurrentValue?.ToString());
 
+                // Robot 2 HOME sinyali → ilgili istasyonda ev ikonu göster
+                if (localVar.Name == "RB2_HOME_OK")
+                {
+                    bool isHome = IsTrue(localVar.CurrentValue?.ToString());
+                    UpdateRobotHomeOnStation(isHome);
+                }
+
                 // OTO/MANUEL switch senkronizasyonu (PLC'den gelen değeri UI'a yansıt)
                 if (localVar.Name == "LINE_AUTO_MANUAL_CMD")
                 {
@@ -1658,6 +1665,12 @@ namespace App4
                 int klimaIndex = GlobalData.AktuelKlimaIndex;
                 if (klimaIndex <= 0) return;
 
+                // ═══ ÖNCE: Slider hedef pozisyonu Robot 2'ye gönder ═══
+                // G_SLIDER_HEDEF_POZ, G_KLIMA_TIP'ten ÖNCE yazılmalı.
+                // Robot 2 KRL'de: G_KLIMA_TIP alınca CALISTIR'a girer, sonra G_SLIDER_HEDEF_POZ okur.
+                await SendSliderPositionToRobot2Async();
+
+                // ═══ SONRA: Klima tipini tüm robotlara gönder ═══
                 var robots = KukaRobotManager.Instance?.Robots;
                 if (robots == null) return;
 
@@ -1678,6 +1691,68 @@ namespace App4
                 }
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Hedef istasyonun pozisyonunu (mm) Robot 2'ye G_SLIDER_HEDEF_POZ olarak yazar.
+        /// Pozisyon değeri Manuel sayfadaki KL100_Station1/2/3Pos'tan alınır.
+        /// </summary>
+        /// <summary>
+        /// Hedef istasyon numarasını ve pozisyonunu Robot 2'ye gönderir.
+        /// G_HEDEF_ISTASYON (INT) = İstasyon numarası (1, 2, 3, 4=Bakım)
+        /// G_SLIDER_HEDEF_POZ (REAL) = İstasyon mm pozisyonu (uyumluluk için)
+        /// Robot 2 KRL: G_HEDEF_ISTASYON ile XHOME1/2/3/BAKIM seçer
+        /// </summary>
+        private async Task SendSliderPositionToRobot2Async()
+        {
+            try
+            {
+                int targetStation = GlobalData.TargetSliderStation;
+                if (targetStation < 1 || targetStation > 4) return;
+
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots == null || robots.Count < 2) return;
+
+                // Robot 2 = index 1 (slider'ı kontrol eden robot)
+                var robot2 = robots[1];
+                if (!robot2.IsConnected) return;
+
+                // ═══ 1. G_HEDEF_ISTASYON (INT) → Robot 2'ye istasyon numarası yaz ═══
+                // Robot KRL bu değere göre XHOME1/2/3/BAKIM seçer
+                await robot2.WriteVariableAsync("G_HEDEF_ISTASYON", targetStation.ToString());
+                var istVar = robot2.OutputVars.FirstOrDefault(v => v.PlcTag == "G_HEDEF_ISTASYON");
+                if (istVar != null) istVar.Value = targetStation.ToString();
+
+                // ═══ 2. G_SLIDER_HEDEF_POZ (REAL) → mm pozisyonu da yaz (uyumluluk) ═══
+                double position = GlobalData.GetStationSliderPosition(targetStation);
+                string posStr = position.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                await robot2.WriteVariableAsync("G_SLIDER_HEDEF_POZ", posStr);
+                var posVar = robot2.OutputVars.FirstOrDefault(v => v.PlcTag == "G_SLIDER_HEDEF_POZ");
+                if (posVar != null) posVar.Value = posStr;
+
+                // ═══ 3. PLC değişkenlerini güncelle (görsel senkronizasyon) ═══
+                var hedefPozVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_POZ");
+                if (hedefPozVar != null)
+                {
+                    hedefPozVar.Value = posStr;
+                    hedefPozVar.CurrentValue = position;
+                }
+
+                var hedefIstVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON")
+                               ?? GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+                if (hedefIstVar != null)
+                {
+                    hedefIstVar.Value = targetStation.ToString();
+                    hedefIstVar.CurrentValue = targetStation;
+                }
+
+                string stationName = targetStation == 4 ? "BAKIM" : $"İstasyon {targetStation}";
+                AddLog($"[Robot 2] G_HEDEF_ISTASYON={targetStation} ({stationName}), G_SLIDER_HEDEF_POZ={position:F1} mm", "Cyan");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SendSliderPositionToRobot2 HATA: {ex.Message}");
+            }
         }
 
         private void BtnClearLogs_Click(object sender, RoutedEventArgs e) => SystemLogs.Clear();
@@ -1735,6 +1810,14 @@ namespace App4
                     return;
                 }
 
+                // 1.5. Aktif istasyonu hedef slider istasyonu olarak kaydet
+                int stationIndex = Stations.IndexOf(activeStation);
+                if (stationIndex >= 0)
+                {
+                    GlobalData.TargetSliderStation = stationIndex + 1;
+                    System.Diagnostics.Debug.WriteLine($"[SLIDER] TargetSliderStation = {stationIndex + 1} ({activeStation.Name})");
+                }
+
                 // 2. İstasyonun moduna göre RFID belirle
                 string aktuelRfid = "";
                 if (activeStation.RfidOpMode == Utilities.RfidOperationMode.Specific)
@@ -1762,6 +1845,12 @@ namespace App4
                     idx = (k >= 0) ? k + 1 : 0;
                 }
                 GlobalData.AktuelKlimaIndex = idx;
+
+                // 5. Slider hedef pozisyonunu Robot 2'ye gönder (istasyon değiştiğinde)
+                if (idx > 0 && GlobalData.TargetSliderStation >= 1)
+                {
+                    _ = SendSliderPositionToRobot2Async();
+                }
             }
             catch (Exception ex)
             {
@@ -1773,6 +1862,21 @@ namespace App4
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
                 else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
         private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
+
+        /// <summary>
+        /// Robot 2 HOME sinyaline göre hedef istasyonun ev ikonunu günceller.
+        /// TargetSliderStation (1-3) ile hangi istasyonda HOME olduğu belirlenir.
+        /// </summary>
+        private void UpdateRobotHomeOnStation(bool isHome)
+        {
+            int targetSt = GlobalData.TargetSliderStation; // 1-based
+            for (int i = 0; i < Stations.Count; i++)
+            {
+                // Sadece hedef istasyon HOME, diğerleri değil
+                Stations[i].IsRobotHome = isHome && (i + 1 == targetSt);
+            }
+        }
+
         private string MapStatus(string v) => v switch
         {
             "1" => "3D TARAMA",

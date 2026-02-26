@@ -453,6 +453,8 @@ namespace App4.Pages
             51 => "Tabla OK",
             60 => "Diger Robot Bekleniyor",
             61 => "Diger Robot Hatasi",
+            62 => "Robot 1 Home Bekleniyor",
+            63 => "Ge\u00e7ersiz \u0130stasyon No",
             _ => $"Kod:{durum}"
         };
 
@@ -1185,6 +1187,10 @@ namespace App4.Pages
                     AddIfMissing(robot, "CMD_LINE_RESET", "G_RESET", "Input", "PLC\u2192Robot");
                     AddIfMissing(robot, "LINE_AUTO_MODE", "G_OTO_MOD", "Input", "PLC\u2192Robot");
                     AddIfMissing(robot, "AKTUEL_KLIMA_INDEX", "G_KLIMA_TIP", "Input", "PLC\u2192Robot");
+                    // Slider hedef pozisyonu: Manuel sayfadaki istasyon pozisyonunu Robot 2'ye yaz
+                    AddIfMissing(robot, "KL100_HEDEF_POZ", "G_SLIDER_HEDEF_POZ", "Input", "PLC\u2192Robot");
+                    // Hedef istasyon numaras\u0131: Hangi istasyona gidecek (1=Ist1, 2=Ist2, 3=Ist3, 4=Bak\u0131m)
+                    AddIfMissing(robot, "KL100_HEDEF_ISTASYON", "G_HEDEF_ISTASYON", "Input", "PLC\u2192Robot");
 
                     // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
                     // ROBOT 2 OUTPUT (Robot 2 \u2192 PLC)

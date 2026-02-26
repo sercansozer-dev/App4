@@ -327,6 +327,7 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
                                     <!-- Mod Seçimi -->
@@ -370,6 +371,16 @@
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon Glyph="&#xE768;" Foreground="White" FontSize="14"/>
                                             <TextBlock x:Name="TxtKL100GoButtonLabel" Text="İSTASYONA GİT" FontWeight="Bold" Foreground="White" FontSize="12"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Slider HOME Butonu -->
+                                    <Button x:Name="BtnKL100SliderHome" Grid.Row="3" Click="BtnKL100SliderHome_Click"
+                                            HorizontalAlignment="Stretch" Height="38"
+                                            Background="#0078D4" CornerRadius="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE80F;" Foreground="White" FontSize="14"/>
+                                            <TextBlock Text="SLIDER HOME" FontWeight="Bold" Foreground="White" FontSize="12"/>
                                         </StackPanel>
                                     </Button>
                                 </Grid>

@@ -228,6 +228,10 @@ namespace App4.Utilities
             EnsureOutput("RB2_SLIDER_TAMAM", "BOOL");            // Robot 2 slider hedefe ula\u015ft\u0131
             EnsureOutput("RB2_SLIDER_HOME", "BOOL");             // Robot 2 slider home pozisyonunda
             EnsureOutput("RB2_SLIDER_POZ", "REAL");              // Robot 2 slider akt\u00fcel pozisyon (mm)
+
+            // --- Slider Hedef Pozisyon (PC \u2192 Robot 2 k\u00f6pr\u00fcs\u00fc i\u00e7in) ---
+            EnsureOutput("KL100_HEDEF_POZ", "REAL");             // Slider hedef pozisyon (mm) \u2192 Robot 2'ye bridge
+            EnsureOutput("KL100_HEDEF_ISTASYON", "WORD");          // Hedef istasyon no (1-4) \u2192 Robot 2'ye bridge
         }
 
         private void StartMonitoring()
