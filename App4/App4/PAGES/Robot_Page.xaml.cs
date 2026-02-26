@@ -370,8 +370,6 @@ namespace App4.Pages
             // Köprü eşleşmelerini işle
             _ = ProcessMappingsAsync();
             _ = ProcessRobotRobotMappingsAsync();
-<<<<<<< Updated upstream
-=======
 
             // Referans tablosundaki canlı sinyalleri güncelle
             UpdateRefLiveSignals();
@@ -467,7 +465,6 @@ namespace App4.Pages
         {
             if (dot == null) return;
             try { dot.Background = new SolidColorBrush(ParseColor(color)); } catch { }
->>>>>>> Stashed changes
         }
 
         private void LogMessage(string msg)

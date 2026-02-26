@@ -11,7 +11,12 @@
       "Bash(xargs wc -l)",
       "Bash(xargs grep -l \"Inficon\")",
       "Bash(xargs grep -l \"GocatorMeasurement\\\\|class.*Measurement\")",
-      "Bash(grep -r \"G_[A-Z_]*\" --include=\"*.cs\" --exclude-dir=obj --exclude-dir=bin Utilities/GlobalData.cs Utilities/KukaRobotManager.cs PAGES/*.xaml.cs)"
+      "Bash(grep -r \"G_[A-Z_]*\" --include=\"*.cs\" --exclude-dir=obj --exclude-dir=bin Utilities/GlobalData.cs Utilities/KukaRobotManager.cs PAGES/*.xaml.cs)",
+      "Bash(dotnet clean \"App4\\\\App4.csproj\" -q)",
+      "Bash(powershell -Command \"\\(Get-Content output.json | ConvertFrom-Json\\).CompileErrors | Format-List\")",
+      "Bash(powershell -Command \"$j = Get-Content ''C:\\\\Users\\\\Simbiosis\\\\source\\\\repos\\\\App4\\\\App4\\\\App4\\\\obj\\\\Debug\\\\net8.0-windows10.0.19041.0\\\\output.json'' | ConvertFrom-Json; $j.CompileErrors\")",
+      "Bash(powershell -NoProfile -Command \"& { $data = Get-Content ''C:\\\\Users\\\\Simbiosis\\\\source\\\\repos\\\\App4\\\\App4\\\\App4\\\\obj\\\\Debug\\\\net8.0-windows10.0.19041.0\\\\output.json'' -Raw | ConvertFrom-Json; $data.CompileErrors | Format-List }\")",
+      "Bash(dotnet-script -e \":*)"
     ]
   }
 }
