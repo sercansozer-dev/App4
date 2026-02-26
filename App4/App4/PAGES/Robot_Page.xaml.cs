@@ -451,6 +451,8 @@ namespace App4.Pages
             31 => "Slider Tamam",
             50 => "Tabla Bekleniyor",
             51 => "Tabla OK",
+            60 => "Diger Robot Bekleniyor",
+            61 => "Diger Robot Hatasi",
             _ => $"Kod:{durum}"
         };
 

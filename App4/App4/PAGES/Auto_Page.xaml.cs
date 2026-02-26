@@ -1524,6 +1524,44 @@ namespace App4
             // Bu yüzden reset öncesinde değeri zorla yeniden yazıyoruz.
             await ResendKlimaTipToRobots();
 
+            // ═══ ROBOTLARA G_RESET SİNYALİ GÖNDER ═══
+            // KRL programı WAIT FOR G_RESET==TRUE ile hata durumunda bekler.
+            // Bu sinyal gönderilmezse robot sonsuza dek takılı kalır!
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                for (int i = 0; i < robots.Count; i++)
+                {
+                    var robot = robots[i];
+                    if (!robot.IsConnected) continue;
+
+                    AddLog($"Robot {i + 1} G_RESET sinyali gönderiliyor...", "Orange");
+                    var resetOutVar = robot.OutputVars.FirstOrDefault(v => v.Name == "G_RESET");
+                    if (resetOutVar != null)
+                    {
+                        resetOutVar.CurrentValue = true;
+                    }
+                    // KukaVarProxy ile de doğrudan yaz (güvenlik için)
+                    try { await robot.WriteVariableAsync("G_RESET", "TRUE"); } catch { }
+                }
+
+                await Task.Delay(500); // Robot KRL'nin WAIT FOR G_RESET==TRUE'yu yakalaması için
+
+                for (int i = 0; i < robots.Count; i++)
+                {
+                    var robot = robots[i];
+                    if (!robot.IsConnected) continue;
+
+                    var resetOutVar = robot.OutputVars.FirstOrDefault(v => v.Name == "G_RESET");
+                    if (resetOutVar != null)
+                    {
+                        resetOutVar.CurrentValue = false;
+                    }
+                    try { await robot.WriteVariableAsync("G_RESET", "FALSE"); } catch { }
+                    AddLog($"Robot {i + 1} G_RESET tamamlandı", "Green");
+                }
+            }
+
             // PLC'ye Reset Sinyali Gönder
             var resetVar = GeneralOutputVars.FirstOrDefault(x => x.Name == "CMD_LINE_RESET");
             if (resetVar != null)
@@ -2101,6 +2139,7 @@ namespace App4
                     {
                         5 => "Tabla Timeout",
                         6 => "Olcum Timeout",
+                        8 => "Diger Robot Hatasi",
                         99 => "Genel Hata",
                         _ => hataKodu > 0 ? $"Kod: {hataKodu}" : "Hata Var"
                     };
@@ -2165,8 +2204,11 @@ namespace App4
                     hataText = hataKodu switch
                     {
                         5 => "Tabla Timeout!",
+                        6 => "Olcum Timeout!",
+                        8 => "Diger Robot Hatasi!",
                         10 => "Gocator Timeout!",
                         20 => robotNo == 1 ? "Inficon Timeout!" : "Sniffer Timeout!",
+                        99 => "Gecersiz Klima Tipi!",
                         _ => hataKodu > 0 ? $"Kod: {hataKodu}" : "Hata Var!"
                     };
                     hataColor = "#F44336";
