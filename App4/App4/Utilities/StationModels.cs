@@ -30,6 +30,65 @@ namespace App4.Utilities
             set { _jobName = value; OnPropertyChanged(); }
         }
 
+        // Sniffer olcum suresi (saniye) - her job icin ayri
+        private double _snifferDuration = 5.0;
+        public double SnifferDuration
+        {
+            get => _snifferDuration;
+            set { _snifferDuration = value; OnPropertyChanged(); }
+        }
+
+        // Olcum sonucu durumu (runtime): null=olcum yapilmamis, "OK", "NOK"
+        private string _measurementStatus;
+        [JsonIgnore]
+        public string MeasurementStatus
+        {
+            get => _measurementStatus;
+            set { _measurementStatus = value; OnPropertyChanged(); OnPropertyChanged(nameof(StatusColor)); }
+        }
+
+        // Durum rengi: gri=olcum yapilmamis, yesil=OK, kirmizi=NOK
+        [JsonIgnore]
+        public SolidColorBrush StatusColor
+        {
+            get
+            {
+                if (MeasurementStatus == "OK") return new SolidColorBrush(Color.FromArgb(255, 46, 204, 113));
+                if (MeasurementStatus == "NOK") return new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
+                return new SolidColorBrush(Color.FromArgb(255, 100, 100, 100)); // Gri
+            }
+        }
+
+        // ═══ ANLIK INDEX GOSTERGESİ ═══
+        // Sistem su an bu index'i olcecekse true → satir vurgulu gosterilir
+        private bool _isCurrent;
+        [JsonIgnore]
+        public bool IsCurrent
+        {
+            get => _isCurrent;
+            set
+            {
+                if (_isCurrent != value)
+                {
+                    _isCurrent = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(RowBackground));
+                    OnPropertyChanged(nameof(CurrentIndicator));
+                }
+            }
+        }
+
+        // Satir arka plani: aktif index ise turuncu vurgulu, degilse normal
+        [JsonIgnore]
+        public SolidColorBrush RowBackground =>
+            IsCurrent
+                ? new SolidColorBrush(Color.FromArgb(255, 50, 40, 20))   // Turuncu tonlu koyu
+                : new SolidColorBrush(Color.FromArgb(255, 42, 42, 44));  // Normal #2A2A2C
+
+        // Aktif index ikonu: ▶ veya bos
+        [JsonIgnore]
+        public string CurrentIndicator => IsCurrent ? "\u25B6" : "";
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -72,6 +131,14 @@ namespace App4.Utilities
             }
         }
 
+        // Her job icin sniffer olcum suresi (saniye) - JobSequence ile paralel
+        private ObservableCollection<double> _snifferDurations = new();
+        public ObservableCollection<double> SnifferDurations
+        {
+            get => _snifferDurations;
+            set { _snifferDurations = value ?? new ObservableCollection<double>(); OnPropertyChanged(); RefreshIndexedJobs(); }
+        }
+
         // INDEX'Lİ JOB LİSTESİ (UI GÖRÜNTÜLEME İÇİN)
         [JsonIgnore]
         public ObservableCollection<IndexedJobItem> IndexedJobSequence { get; } = new();
@@ -89,9 +156,18 @@ namespace App4.Utilities
         private void RefreshIndexedJobs()
         {
             IndexedJobSequence.Clear();
+            // SnifferDurations listesini JobSequence ile ayni boyutta tut
+            while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5.0);
+            while (_snifferDurations.Count > _jobSequence.Count) _snifferDurations.RemoveAt(_snifferDurations.Count - 1);
+
             for (int i = 0; i < _jobSequence.Count; i++)
             {
-                IndexedJobSequence.Add(new IndexedJobItem { Index = i, JobName = _jobSequence[i] });
+                IndexedJobSequence.Add(new IndexedJobItem
+                {
+                    Index = i,
+                    JobName = _jobSequence[i],
+                    SnifferDuration = _snifferDurations[i]
+                });
             }
             OnPropertyChanged(nameof(IndexedJobSequence));
         }
@@ -104,6 +180,59 @@ namespace App4.Utilities
             get => _indexDisplay;
             set { if (_indexDisplay != value) { _indexDisplay = value; OnPropertyChanged(); } }
         }
+
+        // ═══ ANLIK ÖLÇÜM INDEX'İ ═══
+        // Sistemin su an olcecegi job index'i (0-based, -1=hicbiri)
+        private int _currentJobIndex = -1;
+        [JsonIgnore]
+        public int CurrentJobIndex
+        {
+            get => _currentJobIndex;
+            set
+            {
+                if (_currentJobIndex != value)
+                {
+                    _currentJobIndex = value;
+                    // IndexedJobSequence icindeki tum item'larin IsCurrent'ini guncelle
+                    for (int i = 0; i < IndexedJobSequence.Count; i++)
+                    {
+                        IndexedJobSequence[i].IsCurrent = (i == _currentJobIndex);
+                    }
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // ═══ AKTİF KLİMA TİPİ GÖSTERİMİ ═══
+        // Aktüel istasyondaki RFID bu klima tipine eşitse yeşil çerçeve
+        private bool _isActive;
+        [JsonIgnore]
+        public bool IsActive
+        {
+            get => _isActive;
+            set
+            {
+                if (_isActive != value)
+                {
+                    _isActive = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ActiveBorderBrush));
+                    OnPropertyChanged(nameof(ActiveBorderThickness));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public SolidColorBrush ActiveBorderBrush =>
+            IsActive
+                ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113))   // Yeşil
+                : new SolidColorBrush(Color.FromArgb(255, 68, 68, 68));    // #444
+
+        [JsonIgnore]
+        public Thickness ActiveBorderThickness =>
+            IsActive
+                ? new Thickness(2)
+                : new Thickness(1);
 
         public override string ToString() => $"{Id} ({Description})";
 

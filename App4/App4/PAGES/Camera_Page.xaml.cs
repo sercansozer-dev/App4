@@ -1070,90 +1070,30 @@ namespace App4.PAGES
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Job Cache Save Error: " + ex.Message); }
         }
 
-        // --- JOB SEQUENCE YÖNETİMİ (YENİ EKLENECEK KODLAR) ---
+        // --- JOB SEQUENCE YÖNETİMİ ---
+        // FindParentRfidDef, MoveJobUp, MoveJobDown, RemoveJobFromSequence,
+        // SnifferDuration_ValueChanged -> Camera_Page.JobSequence.cs partial class
 
-        // 1. Reçeteye Job Ekleme
+        // Receteye Job Ekleme
         private void BtnAddJobToSequence_Click(object sender, RoutedEventArgs e)
         {
-            // Butona tıklandığında hangi RFID kartındayız onu bulalım
             var btn = sender as Button;
-            var rfidItem = btn?.DataContext as App4.Utilities.RfidDef;
+            var rfidItem = FindParentRfidDef(btn);
 
             if (rfidItem != null)
             {
-                // Butonun yanındaki ComboBox'ı bulmak için Grid içinde gezmemiz lazım
-                // Veya daha kolayı: DataTemplate içinde olduğumuz için UI tree'den bulmak zor olabilir.
-                // Hile: XAML'da ComboBox ismini verdik ama DataTemplate içinde olduğu için doğrudan erişemeyiz.
-                // Çözüm: Butonun "Parent"ı olan Grid'in içindeki ComboBox'ı bulmak.
-
                 var parentGrid = VisualTreeHelper.GetParent(btn) as Grid;
                 var comboBox = parentGrid?.Children.OfType<ComboBox>().FirstOrDefault();
 
                 if (comboBox != null && comboBox.SelectedItem is string selectedJob)
                 {
-                    // Listeye ekle
                     rfidItem.JobSequence.Add(selectedJob);
-
-                    // Kaydet
                     App4.Utilities.GlobalData.SaveRfids();
-
-                    // Seçimi sıfırla (isteğe bağlı)
                     comboBox.SelectedIndex = -1;
                 }
                 else
                 {
-                    AddLog("⚠ Lütfen önce bir Job seçiniz.");
-                }
-            }
-        }
-
-        // 2. Reçeteden Job Silme
-        private void BtnRemoveJobFromSequence_Click(object sender, RoutedEventArgs e)
-        {
-            var btn = sender as Button;
-            var jobName = btn?.DataContext as string; // Silinecek Job'ın adı
-
-            if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
-            {
-                parentRfid.JobSequence.Remove(jobName);
-                App4.Utilities.GlobalData.SaveRfids();
-            }
-        }
-
-        // 3. Job Sırası Yukarı Taşıma
-        private void BtnMoveJobUp_Click(object sender, RoutedEventArgs e)
-        {
-            var btn = sender as Button;
-            var jobName = btn?.DataContext as string;
-            
-            if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
-            {
-                int currentIndex = parentRfid.JobSequence.IndexOf(jobName);
-                if (currentIndex > 0)
-                {
-                    // Yukarı taşı
-                    parentRfid.JobSequence.RemoveAt(currentIndex);
-                    parentRfid.JobSequence.Insert(currentIndex - 1, jobName);
-                    App4.Utilities.GlobalData.SaveRfids();
-                }
-            }
-        }
-
-        // 4. Job Sırası Aşağı Taşıma
-        private void BtnMoveJobDown_Click(object sender, RoutedEventArgs e)
-        {
-            var btn = sender as Button;
-            var jobName = btn?.DataContext as string;
-            
-            if (btn != null && btn.Tag is App4.Utilities.RfidDef parentRfid && jobName != null)
-            {
-                int currentIndex = parentRfid.JobSequence.IndexOf(jobName);
-                if (currentIndex < parentRfid.JobSequence.Count - 1)
-                {
-                    // Aşağı taşı
-                    parentRfid.JobSequence.RemoveAt(currentIndex);
-                    parentRfid.JobSequence.Insert(currentIndex + 1, jobName);
-                    App4.Utilities.GlobalData.SaveRfids();
+                    AddLog("Lutfen once bir Job seciniz.");
                 }
             }
         }

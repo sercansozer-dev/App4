@@ -25,14 +25,14 @@ namespace App4.PAGES
         private int GetIndexFromTag(object tag)
         {
             if (tag == null) return -1;
-            
+
             // Direkt int ise
             if (tag is int intVal) return intVal;
-            
+
             // String ise parse et
             if (tag is string strVal && int.TryParse(strVal, out int parsed))
                 return parsed;
-            
+
             // Baska tipler icin Convert dene
             try
             {
@@ -56,9 +56,17 @@ namespace App4.PAGES
             var rfidDef = FindParentRfidDef(btn);
             if (rfidDef != null && currentIndex > 0 && currentIndex < rfidDef.JobSequence.Count)
             {
+                // JobSequence tasima
                 var jobName = rfidDef.JobSequence[currentIndex];
                 rfidDef.JobSequence.RemoveAt(currentIndex);
                 rfidDef.JobSequence.Insert(currentIndex - 1, jobName);
+                // SnifferDurations paralel tasima
+                if (currentIndex < rfidDef.SnifferDurations.Count)
+                {
+                    var dur = rfidDef.SnifferDurations[currentIndex];
+                    rfidDef.SnifferDurations.RemoveAt(currentIndex);
+                    rfidDef.SnifferDurations.Insert(currentIndex - 1, dur);
+                }
                 App4.Utilities.GlobalData.SaveRfids();
             }
         }
@@ -75,9 +83,17 @@ namespace App4.PAGES
             var rfidDef = FindParentRfidDef(btn);
             if (rfidDef != null && currentIndex < rfidDef.JobSequence.Count - 1)
             {
+                // JobSequence tasima
                 var jobName = rfidDef.JobSequence[currentIndex];
                 rfidDef.JobSequence.RemoveAt(currentIndex);
                 rfidDef.JobSequence.Insert(currentIndex + 1, jobName);
+                // SnifferDurations paralel tasima
+                if (currentIndex < rfidDef.SnifferDurations.Count)
+                {
+                    var dur = rfidDef.SnifferDurations[currentIndex];
+                    rfidDef.SnifferDurations.RemoveAt(currentIndex);
+                    rfidDef.SnifferDurations.Insert(currentIndex + 1, dur);
+                }
                 App4.Utilities.GlobalData.SaveRfids();
             }
         }
@@ -93,7 +109,27 @@ namespace App4.PAGES
                 var rfidDef = FindParentRfidDef(btn);
                 if (rfidDef != null && rfidDef.JobSequence.Contains(jobName))
                 {
+                    int idx = rfidDef.JobSequence.IndexOf(jobName);
                     rfidDef.JobSequence.Remove(jobName);
+                    // SnifferDurations paralel silme
+                    if (idx >= 0 && idx < rfidDef.SnifferDurations.Count)
+                        rfidDef.SnifferDurations.RemoveAt(idx);
+                    App4.Utilities.GlobalData.SaveRfids();
+                }
+            }
+        }
+
+        // Sniffer Suresi Degistiginde Kaydet
+        private void SnifferDuration_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (sender.DataContext is App4.Utilities.IndexedJobItem jobItem)
+            {
+                var rfid = FindParentRfidDef(sender);
+                if (rfid != null && jobItem.Index < rfid.SnifferDurations.Count)
+                {
+                    double newVal = double.IsNaN(args.NewValue) ? 0.0 : args.NewValue;
+                    rfid.SnifferDurations[jobItem.Index] = newVal;
+                    jobItem.SnifferDuration = newVal;
                     App4.Utilities.GlobalData.SaveRfids();
                 }
             }

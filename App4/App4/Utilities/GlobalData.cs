@@ -67,8 +67,23 @@ namespace App4.Utilities
                     var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
                     if (plcVar != null && plcVar.CurrentValue?.ToString() != _aktuelRfid)
                         plcVar.CurrentValue = _aktuelRfid;
+                    // Kamera sayfasindaki klima kartlarinin cercevesini guncelle
+                    UpdateActiveRfidHighlight(_aktuelRfid);
                     System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelRfid = '{_aktuelRfid}'");
                 }
+            }
+        }
+
+        /// <summary>
+        /// KnownRfids icinde aktuel RFID'ye esit olanin IsActive=true, digerlerini false yapar.
+        /// Kamera sayfasindaki kart cercevesi yesil gosterimi icin.
+        /// </summary>
+        public static void UpdateActiveRfidHighlight(string rfidId)
+        {
+            foreach (var rfid in KnownRfids)
+            {
+                rfid.IsActive = !string.IsNullOrEmpty(rfidId) &&
+                                string.Equals(rfid.Id, rfidId, StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -1498,6 +1513,94 @@ namespace App4.Utilities
             }
         }
 
+        // --- JOB DURUM TAKİBİ (PLC -> UI Renklendirme) ---
+
+        /// <summary>
+        /// Tum job'larin MeasurementStatus'unu sifirlar (gri).
+        /// Yeni urun / yeni olcum baslangicinda cagrilir.
+        /// </summary>
+        public static void ResetAllJobStatuses()
+        {
+            foreach (var rfid in KnownRfids)
+            {
+                rfid.CurrentJobIndex = -1;  // Anlik index gostergesini temizle
+                foreach (var job in rfid.IndexedJobSequence)
+                {
+                    job.MeasurementStatus = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Aktuel RFID kartinda su an olculecek job index'ini isaretler.
+        /// Kamera sayfasinda ilgili satir vurgulu gosterilir.
+        /// jobIndex: 0-based (RunAutomationSequence'daki idx degeri)
+        /// -1 = hicbiri (olcum bitti/iptal)
+        /// </summary>
+        public static void UpdateCurrentJobIndex(int jobIndex)
+        {
+            string currentRfid = AktuelRfid;
+            if (string.IsNullOrEmpty(currentRfid))
+            {
+                var rfidVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
+                if (rfidVar != null) currentRfid = rfidVar.Value;
+            }
+
+            if (string.IsNullOrEmpty(currentRfid)) return;
+
+            var recipe = KnownRfids.FirstOrDefault(r =>
+                string.Equals(r.Id, currentRfid, StringComparison.OrdinalIgnoreCase));
+            if (recipe == null) return;
+
+            recipe.CurrentJobIndex = jobIndex;
+        }
+
+        /// <summary>
+        /// Aktuel RFID'nin belirtilen job index'inin durumunu gunceller.
+        /// PLC degisken degisikliklerinden cagrilir.
+        /// </summary>
+        public static void UpdateJobStatus(int jobIndex, string status)
+        {
+            // Aktuel RFID'yi bul
+            string currentRfid = null;
+            var rfidVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
+            if (rfidVar != null) currentRfid = rfidVar.Value;
+
+            if (string.IsNullOrEmpty(currentRfid)) return;
+
+            var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
+            if (recipe == null) return;
+
+            // jobIndex 1-based (robot tarafindan), IndexedJobSequence 0-based
+            int idx = jobIndex - 1;
+            if (idx >= 0 && idx < recipe.IndexedJobSequence.Count)
+            {
+                recipe.IndexedJobSequence[idx].MeasurementStatus = status;
+            }
+        }
+
+        /// <summary>
+        /// Aktuel job'in sniffer suresini dondurur (saniye).
+        /// Robot/PC tarafindan sniffer bekleme suresi icin kullanilir.
+        /// </summary>
+        public static double GetCurrentSnifferDuration(int jobIndex)
+        {
+            string currentRfid = null;
+            var rfidVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
+            if (rfidVar != null) currentRfid = rfidVar.Value;
+
+            if (string.IsNullOrEmpty(currentRfid)) return 5.0;
+
+            var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
+            if (recipe == null) return 5.0;
+
+            int idx = jobIndex - 1;
+            if (idx >= 0 && idx < recipe.SnifferDurations.Count)
+                return recipe.SnifferDurations[idx];
+
+            return 5.0;
+        }
+
         // --- İŞLEM AKIŞI ---
         public static async Task RunAutomationSequence()
         {
@@ -1507,6 +1610,7 @@ namespace App4.Utilities
 
             // ▼▼▼ SİNYAL SIFIRLA (Ölçüm başlıyor) ▼▼▼
             ResetMeasurementSignal();
+            ResetAllJobStatuses();
 
             try
             {
@@ -1534,6 +1638,9 @@ namespace App4.Utilities
                 string jobName = recipe.JobSequence[idx];
                 ProcessStatus = $"JOB: {jobName}";
 
+                // ▶ Anlik index gostergesini guncelle (kamera sayfasinda vurgulu satir)
+                UpdateCurrentJobIndex(idx);
+
                 bool loadOk = await App4.Utilities.GocatorJobLogic.LoadJob(jobName, (s) => OnAutomationLog?.Invoke(s));
                 if (!loadOk) throw new Exception("Job yüklenemedi");
 
@@ -1542,6 +1649,9 @@ namespace App4.Utilities
 
                 if (status == 1 && measurements != null)
                 {
+                    // Job durumunu OK olarak guncelle (idx 0-based, UpdateJobStatus 1-based)
+                    UpdateJobStatus(idx + 1, "OK");
+
                     // ▼▼▼ SİNYAL GÖNDER (Ölçüm tamamlandı) ▼▼▼
                     SetMeasurementSignal();
 
@@ -1641,16 +1751,22 @@ namespace App4.Utilities
                     });
 
                     ProcessStatus = "TAMAMLANDI";
+                    // Olcum bitti — index gostergesini temizle
+                    UpdateCurrentJobIndex(-1);
                 }
                 else
                 {
+                    // Job durumunu NOK olarak guncelle
+                    UpdateJobStatus(idx + 1, "NOK");
+                    UpdateCurrentJobIndex(-1);
                     ProcessStatus = "VERİ YOK";
-                    OnAutomationLog?.Invoke("⚠ Ölçüm alınamadı: Çıktı yok veya zaman aşımı.");
+                    OnAutomationLog?.Invoke("Olcum alinamadi: Cikti yok veya zaman asimi.");
                 }
             }
             catch (Exception ex)
             {
                 ProcessStatus = "HATA";
+                UpdateCurrentJobIndex(-1);
                 OnAutomationLog?.Invoke($"Hata: {ex.Message}");
             }
             finally

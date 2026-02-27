@@ -16,7 +16,11 @@
       "Bash(powershell -Command \"\\(Get-Content output.json | ConvertFrom-Json\\).CompileErrors | Format-List\")",
       "Bash(powershell -Command \"$j = Get-Content ''C:\\\\Users\\\\Simbiosis\\\\source\\\\repos\\\\App4\\\\App4\\\\App4\\\\obj\\\\Debug\\\\net8.0-windows10.0.19041.0\\\\output.json'' | ConvertFrom-Json; $j.CompileErrors\")",
       "Bash(powershell -NoProfile -Command \"& { $data = Get-Content ''C:\\\\Users\\\\Simbiosis\\\\source\\\\repos\\\\App4\\\\App4\\\\App4\\\\obj\\\\Debug\\\\net8.0-windows10.0.19041.0\\\\output.json'' -Raw | ConvertFrom-Json; $data.CompileErrors | Format-List }\")",
-      "Bash(dotnet-script -e \":*)"
+      "Bash(dotnet-script -e \":*)",
+      "Bash(python3:*)",
+      "Bash(done)",
+      "Bash(perl -pi -e 'BEGIN{ undef $/; } s/\\\\r?\\\\n+\\\\z//' \"C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Robot_Right_v1\\\\Simbiosis_Programs\\\\MAIN.src\")",
+      "Bash(perl -pi -e 'BEGIN{ undef $/; } s/\\\\r?\\\\n+\\\\z//' \"C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Robot_Right_v1\\\\Simbiosis_Programs\\\\MAIN.dat\")"
     ]
   }
 }
