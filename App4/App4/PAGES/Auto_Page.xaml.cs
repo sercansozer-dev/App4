@@ -109,8 +109,9 @@ namespace App4
                     v.PropertyChanged -= LocalVariable_PropertyChanged;
                     v.PropertyChanged += LocalVariable_PropertyChanged;
 
-                    // PLC ile bağlantıyı kur
+                    // PLC ile bağlantıyı kur (Tag 1 + Tag 2)
                     ConnectToPlcVariable(v);
+                    ConnectToPlcVariable2(v);
                 }
             }
 
@@ -1230,6 +1231,11 @@ namespace App4
                         foreach (var v in robots[i].InputVars)
                             if (!string.IsNullOrEmpty(v.Name))
                                 AvailableInputPlcTags.Add($"R{i + 1}:{v.Name}");
+
+                        // Robot OutputVars'ları da R1:/R2: prefix'iyle output tag listesine ekle
+                        foreach (var v in robots[i].OutputVars)
+                            if (!string.IsNullOrEmpty(v.Name))
+                                AvailableOutputPlcTags.Add($"R{i + 1}:{v.Name}");
                     }
                 }
             }
@@ -1237,12 +1243,41 @@ namespace App4
         }
 
         // PC tarafından yönetilen bridge değişkenler (PLC'den geri okuma yapılmaz, sadece yazılır)
-        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX" };
+        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX", "SNIFFER_OLCUM_SURE" };
+
+        /// <summary>
+        /// Tag adına göre PlcVariable'ı bulur.
+        /// PlcService Input/Output + Robot Input/Output (R1:/R2: prefix) desteği.
+        /// </summary>
+        private PlcVariable FindTargetVariable(string tagName)
+        {
+            if (string.IsNullOrEmpty(tagName)) return null;
+
+            // 1. R1:/R2: prefix kontrolü → Robot değişkeni
+            if (tagName.Length > 3 && tagName[0] == 'R' && tagName[2] == ':')
+            {
+                if (int.TryParse(tagName.Substring(1, 1), out int robotNo) && robotNo >= 1)
+                {
+                    var robots = KukaRobotManager.Instance?.Robots;
+                    if (robots != null && robotNo <= robots.Count)
+                    {
+                        var robot = robots[robotNo - 1];
+                        string varName = tagName.Substring(3); // "R1:G_XXX" → "G_XXX"
+                        return robot.InputVars.FirstOrDefault(v => v.Name == varName)
+                            ?? robot.OutputVars.FirstOrDefault(v => v.Name == varName);
+                    }
+                }
+            }
+
+            // 2. Normal PlcService değişkeni
+            return PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == tagName)
+                ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == tagName);
+        }
 
         private void ConnectToPlcVariable(PlcVariable localVar)
         {
             if (string.IsNullOrEmpty(localVar.PlcTag)) return;
-            var sourceRealVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag) ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag);
+            var sourceRealVar = FindTargetVariable(localVar.PlcTag);
 
             if (sourceRealVar != null)
             {
@@ -1256,14 +1291,14 @@ namespace App4
                 }
                 // else: PC-managed değişken → PLC'den okuma yapma, değer GlobalData'dan gelir
 
-                // Yazma (her iki tip için de): local değiştiğinde PLC'ye yaz
+                // Yazma (her iki tip için de): local değiştiğinde hedef değişkene yaz
                 localVar.PropertyChanged += async (s, e) => {
                     if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
                     {
                         try
                         {
                             sourceRealVar.CurrentValue = localVar.CurrentValue;
-                            await PlcService.Instance.WriteAsync(sourceRealVar, localVar.CurrentValue);
+                            System.Diagnostics.Debug.WriteLine($"[PLC_WRITE] {localVar.Name}→{localVar.PlcTag} = {localVar.CurrentValue}");
                         }
                         catch (Exception ex)
                         {
@@ -1274,22 +1309,58 @@ namespace App4
             }
             else
             {
-                // Fallback: Doğrudan Adres Yazma (Direct Write)
-                // Eğer PlcTags serviste kayıtlı bir isim değilse (örn: DB10.W20.0 gibi ham adres ise)
+                System.Diagnostics.Debug.WriteLine($"[PLC_CONNECT] ⚠ Tag bulunamadı: {localVar.PlcTag} (localVar={localVar.Name})");
+            }
+        }
+
+        /// <summary>
+        /// İkinci PLC Tag bağlantısı — localVar değiştiğinde PlcTag2'ye de yazar.
+        /// </summary>
+        private void ConnectToPlcVariable2(PlcVariable localVar)
+        {
+            if (string.IsNullOrEmpty(localVar.PlcTag2)) return;
+            var target2 = FindTargetVariable(localVar.PlcTag2);
+
+            if (target2 != null)
+            {
                 localVar.PropertyChanged += async (s, e) => {
-                    if (e.PropertyName == "CurrentValue" || e.PropertyName == "Value")
+                    if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && target2.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
                     {
-                        // Geçici değişken ile yazma (Name=Address kuralına göre)
-                        var tempVar = new PlcVariable { Name = localVar.PlcTag, Type = localVar.Type ?? "WORD" };
-                        await PlcService.Instance.WriteAsync(tempVar, localVar.CurrentValue);
+                        try
+                        {
+                            target2.CurrentValue = localVar.CurrentValue;
+                            System.Diagnostics.Debug.WriteLine($"[PLC_WRITE2] {localVar.Name}→{localVar.PlcTag2} = {localVar.CurrentValue}");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[PLC_WRITE2] {localVar.Name}→{localVar.PlcTag2} yazma hatası: {ex.Message}");
+                        }
                     }
                 };
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[PLC_CONNECT2] ⚠ Tag2 bulunamadı: {localVar.PlcTag2} (localVar={localVar.Name})");
             }
         }
 
         private void PlcTagComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (sender is ComboBox cb && cb.DataContext is PlcVariable v) { if (v.PlcTag != cb.SelectedItem as string) { v.PlcTag = cb.SelectedItem as string; GlobalData.SavePlcVariableTagsToFile(); ConnectToPlcVariable(v); } }
+        }
+
+        private void PlcTag2ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is PlcVariable v)
+            {
+                string newTag2 = cb.SelectedItem as string;
+                if (v.PlcTag2 != newTag2)
+                {
+                    v.PlcTag2 = newTag2;
+                    GlobalData.SavePlcVariableTagsToFile();
+                    ConnectToPlcVariable2(v);
+                }
+            }
         }
 
         // ═══ HAT OTO/MANUEL SWITCH (KONTROL PANELİNDEN) ═══

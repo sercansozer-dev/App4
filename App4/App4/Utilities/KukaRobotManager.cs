@@ -481,6 +481,7 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "G_R1_IS_BITTI", Type = "BOOL", PlcTag = "G_R1_IS_BITTI", Direction = "Output", Description = "Robot 1 iş bitti (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_ROBOT_DURUM", Type = "INT", PlcTag = "G_R1_ROBOT_DURUM", Direction = "Output", Description = "Robot 1 durum kodu (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_HATA_VAR", Type = "BOOL", PlcTag = "G_R1_HATA_VAR", Direction = "Output", Description = "Robot 1 hata var (Robot-Robot)" });
+            OutputVars.Add(new PlcVariable { Name = "G_R1_HOME", Type = "BOOL", PlcTag = "G_R1_HOME", Direction = "Output", Description = "Robot 1 home pozisyonunda (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_HATA_KODU", Type = "INT", PlcTag = "G_R1_HATA_KODU", Direction = "Output", Description = "Robot 1 hata kodu (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_EKSEN_E1", Type = "REAL", PlcTag = "G_R1_EKSEN_E1", Direction = "Output", Description = "Robot 1 harici eksen E1 (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R2_IS_BITTI", Type = "BOOL", PlcTag = "G_R2_IS_BITTI", Direction = "Output", Description = "Robot 2 iş bitti (Robot-Robot)" });
@@ -502,6 +503,13 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HEDEF_POZ", Type = "REAL", PlcTag = "G_SLIDER_HEDEF_POZ", Direction = "Output", Description = "Slider hedef pozisyon (mm)" });
             OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HAREKET", Type = "BOOL", PlcTag = "G_SLIDER_HAREKET", Direction = "Output", Description = "Slider hareket komutu" });
             OutputVars.Add(new PlcVariable { Name = "G_HEDEF_ISTASYON", Type = "INT", PlcTag = "G_HEDEF_ISTASYON", Direction = "Output", Description = "Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // İSTASYON HAZIR SİNYALLERİ - PLC → Robot (Output)
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_IST1_HAZIR", Type = "BOOL", PlcTag = "G_IST1_HAZIR", Direction = "Output", Description = "İstasyon 1 hazır (PLC'den robota)" });
+            OutputVars.Add(new PlcVariable { Name = "G_IST2_HAZIR", Type = "BOOL", PlcTag = "G_IST2_HAZIR", Direction = "Output", Description = "İstasyon 2 hazır (PLC'den robota)" });
+            OutputVars.Add(new PlcVariable { Name = "G_IST3_HAZIR", Type = "BOOL", PlcTag = "G_IST3_HAZIR", Direction = "Output", Description = "İstasyon 3 hazır (PLC'den robota)" });
 
             // ═══════════════════════════════════════════════════════════════
             // ROBOT 2 - SLİDER KÖPRÜ (R2 → R1 bridge)
@@ -618,7 +626,7 @@ namespace App4.Utilities
                     await Task.Delay(3000);
                 }
 
-                await Task.Delay(500); // Döngü hızı
+                await Task.Delay(GlobalData.Robot_ReadSpeed); // Döngü hızı (Settings'den ayarlanır)
             }
         }
 

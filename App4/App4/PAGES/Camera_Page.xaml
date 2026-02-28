@@ -873,7 +873,16 @@
 
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="utils:RfidDef">
-                                        <Border Width="420" Height="300" Background="#202020" BorderBrush="{x:Bind ActiveBorderBrush, Mode=OneWay}" BorderThickness="{x:Bind ActiveBorderThickness, Mode=OneWay}" CornerRadius="6" Padding="10">
+                                        <Border Width="420" Height="300"
+                                                Background="{x:Bind ActiveCardBackground, Mode=OneWay}"
+                                                BorderBrush="{x:Bind ActiveBorderBrush, Mode=OneWay}"
+                                                BorderThickness="{x:Bind ActiveBorderThickness, Mode=OneWay}"
+                                                CornerRadius="6" Padding="0">
+                                            <!-- Ic glow efekti: aktifse yesil ic border -->
+                                            <Border CornerRadius="5" Padding="10"
+                                                    BorderBrush="{x:Bind ActiveBorderBrush, Mode=OneWay}"
+                                                    BorderThickness="0"
+                                                    Opacity="1">
                                             <Grid>
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto"/>
@@ -882,29 +891,44 @@
                                                     <RowDefinition Height="*"/>
                                                     <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
-                                                
-                                                <Grid Grid.Row="0" Margin="0,0,0,10">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Border Background="#00A4EF" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
-                                                        <TextBlock Text="{x:Bind Id}" Foreground="White" FontWeight="Bold" FontSize="12"/>
-                                                    </Border>
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="#DDD" VerticalAlignment="Center" FontWeight="SemiBold" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
-                                                </Grid>
 
-                                                <Rectangle Grid.Row="1" Height="1" Fill="#333" Margin="0,0,0,10"/>
+                                                <!-- Header: RFID Badge + Aciklama + AKTİF etiketi -->
+                                                <Border Grid.Row="0" Background="{x:Bind ActiveHeaderBackground, Mode=OneWay}"
+                                                        CornerRadius="4" Padding="6,5" Margin="-6,-6,-6,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Background="{x:Bind ActiveIdBadgeBrush, Mode=OneWay}" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Id}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind Description}" Foreground="#DDD" VerticalAlignment="Center" FontWeight="SemiBold" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
+                                                        <!-- AKTİF Etiketi -->
+                                                        <Border Grid.Column="2" Background="#2ECC71" CornerRadius="4" Padding="8,3"
+                                                                VerticalAlignment="Center"
+                                                                Visibility="{x:Bind ActiveLabelVisibility, Mode=OneWay}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                <Ellipse Width="6" Height="6" Fill="White"/>
+                                                                <TextBlock Text="AKTİF" Foreground="White" FontWeight="Bold" FontSize="9"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Rectangle Grid.Row="1" Height="1" Fill="{x:Bind ActiveSeparatorBrush, Mode=OneWay}" Margin="0,0,0,10"/>
 
                                                 <Grid Grid.Row="2" Margin="0,0,0,5">
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="14"/>
+                                                        <ColumnDefinition Width="26"/>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="75"/>
                                                         <ColumnDefinition Width="76"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="İşlem Sırası:" FontSize="10" Foreground="#888" Grid.ColumnSpan="2"/>
-                                                    <TextBlock Grid.Column="2" Text="Sniffer (sn)" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="İşlem Sırası:" FontSize="10" Foreground="#888" Grid.ColumnSpan="3"/>
+                                                    <TextBlock Grid.Column="3" Text="Sniffer (ms)" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
                                                 </Grid>
                                                 
                                                 <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
@@ -931,10 +955,10 @@
                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                     </Border>
                                                                     <TextBlock Grid.Column="2" Text="{x:Bind JobName}" Foreground="White" VerticalAlignment="Center" FontSize="11" Margin="5,0" TextTrimming="CharacterEllipsis"/>
-                                                                    <!-- Sniffer Suresi (sn) -->
+                                                                    <!-- Sniffer Suresi (ms) -->
                                                                     <controls:NumberBox Grid.Column="3"
                                                                                         Value="{x:Bind SnifferDuration, Mode=TwoWay}"
-                                                                                        Minimum="0" Maximum="120"
+                                                                                        Minimum="0" Maximum="120000"
                                                                                         SpinButtonPlacementMode="Compact"
                                                                                         Width="70" Height="24" FontSize="10"
                                                                                         VerticalAlignment="Center"
@@ -986,6 +1010,7 @@
                                             Height="28" Margin="5,0,0,0" HorizontalAlignment="Stretch"/>
                                                 </Grid>
                                             </Grid>
+                                            </Border>
                                         </Border>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>

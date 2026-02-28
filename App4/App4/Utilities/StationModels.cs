@@ -30,8 +30,8 @@ namespace App4.Utilities
             set { _jobName = value; OnPropertyChanged(); }
         }
 
-        // Sniffer olcum suresi (saniye) - her job icin ayri
-        private double _snifferDuration = 5.0;
+        // Sniffer olcum suresi (milisaniye) - her job icin ayri
+        private double _snifferDuration = 5000;
         public double SnifferDuration
         {
             get => _snifferDuration;
@@ -131,7 +131,7 @@ namespace App4.Utilities
             }
         }
 
-        // Her job icin sniffer olcum suresi (saniye) - JobSequence ile paralel
+        // Her job icin sniffer olcum suresi (milisaniye) - JobSequence ile paralel
         private ObservableCollection<double> _snifferDurations = new();
         public ObservableCollection<double> SnifferDurations
         {
@@ -157,7 +157,7 @@ namespace App4.Utilities
         {
             IndexedJobSequence.Clear();
             // SnifferDurations listesini JobSequence ile ayni boyutta tut
-            while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5.0);
+            while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5000);
             while (_snifferDurations.Count > _jobSequence.Count) _snifferDurations.RemoveAt(_snifferDurations.Count - 1);
 
             for (int i = 0; i < _jobSequence.Count; i++)
@@ -204,7 +204,7 @@ namespace App4.Utilities
         }
 
         // ═══ AKTİF KLİMA TİPİ GÖSTERİMİ ═══
-        // Aktüel istasyondaki RFID bu klima tipine eşitse yeşil çerçeve
+        // Aktüel istasyondaki RFID bu klima tipine eşitse premium yeşil tasarım
         private bool _isActive;
         [JsonIgnore]
         public bool IsActive
@@ -218,21 +218,58 @@ namespace App4.Utilities
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(ActiveBorderBrush));
                     OnPropertyChanged(nameof(ActiveBorderThickness));
+                    OnPropertyChanged(nameof(ActiveCardBackground));
+                    OnPropertyChanged(nameof(ActiveHeaderBackground));
+                    OnPropertyChanged(nameof(ActiveIdBadgeBrush));
+                    OnPropertyChanged(nameof(ActiveSeparatorBrush));
+                    OnPropertyChanged(nameof(ActiveLabelVisibility));
                 }
             }
         }
 
+        // --- Kart Cercevesi ---
         [JsonIgnore]
         public SolidColorBrush ActiveBorderBrush =>
             IsActive
-                ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113))   // Yeşil
+                ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113))   // Parlak Yesil
                 : new SolidColorBrush(Color.FromArgb(255, 68, 68, 68));    // #444
 
         [JsonIgnore]
         public Thickness ActiveBorderThickness =>
+            IsActive ? new Thickness(2) : new Thickness(1);
+
+        // --- Kart Arka Plani ---
+        [JsonIgnore]
+        public SolidColorBrush ActiveCardBackground =>
             IsActive
-                ? new Thickness(2)
-                : new Thickness(1);
+                ? new SolidColorBrush(Color.FromArgb(255, 22, 34, 22))     // Koyu yesil ton (#162216)
+                : new SolidColorBrush(Color.FromArgb(255, 32, 32, 32));    // Normal #202020
+
+        // --- Baslik Arka Plani (RFID badge + description satiri) ---
+        [JsonIgnore]
+        public SolidColorBrush ActiveHeaderBackground =>
+            IsActive
+                ? new SolidColorBrush(Color.FromArgb(255, 20, 42, 25))     // Yesil tonlu koyu (#142A19)
+                : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));         // Transparan (normal)
+
+        // --- RFID Badge Rengi ---
+        [JsonIgnore]
+        public SolidColorBrush ActiveIdBadgeBrush =>
+            IsActive
+                ? new SolidColorBrush(Color.FromArgb(255, 39, 174, 96))    // Yesil (#27AE60)
+                : new SolidColorBrush(Color.FromArgb(255, 0, 164, 239));   // Mavi (#00A4EF)
+
+        // --- Ayirici Cizgi ---
+        [JsonIgnore]
+        public SolidColorBrush ActiveSeparatorBrush =>
+            IsActive
+                ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113))   // Yesil
+                : new SolidColorBrush(Color.FromArgb(255, 51, 51, 51));    // #333
+
+        // --- "AKTİF" Etiketi Gorunurlugu ---
+        [JsonIgnore]
+        public Visibility ActiveLabelVisibility =>
+            IsActive ? Visibility.Visible : Visibility.Collapsed;
 
         public override string ToString() => $"{Id} ({Description})";
 

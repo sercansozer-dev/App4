@@ -79,7 +79,15 @@ namespace App4.Utilities
         public string PlcTag
         {
             get => _plcTag;
-            set { if (_plcTag != value) { _plcTag = value; OnPropertyChanged(); } }
+            set { if (_plcTag != value) { _plcTag = value; _cachedAddress = null; OnPropertyChanged(); } }
+        }
+
+        // İkinci PLC Tag eşleştirmesi (aynı değeri iki farklı tag'e yazmak için)
+        private string _plcTag2;
+        public string PlcTag2
+        {
+            get => _plcTag2;
+            set { if (_plcTag2 != value) { _plcTag2 = value; OnPropertyChanged(); } }
         }
 
         [JsonIgnore]

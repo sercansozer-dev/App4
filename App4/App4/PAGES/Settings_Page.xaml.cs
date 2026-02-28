@@ -24,6 +24,16 @@ namespace App4
             TxtGocatorIp.Text = GlobalData.Gocator_IpAddress;
             TxtGocatorPort.Text = GlobalData.Gocator_Port.ToString();
             TxtRobotPort.Text = GlobalData.Robot_Port.ToString();
+
+            // Robot haberleşme hızı
+            SliderRobotReadSpeed.Value = GlobalData.Robot_ReadSpeed;
+            TxtRobotReadSpeedValue.Text = $"{GlobalData.Robot_ReadSpeed} ms";
+        }
+
+        private void SliderRobotReadSpeed_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtRobotReadSpeedValue != null)
+                TxtRobotReadSpeedValue.Text = $"{(int)e.NewValue} ms";
         }
 
         private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
@@ -46,6 +56,9 @@ namespace App4
                 if (int.TryParse(TxtRobotPort.Text.Trim(), out int robotPort))
                     GlobalData.Robot_Port = robotPort;
 
+                // Robot haberleşme hızı
+                GlobalData.Robot_ReadSpeed = (int)SliderRobotReadSpeed.Value;
+
                 GlobalData.SaveAutomationSettings();
 
                 TxtSaveStatus.Text = "✅ Ayarlar kaydedildi. Değişiklikler bir sonraki bağlantıda geçerli olacak.";
@@ -65,6 +78,7 @@ namespace App4
             TxtGocatorIp.Text = "192.168.251.30";
             TxtGocatorPort.Text = "3600";
             TxtRobotPort.Text = "7000";
+            SliderRobotReadSpeed.Value = 100;
 
             TxtSaveStatus.Text = "Varsayılan değerler yüklendi. Kaydetmek için 'Ayarları Kaydet' butonuna basın.";
             TxtSaveStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);

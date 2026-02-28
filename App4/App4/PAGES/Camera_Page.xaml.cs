@@ -305,6 +305,23 @@ namespace App4.PAGES
             OnPropertyChanged(nameof(TablaOutputStatusColor));
         }
 
+        /// <summary>
+        /// PLC'den gelen JOB INDEX TAG degerini okuyup, aktif RFID kartindaki
+        /// ilgili satiri vurgulu gosterir (▶ turuncu arka plan).
+        /// </summary>
+        private void SyncCurrentJobIndexFromTag()
+        {
+            try
+            {
+                string indexStr = GetTagValue(App4.Utilities.GlobalData.Auto_IndexTag);
+                if (int.TryParse(indexStr, out int idx))
+                {
+                    App4.Utilities.GlobalData.UpdateCurrentJobIndex(idx);
+                }
+            }
+            catch { /* sessiz */ }
+        }
+
         private PlcVariable FindPlcVariable(string tagName)
         {
             if (string.IsNullOrEmpty(tagName)) return null;
@@ -351,7 +368,12 @@ namespace App4.PAGES
                 this.DispatcherQueue.TryEnqueue(() =>
                 {
                     if (sender == _watchedRfidVar) OnPropertyChanged(nameof(RfidTagValue));
-                    else if (sender == _watchedIndexVar) OnPropertyChanged(nameof(IndexTagValue));
+                    else if (sender == _watchedIndexVar)
+                    {
+                        OnPropertyChanged(nameof(IndexTagValue));
+                        // PLC'den gelen index degisikligini kart gostergesine yansit
+                        SyncCurrentJobIndexFromTag();
+                    }
                     else if (sender == _watchedTriggerVar) OnPropertyChanged(nameof(TriggerTagValue));
                     else if (sender == _watchedTriggerVar2) OnPropertyChanged(nameof(TriggerTag2Value));
                     else if (sender == _watchedOutputVar)
@@ -1556,6 +1578,9 @@ namespace App4.PAGES
 
             // 4. Watcher'ları kur
             SetupWatchers();
+
+            // 4.1. Sayfa yuklendiginde mevcut index degerini kartlara yansit
+            SyncCurrentJobIndexFromTag();
 
             // 5. Event'leri bağla (Duplicate önlemek için önce çıkar)
             App4.Utilities.GlobalData.OnAutomationLog -= _automationLogHandler;

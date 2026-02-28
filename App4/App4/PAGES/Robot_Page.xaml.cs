@@ -23,6 +23,7 @@ namespace App4.Pages
         private readonly string[] _robotColors = { "#00FF88", "#FF9800", "#00A4EF", "#E91E63", "#9C27B0", "#00BCD4" };
 
         // Robot-PLC Köprü eşleşmeleri
+        private bool _mappingProcessing = false;
         private ObservableCollection<RobotPlcMapping> _mappings = new();
         private readonly string _mappingsConfigPath = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -666,12 +667,12 @@ namespace App4.Pages
                     tablesGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     tablesGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-                    var inputPanel = CreateBridgeTablePanel(robot, "Input", "\uE9D2 INPUT (PLC \u2192 Robot)", "#4CAF50", inputMappings);
+                    var inputPanel = CreateBridgeTablePanel(robot, "Input", "\uE9D2 PLC'DEN ROBOTA G\u00d6NDER\u0130M", "#4CAF50", inputMappings);
                     Grid.SetColumn(inputPanel, 0);
                     inputPanel.Margin = new Thickness(0, 0, 3, 0);
                     tablesGrid.Children.Add(inputPanel);
 
-                    var outputPanel = CreateBridgeTablePanel(robot, "Output", "\uE7E8 OUTPUT (Robot \u2192 PLC)", "#FF9800", outputMappings);
+                    var outputPanel = CreateBridgeTablePanel(robot, "Output", "\uE7E8 ROBOTTAN PLC'YE OKUMA", "#FF9800", outputMappings);
                     Grid.SetColumn(outputPanel, 1);
                     outputPanel.Margin = new Thickness(3, 0, 0, 0);
                     tablesGrid.Children.Add(outputPanel);
@@ -961,107 +962,120 @@ namespace App4.Pages
 
         private async Task ProcessMappingsAsync()
         {
-            foreach (var mapping in _mappings)
+            if (_mappingProcessing) return;
+            _mappingProcessing = true;
+            try
             {
-                if (string.IsNullOrEmpty(mapping.RobotName) ||
-                    string.IsNullOrEmpty(mapping.RobotTag) || string.IsNullOrEmpty(mapping.PlcTag))
-                    continue;
-
-                try
+                foreach (var mapping in _mappings)
                 {
-                    // Robotu bul
-                    var robot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
-                    if (robot == null) continue;
+                    if (string.IsNullOrEmpty(mapping.RobotName) ||
+                        string.IsNullOrEmpty(mapping.RobotTag) || string.IsNullOrEmpty(mapping.PlcTag))
+                        continue;
 
-                    // Robot tag'inden değişkeni bul
-                    string robotTagDisplay = mapping.RobotTag;
-                    PlcVariable robotVar = null;
-
-                    foreach (var v in robot.InputVars.Concat(robot.OutputVars))
+                    try
                     {
-                        if ($"{v.Name} ({v.PlcTag})" == robotTagDisplay)
+                        // Robotu bul
+                        var robot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
+                        if (robot == null) continue;
+
+                        // Robot tag'inden de\u011fi\u015fkeni bul
+                        string robotTagDisplay = mapping.RobotTag;
+                        PlcVariable robotVar = null;
+
+                        foreach (var v in robot.InputVars.Concat(robot.OutputVars))
                         {
-                            robotVar = v;
-                            break;
-                        }
-                    }
-
-                    // PLC tag'ini bul
-                    string plcTagDisplay = mapping.PlcTag;
-                    PlcVariable plcVar = null;
-
-                    foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
-                    {
-                        if ($"{v.Name} ({v.Address})" == plcTagDisplay)
-                        {
-                            plcVar = v;
-                            break;
-                        }
-                    }
-
-                    // ANLIK DEĞER GÖSTERİMİ: Aktif olmasa bile mevcut değeri oku ve göster
-                    string direction = mapping.Direction ?? "Robot→PLC";
-                    if (direction == "Robot→PLC" && robotVar != null && !string.IsNullOrEmpty(robotVar.Value))
-                    {
-                        mapping.LastValue = robotVar.Value;
-                    }
-                    else if (direction == "PLC→Robot" && plcVar != null)
-                    {
-                        string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
-                        if (!string.IsNullOrEmpty(plcValue))
-                            mapping.LastValue = plcValue;
-                    }
-
-                    // Aktif değilse sadece okuma yap, yazma yapma
-                    if (!mapping.IsActive) continue;
-                    if (robotVar == null || plcVar == null) continue;
-
-                    // ÇİFT YÖNLÜ AKTARIM (sadece aktif mapping'ler için)
-                    if (direction == "Robot→PLC")
-                    {
-                        // Robot'tan oku → PLC'ye yaz
-                        if (string.IsNullOrEmpty(robotVar.Value)) continue;
-                        string currentValue = robotVar.Value;
-
-                        if (plcVar.Value != currentValue)
-                        {
-                            // 1. Lokal değeri güncelle (Camera_Page vb. hemen görsün)
-                            this.DispatcherQueue.TryEnqueue(() => plcVar.CurrentValue = currentValue);
-
-                            // 2. PLC'ye de yaz (bağlıysa)
-                            if (robot.IsConnected && PlcService.Instance?.IsConnected == true)
+                            if ($"{v.Name} ({v.PlcTag})" == robotTagDisplay)
                             {
-                                try { await PlcService.Instance.WriteAsync(plcVar, currentValue); } catch { }
-                            }
-                        }
-                    }
-                    else // PLC→Robot
-                    {
-                        // PLC'den oku → Robot'a yaz
-                        string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
-                        if (string.IsNullOrEmpty(plcValue)) continue;
-
-                        // G_KLIMA_TIP için ek kontrol: Robot reset aldığında değeri dahili olarak
-                        // sıfırlayabilir, ancak cache'deki değer aynı kalır. Readback (G_KLIMA_TIP_RD)
-                        // ile robotun gerçek değerini kontrol edip uyumsuzluk varsa yeniden yaz.
-                        bool forceWrite = false;
-                        if (robotVar.PlcTag == "G_KLIMA_TIP")
-                        {
-                            var readbackVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP_RD");
-                            if (readbackVar != null && !string.IsNullOrEmpty(readbackVar.Value) && readbackVar.Value != plcValue)
-                            {
-                                forceWrite = true;
+                                robotVar = v;
+                                break;
                             }
                         }
 
-                        if (robot.IsConnected && (robotVar.Value != plcValue || forceWrite))
+                        // PLC tag'ini bul
+                        string plcTagDisplay = mapping.PlcTag;
+                        PlcVariable plcVar = null;
+
+                        foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
                         {
-                            await robot.WriteVariableAsync(robotVar.PlcTag, plcValue);
-                            robotVar.Value = plcValue;
+                            if ($"{v.Name} ({v.Address})" == plcTagDisplay)
+                            {
+                                plcVar = v;
+                                break;
+                            }
+                        }
+
+                        // ANLIK DE\u011eER G\u00d6STER\u0130M\u0130: Aktif olmasa bile mevcut de\u011feri oku ve g\u00f6ster
+                        string direction = mapping.Direction ?? "Robot\u2192PLC";
+                        if (direction == "Robot\u2192PLC" && robotVar != null && !string.IsNullOrEmpty(robotVar.Value))
+                        {
+                            mapping.LastValue = robotVar.Value;
+                        }
+                        else if (direction == "PLC\u2192Robot" && plcVar != null)
+                        {
+                            string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                            if (!string.IsNullOrEmpty(plcValue))
+                                mapping.LastValue = plcValue;
+                        }
+
+                        // Aktif de\u011filse sadece okuma yap, yazma yapma
+                        if (!mapping.IsActive) continue;
+                        if (robotVar == null || plcVar == null) continue;
+
+                        // \u00c7\u0130FT Y\u00d6NL\u00dc AKTARIM (sadece aktif mapping'ler i\u00e7in)
+                        if (direction == "Robot\u2192PLC")
+                        {
+                            // Robot'tan oku \u2192 PLC'ye yaz
+                            if (string.IsNullOrEmpty(robotVar.Value)) continue;
+                            string currentValue = robotVar.Value;
+
+                            if (plcVar.Value != currentValue)
+                            {
+                                // 1. Lokal de\u011feri g\u00fcncelle (Camera_Page vb. hemen g\u00f6rs\u00fcn)
+                                this.DispatcherQueue.TryEnqueue(() => plcVar.CurrentValue = currentValue);
+
+                                // 2. PLC'ye de yaz (ba\u011fl\u0131ysa)
+                                if (robot.IsConnected && PlcService.Instance?.IsConnected == true)
+                                {
+                                    try { await PlcService.Instance.WriteAsync(plcVar, currentValue); } catch { }
+                                }
+                            }
+                        }
+                        else // PLC\u2192Robot
+                        {
+                            // PLC'den oku \u2192 Robot'a yaz (her d\u00f6ng\u00fcde yaz, cache kontrols\u00fcz)
+                            string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                            if (string.IsNullOrEmpty(plcValue)) continue;
+
+                            // BOOL de\u011ferlerini KUKA format\u0131na \u00e7evir
+                            string writeValue = plcValue;
+                            if (robotVar.Type == "BOOL")
+                            {
+                                if (writeValue == "1" || writeValue.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                    writeValue = "TRUE";
+                                else if (writeValue == "0" || writeValue.Equals("false", StringComparison.OrdinalIgnoreCase))
+                                    writeValue = "FALSE";
+                            }
+
+                            if (robot.IsConnected)
+                            {
+                                try
+                                {
+                                    await robot.WriteVariableAsync(robotVar.PlcTag, writeValue);
+                                    robotVar.Value = writeValue;
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[BRIDGE] Robot yazma hatas\u0131: {robotVar.PlcTag}={writeValue}, {ex.Message}");
+                                }
+                            }
                         }
                     }
+                    catch { }
                 }
-                catch { }
+            }
+            finally
+            {
+                _mappingProcessing = false;
             }
         }
 

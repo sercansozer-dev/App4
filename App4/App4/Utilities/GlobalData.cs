@@ -429,6 +429,20 @@ namespace App4.Utilities
             }
         }
 
+        // --- ROBOT HABERLEŞME HIZI (ms) ---
+        private static int _robotReadSpeed = 100;
+        public static int Robot_ReadSpeed
+        {
+            get => _robotReadSpeed;
+            set
+            {
+                int clamped = Math.Max(50, Math.Min(500, value));
+                if (_robotReadSpeed == clamped) return;
+                _robotReadSpeed = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
         // --- PLC BAĞLANTI AYARLARI ---
         private static string _plcIpAddress = "192.168.251.100";
         public static string Plc_IpAddress
@@ -806,6 +820,7 @@ namespace App4.Utilities
             // ▼▼▼ AKTÜEL KLİMA INDEX VE RFID ▼▼▼
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
             GeneralOutputVars.Add(Create("AKTUEL_RFID", "STRING", "Output", ""));            // Aktüel RFID Id string değeri
+            GeneralOutputVars.Add(Create("SNIFFER_OLCUM_SURE", "REAL", "Output", "0"));       // Seçili index'in sniffer ölçüm süresi (ms)
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             GeneralOutputVars.Add(Create("KL100_HEDEF_POZ", "REAL", "Output", "0"));         // KL100 slider hedef pozisyon (mm)
@@ -953,7 +968,7 @@ namespace App4.Utilities
             }
         }
 
-        public static void SavePlcVariableTagsToFile() { try { object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new { name = v.Name, plcTag = v.PlcTag, value = v.Value }).ToList(); var data = new { GeneralInputVars = Map(GeneralInputVars), GeneralOutputVars = Map(GeneralOutputVars), Station1Vars = Map(Station1Vars), Station1Outputs = Map(Station1Outputs), Station2Vars = Map(Station2Vars), Station2Outputs = Map(Station2Outputs), Station3Vars = Map(Station3Vars), Station3Outputs = Map(Station3Outputs), RobotInputVars = Map(RobotInputVars), RobotOutputVars = Map(RobotOutputVars) }; File.WriteAllText(_autoPageVariablesFilePath, System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
+        public static void SavePlcVariableTagsToFile() { try { object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new { name = v.Name, plcTag = v.PlcTag, plcTag2 = v.PlcTag2, value = v.Value }).ToList(); var data = new { GeneralInputVars = Map(GeneralInputVars), GeneralOutputVars = Map(GeneralOutputVars), Station1Vars = Map(Station1Vars), Station1Outputs = Map(Station1Outputs), Station2Vars = Map(Station2Vars), Station2Outputs = Map(Station2Outputs), Station3Vars = Map(Station3Vars), Station3Outputs = Map(Station3Outputs), RobotInputVars = Map(RobotInputVars), RobotOutputVars = Map(RobotOutputVars) }; File.WriteAllText(_autoPageVariablesFilePath, System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
         private static void LoadPlcVariableTagsFromFile()
         {
             try
@@ -974,12 +989,14 @@ namespace App4.Utilities
                         if (!i.TryGetProperty("name", out var n)) continue;
                         string name = n.GetString()?.Trim();
                         string plcTag = i.TryGetProperty("plcTag", out var pt) ? pt.GetString()?.Trim() : null;
+                        string plcTag2 = i.TryGetProperty("plcTag2", out var pt2) ? pt2.GetString()?.Trim() : null;
                         string type = i.TryGetProperty("type", out var tt) ? tt.GetString() : null;
                         string value = null;
                         if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) value = val.ToString();
 
                         var v = new PlcVariable { Name = name ?? "", Type = type ?? "STRING", Direction = "Input", IsEditable = true };
                         if (!string.IsNullOrEmpty(plcTag)) v.PlcTag = plcTag;
+                        if (!string.IsNullOrEmpty(plcTag2)) v.PlcTag2 = plcTag2;
                         if (!string.IsNullOrEmpty(value)) v.Value = value;
 
                         // Try to find existing runtime item to preserve CurrentValue
@@ -1080,6 +1097,12 @@ namespace App4.Utilities
                 if (val is int i) _robotPort = i;
                 else if (val is string s && int.TryParse(s, out int p)) _robotPort = p;
             }
+            if (settings.ContainsKey("Robot_ReadSpeed"))
+            {
+                var val = settings["Robot_ReadSpeed"];
+                if (val is int rs) _robotReadSpeed = Math.Max(50, Math.Min(500, rs));
+                else if (val is string rss && int.TryParse(rss, out int rsp)) _robotReadSpeed = Math.Max(50, Math.Min(500, rsp));
+            }
 
             if (settings.ContainsKey("KL100_R1Home")) _kl100Robot1HomeSignal = settings["KL100_R1Home"] as string;
             if (settings.ContainsKey("KL100_R2Home")) _kl100Robot2HomeSignal = settings["KL100_R2Home"] as string;
@@ -1126,6 +1149,7 @@ namespace App4.Utilities
 
             settings["Robot_IpAddress"] = Robot_IpAddress;
             settings["Robot_Port"] = Robot_Port;
+            settings["Robot_ReadSpeed"] = Robot_ReadSpeed;
 
             settings["Plc_IpAddress"] = Plc_IpAddress;
             settings["Plc_Port"] = Plc_Port;
@@ -1553,6 +1577,32 @@ namespace App4.Utilities
             if (recipe == null) return;
 
             recipe.CurrentJobIndex = jobIndex;
+
+            // ═══ SEÇİLİ INDEX'İN SNİFFER SÜRESİNİ OUTPUT TAG'E YAZ (ms) ═══
+            UpdateSnifferDurationOutput(recipe, jobIndex);
+        }
+
+        /// <summary>
+        /// Seçili job index'inin sniffer ölçüm süresini SNIFFER_OLCUM_SURE output değişkenine yazar.
+        /// Auto_Page'deki ConnectToPlcVariable / ConnectToPlcVariable2 PropertyChanged event'leri
+        /// ile PlcTag ve PlcTag2'ye otomatik yazılır.
+        /// </summary>
+        private static void UpdateSnifferDurationOutput(RfidDef recipe, int jobIndex)
+        {
+            double snifferMs = 0;
+            if (jobIndex >= 0 && jobIndex < recipe.SnifferDurations.Count)
+            {
+                snifferMs = recipe.SnifferDurations[jobIndex];
+            }
+
+            // GeneralOutputVars tablosundaki değişkeni güncelle
+            // PropertyChanged tetiklenir → ConnectToPlcVariable PlcTag'e yazar
+            //                            → ConnectToPlcVariable2 PlcTag2'ye yazar
+            var snifferVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "SNIFFER_OLCUM_SURE");
+            if (snifferVar != null)
+            {
+                snifferVar.CurrentValue = snifferMs;
+            }
         }
 
         /// <summary>
@@ -1580,7 +1630,7 @@ namespace App4.Utilities
         }
 
         /// <summary>
-        /// Aktuel job'in sniffer suresini dondurur (saniye).
+        /// Aktuel job'in sniffer suresini dondurur (milisaniye).
         /// Robot/PC tarafindan sniffer bekleme suresi icin kullanilir.
         /// </summary>
         public static double GetCurrentSnifferDuration(int jobIndex)
@@ -1589,16 +1639,16 @@ namespace App4.Utilities
             var rfidVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_RFID");
             if (rfidVar != null) currentRfid = rfidVar.Value;
 
-            if (string.IsNullOrEmpty(currentRfid)) return 5.0;
+            if (string.IsNullOrEmpty(currentRfid)) return 5000;
 
             var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
-            if (recipe == null) return 5.0;
+            if (recipe == null) return 5000;
 
             int idx = jobIndex - 1;
             if (idx >= 0 && idx < recipe.SnifferDurations.Count)
                 return recipe.SnifferDurations[idx];
 
-            return 5.0;
+            return 5000;
         }
 
         // --- İŞLEM AKIŞI ---
