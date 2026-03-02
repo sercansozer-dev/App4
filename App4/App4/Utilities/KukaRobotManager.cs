@@ -216,6 +216,7 @@ namespace App4.Utilities
         private TcpClient _client;
         private NetworkStream _stream;
         private bool _isRunning;
+        private bool _initialSyncDone;   // İlk bağlantı handshake yapıldı mı
         private ushort _msgId;
         private readonly System.Threading.SemaphoreSlim _lock = new(1, 1);
 
@@ -338,6 +339,14 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "AXIS_A4", Type = "REAL", PlcTag = "$AXIS_ACT.A4", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "AXIS_A5", Type = "REAL", PlcTag = "$AXIS_ACT.A5", Direction = "Input" });
             InputVars.Add(new PlcVariable { Name = "AXIS_A6", Type = "REAL", PlcTag = "$AXIS_ACT.A6", Direction = "Input" });
+
+            // Harici eksenler (Robot-Robot bridge E1 aktarımı için gerekli)
+            InputVars.Add(new PlcVariable { Name = "AXIS_E1", Type = "REAL", PlcTag = "$AXIS_ACT.E1", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_E2", Type = "REAL", PlcTag = "$AXIS_ACT.E2", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_E3", Type = "REAL", PlcTag = "$AXIS_ACT.E3", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_E4", Type = "REAL", PlcTag = "$AXIS_ACT.E4", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_E5", Type = "REAL", PlcTag = "$AXIS_ACT.E5", Direction = "Input" });
+            InputVars.Add(new PlcVariable { Name = "AXIS_E6", Type = "REAL", PlcTag = "$AXIS_ACT.E6", Direction = "Input" });
 
             // Override değerleri
             InputVars.Add(new PlcVariable { Name = "OV_PRO", Type = "INT", PlcTag = "$OV_PRO", Direction = "Input" });
@@ -478,10 +487,12 @@ namespace App4.Utilities
             // ROBOT-ROBOT HABERLEŞMEDEKİ ÇAPRAZ DURUM DEĞİŞKENLERİ
             // Diğer robotun durumunu bu robota yazar (PC köprüsü ile)
             // ═══════════════════════════════════════════════════════════════
+            // NOT: G_R1_HOME ve G_R2_HOME burada YOK — InputVars'ta zaten okunuyor.
+            // Aynı PlcTag hem Input hem Output'ta olursa CommunicationLoop eski değeri geri yazar!
+            // Robot-Robot aktarımı ProcessRobotRobotMappingsAsync ile yapılır (ayrı PlcTag'ler üzerinden).
             OutputVars.Add(new PlcVariable { Name = "G_R1_IS_BITTI", Type = "BOOL", PlcTag = "G_R1_IS_BITTI", Direction = "Output", Description = "Robot 1 iş bitti (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_ROBOT_DURUM", Type = "INT", PlcTag = "G_R1_ROBOT_DURUM", Direction = "Output", Description = "Robot 1 durum kodu (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_HATA_VAR", Type = "BOOL", PlcTag = "G_R1_HATA_VAR", Direction = "Output", Description = "Robot 1 hata var (Robot-Robot)" });
-            OutputVars.Add(new PlcVariable { Name = "G_R1_HOME", Type = "BOOL", PlcTag = "G_R1_HOME", Direction = "Output", Description = "Robot 1 home pozisyonunda (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_HATA_KODU", Type = "INT", PlcTag = "G_R1_HATA_KODU", Direction = "Output", Description = "Robot 1 hata kodu (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R1_EKSEN_E1", Type = "REAL", PlcTag = "G_R1_EKSEN_E1", Direction = "Output", Description = "Robot 1 harici eksen E1 (Robot-Robot)" });
             OutputVars.Add(new PlcVariable { Name = "G_R2_IS_BITTI", Type = "BOOL", PlcTag = "G_R2_IS_BITTI", Direction = "Output", Description = "Robot 2 iş bitti (Robot-Robot)" });
@@ -501,7 +512,8 @@ namespace App4.Utilities
             // ROBOT 2 - SLİDER KONTROL - Masaüstü → Robot (Output)
             // ═══════════════════════════════════════════════════════════════
             OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HEDEF_POZ", Type = "REAL", PlcTag = "G_SLIDER_HEDEF_POZ", Direction = "Output", Description = "Slider hedef pozisyon (mm)" });
-            OutputVars.Add(new PlcVariable { Name = "G_SLIDER_HAREKET", Type = "BOOL", PlcTag = "G_SLIDER_HAREKET", Direction = "Output", Description = "Slider hareket komutu" });
+            // NOT: G_SLIDER_HAREKET burada YOK — InputVars'ta zaten okunuyor (satır 419).
+            // Aynı PlcTag hem Input hem Output'ta olursa CommunicationLoop eski değeri geri yazar!
             OutputVars.Add(new PlcVariable { Name = "G_HEDEF_ISTASYON", Type = "INT", PlcTag = "G_HEDEF_ISTASYON", Direction = "Output", Description = "Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)" });
 
             // ═══════════════════════════════════════════════════════════════
@@ -544,6 +556,7 @@ namespace App4.Utilities
                 _client?.Close();
                 _client = null;
                 IsConnected = false;
+                _initialSyncDone = false;   // Yeniden bağlanınca handshake tekrar yapılsın
             }
             catch { }
         }
@@ -585,6 +598,13 @@ namespace App4.Utilities
 
                     if (IsConnected)
                     {
+                        // 0. İLK BAĞLANTI HANDSHAKE - Tüm Output değişkenlerini robota bas
+                        if (!_initialSyncDone)
+                        {
+                            await PerformInitialSync();
+                            _initialSyncDone = true;
+                        }
+
                         // 1. Standart değişkenleri oku (pozisyon, eksen, override)
                         foreach (var (tag, setter) in _standardReads)
                         {
@@ -601,7 +621,7 @@ namespace App4.Utilities
                             await Task.Delay(30); // Değişkenler arası kısa bekleme
                         }
 
-                        // 2. Kullanıcı tanımlı Input değişkenlerini oku
+                        // 2. Kullanıcı tanımlı Input değişkenlerini oku (OKUNAN VERİLER)
                         var userInputs = InputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
                         foreach (var variable in userInputs)
                         {
@@ -612,6 +632,25 @@ namespace App4.Utilities
                                 if (!string.IsNullOrEmpty(val) && variable.Value != val)
                                 {
                                     DispatchToUi(() => variable.Value = val);
+                                }
+                            }
+                            catch { }
+                            await Task.Delay(30);
+                        }
+
+                        // 3. Kullanıcı tanımlı Output değişkenlerini robota yaz (YAZILAN VERİLER)
+                        // Robot tablosundaki değerler KukaVarProxy ile KRL değişkenlerine yazılır.
+                        // Robottan mevcut değeri okur, farklıysa yazar (gereksiz trafik önlenir).
+                        var userOutputs = OutputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag) && !string.IsNullOrEmpty(v.Value)).ToList();
+                        foreach (var variable in userOutputs)
+                        {
+                            if (!_isRunning || !IsConnected) break;
+                            try
+                            {
+                                string robotVal = await ReadVariableAsync(variable.PlcTag);
+                                if (!string.IsNullOrEmpty(robotVal) && robotVal != variable.Value)
+                                {
+                                    await WriteVariableAsync(variable.PlcTag, variable.Value);
                                 }
                             }
                             catch { }
@@ -628,6 +667,89 @@ namespace App4.Utilities
 
                 await Task.Delay(GlobalData.Robot_ReadSpeed); // Döngü hızı (Settings'den ayarlanır)
             }
+        }
+
+        /// <summary>
+        /// İlk bağlantı handshake - Tüm Output değişkenlerini robota yazar.
+        /// Null/boş değerler için tip bazlı varsayılan kullanılır:
+        ///   BOOL → "FALSE", INT → "0", REAL → "0.0"
+        /// Ayrıca GlobalData.AktuelKlimaIndex → G_KLIMA_TIP yazılır.
+        /// </summary>
+        private async Task PerformInitialSync()
+        {
+            OnLog?.Invoke($"[{Name}] 🔄 İlk bağlantı handshake başlatılıyor...");
+            int yazilan = 0;
+            int hata = 0;
+
+            foreach (var variable in OutputVars)
+            {
+                if (!_isRunning || !IsConnected) break;
+                if (string.IsNullOrEmpty(variable.PlcTag)) continue;
+
+                try
+                {
+                    if (!string.IsNullOrEmpty(variable.Value))
+                    {
+                        // Değer varsa → robota yaz (uygulama zaten bir değer belirlemiş)
+                        string robotVal = await ReadVariableAsync(variable.PlcTag);
+                        if (robotVal != variable.Value)
+                        {
+                            await WriteVariableAsync(variable.PlcTag, variable.Value);
+                        }
+                        yazilan++;
+                    }
+                    else
+                    {
+                        // Değer boşsa → robottan OKU ve UI'a aktar
+                        // ($OV_JOG gibi değişkenlere kör "0" yazmayı önler)
+                        string robotVal = await ReadVariableAsync(variable.PlcTag);
+                        if (!string.IsNullOrEmpty(robotVal))
+                        {
+                            var capturedVal = robotVal;
+                            DispatchToUi(() => variable.Value = capturedVal);
+                        }
+                        yazilan++;
+                    }
+                }
+                catch
+                {
+                    hata++;
+                }
+                await Task.Delay(30);
+            }
+
+            // GlobalData'dan G_KLIMA_TIP yaz
+            try
+            {
+                int klimaIndex = GlobalData.AktuelKlimaIndex;
+                if (klimaIndex >= 0)
+                {
+                    await WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString());
+                    yazilan++;
+                }
+            }
+            catch { hata++; }
+
+            // GeneralOutputVars'tan OTO_MOD durumunu oku ve robota yaz
+            try
+            {
+                var otoModVar = GlobalData.GeneralOutputVars?.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
+                if (otoModVar != null && !string.IsNullOrEmpty(otoModVar.Value))
+                {
+                    string otoVal = (otoModVar.Value.ToUpper() == "TRUE" || otoModVar.Value == "1") ? "TRUE" : "FALSE";
+                    await WriteVariableAsync("G_OTO_MOD", otoVal);
+                    yazilan++;
+                }
+                else
+                {
+                    // Varsayılan: FALSE (Manuel mod - güvenli taraf)
+                    await WriteVariableAsync("G_OTO_MOD", "FALSE");
+                    yazilan++;
+                }
+            }
+            catch { hata++; }
+
+            OnLog?.Invoke($"[{Name}] ✅ Handshake tamamlandı: {yazilan} değişken yazıldı" + (hata > 0 ? $", {hata} hata" : ""));
         }
 
         #endregion

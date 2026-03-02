@@ -136,7 +136,23 @@ namespace App4.Utilities
                         if (cv?.ToString() != _aktuelKlimaIndex.ToString())
                             plcVar.CurrentValue = _aktuelKlimaIndex;
                     }
-                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelKlimaIndex = {_aktuelKlimaIndex}");
+
+                    // Tüm bağlı robotlara G_KLIMA_TIP yaz (KukaVarProxy)
+                    // CommunicationLoop sadece okuma yapar, otomatik yazma yok.
+                    // Bu yüzden değer değiştiğinde robotlara açıkça yazıyoruz.
+                    string klimaStr = _aktuelKlimaIndex.ToString();
+                    var robots = KukaRobotManager.Instance?.Robots;
+                    if (robots != null)
+                    {
+                        foreach (var robot in robots)
+                        {
+                            if (robot.IsConnected)
+                            {
+                                _ = robot.WriteVariableAsync("G_KLIMA_TIP", klimaStr);
+                            }
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelKlimaIndex = {_aktuelKlimaIndex} (robotlara yazıldı)");
                 }
             }
         }
@@ -892,9 +908,10 @@ namespace App4.Utilities
                 // --- SISTEM KONTROL (Her iki robot) ---
                 RobotInputVars.Add(Create("G_R1_HOME", "BOOL", "Input", false));           // Robot 1 home pozisyonunda
                 RobotInputVars.Add(Create("G_R2_HOME", "BOOL", "Input", false));           // Robot 2 home pozisyonunda
-                // --- ROBOT 2 SNIFFER OLCUM ---
-                RobotInputVars.Add(Create("G_SNIFFER_OLCUM_YAP", "BOOL", "Input", false)); // Robot 2 -> PC : Sniffer olcum baslat
+                // --- INFICON SNIFFER OLCUM (Her iki robot) ---
+                RobotInputVars.Add(Create("G_SNIFFER_OLCUM_YAP", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum baslat (R1 + R2)
                 RobotInputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Input", 0.0));      // Sniffer olcum degeri (geri okuma)
+                RobotInputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Input", false));    // PC -> Robot : INFICON cihazi hazir (geri okuma)
                 RobotInputVars.Add(Create("G_AKTIF_CIZGI", "INT", "Input", 0));           // Robot 2 aktif sniffer cizgi no
                 RobotInputVars.Add(Create("G_TOPLAM_CIZGI", "INT", "Input", 0));          // Robot 2 toplam cizgi sayisi
                 RobotInputVars.Add(Create("G_NOK_CIZGI", "INT", "Input", 0));             // Robot 2 son NOK cizgi no
@@ -942,7 +959,8 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_SISTEM_START", "BOOL", "Output", false));   // Sistem baslatma komutu
                 RobotOutputVars.Add(Create("G_SISTEM_STOP", "BOOL", "Output", false));    // Sistem durdurma komutu
                 RobotOutputVars.Add(Create("G_OTO_MOD", "BOOL", "Output", false));        // Otomatik/Manuel mod
-                // --- ROBOT 2 SNIFFER SONUCLARI (PC -> Robot 2) ---
+                // --- INFICON SNIFFER SONUCLARI (PC -> Her iki Robot) ---
+                RobotOutputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Output", false));  // INFICON cihazi hazir (PC -> Robot)
                 RobotOutputVars.Add(Create("G_SNIFFER_TAMAM", "BOOL", "Output", false));  // Sniffer olcum tamamlandi
                 RobotOutputVars.Add(Create("G_SNIFFER_OK", "BOOL", "Output", false));     // Sniffer sonuc OK/NOK
                 RobotOutputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Output", 0.0));    // Sniffer olcum degeri
@@ -968,7 +986,42 @@ namespace App4.Utilities
             }
         }
 
-        public static void SavePlcVariableTagsToFile() { try { object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new { name = v.Name, plcTag = v.PlcTag, plcTag2 = v.PlcTag2, value = v.Value }).ToList(); var data = new { GeneralInputVars = Map(GeneralInputVars), GeneralOutputVars = Map(GeneralOutputVars), Station1Vars = Map(Station1Vars), Station1Outputs = Map(Station1Outputs), Station2Vars = Map(Station2Vars), Station2Outputs = Map(Station2Outputs), Station3Vars = Map(Station3Vars), Station3Outputs = Map(Station3Outputs), RobotInputVars = Map(RobotInputVars), RobotOutputVars = Map(RobotOutputVars) }; File.WriteAllText(_autoPageVariablesFilePath, System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
+        public static void SavePlcVariableTagsToFile()
+        {
+            try
+            {
+                object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new
+                {
+                    name = v.Name,
+                    plcTag = v.PlcTag,
+                    plcTag2 = v.PlcTag2,
+                    value = v.Value,
+                    type = v.Type,          // ← YENİ: Tip bilgisi de kaydediliyor
+                    direction = v.Direction  // ← YENİ: Yön bilgisi de kaydediliyor
+                }).ToList();
+
+                var data = new
+                {
+                    GeneralInputVars = Map(GeneralInputVars),
+                    GeneralOutputVars = Map(GeneralOutputVars),
+                    Station1Vars = Map(Station1Vars),
+                    Station1Outputs = Map(Station1Outputs),
+                    Station2Vars = Map(Station2Vars),
+                    Station2Outputs = Map(Station2Outputs),
+                    Station3Vars = Map(Station3Vars),
+                    Station3Outputs = Map(Station3Outputs),
+                    RobotInputVars = Map(RobotInputVars),
+                    RobotOutputVars = Map(RobotOutputVars)
+                };
+
+                File.WriteAllText(_autoPageVariablesFilePath,
+                    System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SAVE_ERROR] PlcVariableTags kayıt hatası: {ex.Message}");
+            }
+        }
         private static void LoadPlcVariableTagsFromFile()
         {
             try
@@ -991,23 +1044,33 @@ namespace App4.Utilities
                         string plcTag = i.TryGetProperty("plcTag", out var pt) ? pt.GetString()?.Trim() : null;
                         string plcTag2 = i.TryGetProperty("plcTag2", out var pt2) ? pt2.GetString()?.Trim() : null;
                         string type = i.TryGetProperty("type", out var tt) ? tt.GetString() : null;
+                        string direction = i.TryGetProperty("direction", out var dir) ? dir.GetString() : null;
                         string value = null;
                         if (i.TryGetProperty("value", out var val) && val.ValueKind != JsonValueKind.Null) value = val.ToString();
 
-                        var v = new PlcVariable { Name = name ?? "", Type = type ?? "STRING", Direction = "Input", IsEditable = true };
+                        // Önce varsayılan (default) değişkeni bul — Type/Direction fallback için
+                        var existing = t.FirstOrDefault(x => string.Equals(x.Name?.Trim(), name?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                        var v = new PlcVariable
+                        {
+                            Name = name ?? "",
+                            Type = type ?? existing?.Type ?? "STRING",           // ← Dosyadan oku, yoksa default'tan al
+                            Direction = direction ?? existing?.Direction ?? "Input", // ← Dosyadan oku, yoksa default'tan al
+                            IsEditable = true
+                        };
                         if (!string.IsNullOrEmpty(plcTag)) v.PlcTag = plcTag;
                         if (!string.IsNullOrEmpty(plcTag2)) v.PlcTag2 = plcTag2;
                         if (!string.IsNullOrEmpty(value)) v.Value = value;
 
-                        // Try to find existing runtime item to preserve CurrentValue
-                        var existing = t.FirstOrDefault(x => !string.IsNullOrEmpty(x.PlcTag) && !string.IsNullOrEmpty(v.PlcTag) && string.Equals(x.PlcTag?.Trim(), v.PlcTag?.Trim(), StringComparison.OrdinalIgnoreCase))
-                                       ?? t.FirstOrDefault(x => string.Equals(x.Name?.Trim(), v.Name?.Trim(), StringComparison.OrdinalIgnoreCase));
-
+                        // Preserve runtime CurrentValue
                         if (existing != null)
                         {
-                            // Preserve runtime CurrentValue
                             v.CurrentValue = existing.CurrentValue;
                         }
+
+                        // PlcTag yükleme durumunu logla
+                        if (!string.IsNullOrEmpty(plcTag))
+                            System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] {name} → PlcTag={plcTag}, PlcTag2={plcTag2 ?? "(yok)"}");
 
                         newList.Add(v);
                     }
@@ -1037,8 +1100,13 @@ namespace App4.Utilities
                 Load("Station3Outputs", Station3Outputs);
                 Load("RobotInputVars", RobotInputVars);
                 Load("RobotOutputVars", RobotOutputVars);
+
+                System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] Auto_Page_Variables.json başarıyla yüklendi");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PLC_LOAD_ERROR] PlcVariableTags yükleme hatası: {ex.Message}");
+            }
         }
 
         private static void LoadAutomationSettings() 

@@ -26,14 +26,15 @@ namespace App4.Utilities
         public string Name
         {
             get => _name;
-            set 
-            { 
-                if (_name != value) 
-                { 
-                    _name = value; 
+            set
+            {
+                var trimmed = value?.Trim();
+                if (_name != trimmed)
+                {
+                    _name = trimmed;
                     _cachedAddress = null; // Clear cache
-                    OnPropertyChanged(); 
-                } 
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -124,6 +125,17 @@ namespace App4.Utilities
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// Tag listesi dolduktan sonra ComboBox x:Bind'larını zorla güncellemek için.
+        /// AvailableOutputPlcTags boşken x:Bind SelectedItem eşleştiremez,
+        /// bu method PropertyChanged tetikleyerek ComboBox'ı yeniden değerlendirmeye zorlar.
+        /// </summary>
+        public void NotifyPlcTagChanged()
+        {
+            OnPropertyChanged(nameof(PlcTag));
+            OnPropertyChanged(nameof(PlcTag2));
         }
     }
 
@@ -292,6 +304,14 @@ namespace App4.Utilities
                 {
                     IsConnected = true;
                     GlobalData.PlcConnected = true;
+
+                    // ═══ GÜVENLİ BAŞLANGIÇ: Output değişkenlerini PLC'ye yaz ═══
+                    // PLC belleğinde eski TRUE değerleri kalabiliyor (STOP, RESET vb.)
+                    // Timer başlamadan ÖNCE tüm output BOOL'ları FALSE'a yazılır.
+                    // Bu sayede CMD_LINE_STOP, CMD_LINE_RESET gibi sinyaller
+                    // eski değerleriyle robota aktarılmaz.
+                    await InitializeOutputsAsync();
+
                     // Okuma hızı 50ms yapıldı (Limiter ile güvenli hız)
                     _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 50);
                     return true;
@@ -302,6 +322,55 @@ namespace App4.Utilities
                 System.Diagnostics.Debug.WriteLine("PLC Bağlantı Hatası: " + ex.Message);
             }
             return false;
+        }
+
+        /// <summary>
+        /// PLC bağlantısı kurulduktan sonra tüm Output değişkenlerinin
+        /// güvenli başlangıç değerlerini PLC'ye yazar.
+        /// BOOL → false, INT/WORD → 0, REAL → 0.0
+        /// Bu sayede PLC belleğinde kalan eski değerler (STOP=TRUE vb.) temizlenir.
+        /// </summary>
+        private async Task InitializeOutputsAsync()
+        {
+            if (_melsecNet == null) return;
+
+            foreach (var outVar in OutputVariables)
+            {
+                try
+                {
+                    string address = outVar.Address;
+                    if (string.IsNullOrEmpty(address)) continue;
+
+                    string type = (outVar.Type ?? "BOOL").ToUpper();
+                    switch (type)
+                    {
+                        case "BOOL":
+                            await _melsecNet.WriteAsync(address, false);
+                            outVar.CurrentValue = 0;
+                            break;
+                        case "INT":
+                        case "WORD":
+                            await _melsecNet.WriteAsync(address, (short)0);
+                            outVar.CurrentValue = 0;
+                            break;
+                        case "DINT":
+                        case "DWORD":
+                            await _melsecNet.WriteAsync(address, 0);
+                            outVar.CurrentValue = 0;
+                            break;
+                        case "REAL":
+                        case "FLOAT":
+                            await _melsecNet.WriteAsync(address, 0.0f);
+                            outVar.CurrentValue = 0.0f;
+                            break;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[PLC_INIT] {outVar.Name} ({address}) = 0/false");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PLC_INIT] {outVar.Name} yazma hatası: {ex.Message}");
+                }
+            }
         }
 
         public void Disconnect()

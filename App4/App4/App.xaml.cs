@@ -27,7 +27,7 @@ namespace App4
     public partial class App : Application
     {
         public static Window? m_window;
-        // Bu de�i�kenin ba��nda 'public' yazmal�!
+        // Bu de�i�kenin ba��nda 'public' yazmal�!
         public Window MainWindow { get; private set; }
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -47,9 +47,24 @@ namespace App4
 
             App4.Utilities.GlobalData.Initialize();
             m_window = new MainWindow();
+
+            // ═══ UYGULAMA KAPANIRKEN PLC TAG EŞLEŞTİRMELERİNİ KAYDET ═══
+            m_window.Closed += (s, e) =>
+            {
+                try
+                {
+                    App4.Utilities.GlobalData.SavePlcVariableTagsToFile();
+                    System.Diagnostics.Debug.WriteLine("[APP_CLOSE] PlcVariable tag eşleştirmeleri kaydedildi.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APP_CLOSE] Kayıt hatası: {ex.Message}");
+                }
+            };
+
             m_window.Activate();
 
-            
+
 
         }
     }

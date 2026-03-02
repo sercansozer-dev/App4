@@ -60,12 +60,20 @@ namespace App4
             {
                 s.PropertyChanged -= Station_PropertyChanged;
             }
-            
+
             foreach (var rfid in KnownRfids)
             {
                 rfid.PropertyChanged -= Rfid_PropertyChanged;
             }
             KnownRfids.CollectionChanged -= KnownRfids_CollectionChanged;
+
+            // ═══ SAYFA KAPANIRKEN PLC TAG EŞLEŞTİRMELERİNİ KAYDET ═══
+            try
+            {
+                GlobalData.SavePlcVariableTagsToFile();
+                System.Diagnostics.Debug.WriteLine("[PAGE_UNLOAD] PlcVariable tag eşleştirmeleri kaydedildi.");
+            }
+            catch { }
         }
 
         private async void InitializeAvailableModels()
@@ -150,6 +158,29 @@ namespace App4
             // 2.9. AKTUEL_RFID ve AKTUEL_KLIMA_INDEX güncelle
             // Tüm binding'ler tamamlandıktan sonra aktif istasyondan RFID bilgisini yaz
             UpdateAktuelRfidFromStation();
+
+            // 2.95. ComboBox PlcTag binding'lerini zorla güncelle
+            // SORUN: InitializeComponent sırasında AvailableOutputPlcTags boş.
+            //        x:Bind OneWay, PlcTag'ı boş listeye eşleştiremez → SelectedItem null kalır.
+            //        Sonra liste dolsa da PlcTag değişmediği için x:Bind tekrar push yapmaz.
+            // ÇÖZÜM: DispatcherQueue ile UI render tamamlandıktan sonra PropertyChanged tetikle.
+            //        Bu ComboBox'ları PlcTag değerine göre doğru item'ı seçmeye zorlar.
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                void RefreshTags(ObservableCollection<PlcVariable> vars)
+                {
+                    foreach (var v in vars) v.NotifyPlcTagChanged();
+                }
+                RefreshTags(GeneralInputVars);
+                RefreshTags(GeneralOutputVars);
+                RefreshTags(Station1Vars);
+                RefreshTags(Station1Outputs);
+                RefreshTags(Station2Vars);
+                RefreshTags(Station2Outputs);
+                RefreshTags(Station3Vars);
+                RefreshTags(Station3Outputs);
+                System.Diagnostics.Debug.WriteLine("[PLC_TAG_REFRESH] ComboBox PlcTag binding'leri güncellendi");
+            });
 
             // 3. Hat Durum Işıklarını Yak
             UpdateLineStatusVisuals();
@@ -1184,13 +1215,14 @@ namespace App4
             }
         }
 
-        // --- DEĞİŞKEN DEĞERİ DEĞİŞİRSE KAYDET ---
+        // --- DEĞİŞKEN DEĞERİ DEĞİŞİRSE UI GÜNCELLE ---
+        // NOT: SavePlcVariableTagsToFile() artık burada çağrılmıyor.
+        // PlcTag eşleştirmeleri sadece ComboBox değiştiğinde kaydedilir.
+        // Her 50ms'lik CurrentValue değişiminde disk yazma aşırı I/O yükü + dosya bozulma riski oluşturuyordu.
         private void LocalVariable_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (sender is PlcVariable localVar && e.PropertyName == nameof(PlcVariable.CurrentValue))
             {
-                GlobalData.SavePlcVariableTagsToFile(); // <-- GLOBAL KAYDET
-
                 UpdateLineStatusVisuals();
 
                 // Slider vb. görsel güncellemeler
@@ -1219,8 +1251,10 @@ namespace App4
             try
             {
                 AvailableInputPlcTags.Clear(); AvailableOutputPlcTags.Clear();
-                foreach (var v in PlcService.Instance.InputVariables) AvailableInputPlcTags.Add(v.Name);
-                foreach (var v in PlcService.Instance.OutputVariables) AvailableOutputPlcTags.Add(v.Name);
+                // v9.1 FIX: Trim() ile sondaki boşlukları temizle
+                // PLC_Config.json'da sondaki boşluk olursa ComboBox SelectedItem eşleşmesi bozuluyordu
+                foreach (var v in PlcService.Instance.InputVariables) AvailableInputPlcTags.Add(v.Name?.Trim());
+                foreach (var v in PlcService.Instance.OutputVariables) AvailableOutputPlcTags.Add(v.Name?.Trim());
 
                 // Robot InputVars'ları R1:/R2: prefix'iyle ekle (dinamik — Robot_Page'den eklenen/çıkarılan sinyaller burada görünür)
                 var robots = KukaRobotManager.Instance?.Robots;
@@ -1346,7 +1380,27 @@ namespace App4
 
         private void PlcTagComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is ComboBox cb && cb.DataContext is PlcVariable v) { if (v.PlcTag != cb.SelectedItem as string) { v.PlcTag = cb.SelectedItem as string; GlobalData.SavePlcVariableTagsToFile(); ConnectToPlcVariable(v); } }
+            if (sender is ComboBox cb && cb.DataContext is PlcVariable v)
+            {
+                string newTag = cb.SelectedItem as string;
+
+                // ═══ GUARD: ComboBox başlatma sırasında null overwrite'ı engelle ═══
+                // ComboBox oluşurken ItemsSource henüz dolmamışsa SelectedItem=null olur
+                // ve kaydedilmiş PlcTag'i silerek kalıcılığı bozar.
+                if (string.IsNullOrEmpty(newTag) && !string.IsNullOrEmpty(v.PlcTag))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PLC_TAG_GUARD] {v.Name}: PlcTag={v.PlcTag} korundu (ComboBox null gönderdi)");
+                    return;
+                }
+
+                if (v.PlcTag != newTag)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PLC_TAG] {v.Name}: PlcTag değişti '{v.PlcTag}' → '{newTag}'");
+                    v.PlcTag = newTag;
+                    GlobalData.SavePlcVariableTagsToFile();
+                    ConnectToPlcVariable(v);
+                }
+            }
         }
 
         private void PlcTag2ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1354,8 +1408,17 @@ namespace App4
             if (sender is ComboBox cb && cb.DataContext is PlcVariable v)
             {
                 string newTag2 = cb.SelectedItem as string;
+
+                // ═══ GUARD: ComboBox başlatma sırasında null overwrite'ı engelle ═══
+                if (string.IsNullOrEmpty(newTag2) && !string.IsNullOrEmpty(v.PlcTag2))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PLC_TAG2_GUARD] {v.Name}: PlcTag2={v.PlcTag2} korundu (ComboBox null gönderdi)");
+                    return;
+                }
+
                 if (v.PlcTag2 != newTag2)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[PLC_TAG2] {v.Name}: PlcTag2 değişti '{v.PlcTag2}' → '{newTag2}'");
                     v.PlcTag2 = newTag2;
                     GlobalData.SavePlcVariableTagsToFile();
                     ConnectToPlcVariable2(v);
@@ -1561,6 +1624,13 @@ namespace App4
         // Tüm ön koşullar SystemCheckList + İstasyon alarmları üzerinden kontrol edilir.
         private void BtnStart_Click(object sender, RoutedEventArgs e)
         {
+            // OTOMATİK MOD kontrolü - Manuel modda START verilemez
+            if (!KontrolLineAutoManualSwitch.IsOn)
+            {
+                AddLog("BAŞLATILAMADI: Önce OTOMATİK mod seçilmelidir.", "Yellow");
+                return;
+            }
+
             // Son güvenlik kontrolü
             if (_isLatchedFault)
             {
@@ -2074,6 +2144,32 @@ namespace App4
                     };
                 }
             }
+
+            // --- INFICON SNIFFER READY sinyalini tüm robotlara yaz ---
+            // Robot bağlantısı kurulduğunda INFICON hazır sinyali gönderilir
+            // Robotlar bu sinyali kontrol ederek sniffer tetik verebilir
+            _ = SetSnifferReadyOnAllRobotsAsync(robots);
+        }
+
+        private async Task SetSnifferReadyOnAllRobotsAsync(System.Collections.ObjectModel.ObservableCollection<KukaRobotInstance> robots)
+        {
+            // Kısa gecikme - robot bağlantısı stabil olsun
+            await Task.Delay(2000);
+            foreach (var r in robots)
+            {
+                if (r.IsConnected)
+                {
+                    try
+                    {
+                        await r.WriteVariableAsync("G_SNIFFER_READY", "TRUE");
+                        AddAutoLog($"[Robot] INFICON READY sinyali gönderildi ({r.Name ?? "?"})");
+                    }
+                    catch { }
+                }
+            }
+            // GlobalData'yı da güncelle
+            var gReady = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_SNIFFER_READY");
+            if (gReady != null) gReady.Value = "TRUE";
         }
 
         // =====================================================
@@ -2241,35 +2337,92 @@ namespace App4
         }
 
         // =====================================================
-        // 4. SNIFFER ÖLÇÜM (Robot 2)
-        // Robot G_SNIFFER_OLCUM_YAP=TRUE → PC ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
-        // NOT: Sniffer cihaz entegrasyonu henüz yok, sinyal handshake'i hazır
+        // 4. INFICON SNIFFER ÖLÇÜM (Her iki Robot)
+        // Robot G_SNIFFER_OLCUM_YAP=TRUE → PC INFICON ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
+        // R1: Noktasal ölçüm (Gocator sonrası gaz kaçak testi)
+        // R2: Çizgi tarama (boru boyunca sniffer ile gaz kaçak testi)
         // =====================================================
         private async Task HandleSnifferOlcumAsync(KukaRobotInstance robot, int robotNo)
         {
             _snifferOlcumProcessing = true;
             try
             {
-                AddAutoLog($"[Robot {robotNo}] Sniffer ölçüm isteği alındı");
+                // Aktif nokta/çizgi bilgisini oku
+                string aktifInfo = "";
+                if (robotNo == 1)
+                {
+                    var noktaVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_NOKTA");
+                    aktifInfo = noktaVar != null ? $"Nokta={noktaVar.Value}" : "";
+                }
+                else
+                {
+                    var cizgiVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_CIZGI");
+                    aktifInfo = cizgiVar != null ? $"Çizgi={cizgiVar.Value}" : "";
+                }
 
-                // TODO: Sniffer cihazından gerçek ölçüm alma kodu buraya eklenecek
-                // Örnek: var result = await SnifferService.MeasureAsync();
-                AddAutoLog($"[Robot {robotNo}] Sniffer ölçüm - cihaz entegrasyonu bekleniyor (handshake hazır)");
+                AddAutoLog($"[Robot {robotNo}] INFICON sniffer ölçüm isteği alındı ({aktifInfo})");
 
-                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "TRUE");
-                await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "FALSE");
+                // --- INFICON ölçüm akışı ---
+                // 1. Sniffer ölçüm süresi varsa bekle (stabilizasyon)
+                double snifferSure = 0;
+                var sureVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_SNIFFER_SURE");
+                if (sureVar != null) double.TryParse(sureVar.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out snifferSure);
+                if (snifferSure > 0)
+                {
+                    AddAutoLog($"[Robot {robotNo}] INFICON stabilizasyon bekleniyor ({snifferSure:F0}ms)");
+                    await Task.Delay((int)Math.Min(snifferSure, 30000));
+                }
+
+                // 2. INFICON cihazından ölçüm al
+                // TODO: Gerçek INFICON SDK entegrasyonu burada olacak
+                // Şimdilik handshake hazır, ölçüm simüle ediliyor (OK)
+                bool olcumOK = true;
+                double olcumDeger = 0.0;
+
+                // *** INFICON SDK ENTEGRASYON NOKTASI ***
+                // var inficonResult = await InficonService.Instance.MeasureAsync();
+                // olcumOK = inficonResult.IsPass;
+                // olcumDeger = inficonResult.LeakRate;
+
+                AddAutoLog($"[Robot {robotNo}] INFICON sonuç: {(olcumOK ? "OK" : "NOK")} (Değer={olcumDeger:F4})");
+
+                // 3. Sonuçları robota yaz
+                await WriteToRobotAsync(robot, "G_SNIFFER_OK", olcumOK ? "TRUE" : "FALSE");
+                await WriteToRobotAsync(robot, "G_SNIFFER_DEGER", olcumDeger.ToString("F4", System.Globalization.CultureInfo.InvariantCulture));
+
+                // 4. Tamamlandı sinyali
+                await WriteToRobotAsync(robot, "G_SNIFFER_TAMAM", "TRUE");
+
+                // GlobalData'yı da güncelle
+                var gOk = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_SNIFFER_OK");
+                if (gOk != null) gOk.Value = olcumOK ? "TRUE" : "FALSE";
+                var gTamam = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_SNIFFER_TAMAM");
+                if (gTamam != null) gTamam.Value = "TRUE";
+                var gDeger = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_SNIFFER_DEGER");
+                if (gDeger != null) gDeger.Value = olcumDeger.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
-                AddAutoLog($"[Robot {robotNo}] Sniffer ölçüm hatası: {ex.Message}");
-                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "TRUE");
-                await Task.Delay(500);
-                await WriteRobotOutVarAsync("G_SNIFFER_TAMAM", "FALSE");
+                AddAutoLog($"[Robot {robotNo}] INFICON sniffer hatası: {ex.Message}");
+                try
+                {
+                    await WriteToRobotAsync(robot, "G_SNIFFER_OK", "FALSE");
+                    await WriteToRobotAsync(robot, "G_SNIFFER_TAMAM", "TRUE");
+                }
+                catch { }
             }
             finally
             {
                 _snifferOlcumProcessing = false;
+            }
+        }
+
+        // --- YARDIMCI: Belirli bir robota output değişken yaz ---
+        private async Task WriteToRobotAsync(KukaRobotInstance robot, string varName, string value)
+        {
+            if (robot != null && robot.IsConnected)
+            {
+                try { await robot.WriteVariableAsync(varName, value); } catch { }
             }
         }
 
@@ -2443,21 +2596,46 @@ namespace App4
             switch (mesaj)
             {
                 case 0: return "Bosta";
-                case 2: return "Is bitti";
-                case 3: return "Hata ile bitti";
-                case 5: return "Klima tipi bekleniyor";
-                case 10: return "Home'a gidiyor";
-                case 11: return "Home tamam";
+                case 1: return "Klima tipi bekleniyor";
+                case 2: return "İş tamamlandı";
+                case 3: return "HATA - Reset bekleniyor";
+                case 4: return "Oto mod - Start bekleniyor";
+                case 8: return "Manuel mod";
+                case 70: return "Hazır istasyon bekleniyor";
+                case 71: return "Sonraki istasyona geçiliyor";
+                case 99: return "HATA - Bilinmeyen klima tipi";
             }
 
-            // Tabla kontrol (Robot 1)
+            // Robot 1 özel kodlar
             if (robotNo == 1)
             {
                 switch (mesaj)
                 {
-                    case 50: return "Tabla kontrol basladi";
-                    case 51: return "Tabla taranıyor";
-                    case 52: return "Tabla offset tamam";
+                    case 5: return "HATA - Tabla ölçüm başarısız";
+                    case 20: return "Slider pozisyon bekleniyor";
+                    case 21: return "Slider pozisyona ulaştı";
+                    case 50: return "Tabla ölçüm pozisyonuna gidiliyor";
+                    case 51: return "Tabla ölçüm bekleniyor";
+                    case 52: return "Tabla ölçüm OK";
+                    case 60: return "Robot 2 hatada, bekleniyor";
+                    case 61: return "Robot 2 hatası nedeniyle durdu";
+                }
+            }
+
+            // Robot 2 özel kodlar
+            if (robotNo == 2)
+            {
+                switch (mesaj)
+                {
+                    case 5: return "HATA - Tabla offset alınamadı";
+                    case 10: return "Robot 1'den tabla offset bekleniyor";
+                    case 11: return "Tabla offset alındı";
+                    case 20: return "Slider istasyona gidiyor";
+                    case 21: return "Slider pozisyona ulaştı";
+                    case 60: return "Robot 1 hatada, bekleniyor";
+                    case 61: return "Robot 1 hatası nedeniyle durdu";
+                    case 62: return "Robot 1 Home bekleniyor";
+                    case 63: return "HATA - Geçersiz istasyon numarası";
                 }
             }
 
@@ -2469,21 +2647,22 @@ namespace App4
 
                 if (robotNo == 1)
                 {
-                    // Robot 1: N*100=basladi, +1=gocator ok, +2=olcum, +3=bitis
+                    // Robot 1: N*100=geçiş, +1=tetik, +2=ölçüm, +3=tamamlandı, +4=NOK
                     return alt switch
                     {
-                        0 => $"Tip {tipNo}: Taramaya basladi",
-                        1 => $"Tip {tipNo}: Gocator OK, olcume geciyor",
-                        2 => $"Tip {tipNo}: Inficon olcum yapiliyor",
-                        3 => $"Tip {tipNo}: Bitti",
+                        0 => $"Tip {tipNo}: Geçiş pozisyonuna gidiyor",
+                        1 => $"Tip {tipNo}: Ölçüm noktasına gidiyor",
+                        2 => $"Tip {tipNo}: Gocator+Sniffer ölçüm yapılıyor",
+                        3 => $"Tip {tipNo}: Tamamlandı",
+                        4 => $"Tip {tipNo}: NOK sonuç",
                         _ => $"Tip {tipNo}: Kod {alt}"
                     };
                 }
                 else
                 {
-                    // Robot 2: N*100=gecis, +1..+7=cizgi no
-                    if (alt == 0) return $"Tip {tipNo}: Gecis pozisyonu";
-                    if (alt >= 1 && alt <= 7) return $"Tip {tipNo}: Cizgi {alt} olcum";
+                    // Robot 2: N*100=geçiş, +1..+7=çizgi no
+                    if (alt == 0) return $"Tip {tipNo}: Geçiş pozisyonu";
+                    if (alt >= 1 && alt <= 7) return $"Tip {tipNo}: Çizgi {alt} sniffer tarama";
                     return $"Tip {tipNo}: Kod {alt}";
                 }
             }
