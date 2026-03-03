@@ -1166,15 +1166,18 @@ namespace App4.Utilities
             }
             if (settings.ContainsKey("Robot_Port"))
             {
-                var val = settings["Robot_Port"];
-                if (val is int i) _robotPort = i;
-                else if (val is string s && int.TryParse(s, out int p)) _robotPort = p;
+                try { _robotPort = Convert.ToInt32(settings["Robot_Port"]); }
+                catch { }
             }
             if (settings.ContainsKey("Robot_ReadSpeed"))
             {
-                var val = settings["Robot_ReadSpeed"];
-                if (val is int rs) _robotReadSpeed = Math.Max(50, Math.Min(500, rs));
-                else if (val is string rss && int.TryParse(rss, out int rsp)) _robotReadSpeed = Math.Max(50, Math.Min(500, rsp));
+                try
+                {
+                    int rs = Convert.ToInt32(settings["Robot_ReadSpeed"]);
+                    _robotReadSpeed = Math.Max(50, Math.Min(500, rs));
+                    System.Diagnostics.Debug.WriteLine($"[GlobalData] Robot_ReadSpeed yüklendi: {_robotReadSpeed}ms");
+                }
+                catch { System.Diagnostics.Debug.WriteLine($"[GlobalData] Robot_ReadSpeed yükleme HATASI, tip: {settings["Robot_ReadSpeed"]?.GetType()?.Name}"); }
             }
 
             if (settings.ContainsKey("KL100_R1Home")) _kl100Robot1HomeSignal = settings["KL100_R1Home"] as string;
@@ -1189,9 +1192,7 @@ namespace App4.Utilities
             }
             if (settings.ContainsKey("Plc_Port"))
             {
-                var val = settings["Plc_Port"];
-                if (val is int pi) _plcPort = pi;
-                else if (val is string ps && int.TryParse(ps, out int pp)) _plcPort = pp;
+                try { _plcPort = Convert.ToInt32(settings["Plc_Port"]); } catch { }
             }
 
             // Gocator Ayarları
@@ -1202,13 +1203,11 @@ namespace App4.Utilities
             }
             if (settings.ContainsKey("Gocator_Port"))
             {
-                var val = settings["Gocator_Port"];
-                if (val is int gi) _gocatorPort = gi;
-                else if (val is string gs && int.TryParse(gs, out int gp)) _gocatorPort = gp;
+                try { _gocatorPort = Convert.ToInt32(settings["Gocator_Port"]); } catch { }
             }
 
             // Debug log
-            System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}");
+            System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}, ReadSpeed={_robotReadSpeed}ms");
         }
         public static void SaveAutomationSettings() 
         { 

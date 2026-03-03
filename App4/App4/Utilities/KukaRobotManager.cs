@@ -641,24 +641,12 @@ namespace App4.Utilities
                             await Task.Delay(30);
                         }
 
-                        // 3. Kullanıcı tanımlı Output değişkenlerini robota yaz (YAZILAN VERİLER)
-                        // Robot tablosundaki değerler KukaVarProxy ile KRL değişkenlerine yazılır.
-                        // Robottan mevcut değeri okur, farklıysa yazar (gereksiz trafik önlenir).
-                        var userOutputs = OutputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag) && !string.IsNullOrEmpty(v.Value)).ToList();
-                        foreach (var variable in userOutputs)
-                        {
-                            if (!_isRunning || !IsConnected) break;
-                            try
-                            {
-                                string robotVal = await ReadVariableAsync(variable.PlcTag);
-                                if (!string.IsNullOrEmpty(robotVal) && robotVal != variable.Value)
-                                {
-                                    await WriteVariableAsync(variable.PlcTag, variable.Value);
-                                }
-                            }
-                            catch { }
-                            await Task.Delay(30);
-                        }
+                        // 3. Output değişkenleri artık CommunicationLoop'ta SÜREKLİ YAZILMIYOR.
+                        //    Tek seferlik komutlar (G_OLCUM_OK, G_BASLAT, G_OFFSET_X vb.) sadece
+                        //    ilgili olay gerçekleştiğinde WriteVariableAsync() ile yazılır.
+                        //    İlk bağlantı sync → PerformInitialSync (HandshakeConfig)
+                        //    Robot↔PLC köprü  → KukaRobotManager.ProcessRobotPlcBridgeAsync
+                        //    Robot↔Robot köprü → KukaRobotManager.ProcessRobotRobotBridgeAsync
                     }
                 }
                 catch (Exception ex)
@@ -1047,6 +1035,19 @@ namespace App4.Utilities
         // Handshake değişkenleri - İlk bağlantıda robota yazılacak değişkenler
         public ObservableCollection<HandshakeEntry> HandshakeEntries { get; } = new();
 
+        // ═══ GLOBAL BRIDGE EŞLEŞMELERİ (Sayfa bağımsız çalışır) ═══
+        public ObservableCollection<RobotPlcMapping> RobotPlcMappings { get; } = new();
+        public ObservableCollection<RobotRobotMapping> RobotRobotMappings { get; } = new();
+        private bool _bridgeProcessing = false;
+        private bool _bridgeRunning = false;
+
+        private readonly string _robotPlcMappingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "RobotPlcMappings.json");
+        private readonly string _robotRobotMappingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "RobotRobotMappings.json");
+
         public event Action<string> OnLog;
         public DispatcherQueue UiDispatcher { get; set; }
         public event PropertyChangedEventHandler PropertyChanged;
@@ -1079,9 +1080,12 @@ namespace App4.Utilities
             {
                 _isInitialized = true;
                 LoadHandshakeConfig();
+                LoadRobotPlcMappings();
+                LoadRobotRobotMappings();
                 foreach (var robot in Robots)
                     robot.OnLog += msg => OnLog?.Invoke(msg);
                 StartAll();
+                StartBridgeLoop();
             }
         }
 
@@ -1359,6 +1363,282 @@ namespace App4.Utilities
                 File.WriteAllText(_handshakeConfigPath, json);
             }
             catch { }
+        }
+
+        #endregion
+
+        #region Global Bridge Processing (Sayfa bağımsız)
+
+        public void LoadRobotPlcMappings()
+        {
+            try
+            {
+                if (File.Exists(_robotPlcMappingsPath))
+                {
+                    string json = File.ReadAllText(_robotPlcMappingsPath);
+                    var list = JsonSerializer.Deserialize<List<RobotPlcMapping>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (list != null)
+                    {
+                        RobotPlcMappings.Clear();
+                        foreach (var m in list) RobotPlcMappings.Add(m);
+                    }
+                }
+            }
+            catch { }
+        }
+
+        public void SaveRobotPlcMappings()
+        {
+            try
+            {
+                var filtered = RobotPlcMappings.Where(m => !string.IsNullOrEmpty(m.RobotTag) || !string.IsNullOrEmpty(m.PlcTag)).ToList();
+                string json = JsonSerializer.Serialize(filtered, new JsonSerializerOptions { WriteIndented = true });
+                var dir = Path.GetDirectoryName(_robotPlcMappingsPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(_robotPlcMappingsPath, json);
+            }
+            catch { }
+        }
+
+        public void LoadRobotRobotMappings()
+        {
+            try
+            {
+                if (File.Exists(_robotRobotMappingsPath))
+                {
+                    string json = File.ReadAllText(_robotRobotMappingsPath);
+                    var list = JsonSerializer.Deserialize<List<RobotRobotMapping>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (list != null)
+                    {
+                        RobotRobotMappings.Clear();
+                        foreach (var m in list) RobotRobotMappings.Add(m);
+                    }
+                }
+            }
+            catch { }
+
+            // Boş girdileri temizle
+            var empty = RobotRobotMappings.Where(m => string.IsNullOrEmpty(m.SourceTag) && string.IsNullOrEmpty(m.TargetTag)).ToList();
+            foreach (var e in empty) RobotRobotMappings.Remove(e);
+
+            MergeDefaultRobotRobotMappings();
+        }
+
+        public void SaveRobotRobotMappings()
+        {
+            try
+            {
+                var filtered = RobotRobotMappings.Where(m => !string.IsNullOrEmpty(m.SourceTag)).ToList();
+                string json = JsonSerializer.Serialize(filtered, new JsonSerializerOptions { WriteIndented = true });
+                var dir = Path.GetDirectoryName(_robotRobotMappingsPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(_robotRobotMappingsPath, json);
+            }
+            catch { }
+        }
+
+        private void MergeDefaultRobotRobotMappings()
+        {
+            var existingKeys = new HashSet<string>(
+                RobotRobotMappings
+                    .Where(m => !string.IsNullOrEmpty(m.SourceTag) && !string.IsNullOrEmpty(m.TargetTag))
+                    .Select(m => $"{m.SourceRobotName}|{m.SourceTag}|{m.TargetRobotName}|{m.TargetTag}"),
+                StringComparer.OrdinalIgnoreCase);
+
+            bool added = false;
+
+            void AddIfMissing(string srcRobot, string srcTag, string tgtRobot, string tgtTag)
+            {
+                string key = $"{srcRobot}|{srcTag}|{tgtRobot}|{tgtTag}";
+                if (!existingKeys.Contains(key))
+                {
+                    RobotRobotMappings.Add(new RobotRobotMapping
+                    {
+                        SourceRobotName = srcRobot,
+                        SourceTag = srcTag,
+                        TargetRobotName = tgtRobot,
+                        TargetTag = tgtTag,
+                        IsActive = true
+                    });
+                    added = true;
+                }
+            }
+
+            // Robot 1 → Robot 2 köprü sinyalleri
+            if (Robots.Count >= 2)
+            {
+                string r1 = Robots[0].Name;
+                string r2 = Robots[1].Name;
+                AddIfMissing(r1, $"G_R1_HOME (G_R1_HOME)", r2, $"G_R1_HOME (G_R1_HOME)");
+                AddIfMissing(r2, $"G_R2_HOME (G_R2_HOME)", r1, $"G_R2_HOME (G_R2_HOME)");
+                AddIfMissing(r2, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)", r1, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)");
+                AddIfMissing(r2, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)", r1, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)");
+                AddIfMissing(r2, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)", r1, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)");
+            }
+
+            if (added) SaveRobotRobotMappings();
+        }
+
+        private void StartBridgeLoop()
+        {
+            if (_bridgeRunning) return;
+            _bridgeRunning = true;
+
+            _ = Task.Run(async () =>
+            {
+                while (_bridgeRunning)
+                {
+                    try
+                    {
+                        await ProcessRobotPlcBridgeAsync();
+                        await ProcessRobotRobotBridgeAsync();
+                    }
+                    catch { }
+                    await Task.Delay(1000);
+                }
+            });
+        }
+
+        private async Task ProcessRobotPlcBridgeAsync()
+        {
+            if (_bridgeProcessing) return;
+            _bridgeProcessing = true;
+            try
+            {
+                foreach (var mapping in RobotPlcMappings.ToList())
+                {
+                    if (string.IsNullOrEmpty(mapping.RobotName) ||
+                        string.IsNullOrEmpty(mapping.RobotTag) || string.IsNullOrEmpty(mapping.PlcTag))
+                        continue;
+
+                    try
+                    {
+                        var robot = Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
+                        if (robot == null) continue;
+
+                        // Robot değişkenini bul
+                        PlcVariable robotVar = null;
+                        foreach (var v in robot.InputVars.Concat(robot.OutputVars))
+                        {
+                            if ($"{v.Name} ({v.PlcTag})" == mapping.RobotTag) { robotVar = v; break; }
+                        }
+
+                        // PLC değişkenini bul
+                        PlcVariable plcVar = null;
+                        if (PlcService.Instance != null)
+                        {
+                            foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
+                            {
+                                if ($"{v.Name} ({v.Address})" == mapping.PlcTag) { plcVar = v; break; }
+                            }
+                        }
+
+                        // Anlık değeri güncelle (aktif olmasa bile)
+                        string direction = mapping.Direction ?? "Robot→PLC";
+                        if (direction == "Robot→PLC" && robotVar != null && !string.IsNullOrEmpty(robotVar.Value))
+                            mapping.LastValue = robotVar.Value;
+                        else if (direction == "PLC→Robot" && plcVar != null)
+                        {
+                            string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                            if (!string.IsNullOrEmpty(plcValue)) mapping.LastValue = plcValue;
+                        }
+
+                        if (!mapping.IsActive) continue;
+                        if (robotVar == null || plcVar == null) continue;
+
+                        // Çift yönlü aktarım
+                        if (direction == "Robot→PLC")
+                        {
+                            if (string.IsNullOrEmpty(robotVar.Value)) continue;
+                            string currentValue = robotVar.Value;
+
+                            if (plcVar.Value != currentValue)
+                            {
+                                UiDispatcher?.TryEnqueue(() => plcVar.CurrentValue = currentValue);
+                                if (robot.IsConnected && PlcService.Instance?.IsConnected == true)
+                                {
+                                    try { await PlcService.Instance.WriteAsync(plcVar, currentValue); } catch { }
+                                }
+                            }
+                        }
+                        else // PLC→Robot
+                        {
+                            string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                            if (string.IsNullOrEmpty(plcValue)) continue;
+
+                            string writeValue = plcValue;
+                            if (robotVar.Type == "BOOL")
+                            {
+                                if (writeValue == "1" || writeValue.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                    writeValue = "TRUE";
+                                else if (writeValue == "0" || writeValue.Equals("false", StringComparison.OrdinalIgnoreCase))
+                                    writeValue = "FALSE";
+                            }
+
+                            if (robot.IsConnected)
+                            {
+                                try
+                                {
+                                    await robot.WriteVariableAsync(robotVar.PlcTag, writeValue);
+                                    robotVar.Value = writeValue;
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            finally
+            {
+                _bridgeProcessing = false;
+            }
+        }
+
+        private async Task ProcessRobotRobotBridgeAsync()
+        {
+            foreach (var mapping in RobotRobotMappings.ToList())
+            {
+                if (string.IsNullOrEmpty(mapping.SourceRobotName) || string.IsNullOrEmpty(mapping.SourceTag) ||
+                    string.IsNullOrEmpty(mapping.TargetRobotName) || string.IsNullOrEmpty(mapping.TargetTag))
+                    continue;
+
+                try
+                {
+                    var sourceRobot = Robots.FirstOrDefault(r => r.Name == mapping.SourceRobotName);
+                    var targetRobot = Robots.FirstOrDefault(r => r.Name == mapping.TargetRobotName);
+                    if (sourceRobot == null || targetRobot == null) continue;
+
+                    PlcVariable sourceVar = null;
+                    foreach (var v in sourceRobot.InputVars.Concat(sourceRobot.OutputVars))
+                    {
+                        if ($"{v.Name} ({v.PlcTag})" == mapping.SourceTag) { sourceVar = v; break; }
+                    }
+                    if (sourceVar == null) continue;
+
+                    if (!string.IsNullOrEmpty(sourceVar.Value))
+                        mapping.LastValue = sourceVar.Value;
+
+                    if (!mapping.IsActive) continue;
+
+                    PlcVariable targetVar = null;
+                    foreach (var v in targetRobot.InputVars.Concat(targetRobot.OutputVars))
+                    {
+                        if ($"{v.Name} ({v.PlcTag})" == mapping.TargetTag) { targetVar = v; break; }
+                    }
+                    if (targetVar == null) continue;
+
+                    string currentValue = sourceVar.Value;
+                    if (string.IsNullOrEmpty(currentValue)) continue;
+
+                    if (sourceRobot.IsConnected && targetRobot.IsConnected && targetVar.Value != currentValue)
+                    {
+                        await targetRobot.WriteVariableAsync(targetVar.PlcTag, currentValue);
+                        targetVar.Value = currentValue;
+                    }
+                }
+                catch { }
+            }
         }
 
         #endregion

@@ -10,6 +10,8 @@ namespace App4
 {
     public sealed partial class Settings_Page : Page
     {
+        private bool _isPageLoaded = false;
+
         public Settings_Page()
         {
             InitializeComponent();
@@ -28,12 +30,20 @@ namespace App4
             // Robot haberleşme hızı
             SliderRobotReadSpeed.Value = GlobalData.Robot_ReadSpeed;
             TxtRobotReadSpeedValue.Text = $"{GlobalData.Robot_ReadSpeed} ms";
+
+            // Artık slider değişiklikleri kaydedilebilir
+            _isPageLoaded = true;
         }
 
         private void SliderRobotReadSpeed_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         {
             if (TxtRobotReadSpeedValue != null)
                 TxtRobotReadSpeedValue.Text = $"{(int)e.NewValue} ms";
+
+            // Sayfa yüklenmeden önce (InitializeComponent sırasında) XAML'deki
+            // varsayılan Value="100" tetiklenir — kaydedilmiş değeri ezmemek için guard
+            if (_isPageLoaded)
+                GlobalData.Robot_ReadSpeed = (int)e.NewValue;
         }
 
         private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)

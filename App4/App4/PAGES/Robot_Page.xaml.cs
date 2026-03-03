@@ -23,17 +23,9 @@ namespace App4.Pages
         private readonly string[] _robotColors = { "#00FF88", "#FF9800", "#00A4EF", "#E91E63", "#9C27B0", "#00BCD4" };
 
         // Robot-PLC Köprü eşleşmeleri
-        private bool _mappingProcessing = false;
-        private ObservableCollection<RobotPlcMapping> _mappings = new();
-        private readonly string _mappingsConfigPath = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "RobotPlcMappings.json");
-
-        // Robot-Robot Haberleşme eşleşmeleri
-        private ObservableCollection<RobotRobotMapping> _robotRobotMappings = new();
-        private readonly string _robotRobotConfigPath = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "RobotRobotMappings.json");
+        // Mapping koleksiyonları artık KukaRobotManager'da global olarak yaşıyor
+        private ObservableCollection<RobotPlcMapping> _mappings => KukaRobotManager.Instance.RobotPlcMappings;
+        private ObservableCollection<RobotRobotMapping> _robotRobotMappings => KukaRobotManager.Instance.RobotRobotMappings;
 
         public Robot_Page()
         {
@@ -371,9 +363,8 @@ namespace App4.Pages
                 UpdateRobotStatus(robot, ctrl, color);
             }
 
-            // Köprü eşleşmelerini işle
-            _ = ProcessMappingsAsync();
-            _ = ProcessRobotRobotMappingsAsync();
+            // Köprü eşleşmeleri artık KukaRobotManager'da global olarak işleniyor
+            // Burada sadece UI'deki LastValue gösterimlerini güncellemek yeterli
 
             // Referans tablosundaki canlı sinyalleri güncelle
             UpdateRefLiveSignals();
@@ -963,150 +954,12 @@ namespace App4.Pages
             return tb;
         }
 
-        private async Task ProcessMappingsAsync()
-        {
-            if (_mappingProcessing) return;
-            _mappingProcessing = true;
-            try
-            {
-                foreach (var mapping in _mappings)
-                {
-                    if (string.IsNullOrEmpty(mapping.RobotName) ||
-                        string.IsNullOrEmpty(mapping.RobotTag) || string.IsNullOrEmpty(mapping.PlcTag))
-                        continue;
+        // ProcessMappingsAsync artik KukaRobotManager.ProcessRobotPlcBridgeAsync() tarafindan global olarak calistiriliyor
 
-                    try
-                    {
-                        // Robotu bul
-                        var robot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
-                        if (robot == null) continue;
-
-                        // Robot tag'inden de\u011fi\u015fkeni bul
-                        string robotTagDisplay = mapping.RobotTag;
-                        PlcVariable robotVar = null;
-
-                        foreach (var v in robot.InputVars.Concat(robot.OutputVars))
-                        {
-                            if ($"{v.Name} ({v.PlcTag})" == robotTagDisplay)
-                            {
-                                robotVar = v;
-                                break;
-                            }
-                        }
-
-                        // PLC tag'ini bul
-                        string plcTagDisplay = mapping.PlcTag;
-                        PlcVariable plcVar = null;
-
-                        foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
-                        {
-                            if ($"{v.Name} ({v.Address})" == plcTagDisplay)
-                            {
-                                plcVar = v;
-                                break;
-                            }
-                        }
-
-                        // ANLIK DE\u011eER G\u00d6STER\u0130M\u0130: Aktif olmasa bile mevcut de\u011feri oku ve g\u00f6ster
-                        string direction = mapping.Direction ?? "Robot\u2192PLC";
-                        if (direction == "Robot\u2192PLC" && robotVar != null && !string.IsNullOrEmpty(robotVar.Value))
-                        {
-                            mapping.LastValue = robotVar.Value;
-                        }
-                        else if (direction == "PLC\u2192Robot" && plcVar != null)
-                        {
-                            string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
-                            if (!string.IsNullOrEmpty(plcValue))
-                                mapping.LastValue = plcValue;
-                        }
-
-                        // Aktif de\u011filse sadece okuma yap, yazma yapma
-                        if (!mapping.IsActive) continue;
-                        if (robotVar == null || plcVar == null) continue;
-
-                        // \u00c7\u0130FT Y\u00d6NL\u00dc AKTARIM (sadece aktif mapping'ler i\u00e7in)
-                        if (direction == "Robot\u2192PLC")
-                        {
-                            // Robot'tan oku \u2192 PLC'ye yaz
-                            if (string.IsNullOrEmpty(robotVar.Value)) continue;
-                            string currentValue = robotVar.Value;
-
-                            if (plcVar.Value != currentValue)
-                            {
-                                // 1. Lokal de\u011feri g\u00fcncelle (Camera_Page vb. hemen g\u00f6rs\u00fcn)
-                                this.DispatcherQueue.TryEnqueue(() => plcVar.CurrentValue = currentValue);
-
-                                // 2. PLC'ye de yaz (ba\u011fl\u0131ysa)
-                                if (robot.IsConnected && PlcService.Instance?.IsConnected == true)
-                                {
-                                    try { await PlcService.Instance.WriteAsync(plcVar, currentValue); } catch { }
-                                }
-                            }
-                        }
-                        else // PLC\u2192Robot
-                        {
-                            // PLC'den oku \u2192 Robot'a yaz (her d\u00f6ng\u00fcde yaz, cache kontrols\u00fcz)
-                            string plcValue = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
-                            if (string.IsNullOrEmpty(plcValue)) continue;
-
-                            // BOOL de\u011ferlerini KUKA format\u0131na \u00e7evir
-                            string writeValue = plcValue;
-                            if (robotVar.Type == "BOOL")
-                            {
-                                if (writeValue == "1" || writeValue.Equals("true", StringComparison.OrdinalIgnoreCase))
-                                    writeValue = "TRUE";
-                                else if (writeValue == "0" || writeValue.Equals("false", StringComparison.OrdinalIgnoreCase))
-                                    writeValue = "FALSE";
-                            }
-
-                            if (robot.IsConnected)
-                            {
-                                try
-                                {
-                                    await robot.WriteVariableAsync(robotVar.PlcTag, writeValue);
-                                    robotVar.Value = writeValue;
-                                }
-                                catch (Exception ex)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"[BRIDGE] Robot yazma hatas\u0131: {robotVar.PlcTag}={writeValue}, {ex.Message}");
-                                }
-                            }
-                        }
-                    }
-                    catch { }
-                }
-            }
-            finally
-            {
-                _mappingProcessing = false;
-            }
-        }
 
         private void LoadMappings()
         {
-            try
-            {
-                if (File.Exists(_mappingsConfigPath))
-                {
-                    string json = File.ReadAllText(_mappingsConfigPath);
-                    var list = JsonSerializer.Deserialize<List<RobotPlcMapping>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (list != null)
-                    {
-                        _mappings.Clear();
-                        foreach (var m in list)
-                            _mappings.Add(m);
-                    }
-                }
-            }
-            catch { }
-
-            // Bo\u015f girdileri temizle
-            var emptyEntries = _mappings.Where(m => string.IsNullOrEmpty(m.RobotTag) && string.IsNullOrEmpty(m.PlcTag)).ToList();
-            foreach (var e in emptyEntries)
-                _mappings.Remove(e);
-
-            // Her zaman eksik varsay\u0131lan e\u015fle\u015fmeleri kontrol et ve ekle (merge)
-            MergeDefaultBridgeMappings();
+            // Mappingler artik KukaRobotManager.Initialize() da global olarak yukleniyor
         }
 
         /// <summary>
@@ -1237,14 +1090,7 @@ namespace App4.Pages
 
         private void SaveMappings()
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_mappings.ToList(), new JsonSerializerOptions { WriteIndented = true });
-                var dir = System.IO.Path.GetDirectoryName(_mappingsConfigPath);
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                File.WriteAllText(_mappingsConfigPath, json);
-            }
-            catch { }
+            KukaRobotManager.Instance.SaveRobotPlcMappings();
         }
 
         #endregion
@@ -1443,81 +1289,12 @@ namespace App4.Pages
             return rowBorder;
         }
 
-        private async Task ProcessRobotRobotMappingsAsync()
-        {
-            foreach (var mapping in _robotRobotMappings)
-            {
-                if (string.IsNullOrEmpty(mapping.SourceRobotName) || string.IsNullOrEmpty(mapping.SourceTag) ||
-                    string.IsNullOrEmpty(mapping.TargetRobotName) || string.IsNullOrEmpty(mapping.TargetTag))
-                    continue;
+        // ProcessRobotRobotMappingsAsync artik KukaRobotManager.ProcessRobotRobotBridgeAsync() tarafindan global olarak calistiriliyor
 
-                try
-                {
-                    var sourceRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.SourceRobotName);
-                    var targetRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == mapping.TargetRobotName);
-                    if (sourceRobot == null || targetRobot == null) continue;
-
-                    // Find source variable
-                    PlcVariable sourceVar = null;
-                    foreach (var v in sourceRobot.InputVars.Concat(sourceRobot.OutputVars))
-                    {
-                        if ($"{v.Name} ({v.PlcTag})" == mapping.SourceTag) { sourceVar = v; break; }
-                    }
-                    if (sourceVar == null) continue;
-
-                    // Update last value display
-                    if (!string.IsNullOrEmpty(sourceVar.Value))
-                        mapping.LastValue = sourceVar.Value;
-
-                    if (!mapping.IsActive) continue;
-
-                    // Find target variable
-                    PlcVariable targetVar = null;
-                    foreach (var v in targetRobot.InputVars.Concat(targetRobot.OutputVars))
-                    {
-                        if ($"{v.Name} ({v.PlcTag})" == mapping.TargetTag) { targetVar = v; break; }
-                    }
-                    if (targetVar == null) continue;
-
-                    // Transfer: read from source robot, write to target robot
-                    string currentValue = sourceVar.Value;
-                    if (string.IsNullOrEmpty(currentValue)) continue;
-
-                    if (sourceRobot.IsConnected && targetRobot.IsConnected && targetVar.Value != currentValue)
-                    {
-                        await targetRobot.WriteVariableAsync(targetVar.PlcTag, currentValue);
-                        targetVar.Value = currentValue;  // CommunicationLoop'un eski değeri geri yazmasını önler
-                    }
-                }
-                catch { }
-            }
-        }
 
         private void LoadRobotRobotMappings()
         {
-            try
-            {
-                if (File.Exists(_robotRobotConfigPath))
-                {
-                    string json = File.ReadAllText(_robotRobotConfigPath);
-                    var list = JsonSerializer.Deserialize<List<RobotRobotMapping>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (list != null)
-                    {
-                        _robotRobotMappings.Clear();
-                        foreach (var m in list)
-                            _robotRobotMappings.Add(m);
-                    }
-                }
-            }
-            catch { }
-
-            // Bo\u015f girdileri temizle
-            var emptyEntries = _robotRobotMappings.Where(m => string.IsNullOrEmpty(m.SourceTag) && string.IsNullOrEmpty(m.TargetTag)).ToList();
-            foreach (var e in emptyEntries)
-                _robotRobotMappings.Remove(e);
-
-            // Her zaman eksik varsay\u0131lan e\u015fle\u015fmeleri kontrol et ve ekle (merge)
-            MergeDefaultRobotRobotMappings();
+            // Robot-Robot mappingler artik KukaRobotManager.Initialize() da global olarak yukleniyor
         }
 
         /// <summary>
@@ -1621,14 +1398,7 @@ namespace App4.Pages
 
         private void SaveRobotRobotMappings()
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_robotRobotMappings.ToList(), new JsonSerializerOptions { WriteIndented = true });
-                var dir = System.IO.Path.GetDirectoryName(_robotRobotConfigPath);
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                File.WriteAllText(_robotRobotConfigPath, json);
-            }
-            catch { }
+            KukaRobotManager.Instance.SaveRobotRobotMappings();
         }
 
         #endregion
