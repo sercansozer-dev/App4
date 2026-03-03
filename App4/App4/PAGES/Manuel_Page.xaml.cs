@@ -155,10 +155,11 @@ namespace App4
                 // 1. RFID'ye göre kart tanımını bul
                 var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidValue);
                 string selectedJob = null;
+                int jobIndex = -1;
 
                 if (rfidDef != null && rfidDef.JobSequence != null && rfidDef.JobSequence.Count > 0)
                 {
-                    if (int.TryParse(indexValue, out int jobIndex))
+                    if (int.TryParse(indexValue, out jobIndex))
                     {
                         if (jobIndex >= 0 && jobIndex < rfidDef.JobSequence.Count)
                         {
@@ -210,8 +211,28 @@ namespace App4
 
                 if (result.Item1 == 1) // Başarılı
                 {
-                    GlobalData.SetMeasurementSignal();
-                    OlcumSonuclariList.ItemsSource = GlobalData.LastMeasurements;
+                    if (jobIndex == 0)
+                    {
+                        // --- TABLA ÖLÇÜM (JOB 0) ---
+                        GlobalData.TablaLastMeasurements.Clear();
+                        if (result.Item2 != null)
+                            foreach (var m in result.Item2)
+                                GlobalData.TablaLastMeasurements.Add(m);
+                        GlobalData.SaveTablaMeasurements();
+
+                        // Boru tablosunda tabla sonuçları kalmasın
+                        GlobalData.LastMeasurements.Clear();
+                        GlobalData.SaveMeasurements();
+
+                        GlobalData.SetTablaMeasurementSignal();
+                        OlcumSonuclariList.ItemsSource = GlobalData.TablaLastMeasurements;
+                    }
+                    else
+                    {
+                        // --- BORU ÖLÇÜM (JOB 1..N) ---
+                        GlobalData.SetMeasurementSignal();
+                        OlcumSonuclariList.ItemsSource = GlobalData.LastMeasurements;
+                    }
                     TxtOlcumDurum.Text = $"BAŞARILI! {result.Item2.Count} ölçüm alındı (RFID: {rfidValue}, Job: {selectedJob})";
                     TxtOlcumDurum.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
                 }

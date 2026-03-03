@@ -190,6 +190,58 @@
 					</Grid>
 				</Border>
 
+				<!-- ═══ HANDSHAKE DEĞİŞKENLERİ TABLOSU ═══ -->
+				<Border Background="#1E1E20" Margin="0,5,0,10" CornerRadius="8" MaxHeight="350">
+					<Grid>
+						<Grid.RowDefinitions>
+							<RowDefinition Height="40"/>
+							<RowDefinition Height="28"/>
+							<RowDefinition Height="*"/>
+						</Grid.RowDefinitions>
+
+						<!-- Header Row -->
+						<Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+							<Grid>
+								<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+									<FontIcon Glyph="&#xE72E;" Foreground="#4CAF50" FontSize="14"/>
+									<TextBlock Text="HANDSHAKE DEĞİŞKENLERİ (İlk Bağlantı)" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+									<Border Background="#4CAF50" CornerRadius="4" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+										<TextBlock x:Name="HandshakeCountText" Text="0 Değişken" FontSize="9" FontWeight="Bold" Foreground="White"/>
+									</Border>
+								</StackPanel>
+								<Button x:Name="BtnAddHandshakeEntry" Click="BtnAddHandshakeEntry_Click"
+										HorizontalAlignment="Right"
+										Background="#4CAF50" Foreground="White" CornerRadius="4"
+										Height="28" Padding="12,0" VerticalAlignment="Center">
+									<StackPanel Orientation="Horizontal" Spacing="6">
+										<FontIcon Glyph="&#xE710;" FontSize="11"/>
+										<TextBlock Text="Yeni Değişken" FontSize="10"/>
+									</StackPanel>
+								</Button>
+							</Grid>
+						</Border>
+
+						<!-- Column Headers Row -->
+						<Border Grid.Row="1" Background="#1A1A1C" Padding="8,4">
+							<Grid ColumnDefinitions="30, 1*, 1.5*, 60, 100, 80, 60, 40">
+								<TextBlock Grid.Column="0" Text="#" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="1" Text="Robot" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
+								<TextBlock Grid.Column="2" Text="Değişken (PlcTag)" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
+								<TextBlock Grid.Column="3" Text="Tip" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="4" Text="Varsayılan Değer" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="5" Text="Son Yazılan" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="6" Text="Aktif" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="7" Text="Sil" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+							</Grid>
+						</Border>
+
+						<!-- Data Rows -->
+						<ScrollViewer Grid.Row="2" MaxHeight="250" VerticalScrollBarVisibility="Auto" Background="#0D0D0D">
+							<StackPanel x:Name="HandshakeRowsContainer" Spacing="2" Padding="4"/>
+						</ScrollViewer>
+					</Grid>
+				</Border>
+
 				<!-- ═══ ROBOT STATUS KOD REFERANS TABLOSU ═══ -->
 				<Border Background="#1E1E20" Margin="0,5,0,20" CornerRadius="8">
 					<Grid>

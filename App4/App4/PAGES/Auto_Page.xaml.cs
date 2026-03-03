@@ -2290,6 +2290,19 @@ namespace App4
                     if (jobIndex == 0)
                     {
                         // --- TABLA ÖLÇÜM (JOB 0) ---
+                        // Sonuçları TablaLastMeasurements tablosuna yönlendir, boru tablosundan sil
+                        this.DispatcherQueue.TryEnqueue(() =>
+                        {
+                            GlobalData.TablaLastMeasurements.Clear();
+                            foreach (var m in results)
+                                GlobalData.TablaLastMeasurements.Add(m);
+                            GlobalData.SaveTablaMeasurements();
+
+                            // Boru tablosunda tabla sonuçları kalmasın
+                            GlobalData.LastMeasurements.Clear();
+                            GlobalData.SaveMeasurements();
+                        });
+
                         string[] tablaOffsets = { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z", "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
                         for (int i = 0; i < Math.Min(results.Count, tablaOffsets.Length); i++)
                         {
@@ -2310,6 +2323,12 @@ namespace App4
                     }
 
                     await WriteRobotOutVarAsync("G_OLCUM_OK", "TRUE");
+
+                    // PLC çıktı sinyali: jobIndex'e göre doğru tabloyu tetikle
+                    if (jobIndex == 0)
+                        GlobalData.SetTablaMeasurementSignal();
+                    else
+                        GlobalData.SetMeasurementSignal();
                 }
                 else
                 {

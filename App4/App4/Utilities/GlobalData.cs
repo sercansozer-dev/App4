@@ -792,7 +792,12 @@ namespace App4.Utilities
 
         private static void RfidDef_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(RfidDef.ModelFileName)) SaveRfids();
+            // Kalıcı alanlardan herhangi biri değiştiğinde kaydet
+            if (e.PropertyName == nameof(RfidDef.ModelFileName) ||
+                e.PropertyName == nameof(RfidDef.JobSequence) ||
+                e.PropertyName == nameof(RfidDef.SnifferDurations) ||
+                e.PropertyName == nameof(RfidDef.Description))
+                SaveRfids();
         }
 
         public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, System.Text.Json.JsonSerializer.Serialize(KnownRfids, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
@@ -1728,6 +1733,7 @@ namespace App4.Utilities
 
             // ▼▼▼ SİNYAL SIFIRLA (Ölçüm başlıyor) ▼▼▼
             ResetMeasurementSignal();
+            ResetTablaMeasurementSignal();
             ResetAllJobStatuses();
 
             try
@@ -1771,7 +1777,10 @@ namespace App4.Utilities
                     UpdateJobStatus(idx + 1, "OK");
 
                     // ▼▼▼ SİNYAL GÖNDER (Ölçüm tamamlandı) ▼▼▼
-                    SetMeasurementSignal();
+                    if (idx == 0)
+                        SetTablaMeasurementSignal();
+                    else
+                        SetMeasurementSignal();
 
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
 
@@ -1782,15 +1791,31 @@ namespace App4.Utilities
                     // 1. UI Thread updates (Table & Init)
                     await PlcService.Instance.RunOnUiAsync(() =>
                     {
-                        // Ölçüm Listesini Güncelle
-                        LastMeasurements.Clear();
-                        foreach (var m in measurements) LastMeasurements.Add(m);
-                        SaveMeasurements();
+                        if (idx == 0)
+                        {
+                            // TABLA ÖLÇÜM - TablaLastMeasurements'a kopyala, boru temizle
+                            TablaLastMeasurements.Clear();
+                            foreach (var m in measurements) TablaLastMeasurements.Add(m);
+                            SaveTablaMeasurements();
+                            LastMeasurements.Clear();
+                            SaveMeasurements();
+                        }
+                        else
+                        {
+                            // BORU ÖLÇÜM - LastMeasurements'a yaz
+                            LastMeasurements.Clear();
+                            foreach (var m in measurements) LastMeasurements.Add(m);
+                            SaveMeasurements();
+                        }
+
+                        // idx'e göre doğru transfer tablosunu seç
+                        var targetRows = (idx == 0) ? TablaTransferRows : PlcTransferRows;
+                        Action saveAction = (idx == 0) ? SaveTablaTransferRows : SaveTransferRows;
 
                         // Tabloyu Genişlet (Eğer eksik varsa)
-                        while (PlcTransferRows.Count < measurements.Count)
+                        while (targetRows.Count < measurements.Count)
                         {
-                            int index = PlcTransferRows.Count + 1;
+                            int index = targetRows.Count + 1;
                             var color = (index % 2 == 1)
                                 ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
                                 : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
@@ -1803,16 +1828,16 @@ namespace App4.Utilities
                                 StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0)), // Orange
                                 BackgroundColor = color
                             };
-                            newItem.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") SaveTransferRows(); };
-                            PlcTransferRows.Add(newItem);
+                            newItem.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") saveAction(); };
+                            targetRows.Add(newItem);
                         }
 
                         // Değerleri Eşle
                         for (int i = 0; i < measurements.Count; i++)
                         {
-                            var row = PlcTransferRows[i];
+                            var row = targetRows[i];
                             var meas = measurements[i];
-                            
+
                             row.Value = meas.Value.ToString();
                             row.Status = "WAIT"; // Önce WAIT (PLC yazılıyor)
                             row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0));
@@ -1820,7 +1845,7 @@ namespace App4.Utilities
                             tagsToWrite.Add(row.SelectedTag);
                             valuesToWrite.Add(meas.Value);
                         }
-                        SaveTransferRows();
+                        saveAction();
                     });
 
                     // 2. PLC'ye Yaz (Background Thread)
@@ -1858,11 +1883,12 @@ namespace App4.Utilities
                     }
 
                     // 3. Durumu Güncelle (UI Thread)
+                    var statusRows = (idx == 0) ? TablaTransferRows : PlcTransferRows;
                     await PlcService.Instance.RunOnUiAsync(() =>
                     {
                         for (int i = 0; i < valuesToWrite.Count; i++)
                         {
-                            var row = PlcTransferRows[i];
+                            var row = statusRows[i];
                             row.Status = "SENT";
                             row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 50, 205, 50)); // LimeGreen
                         }

@@ -1230,12 +1230,13 @@ namespace App4.PAGES
                         .FirstOrDefault(r => r.Id == rfidValue);
 
                     string selectedJob = null;
+                    int jobIndex = -1;
 
                     if (rfidDef != null && rfidDef.JobSequence != null && rfidDef.JobSequence.Count > 0)
                     {
                         // Kart tanımlanmış ve job sequence'i var
                         // Index değerini int'e çevir
-                        if (int.TryParse(indexValue, out int jobIndex))
+                        if (int.TryParse(indexValue, out jobIndex))
                         {
                             if (jobIndex >= 0 && jobIndex < rfidDef.JobSequence.Count)
                             {
@@ -1288,7 +1289,10 @@ namespace App4.PAGES
                     AddLog($"✓ {selectedJob} aktif edildi");
 
                     // ▼▼▼ ÖLÇÜM SİNYALİNİ SIFIRLA ▼▼▼
-                    App4.Utilities.GlobalData.ResetMeasurementSignal();
+                    if (jobIndex == 0)
+                        App4.Utilities.GlobalData.ResetTablaMeasurementSignal();
+                    else
+                        App4.Utilities.GlobalData.ResetMeasurementSignal();
 
                     // 3. Seçili job ile ölçüm ver al
                     AddLog($"► Sensörden ölçüm verisi alınıyor...");
@@ -1296,15 +1300,32 @@ namespace App4.PAGES
 
                     if (result.Item1 == 1) // Başarılı
                     {
-                        // ▼▼▼ SİNYAL GÖNDER ▼▼▼
-                        App4.Utilities.GlobalData.SetMeasurementSignal();
+                        if (jobIndex == 0)
+                        {
+                            // --- TABLA ÖLÇÜM (JOB 0) ---
+                            // Sonuçları TablaLastMeasurements'a kopyala, boru tablosundan sil
+                            App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
+                            if (result.Item2 != null)
+                                foreach (var m in result.Item2)
+                                    App4.Utilities.GlobalData.TablaLastMeasurements.Add(m);
+                            App4.Utilities.GlobalData.SaveTablaMeasurements();
 
-                        // 4. Ölçüm verilerini PLC satırlarına aktar
-                        TransferMeasurementsToPlcRows();
-                        
+                            App4.Utilities.GlobalData.LastMeasurements.Clear();
+                            App4.Utilities.GlobalData.SaveMeasurements();
+
+                            App4.Utilities.GlobalData.SetTablaMeasurementSignal();
+                            TransferTablaToPlcRows();
+                        }
+                        else
+                        {
+                            // --- BORU ÖLÇÜM (JOB 1..N) ---
+                            App4.Utilities.GlobalData.SetMeasurementSignal();
+                            TransferMeasurementsToPlcRows();
+                        }
+
                         AddLog($"✅ BAŞARILI!");
                         AddLog($"  RFID: {rfidValue} | Index: {indexValue} | Job: {selectedJob}");
-                        AddLog($"  {result.Item2.Count} adet ölçüm verisi aktarıldı");
+                        AddLog($"  {result.Item2.Count} adet ölçüm verisi aktarıldı ({(jobIndex == 0 ? "TABLA" : "BORU")})");
                     }
                     else
                     {

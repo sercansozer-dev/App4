@@ -151,6 +151,7 @@ namespace App4.Utilities
         private void JobSequence_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             RefreshIndexedJobs();
+            OnPropertyChanged(nameof(JobSequence));       // Kayıt tetiklensin (GlobalData.SaveRfids)
         }
 
         private void RefreshIndexedJobs()

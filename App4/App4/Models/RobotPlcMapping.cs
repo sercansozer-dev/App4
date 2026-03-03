@@ -119,4 +119,61 @@ namespace App4.Models
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
+
+    /// <summary>
+    /// İlk bağlantı handshake sırasında robota yazılacak bir değişken tanımı.
+    /// Global liste: Her robotun kendi handshake seti RobotName alanıyla filtrelenir.
+    /// JSON ile kalıcı saklanır (%LocalAppData%\App4\HandshakeConfig.json).
+    /// </summary>
+    public class HandshakeEntry : INotifyPropertyChanged
+    {
+        private string _robotName;
+        public string RobotName
+        {
+            get => _robotName;
+            set { if (_robotName != value) { _robotName = value; OnPropertyChanged(); } }
+        }
+
+        private string _plcTag;
+        public string PlcTag
+        {
+            get => _plcTag;
+            set { if (_plcTag != value) { _plcTag = value; OnPropertyChanged(); } }
+        }
+
+        private string _type = "INT";
+        public string Type
+        {
+            get => _type;
+            set { if (_type != value) { _type = value; OnPropertyChanged(); } }
+        }
+
+        private string _defaultValue = "0";
+        public string DefaultValue
+        {
+            get => _defaultValue;
+            set { if (_defaultValue != value) { _defaultValue = value; OnPropertyChanged(); } }
+        }
+
+        private string _lastWrittenValue = "-";
+        [JsonIgnore]
+        public string LastWrittenValue
+        {
+            get => _lastWrittenValue;
+            set { if (_lastWrittenValue != value) { _lastWrittenValue = value; OnPropertyChanged(); } }
+        }
+
+        private bool _isActive = true;
+        public bool IsActive
+        {
+            get => _isActive;
+            set { if (_isActive != value) { _isActive = value; OnPropertyChanged(); } }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 }

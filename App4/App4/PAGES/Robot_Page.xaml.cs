@@ -56,6 +56,9 @@ namespace App4.Pages
             LoadRobotRobotMappings();
             RefreshRobotRobotRows();
 
+            // Handshake değişkenleri tablosunu yenile
+            RefreshHandshakeRows();
+
             // Setup Timer
             _statusTimer = new DispatcherTimer();
             _statusTimer.Interval = TimeSpan.FromSeconds(1);
@@ -1483,6 +1486,7 @@ namespace App4.Pages
                     if (sourceRobot.IsConnected && targetRobot.IsConnected && targetVar.Value != currentValue)
                     {
                         await targetRobot.WriteVariableAsync(targetVar.PlcTag, currentValue);
+                        targetVar.Value = currentValue;  // CommunicationLoop'un eski değeri geri yazmasını önler
                     }
                 }
                 catch { }
@@ -1604,6 +1608,13 @@ namespace App4.Pages
             // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
             AddRRIfMissing("ROBOT 2", robot2, "AXIS_E1", "ROBOT 1", robot1, "G_R2_EKSEN_E1");
 
+            // ══════════════════════════════════
+            // ROBOT 2 → ROBOT 1 : Slider Durum Sinyalleri
+            // ══════════════════════════════════
+            AddRRIfMissing("ROBOT 2", robot2, "G_SLIDER_TAMAM", "ROBOT 1", robot1, "G_R2_SLIDER_TAMAM");
+            AddRRIfMissing("ROBOT 2", robot2, "G_SLIDER_HOME", "ROBOT 1", robot1, "G_R2_SLIDER_HOME");
+            AddRRIfMissing("ROBOT 2", robot2, "G_SLIDER_AKTUEL_POZ", "ROBOT 1", robot1, "G_R2_SLIDER_POZ");
+
             if (added)
                 SaveRobotRobotMappings();
         }
@@ -1618,6 +1629,254 @@ namespace App4.Pages
                 File.WriteAllText(_robotRobotConfigPath, json);
             }
             catch { }
+        }
+
+        #endregion
+
+        #region Handshake Değişkenleri Tablosu
+
+        private void BtnAddHandshakeEntry_Click(object sender, RoutedEventArgs e)
+        {
+            KukaRobotManager.Instance.HandshakeEntries.Add(new HandshakeEntry());
+            KukaRobotManager.Instance.SaveHandshakeConfig();
+            RefreshHandshakeRows();
+        }
+
+        private void RefreshHandshakeRows()
+        {
+            this.DispatcherQueue.TryEnqueue(() =>
+            {
+                HandshakeRowsContainer.Children.Clear();
+                HandshakeCountText.Text = $"{KukaRobotManager.Instance.HandshakeEntries.Count} Değişken";
+
+                for (int i = 0; i < KukaRobotManager.Instance.HandshakeEntries.Count; i++)
+                {
+                    var row = CreateHandshakeRow(KukaRobotManager.Instance.HandshakeEntries[i], i + 1);
+                    HandshakeRowsContainer.Children.Add(row);
+                }
+            });
+        }
+
+        private Border CreateHandshakeRow(HandshakeEntry entry, int rowNumber)
+        {
+            var rowBorder = new Border
+            {
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 28)),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(4, 3, 4, 3)
+            };
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.5, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+
+            // Col 0: Satır numarası
+            grid.Children.Add(CreateTextInColumn(rowNumber.ToString(), 0, 9, "#646464"));
+
+            // Col 1: Robot ComboBox
+            var robotCombo = new ComboBox
+            {
+                FontSize = 9, Height = 26,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 40)),
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            foreach (var r in KukaRobotManager.Instance.Robots)
+                robotCombo.Items.Add(r.Name);
+            if (!string.IsNullOrEmpty(entry.RobotName))
+                robotCombo.SelectedItem = entry.RobotName;
+            Grid.SetColumn(robotCombo, 1);
+            grid.Children.Add(robotCombo);
+
+            // Col 2: Değişken ComboBox (OutputVars listesi + elle giriş)
+            var varCombo = new ComboBox
+            {
+                FontSize = 9, Height = 26,
+                IsEditable = true,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 40)),
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            Grid.SetColumn(varCombo, 2);
+            grid.Children.Add(varCombo);
+
+            // Col 3: Tip TextBlock (otomatik doldurulur)
+            var typeText = new TextBlock
+            {
+                Text = entry.Type ?? "?",
+                FontSize = 9,
+                Foreground = new SolidColorBrush(ParseColor("#00A4EF")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(typeText, 3);
+            grid.Children.Add(typeText);
+
+            // Col 4: Varsayılan Değer TextBox
+            var defaultValueBox = new TextBox
+            {
+                Text = entry.DefaultValue ?? "",
+                FontSize = 9, Height = 26,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 38)),
+                Foreground = new SolidColorBrush(ParseColor("#4CAF50")),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51)),
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            defaultValueBox.LostFocus += (s, e) =>
+            {
+                entry.DefaultValue = defaultValueBox.Text;
+                KukaRobotManager.Instance.SaveHandshakeConfig();
+            };
+            Grid.SetColumn(defaultValueBox, 4);
+            grid.Children.Add(defaultValueBox);
+
+            // Col 5: Son Yazılan Değer (runtime, salt okunur)
+            var lastWrittenText = new TextBlock
+            {
+                Text = entry.LastWrittenValue ?? "-",
+                FontSize = 10,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(ParseColor("#4CAF50")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            entry.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(HandshakeEntry.LastWrittenValue))
+                    this.DispatcherQueue.TryEnqueue(() => lastWrittenText.Text = entry.LastWrittenValue ?? "-");
+            };
+            Grid.SetColumn(lastWrittenText, 5);
+            grid.Children.Add(lastWrittenText);
+
+            // Col 6: Aktif toggle
+            var activeToggle = new ToggleSwitch
+            {
+                IsOn = entry.IsActive,
+                MinWidth = 0, MinHeight = 0,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            activeToggle.Toggled += (s, e) =>
+            {
+                entry.IsActive = activeToggle.IsOn;
+                KukaRobotManager.Instance.SaveHandshakeConfig();
+            };
+            Grid.SetColumn(activeToggle, 6);
+            grid.Children.Add(activeToggle);
+
+            // Col 7: Sil butonu
+            var deleteBtn = new Button
+            {
+                Content = "\uE74D",
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+                Background = new SolidColorBrush(Colors.Transparent),
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 82, 82)),
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            deleteBtn.Click += (s, e) =>
+            {
+                KukaRobotManager.Instance.HandshakeEntries.Remove(entry);
+                KukaRobotManager.Instance.SaveHandshakeConfig();
+                RefreshHandshakeRows();
+            };
+            Grid.SetColumn(deleteBtn, 7);
+            grid.Children.Add(deleteBtn);
+
+            // ---- Değişken dropdown doldurma mantığı ----
+            void UpdateVariableList()
+            {
+                varCombo.Items.Clear();
+                var selectedRobot = KukaRobotManager.Instance.Robots
+                    .FirstOrDefault(r => r.Name == robotCombo.SelectedItem?.ToString());
+                if (selectedRobot == null) return;
+
+                foreach (var v in selectedRobot.OutputVars)
+                {
+                    if (!string.IsNullOrEmpty(v.PlcTag))
+                        varCombo.Items.Add(v.PlcTag);
+                }
+
+                if (!string.IsNullOrEmpty(entry.PlcTag))
+                {
+                    // Listede varsa seç
+                    foreach (var item in varCombo.Items)
+                    {
+                        if (item.ToString() == entry.PlcTag)
+                        {
+                            varCombo.SelectedItem = item;
+                            break;
+                        }
+                    }
+                    // Listede yoksa text olarak göster (elle girilmiş olabilir)
+                    if (varCombo.SelectedItem == null)
+                        varCombo.Text = entry.PlcTag;
+                }
+            }
+
+            void UpdateTypeFromVariable()
+            {
+                var selectedRobot = KukaRobotManager.Instance.Robots
+                    .FirstOrDefault(r => r.Name == robotCombo.SelectedItem?.ToString());
+                if (selectedRobot == null) return;
+                string varName = varCombo.SelectedItem?.ToString() ?? varCombo.Text;
+                var matchedVar = selectedRobot.OutputVars
+                    .FirstOrDefault(v => v.PlcTag == varName);
+                if (matchedVar != null)
+                {
+                    entry.Type = matchedVar.Type;
+                    typeText.Text = matchedVar.Type;
+                }
+            }
+
+            robotCombo.SelectionChanged += (s, e) =>
+            {
+                entry.RobotName = robotCombo.SelectedItem?.ToString();
+                UpdateVariableList();
+                KukaRobotManager.Instance.SaveHandshakeConfig();
+            };
+
+            varCombo.SelectionChanged += (s, e) =>
+            {
+                if (varCombo.SelectedItem != null)
+                {
+                    entry.PlcTag = varCombo.SelectedItem.ToString();
+                    UpdateTypeFromVariable();
+                    KukaRobotManager.Instance.SaveHandshakeConfig();
+                }
+            };
+
+            // Elle giriş yapıldığında da kaydet
+            varCombo.LostFocus += (s, e) =>
+            {
+                string text = varCombo.Text?.Trim();
+                if (!string.IsNullOrEmpty(text) && text != entry.PlcTag)
+                {
+                    entry.PlcTag = text;
+                    UpdateTypeFromVariable();
+                    KukaRobotManager.Instance.SaveHandshakeConfig();
+                }
+            };
+
+            // İlk yüklemede dropdown'ı doldur
+            if (!string.IsNullOrEmpty(entry.RobotName))
+                UpdateVariableList();
+
+            rowBorder.Child = grid;
+            return rowBorder;
         }
 
         #endregion

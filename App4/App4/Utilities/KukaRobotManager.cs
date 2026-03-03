@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
+using App4.Models;
 
 namespace App4.Utilities
 {
@@ -435,7 +436,9 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "PC_STOP", Type = "BOOL", PlcTag = "PC_Stop", Direction = "Output" });
             OutputVars.Add(new PlcVariable { Name = "PC_RESET", Type = "BOOL", PlcTag = "PC_Reset", Direction = "Output" });
             OutputVars.Add(new PlcVariable { Name = "PC_RECIPE", Type = "INT", PlcTag = "PC_RecipeNo", Direction = "Output" });
-            OutputVars.Add(new PlcVariable { Name = "SET_JOG_OV", Type = "INT", PlcTag = "$OV_JOG", Direction = "Output" });
+            // NOT: SET_JOG_OV ($OV_JOG) burada YOK — InputVars'ta zaten okunuyor (satır 353).
+            // Hız değişikliği SetOverrideJog() ile doğrudan yazılır.
+            // Aynı PlcTag hem Input hem Output'ta olursa CommunicationLoop eski değeri geri yazıp hızı sabitler!
 
             // ═══════════════════════════════════════════════════════════════
             // KRL GLOBAL DEĞİŞKENLER - Masaüstü → Robot (Output - Yazılacak)
@@ -670,10 +673,9 @@ namespace App4.Utilities
         }
 
         /// <summary>
-        /// İlk bağlantı handshake - Tüm Output değişkenlerini robota yazar.
-        /// Null/boş değerler için tip bazlı varsayılan kullanılır:
-        ///   BOOL → "FALSE", INT → "0", REAL → "0.0"
-        /// Ayrıca GlobalData.AktuelKlimaIndex → G_KLIMA_TIP yazılır.
+        /// İlk bağlantı handshake - Konfigürasyon tablosundaki değişkenleri robota yazar.
+        /// Hangi değişkenlerin yazılacağı HandshakeConfig.json ile belirlenir.
+        /// Robot_Page UI tablosundan eklenip çıkarılabilir.
         /// </summary>
         private async Task PerformInitialSync()
         {
@@ -681,75 +683,77 @@ namespace App4.Utilities
             int yazilan = 0;
             int hata = 0;
 
-            foreach (var variable in OutputVars)
+            // Bu robota ait aktif handshake girdilerini al
+            var entries = KukaRobotManager.Instance.HandshakeEntries
+                .Where(e => e.IsActive && e.RobotName == this.Name)
+                .ToList();
+
+            foreach (var entry in entries)
             {
                 if (!_isRunning || !IsConnected) break;
-                if (string.IsNullOrEmpty(variable.PlcTag)) continue;
 
                 try
                 {
-                    if (!string.IsNullOrEmpty(variable.Value))
+                    string valueToWrite = ResolveHandshakeValue(entry);
+
+                    // Robottan mevcut değeri oku — zaten doğruysa yazma
+                    string currentRobotVal = await ReadVariableAsync(entry.PlcTag);
+                    if (currentRobotVal == valueToWrite)
                     {
-                        // Değer varsa → robota yaz (uygulama zaten bir değer belirlemiş)
-                        string robotVal = await ReadVariableAsync(variable.PlcTag);
-                        if (robotVal != variable.Value)
-                        {
-                            await WriteVariableAsync(variable.PlcTag, variable.Value);
-                        }
+                        var skipVal = currentRobotVal;
+                        DispatchToUi(() => entry.LastWrittenValue = $"{skipVal} (mevcut)");
                         yazilan++;
                     }
                     else
                     {
-                        // Değer boşsa → robottan OKU ve UI'a aktar
-                        // ($OV_JOG gibi değişkenlere kör "0" yazmayı önler)
-                        string robotVal = await ReadVariableAsync(variable.PlcTag);
-                        if (!string.IsNullOrEmpty(robotVal))
-                        {
-                            var capturedVal = robotVal;
-                            DispatchToUi(() => variable.Value = capturedVal);
-                        }
+                        await WriteVariableAsync(entry.PlcTag, valueToWrite);
                         yazilan++;
+                        var capturedVal = valueToWrite;
+                        DispatchToUi(() => entry.LastWrittenValue = capturedVal);
                     }
                 }
-                catch
-                {
-                    hata++;
-                }
+                catch { hata++; }
                 await Task.Delay(30);
             }
 
-            // GlobalData'dan G_KLIMA_TIP yaz
-            try
-            {
-                int klimaIndex = GlobalData.AktuelKlimaIndex;
-                if (klimaIndex >= 0)
-                {
-                    await WriteVariableAsync("G_KLIMA_TIP", klimaIndex.ToString());
-                    yazilan++;
-                }
-            }
-            catch { hata++; }
-
-            // GeneralOutputVars'tan OTO_MOD durumunu oku ve robota yaz
-            try
-            {
-                var otoModVar = GlobalData.GeneralOutputVars?.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
-                if (otoModVar != null && !string.IsNullOrEmpty(otoModVar.Value))
-                {
-                    string otoVal = (otoModVar.Value.ToUpper() == "TRUE" || otoModVar.Value == "1") ? "TRUE" : "FALSE";
-                    await WriteVariableAsync("G_OTO_MOD", otoVal);
-                    yazilan++;
-                }
-                else
-                {
-                    // Varsayılan: FALSE (Manuel mod - güvenli taraf)
-                    await WriteVariableAsync("G_OTO_MOD", "FALSE");
-                    yazilan++;
-                }
-            }
-            catch { hata++; }
-
             OnLog?.Invoke($"[{Name}] ✅ Handshake tamamlandı: {yazilan} değişken yazıldı" + (hata > 0 ? $", {hata} hata" : ""));
+        }
+
+        /// <summary>
+        /// Handshake değişkeni için yazılacak değeri belirler.
+        /// Öncelik sırası:
+        ///   1. Özel değişkenler (G_KLIMA_TIP, G_OTO_MOD) → runtime kaynaktan
+        ///   2. OutputVars'ta güncel değer varsa → onu kullan (bridge/PLC zaten yazmış olabilir)
+        ///   3. Hiçbiri yoksa → DefaultValue (son çare)
+        /// </summary>
+        private string ResolveHandshakeValue(HandshakeEntry entry)
+        {
+            // 1. Özel değişkenler — runtime kaynaktan
+            switch (entry.PlcTag)
+            {
+                case "G_KLIMA_TIP":
+                    int klimaIndex = GlobalData.AktuelKlimaIndex;
+                    if (klimaIndex >= 0) return klimaIndex.ToString();
+                    break;
+
+                case "G_OTO_MOD":
+                    var otoModVar = GlobalData.GeneralOutputVars?
+                        .FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
+                    if (otoModVar != null && !string.IsNullOrEmpty(otoModVar.Value))
+                    {
+                        return (otoModVar.Value.ToUpper() == "TRUE" || otoModVar.Value == "1")
+                            ? "TRUE" : "FALSE";
+                    }
+                    break;
+            }
+
+            // 2. OutputVars'ta güncel değer varsa onu kullan
+            var outputVar = OutputVars.FirstOrDefault(v => v.PlcTag == entry.PlcTag);
+            if (outputVar != null && !string.IsNullOrEmpty(outputVar.Value))
+                return outputVar.Value;
+
+            // 3. Son çare: DefaultValue
+            return entry.DefaultValue;
         }
 
         #endregion
@@ -1040,6 +1044,9 @@ namespace App4.Utilities
 
         public ObservableCollection<KukaRobotInstance> Robots { get; } = new();
 
+        // Handshake değişkenleri - İlk bağlantıda robota yazılacak değişkenler
+        public ObservableCollection<HandshakeEntry> HandshakeEntries { get; } = new();
+
         public event Action<string> OnLog;
         public DispatcherQueue UiDispatcher { get; set; }
         public event PropertyChangedEventHandler PropertyChanged;
@@ -1047,6 +1054,10 @@ namespace App4.Utilities
         private readonly string _configPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "App4", "KukaRobots.json");
+
+        private readonly string _handshakeConfigPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "App4", "HandshakeConfig.json");
 
         private bool _isInitialized = false;
 
@@ -1067,6 +1078,7 @@ namespace App4.Utilities
             if (!_isInitialized)
             {
                 _isInitialized = true;
+                LoadHandshakeConfig();
                 foreach (var robot in Robots)
                     robot.OnLog += msg => OnLog?.Invoke(msg);
                 StartAll();
@@ -1264,6 +1276,92 @@ namespace App4.Utilities
             }
             catch { }
         }
+
+        #region Handshake Config
+
+        public void LoadHandshakeConfig()
+        {
+            try
+            {
+                if (File.Exists(_handshakeConfigPath))
+                {
+                    string json = File.ReadAllText(_handshakeConfigPath);
+                    var list = System.Text.Json.JsonSerializer.Deserialize<List<HandshakeEntry>>(json,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (list != null)
+                    {
+                        HandshakeEntries.Clear();
+                        foreach (var entry in list)
+                            HandshakeEntries.Add(entry);
+                    }
+                }
+            }
+            catch { }
+
+            // Boş girdileri temizle
+            var emptyEntries = HandshakeEntries
+                .Where(e => string.IsNullOrEmpty(e.PlcTag) && string.IsNullOrEmpty(e.RobotName))
+                .ToList();
+            foreach (var e in emptyEntries)
+                HandshakeEntries.Remove(e);
+
+            // Varsayılan handshake değişkenlerini merge et
+            MergeDefaultHandshakeEntries();
+        }
+
+        private void MergeDefaultHandshakeEntries()
+        {
+            var existingKeys = new HashSet<string>(
+                HandshakeEntries
+                    .Where(e => !string.IsNullOrEmpty(e.PlcTag) && !string.IsNullOrEmpty(e.RobotName))
+                    .Select(e => $"{e.RobotName}|{e.PlcTag}"),
+                StringComparer.OrdinalIgnoreCase);
+
+            bool added = false;
+
+            void AddIfMissing(string robotName, string plcTag, string type, string defaultValue)
+            {
+                var key = $"{robotName}|{plcTag}";
+                if (existingKeys.Contains(key)) return;
+
+                HandshakeEntries.Add(new HandshakeEntry
+                {
+                    RobotName = robotName,
+                    PlcTag = plcTag,
+                    Type = type,
+                    DefaultValue = defaultValue,
+                    IsActive = true
+                });
+                existingKeys.Add(key);
+                added = true;
+            }
+
+            // Her robot için varsayılan handshake değişkenleri
+            foreach (var robot in Robots)
+            {
+                AddIfMissing(robot.Name, "G_KLIMA_TIP", "INT", "0");
+                AddIfMissing(robot.Name, "G_OTO_MOD", "BOOL", "FALSE");
+            }
+
+            if (added)
+                SaveHandshakeConfig();
+        }
+
+        public void SaveHandshakeConfig()
+        {
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(
+                    HandshakeEntries.ToList(),
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var dir = Path.GetDirectoryName(_handshakeConfigPath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(_handshakeConfigPath, json);
+            }
+            catch { }
+        }
+
+        #endregion
 
         private class RobotConfig
         {
