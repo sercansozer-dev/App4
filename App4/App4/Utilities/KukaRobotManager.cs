@@ -207,6 +207,9 @@ namespace App4.Utilities
         public ObservableCollection<PlcVariable> InputVars { get; } = new();
         public ObservableCollection<PlcVariable> OutputVars { get; } = new();
 
+        // Output değişkenlerinin son yazılan değerlerini takip eder (gereksiz tekrar yazmayı önler)
+        private readonly Dictionary<string, string> _lastWrittenOutputs = new();
+
         // Standart KUKA değişkenleri (pozisyon, eksen, override için)
         private readonly List<(string Tag, Action<string> Setter)> _standardReads;
 
@@ -645,12 +648,30 @@ namespace App4.Utilities
                             await Task.Delay(30);
                         }
 
-                        // 3. Output değişkenleri artık CommunicationLoop'ta SÜREKLİ YAZILMIYOR.
-                        //    Tek seferlik komutlar (G_OLCUM_OK, G_BASLAT, G_OFFSET_X vb.) sadece
-                        //    ilgili olay gerçekleştiğinde WriteVariableAsync() ile yazılır.
-                        //    İlk bağlantı sync → PerformInitialSync (HandshakeConfig)
-                        //    Robot↔PLC köprü  → KukaRobotManager.ProcessRobotPlcBridgeAsync
-                        //    Robot↔Robot köprü → KukaRobotManager.ProcessRobotRobotBridgeAsync
+                        // 3. Output değişkenlerini yaz (SADECE değişenler)
+                        //    Her OutputVar için: in-memory değer son yazılandan farklıysa robota yaz
+                        var userOutputs = OutputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
+                        foreach (var variable in userOutputs)
+                        {
+                            if (!_isRunning || !IsConnected) break;
+                            try
+                            {
+                                string currentVal = variable.Value ?? "";
+                                _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
+
+                                if (currentVal != (lastVal ?? ""))
+                                {
+                                    bool ok = await WriteVariableAsync(variable.PlcTag, currentVal);
+                                    if (ok)
+                                    {
+                                        _lastWrittenOutputs[variable.PlcTag] = currentVal;
+                                        OnLog?.Invoke($"[{Name}] ✎ Output yazıldı: {variable.PlcTag} = {currentVal}");
+                                    }
+                                }
+                            }
+                            catch { }
+                            await Task.Delay(30);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -1288,6 +1309,66 @@ namespace App4.Utilities
             {
                 System.Diagnostics.Debug.WriteLine($"[ROBOT_VARS_LOAD] HATA: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Robot değişkenlerini belirtilen dosyaya JSON formatında dışa aktarır.
+        /// </summary>
+        public string ExportRobotVariablesToJson()
+        {
+            var list = new List<object>();
+            foreach (var r in Robots)
+            {
+                object MapVars(ObservableCollection<PlcVariable> vars) => vars.Select(v => new { name = v.Name, type = v.Type, plcTag = v.PlcTag, value = v.Value, direction = v.Direction }).ToList();
+                list.Add(new { robot = r.Name, inputs = MapVars(r.InputVars), outputs = MapVars(r.OutputVars) });
+            }
+            return JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        /// <summary>
+        /// JSON dosyasından robot değişkenlerini içe aktarır. Mevcut değişkenleri değiştirir.
+        /// </summary>
+        public (int inputCount, int outputCount, string robotName) ImportRobotVariablesFromJson(string json)
+        {
+            var doc = JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+            if (doc.ValueKind != System.Text.Json.JsonValueKind.Array)
+                throw new InvalidOperationException("JSON formatı geçersiz: Dizi bekleniyor.");
+
+            int totalInputs = 0, totalOutputs = 0;
+            string lastRobot = "";
+
+            foreach (var entry in doc.EnumerateArray())
+            {
+                string robotName = entry.GetProperty("robot").GetString();
+                var robot = Robots.FirstOrDefault(r => r.Name == robotName);
+                if (robot == null) continue;
+                lastRobot = robotName;
+
+                void LoadVars(string propName, ObservableCollection<PlcVariable> target, string direction)
+                {
+                    if (!entry.TryGetProperty(propName, out var arr)) return;
+
+                    target.Clear();
+                    foreach (var v in arr.EnumerateArray())
+                    {
+                        string name = v.GetProperty("name").GetString();
+                        string type = v.TryGetProperty("type", out var t) ? t.GetString() : "STRING";
+                        string plcTag = v.TryGetProperty("plcTag", out var p) ? p.GetString() : null;
+                        string value = v.TryGetProperty("value", out var val) && val.ValueKind != System.Text.Json.JsonValueKind.Null ? val.ToString() : null;
+
+                        target.Add(new PlcVariable { Name = name, Type = type, PlcTag = plcTag, Value = value, Direction = direction });
+                    }
+                }
+
+                LoadVars("inputs", robot.InputVars, "Input");
+                LoadVars("outputs", robot.OutputVars, "Output");
+                totalInputs += robot.InputVars.Count;
+                totalOutputs += robot.OutputVars.Count;
+            }
+
+            // JSON'a kalıcı kaydet
+            SaveRobotVariables();
+            return (totalInputs, totalOutputs, lastRobot);
         }
 
         #region Handshake Config

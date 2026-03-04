@@ -130,26 +130,17 @@
                                 <Grid Grid.Row="1" Background="#151515">
                                     <Grid Margin="10">
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Auto/Manual Buttons -->
-                                        <Border Grid.Row="0" CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2" Margin="0,0,0,10">
-                                            <StackPanel Orientation="Horizontal">
-                                                <ToggleButton IsChecked="{Binding Stations[0].IsAutoMode, Mode=TwoWay}" Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[0].AutoBtnBg}" Foreground="{Binding Stations[0].AutoBtnFg}"/>
-                                                <ToggleButton IsChecked="{Binding Stations[0].IsManualMode, Mode=TwoWay}" Content="MANUEL" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[0].ManualBtnBg}" Foreground="{Binding Stations[0].ManualBtnFg}"/>
-                                            </StackPanel>
-                                        </Border>
-
                                         <!-- Model View -->
-                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
+                                        <Border Grid.Row="0" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station1" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
                                         <!-- Status & RFID -->
-                                        <Grid Grid.Row="2">
+                                        <Grid Grid.Row="1">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>
@@ -230,23 +221,15 @@
                                 <Grid Grid.Row="1" Background="#151515">
                                     <Grid Margin="10">
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <Border Grid.Row="0" CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2" Margin="0,0,0,10">
-                                            <StackPanel Orientation="Horizontal">
-                                                <ToggleButton IsChecked="{Binding Stations[1].IsAutoMode, Mode=TwoWay}" Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[1].AutoBtnBg}" Foreground="{Binding Stations[1].AutoBtnFg}"/>
-                                                <ToggleButton IsChecked="{Binding Stations[1].IsManualMode, Mode=TwoWay}" Content="MANUEL" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[1].ManualBtnBg}" Foreground="{Binding Stations[1].ManualBtnFg}"/>
-                                            </StackPanel>
-                                        </Border>
-
-                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
+                                        <Border Grid.Row="0" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station2" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <Grid Grid.Row="2">
+                                        <Grid Grid.Row="1">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>
@@ -327,23 +310,15 @@
                                 <Grid Grid.Row="1" Background="#151515">
                                     <Grid Margin="10">
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <Border Grid.Row="0" CornerRadius="15" Background="#202020" BorderBrush="#333" BorderThickness="1" HorizontalAlignment="Center" Padding="2" Margin="0,0,0,10">
-                                            <StackPanel Orientation="Horizontal">
-                                                <ToggleButton IsChecked="{Binding Stations[2].IsAutoMode, Mode=TwoWay}" Content="OTOMATİK" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[2].AutoBtnBg}" Foreground="{Binding Stations[2].AutoBtnFg}"/>
-                                                <ToggleButton IsChecked="{Binding Stations[2].IsManualMode, Mode=TwoWay}" Content="MANUEL" FontSize="11" FontWeight="Bold" Width="90" CornerRadius="13" Height="26" Background="{Binding Stations[2].ManualBtnBg}" Foreground="{Binding Stations[2].ManualBtnFg}"/>
-                                            </StackPanel>
-                                        </Border>
-
-                                        <Border Grid.Row="1" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
+                                        <Border Grid.Row="0" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station3" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <Grid Grid.Row="2">
+                                        <Grid Grid.Row="1">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="1.2*"/>

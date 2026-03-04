@@ -142,13 +142,29 @@
                         <TextBlock x:Name="RobotCountText" Text="0 Robot" FontSize="11" Foreground="#888"/>
                     </Border>
                 </StackPanel>
-                <Button x:Name="BtnAddRobot" Click="BtnAddRobot_Click" HorizontalAlignment="Right"
-                        Background="#0078D4" Foreground="White" CornerRadius="4" Padding="15,8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE710;" FontSize="14"/>
-                        <TextBlock Text="Robot Ekle"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Click="BtnExportVars_Click"
+                            Background="#2D7D46" Foreground="White" CornerRadius="4" Padding="12,8" Height="36">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xEDE1;" FontSize="12"/>
+                            <TextBlock Text="Dışa Aktar" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="BtnImportVars_Click"
+                            Background="#D4760A" Foreground="White" CornerRadius="4" Padding="12,8" Height="36">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8B5;" FontSize="12"/>
+                            <TextBlock Text="İçe Aktar" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnAddRobot" Click="BtnAddRobot_Click"
+                            Background="#0078D4" Foreground="White" CornerRadius="4" Padding="12,8" Height="36">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE710;" FontSize="12"/>
+                            <TextBlock Text="Robot Ekle" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -191,7 +207,7 @@
 						</Border>
 
 						<Border Grid.Row="1" Background="#1A1A1C" Padding="8,4">
-							<Grid ColumnDefinitions="30, 1*, 1*, 40, 1*, 1*, 80, 60, 40">
+							<Grid ColumnDefinitions="30, 1*, 1*, 40, 1*, 1*, 80, 60, 40, 40">
 								<TextBlock Grid.Column="0" Text="#" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 								<TextBlock Grid.Column="1" Text="Kaynak Robot" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
 								<TextBlock Grid.Column="2" Text="Kaynak Tag" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
@@ -200,7 +216,8 @@
 								<TextBlock Grid.Column="5" Text="Hedef Tag" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
 								<TextBlock Grid.Column="6" Text="Değer" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 								<TextBlock Grid.Column="7" Text="Durum" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
-								<TextBlock Grid.Column="8" Text="Sil" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="8" Text="Sıra" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="9" Text="Sil" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 							</Grid>
 						</Border>
 
@@ -243,7 +260,7 @@
 
 						<!-- Column Headers Row -->
 						<Border Grid.Row="1" Background="#1A1A1C" Padding="8,4">
-							<Grid ColumnDefinitions="30, 1*, 1.5*, 60, 100, 80, 60, 40">
+							<Grid ColumnDefinitions="30, 1*, 1.5*, 60, 100, 80, 60, 40, 40">
 								<TextBlock Grid.Column="0" Text="#" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 								<TextBlock Grid.Column="1" Text="Robot" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
 								<TextBlock Grid.Column="2" Text="Değişken (PlcTag)" FontSize="9" Foreground="#555" FontWeight="Bold" Margin="4,0"/>
@@ -251,7 +268,8 @@
 								<TextBlock Grid.Column="4" Text="Varsayılan Değer" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 								<TextBlock Grid.Column="5" Text="Son Yazılan" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 								<TextBlock Grid.Column="6" Text="Aktif" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
-								<TextBlock Grid.Column="7" Text="Sil" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="7" Text="Sıra" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="8" Text="Sil" FontSize="9" Foreground="#555" FontWeight="Bold" HorizontalAlignment="Center"/>
 							</Grid>
 						</Border>
 

@@ -447,6 +447,10 @@ namespace App4.PAGES
         public ObservableCollection<string> PlcOutputTags { get; set; } = new();
         // Input + Output birleşik liste (RFID TAG seçimi için)
         public ObservableCollection<string> PlcAllTags { get; set; } = new();
+
+        // Robot 1'e özel tag listeleri (Tetik = Input, Çıktı = Output)
+        public ObservableCollection<string> Robot1InputTags { get; set; } = new();
+        public ObservableCollection<string> Robot1OutputTags { get; set; } = new();
         // Global listeye referans (Ok işareti => ile)
         public ObservableCollection<PlcTransferItem> PlcTransferRows => App4.Utilities.GlobalData.PlcTransferRows;
 
@@ -627,7 +631,34 @@ namespace App4.PAGES
                 foreach (var t in allTags)
                     if (!PlcAllTags.Contains(t)) PlcAllTags.Add(t);
 
-                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count}, All: {PlcAllTags.Count})");
+                // ---------------------------------------------------------
+                // 5. ROBOT 1 ÖZEL TAG LİSTELERİ (Tetik + Çıktı ComboBox'ları için)
+                // ---------------------------------------------------------
+                var r1Inputs = new HashSet<string>();
+                var r1Outputs = new HashSet<string>();
+
+                var robot1 = App4.Utilities.KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                if (robot1 != null)
+                {
+                    foreach (var v in robot1.InputVars)
+                        if (!string.IsNullOrEmpty(v.Name)) r1Inputs.Add(v.Name);
+                    foreach (var v in robot1.OutputVars)
+                        if (!string.IsNullOrEmpty(v.Name)) r1Outputs.Add(v.Name);
+                }
+
+                // Robot1InputTags senkronizasyonu
+                var toRemoveR1In = Robot1InputTags.Where(t => !r1Inputs.Contains(t)).ToList();
+                foreach (var t in toRemoveR1In) Robot1InputTags.Remove(t);
+                foreach (var t in r1Inputs)
+                    if (!Robot1InputTags.Contains(t)) Robot1InputTags.Add(t);
+
+                // Robot1OutputTags senkronizasyonu
+                var toRemoveR1Out = Robot1OutputTags.Where(t => !r1Outputs.Contains(t)).ToList();
+                foreach (var t in toRemoveR1Out) Robot1OutputTags.Remove(t);
+                foreach (var t in r1Outputs)
+                    if (!Robot1OutputTags.Contains(t)) Robot1OutputTags.Add(t);
+
+                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count}, All: {PlcAllTags.Count}, R1In: {Robot1InputTags.Count}, R1Out: {Robot1OutputTags.Count})");
             }
             catch (Exception ex)
             {
@@ -653,26 +684,26 @@ namespace App4.PAGES
                 if (!string.IsNullOrEmpty(index))
                     CmbIndexTag.Text = index;
 
-                if (!string.IsNullOrEmpty(trigger) && PlcInputTags.Contains(trigger))
+                if (!string.IsNullOrEmpty(trigger) && Robot1InputTags.Contains(trigger))
                     CmbTriggerTag.SelectedItem = trigger;
 
-                if (!string.IsNullOrEmpty(output) && PlcOutputTags.Contains(output))
+                if (!string.IsNullOrEmpty(output) && Robot1OutputTags.Contains(output))
                     CmbMeasurementOutputTag.SelectedItem = output;
 
                 // Tabla Output ComboBox güncelle
                 string tablaOutput = App4.Utilities.GlobalData.TablaOutputTag;
-                if (!string.IsNullOrEmpty(tablaOutput) && PlcOutputTags.Contains(tablaOutput))
+                if (!string.IsNullOrEmpty(tablaOutput) && Robot1OutputTags.Contains(tablaOutput))
                     CmbTablaOutputTag.SelectedItem = tablaOutput;
 
                 // Trigger2 ComboBox güncelle
                 string trigger2 = App4.Utilities.GlobalData.Auto_TriggerTag2;
-                if (!string.IsNullOrEmpty(trigger2) && PlcInputTags.Contains(trigger2))
+                if (!string.IsNullOrEmpty(trigger2) && Robot1InputTags.Contains(trigger2))
                     CmbTriggerTag2.SelectedItem = trigger2;
 
                 // Transfer satır seçimlerini toplu güncelle (null -> değer ile binding tetiklenir)
                 foreach (var row in PlcTransferRows)
                 {
-                    if (!string.IsNullOrEmpty(row.SelectedTag) && PlcOutputTags.Contains(row.SelectedTag))
+                    if (!string.IsNullOrEmpty(row.SelectedTag) && Robot1OutputTags.Contains(row.SelectedTag))
                     {
                         string saved = row.SelectedTag;
                         row.SelectedTag = null;
@@ -683,7 +714,7 @@ namespace App4.PAGES
                 // Tabla Transfer satır seçimlerini de güncelle
                 foreach (var row in TablaTransferRows)
                 {
-                    if (!string.IsNullOrEmpty(row.SelectedTag) && PlcOutputTags.Contains(row.SelectedTag))
+                    if (!string.IsNullOrEmpty(row.SelectedTag) && Robot1OutputTags.Contains(row.SelectedTag))
                     {
                         string saved = row.SelectedTag;
                         row.SelectedTag = null;

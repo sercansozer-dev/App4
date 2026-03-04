@@ -1326,6 +1326,8 @@ namespace App4
                 // else: PC-managed değişken → PLC'den okuma yapma, değer GlobalData'dan gelir
 
                 // Yazma (her iki tip için de): local değiştiğinde hedef değişkene yaz
+                // Robot değişkenleri (R1:/R2:) için fiziksel robota yazma işlemi
+                // CommunicationLoop tarafından otomatik yapılır (OutputVars dirty check)
                 localVar.PropertyChanged += async (s, e) => {
                     if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && sourceRealVar.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
                     {
@@ -1357,6 +1359,8 @@ namespace App4
 
             if (target2 != null)
             {
+                // Robot değişkenleri (R1:/R2:) için fiziksel robota yazma işlemi
+                // CommunicationLoop tarafından otomatik yapılır (OutputVars dirty check)
                 localVar.PropertyChanged += async (s, e) => {
                     if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && target2.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
                     {

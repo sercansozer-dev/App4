@@ -336,7 +336,7 @@
                                         </Border>
 
                                         <ComboBox x:Name="CmbTriggerTag"
-                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}"
+                                            ItemsSource="{x:Bind Robot1InputTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedTriggerTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Boru Tetik Seçiniz..."
@@ -373,7 +373,7 @@
                                         </Border>
 
                                         <ComboBox x:Name="CmbTriggerTag2"
-                                            ItemsSource="{x:Bind PlcInputTags, Mode=OneWay}"
+                                            ItemsSource="{x:Bind Robot1InputTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedTriggerTag2, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Tabla Tetik Seçiniz..."
@@ -406,7 +406,7 @@
                                         </Border>
 
                                         <ComboBox x:Name="CmbMeasurementOutputTag"
-                                            ItemsSource="{x:Bind PlcOutputTags, Mode=OneWay}"
+                                            ItemsSource="{x:Bind Robot1OutputTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedMeasurementOutputTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Tag Seçiniz..."
@@ -439,7 +439,7 @@
                                         </Border>
 
                                         <ComboBox x:Name="CmbTablaOutputTag"
-                                            ItemsSource="{x:Bind PlcOutputTags, Mode=OneWay}"
+                                            ItemsSource="{x:Bind Robot1OutputTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedTablaOutputTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
                                             PlaceholderText="Tag Seçiniz..."
@@ -606,10 +606,10 @@
                                                             <ColumnDefinition Width="40"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5"/>
-                                                        <ComboBox Grid.Column="1" 
-                                                            ItemsSource="{Binding ElementName=PageRoot, Path=PlcOutputTags}"
+                                                        <ComboBox Grid.Column="1"
+                                                            ItemsSource="{Binding ElementName=PageRoot, Path=Robot1OutputTags}"
                                                             SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
-                                                            Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4" 
+                                                            Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4"
                                                             Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"
                                                             VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
                                                         <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold"/>
@@ -761,7 +761,7 @@
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5"/>
                                                     <ComboBox Grid.Column="1"
-                                                        ItemsSource="{Binding ElementName=PageRoot, Path=PlcOutputTags}"
+                                                        ItemsSource="{Binding ElementName=PageRoot, Path=Robot1OutputTags}"
                                                         SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
                                                         Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4"
                                                         Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"

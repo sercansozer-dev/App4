@@ -527,6 +527,114 @@ namespace App4.Pages
             }
         }
 
+        // ═══════════════════════════════════════════════════════
+        // EXPORT / IMPORT - Robot Değişkenlerini Dışa/İçe Aktar
+        // ═══════════════════════════════════════════════════════
+
+        private async void BtnExportVars_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileSavePicker();
+                picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop;
+                picker.FileTypeChoices.Add("JSON Dosyası", new List<string> { ".json" });
+                picker.SuggestedFileName = $"Robot_Variables_Export_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+                // WinUI 3 window handle
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.m_window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+                var file = await picker.PickSaveFileAsync();
+                if (file == null) return;
+
+                string json = KukaRobotManager.Instance.ExportRobotVariablesToJson();
+                await Windows.Storage.FileIO.WriteTextAsync(file, json);
+
+                int totalInputs = 0, totalOutputs = 0;
+                foreach (var r in KukaRobotManager.Instance.Robots)
+                {
+                    totalInputs += r.InputVars.Count;
+                    totalOutputs += r.OutputVars.Count;
+                }
+
+                LogMessage($"✅ Dışa aktarıldı: {totalInputs} Input, {totalOutputs} Output → {file.Path}");
+
+                var dlg = new ContentDialog
+                {
+                    Title = "Dışa Aktarma Başarılı",
+                    Content = $"Toplam {totalInputs} Input ve {totalOutputs} Output değişken dışa aktarıldı.\n\nDosya: {file.Path}",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.XamlRoot
+                };
+                await dlg.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"❌ Dışa aktarma hatası: {ex.Message}");
+            }
+        }
+
+        private async void BtnImportVars_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileOpenPicker();
+                picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop;
+                picker.FileTypeFilter.Add(".json");
+
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.m_window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+                var file = await picker.PickSingleFileAsync();
+                if (file == null) return;
+
+                string json = await Windows.Storage.FileIO.ReadTextAsync(file);
+
+                // Onay dialogu göster
+                var confirmDlg = new ContentDialog
+                {
+                    Title = "İçe Aktarma Onayı",
+                    Content = $"'{file.Name}' dosyasından robot değişkenleri yüklenecek.\n\nMevcut Input/Output tabloları bu dosyadaki verilerle DEĞİŞTİRİLECEK.\n\nDevam etmek istiyor musunuz?",
+                    PrimaryButtonText = "Evet, İçe Aktar",
+                    CloseButtonText = "İptal",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+
+                if (await confirmDlg.ShowAsync() != ContentDialogResult.Primary) return;
+
+                var (inputCount, outputCount, robotName) = KukaRobotManager.Instance.ImportRobotVariablesFromJson(json);
+
+                LogMessage($"✅ İçe aktarıldı: {inputCount} Input, {outputCount} Output ← {file.Name}");
+
+                var successDlg = new ContentDialog
+                {
+                    Title = "İçe Aktarma Başarılı",
+                    Content = $"Toplam {inputCount} Input ve {outputCount} Output değişken yüklendi.\n\nDeğişiklikler kaydedildi.",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.XamlRoot
+                };
+                await successDlg.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"❌ İçe aktarma hatası: {ex.Message}");
+
+                try
+                {
+                    var errDlg = new ContentDialog
+                    {
+                        Title = "İçe Aktarma Hatası",
+                        Content = $"Dosya yüklenirken hata oluştu:\n\n{ex.Message}\n\nJSON formatının doğru olduğundan emin olun.",
+                        CloseButtonText = "Tamam",
+                        XamlRoot = this.XamlRoot
+                    };
+                    await errDlg.ShowAsync();
+                }
+                catch { }
+            }
+        }
+
         private void BtnDelete_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is PlcVariable v)
@@ -785,11 +893,12 @@ namespace App4.Pages
             colGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             colGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
             colGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+            colGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
             colGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
 
             string[] colHeaders = isInput
-                ? new[] { "#", "PLC Tag", "\u2192", "Robot Tag", "Değer", "Aktif", "Sil" }
-                : new[] { "#", "Robot Tag", "\u2192", "PLC Tag", "Değer", "Aktif", "Sil" };
+                ? new[] { "#", "PLC Tag", "\u2192", "Robot Tag", "Değer", "Aktif", "Sıra", "Sil" }
+                : new[] { "#", "Robot Tag", "\u2192", "PLC Tag", "Değer", "Aktif", "Sıra", "Sil" };
 
             for (int i = 0; i < colHeaders.Length; i++)
             {
@@ -848,6 +957,7 @@ namespace App4.Pages
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
 
             // #
@@ -951,6 +1061,17 @@ namespace App4.Pages
             Grid.SetColumn(activeToggle, 5);
             grid.Children.Add(activeToggle);
 
+            // Reorder buttons (▲▼)
+            var reorderPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
+            var upBtn = new Button { Content = "\uE70E", FontFamily = new FontFamily("Segoe MDL2 Assets"), Background = new SolidColorBrush(Colors.Transparent), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), BorderThickness = new Thickness(0), Padding = new Thickness(1), FontSize = 9, MinWidth = 18, MinHeight = 18, Height = 18, Width = 18 };
+            var downBtn = new Button { Content = "\uE70D", FontFamily = new FontFamily("Segoe MDL2 Assets"), Background = new SolidColorBrush(Colors.Transparent), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), BorderThickness = new Thickness(0), Padding = new Thickness(1), FontSize = 9, MinWidth = 18, MinHeight = 18, Height = 18, Width = 18 };
+            upBtn.Click += (s, e) => { int idx = _mappings.IndexOf(mapping); if (idx > 0) { _mappings.Move(idx, idx - 1); SaveMappings(); RefreshBridgeTables(); } };
+            downBtn.Click += (s, e) => { int idx = _mappings.IndexOf(mapping); if (idx >= 0 && idx < _mappings.Count - 1) { _mappings.Move(idx, idx + 1); SaveMappings(); RefreshBridgeTables(); } };
+            reorderPanel.Children.Add(upBtn);
+            reorderPanel.Children.Add(downBtn);
+            Grid.SetColumn(reorderPanel, 6);
+            grid.Children.Add(reorderPanel);
+
             // Delete
             var deleteBtn = new Button
             {
@@ -966,7 +1087,7 @@ namespace App4.Pages
                 SaveMappings();
                 RefreshBridgeTables();
             };
-            Grid.SetColumn(deleteBtn, 6);
+            Grid.SetColumn(deleteBtn, 7);
             grid.Children.Add(deleteBtn);
 
             rowBorder.Child = grid;
@@ -1169,6 +1290,7 @@ namespace App4.Pages
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
 
             // #
             grid.Children.Add(CreateTextInColumn(rowNumber.ToString(), 0, 9, "#646464"));
@@ -1264,6 +1386,17 @@ namespace App4.Pages
             Grid.SetColumn(activeToggle, 7);
             grid.Children.Add(activeToggle);
 
+            // Reorder buttons (▲▼)
+            var rrReorderPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
+            var rrUpBtn = new Button { Content = "\uE70E", FontFamily = new FontFamily("Segoe MDL2 Assets"), Background = new SolidColorBrush(Colors.Transparent), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), BorderThickness = new Thickness(0), Padding = new Thickness(1), FontSize = 9, MinWidth = 18, MinHeight = 18, Height = 18, Width = 18 };
+            var rrDownBtn = new Button { Content = "\uE70D", FontFamily = new FontFamily("Segoe MDL2 Assets"), Background = new SolidColorBrush(Colors.Transparent), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), BorderThickness = new Thickness(0), Padding = new Thickness(1), FontSize = 9, MinWidth = 18, MinHeight = 18, Height = 18, Width = 18 };
+            rrUpBtn.Click += (s, e) => { int idx = _robotRobotMappings.IndexOf(mapping); if (idx > 0) { _robotRobotMappings.Move(idx, idx - 1); SaveRobotRobotMappings(); RefreshRobotRobotRows(); } };
+            rrDownBtn.Click += (s, e) => { int idx = _robotRobotMappings.IndexOf(mapping); if (idx >= 0 && idx < _robotRobotMappings.Count - 1) { _robotRobotMappings.Move(idx, idx + 1); SaveRobotRobotMappings(); RefreshRobotRobotRows(); } };
+            rrReorderPanel.Children.Add(rrUpBtn);
+            rrReorderPanel.Children.Add(rrDownBtn);
+            Grid.SetColumn(rrReorderPanel, 8);
+            grid.Children.Add(rrReorderPanel);
+
             // Delete
             var deleteBtn = new Button
             {
@@ -1279,28 +1412,29 @@ namespace App4.Pages
                 SaveRobotRobotMappings();
                 RefreshRobotRobotRows();
             };
-            Grid.SetColumn(deleteBtn, 8);
+            Grid.SetColumn(deleteBtn, 9);
             grid.Children.Add(deleteBtn);
 
-            // Source Robot tag list update
+            // Source Robot tag list update — Kaynak robottan OKUNAN değişkenler (InputVars)
             void UpdateSourceTags()
             {
                 srcTagCombo.Items.Clear();
                 var selectedRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == srcRobotCombo.SelectedItem?.ToString());
                 if (selectedRobot == null) return;
-                foreach (var v in selectedRobot.InputVars.Concat(selectedRobot.OutputVars))
+                foreach (var v in selectedRobot.InputVars)
                     srcTagCombo.Items.Add($"{v.Name} ({v.PlcTag})");
                 if (!string.IsNullOrEmpty(mapping.SourceTag))
                     foreach (var item in srcTagCombo.Items)
                         if (item.ToString() == mapping.SourceTag) { srcTagCombo.SelectedItem = item; break; }
             }
 
+            // Target Robot tag list update — Hedef robota YAZILAN değişkenler (OutputVars)
             void UpdateTargetTags()
             {
                 tgtTagCombo.Items.Clear();
                 var selectedRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == tgtRobotCombo.SelectedItem?.ToString());
                 if (selectedRobot == null) return;
-                foreach (var v in selectedRobot.InputVars.Concat(selectedRobot.OutputVars))
+                foreach (var v in selectedRobot.OutputVars)
                     tgtTagCombo.Items.Add($"{v.Name} ({v.PlcTag})");
                 if (!string.IsNullOrEmpty(mapping.TargetTag))
                     foreach (var item in tgtTagCombo.Items)
@@ -1476,6 +1610,7 @@ namespace App4.Pages
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
 
             // Col 0: Satır numarası
             grid.Children.Add(CreateTextInColumn(rowNumber.ToString(), 0, 9, "#646464"));
@@ -1575,7 +1710,19 @@ namespace App4.Pages
             Grid.SetColumn(activeToggle, 6);
             grid.Children.Add(activeToggle);
 
-            // Col 7: Sil butonu
+            // Col 7: Sıra butonları (▲▼)
+            var hsReorderPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
+            var hsUpBtn = new Button { Content = "\uE70E", FontFamily = new FontFamily("Segoe MDL2 Assets"), Background = new SolidColorBrush(Colors.Transparent), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), BorderThickness = new Thickness(0), Padding = new Thickness(1), FontSize = 9, MinWidth = 18, MinHeight = 18, Height = 18, Width = 18 };
+            var hsDownBtn = new Button { Content = "\uE70D", FontFamily = new FontFamily("Segoe MDL2 Assets"), Background = new SolidColorBrush(Colors.Transparent), Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136)), BorderThickness = new Thickness(0), Padding = new Thickness(1), FontSize = 9, MinWidth = 18, MinHeight = 18, Height = 18, Width = 18 };
+            var hsEntries = KukaRobotManager.Instance.HandshakeEntries;
+            hsUpBtn.Click += (s, e) => { int idx = hsEntries.IndexOf(entry); if (idx > 0) { hsEntries.Move(idx, idx - 1); KukaRobotManager.Instance.SaveHandshakeConfig(); RefreshHandshakeRows(); } };
+            hsDownBtn.Click += (s, e) => { int idx = hsEntries.IndexOf(entry); if (idx >= 0 && idx < hsEntries.Count - 1) { hsEntries.Move(idx, idx + 1); KukaRobotManager.Instance.SaveHandshakeConfig(); RefreshHandshakeRows(); } };
+            hsReorderPanel.Children.Add(hsUpBtn);
+            hsReorderPanel.Children.Add(hsDownBtn);
+            Grid.SetColumn(hsReorderPanel, 7);
+            grid.Children.Add(hsReorderPanel);
+
+            // Col 8: Sil butonu
             var deleteBtn = new Button
             {
                 Content = "\uE74D",
@@ -1594,7 +1741,7 @@ namespace App4.Pages
                 KukaRobotManager.Instance.SaveHandshakeConfig();
                 RefreshHandshakeRows();
             };
-            Grid.SetColumn(deleteBtn, 7);
+            Grid.SetColumn(deleteBtn, 8);
             grid.Children.Add(deleteBtn);
 
             // ---- Değişken dropdown doldurma mantığı ----
