@@ -520,6 +520,9 @@ namespace App4.Utilities
         private static bool _isProcessRunning = false;
         public static bool IsProcessRunning { get => _isProcessRunning; set { if (_isProcessRunning != value) { _isProcessRunning = value; OnAutomationStatusChanged?.Invoke(); } } }
 
+        // Cift tetik korumasi - RunAutomationSequence ve HandleOlcumTetikAsync cakismasini onler
+        public static bool OlcumInProgress { get; set; } = false;
+
         // ═══════════════════════════════════════════════════════════════════════════
         // GLOBAL EKİPMAN DURUMLARI - Tüm uygulamadan erişilebilir
         // ═══════════════════════════════════════════════════════════════════════════
@@ -751,7 +754,7 @@ namespace App4.Utilities
             { 
                 if (File.Exists(_rfidFilePath)) 
                 { 
-                    var list = System.Text.Json.JsonSerializer.Deserialize<List<RfidDef>>(File.ReadAllText(_rfidFilePath)); 
+                    var list = JsonConvert.DeserializeObject<List<RfidDef>>(File.ReadAllText(_rfidFilePath));
                     if (list != null) foreach (var item in list) KnownRfids.Add(item); 
                 } 
                 else 
@@ -800,7 +803,7 @@ namespace App4.Utilities
                 SaveRfids();
         }
 
-        public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, System.Text.Json.JsonSerializer.Serialize(KnownRfids, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
+        public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, JsonConvert.SerializeObject(KnownRfids, Formatting.Indented)); } catch { } }
 
         private static void InitializeStations()
         {
@@ -844,7 +847,7 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("SNIFFER_OLCUM_SURE", "REAL", "Output", "0"));       // Seçili index'in sniffer ölçüm süresi (ms)
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
-            GeneralOutputVars.Add(Create("KL100_HEDEF_POZ", "REAL", "Output", "0"));         // KL100 slider hedef pozisyon (mm)
+            // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)
             GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
             // ▼▼▼ ROBOT GİT KOMUTLARI (PLC → PC) ▼▼▼
             GeneralInputVars.Add(Create("FIRST_ROBOT_GO", "BOOL", "Input", false));           // PLC Robot 1 başlat komutu
@@ -1243,10 +1246,14 @@ namespace App4.Utilities
         private static PlcVariable FindPlcVarByName(string tagName)
         {
             if (string.IsNullOrEmpty(tagName)) return null;
+
+            // 1. PLC genel değişkenler
             var v = GeneralInputVars.FirstOrDefault(x => x.Name == tagName);
             if (v != null) return v;
             v = GeneralOutputVars.FirstOrDefault(x => x.Name == tagName);
             if (v != null) return v;
+
+            // 2. PLC servis değişkenleri
             if (PlcService.Instance != null)
             {
                 v = PlcService.Instance.InputVariables.FirstOrDefault(x => x.Name == tagName);
@@ -1254,10 +1261,36 @@ namespace App4.Utilities
                 v = PlcService.Instance.OutputVariables.FirstOrDefault(x => x.Name == tagName);
                 if (v != null) return v;
             }
+
+            // 3. Robot CANLI instance değişkenleri (CommunicationLoop tarafından sürekli güncellenir)
+            //    ÖNCELİKLİ: Tetik dinleyicisi canlı PropertyChanged alabilsin diye
+            //    statik GlobalData kopyası DEĞİL, robot instance'ın kendisi aranır.
+            var robots = Utilities.KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                foreach (var robot in robots)
+                {
+                    v = robot.InputVars.FirstOrDefault(x => x.Name == tagName);
+                    if (v != null) return v;
+                    v = robot.OutputVars.FirstOrDefault(x => x.Name == tagName);
+                    if (v != null) return v;
+                }
+            }
+
+            // 4. GlobalData statik robot değişkenleri (fallback — robot henüz bağlanmadıysa)
+            v = RobotInputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+            v = RobotOutputVars.FirstOrDefault(x => x.Name == tagName);
+            if (v != null) return v;
+
             return null;
         }
 
-        private static void StartAutomationListener()
+        /// <summary>
+        /// Tetik dinleyicilerini (yeniden) bağlar.
+        /// Robot bağlantısı kurulduktan sonra çağrılmalı ki canlı instance değişkenleri kullanılsın.
+        /// </summary>
+        public static void StartAutomationListener()
         {
             // --- Trigger 1: Boru Ölçüm ---
             if (_currentTriggerVar != null)
@@ -1302,7 +1335,316 @@ namespace App4.Utilities
                     OnAutomationLog?.Invoke($"⚠ UYARI: Tabla Trigger Tag '{Auto_TriggerTag2}' bulunamadı.");
                 }
             }
+
+            // Robot InputVars sinyal izlemeyi de başlat (G_OLCUM_TETIK, G_SNIFFER_OLCUM_YAP)
+            StartRobotSignalMonitoring();
         }
+
+        // ─── ROBOT GERİ YAZMA (3 KATMANLI: GlobalData + PLC + Robots) ───
+        /// <summary>
+        /// Değişkeni 3 katmana yazar: GlobalData, PLC, tüm bağlı robotlar.
+        /// Hem RunAutomationSequence hem HandleOlcumTetikAsync tarafından kullanılır.
+        /// </summary>
+        private static async Task WriteToAllRobotsAsync(string varName, string value)
+        {
+            // 1. GlobalData output var güncelle
+            var gVar = RobotOutputVars.FirstOrDefault(v => v.Name == varName);
+            if (gVar != null) gVar.Value = value;
+
+            // 2. PLC'ye yaz
+            var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == varName);
+            if (plcVar != null)
+            {
+                plcVar.Value = value;
+                try { await PlcService.Instance.WriteAsync(plcVar, value); } catch { }
+            }
+
+            // 3. Tüm robotlara yaz
+            var robots = Utilities.KukaRobotManager.Instance?.Robots;
+            if (robots != null)
+            {
+                foreach (var r in robots)
+                {
+                    if (r.IsConnected)
+                    {
+                        try { await r.WriteVariableAsync(varName, value); } catch { }
+                    }
+                }
+            }
+        }
+
+        // ─── ROBOT SİNYAL İZLEME (GLOBAL - SAYFA BAĞIMSIZ) ───
+        // G_OLCUM_TETIK ve G_SNIFFER_OLCUM_YAP sinyallerini GlobalData'dan dinler.
+        // Hangi sayfada olursa olsun tetik alınır ve işlenir.
+        // ════════════════════════════════════════════════════════════
+
+        private static bool _robotSignalMonitoringActive = false;
+        private static bool _olcumTetikProcessing = false;
+        private static bool _snifferOlcumProcessing = false;
+
+        /// <summary>
+        /// Tüm robotların InputVars değişimlerini dinlemeye başlar.
+        /// Bir kez çağrılır, sayfa değişse bile aktif kalır.
+        /// </summary>
+        public static void StartRobotSignalMonitoring()
+        {
+            if (_robotSignalMonitoringActive) return;
+
+            var robots = Utilities.KukaRobotManager.Instance?.Robots;
+            if (robots == null || robots.Count == 0) return;
+
+            for (int i = 0; i < robots.Count; i++)
+            {
+                int robotNo = i + 1;
+                var robot = robots[i];
+
+                foreach (var v in robot.InputVars)
+                {
+                    v.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName == nameof(PlcVariable.Value))
+                        {
+                            CheckRobotTriggerSignalGlobal(v, robot, robotNo);
+                        }
+                    };
+                }
+            }
+
+            _robotSignalMonitoringActive = true;
+            OnAutomationLog?.Invoke("Robot sinyal izleme başlatıldı (Global - sayfa bağımsız).");
+        }
+
+        private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
+        {
+            bool isTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+            if (!isTrue) return;
+
+            switch (changedVar.Name)
+            {
+                case "G_OLCUM_TETIK":
+                    if (!_olcumTetikProcessing)
+                        _ = HandleOlcumTetikAsync(robot, robotNo);
+                    break;
+
+                case "G_SNIFFER_OLCUM_YAP":
+                    if (!_snifferOlcumProcessing)
+                        _ = HandleSnifferOlcumAsync(robot, robotNo);
+                    break;
+            }
+        }
+
+        // =====================================================
+        // BİRLEŞİK ÖLÇÜM TETİK (GLOBAL)
+        // Robot G_OLCUM_TETIK=TRUE → PC, G_JOB_INDEX'e göre ölçüm yapar
+        //   JOB_INDEX=0 → Tabla ölçüm → G_TABLA_OFFSET_X..C yaz
+        //   JOB_INDEX>0 → Boru ölçüm  → G_OFFSET_X..C yaz
+        // Sinyal: G_OLCUM_DURUM (0=Bosta 1=Cekim 2=TamamOK 3=Hata)
+        // =====================================================
+        public static async Task HandleOlcumTetikAsync(KukaRobotInstance robot, int robotNo)
+        {
+            if (_olcumTetikProcessing) return;
+            if (OlcumInProgress) return; // RunAutomationSequence zaten calisiyor
+
+            _olcumTetikProcessing = true;
+            OlcumInProgress = true;
+            try
+            {
+                // 1. JOB_INDEX'i robottan oku
+                var jobIndexVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
+                int jobIndex = 0;
+                if (jobIndexVar != null) int.TryParse(jobIndexVar.Value, out jobIndex);
+
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex})");
+
+                // 2. G_OLCUM_DURUM = 1 (ÇekimYapılıyor)
+                await WriteToAllRobotsAsync("G_OLCUM_DURUM", "1");
+
+                // 3. Aktif RFID'den job adını bul
+                string currentRfid = AktuelRfid;
+                var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
+                string jobName = null;
+
+                if (recipe?.JobSequence != null && jobIndex >= 0 && jobIndex < recipe.JobSequence.Count)
+                    jobName = recipe.JobSequence[jobIndex];
+
+                if (string.IsNullOrEmpty(jobName))
+                {
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Job bulunamadı (RFID={currentRfid}, Index={jobIndex})");
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync(jobIndex == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
+                    return;
+                }
+
+                // 4. Gocator job yükle
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yükleniyor: {jobName}");
+                bool loadOk = await GocatorJobLogic.LoadJob(jobName, s => OnAutomationLog?.Invoke($"[Gocator] {s}"));
+                if (!loadOk)
+                {
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yüklenemedi: {jobName}");
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync(jobIndex == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
+                    return;
+                }
+
+                // 5. Gocator'dan ölçüm al
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm alınıyor (Job: {jobName})...");
+                var (status, results) = await ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(
+                    s => OnAutomationLog?.Invoke($"[Gocator] {s}"), null);
+
+                bool olcumBasarili = (status == 1 && results != null && results.Count > 0);
+
+                if (olcumBasarili)
+                {
+                    if (jobIndex == 0)
+                    {
+                        // --- TABLA ÖLÇÜM (JOB 0) ---
+                        try
+                        {
+                            await PlcService.Instance.RunOnUiAsync(() =>
+                            {
+                                TablaLastMeasurements.Clear();
+                                foreach (var m in results) TablaLastMeasurements.Add(m);
+                                SaveTablaMeasurements();
+                                LastMeasurements.Clear();
+                                SaveMeasurements();
+                            });
+                        }
+                        catch { }
+
+                        string[] tablaOffsets = { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z",
+                                                  "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
+                        for (int i = 0; i < Math.Min(results.Count, tablaOffsets.Length); i++)
+                            await WriteToAllRobotsAsync(tablaOffsets[i], results[i].Value.ToString("F3"));
+
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
+                        await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "TRUE");
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı");
+                    }
+                    else
+                    {
+                        // --- BORU ÖLÇÜM (JOB 1..N) ---
+                        string[] boruOffsets = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
+                                                 "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
+                        for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                            await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+
+                        await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "TRUE");
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} offset yazıldı");
+                    }
+
+                    // Başarı sinyalleri
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "2"); // TamamOK
+
+                    // PLC çıktı sinyali
+                    if (jobIndex == 0)
+                        SetTablaMeasurementSignal();
+                    else
+                        SetMeasurementSignal();
+                }
+                else
+                {
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm BAŞARISIZ (Job {jobIndex}: {jobName})");
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync(jobIndex == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
+                }
+            }
+            catch (Exception ex)
+            {
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik hatası: {ex.Message}");
+                try
+                {
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
+                }
+                catch { }
+            }
+            finally
+            {
+                // G_OLCUM_TAMAM pulse - robot KRL bu sinyali WHILE dongusunde bekliyor
+                try
+                {
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    await Task.Delay(500);
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] G_OLCUM_TAMAM pulse gönderildi");
+                }
+                catch { }
+
+                _olcumTetikProcessing = false;
+                OlcumInProgress = false;
+            }
+        }
+
+        // =====================================================
+        // INFICON SNIFFER ÖLÇÜM (GLOBAL)
+        // Robot G_SNIFFER_OLCUM_YAP=TRUE → INFICON ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
+        // =====================================================
+        public static async Task HandleSnifferOlcumAsync(KukaRobotInstance robot, int robotNo)
+        {
+            _snifferOlcumProcessing = true;
+            try
+            {
+                string aktifInfo = "";
+                if (robotNo == 1)
+                {
+                    var noktaVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_NOKTA");
+                    aktifInfo = noktaVar != null ? $"Nokta={noktaVar.Value}" : "";
+                }
+                else
+                {
+                    var cizgiVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_CIZGI");
+                    aktifInfo = cizgiVar != null ? $"Çizgi={cizgiVar.Value}" : "";
+                }
+
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON sniffer ölçüm isteği alındı ({aktifInfo})");
+
+                // Sniffer stabilizasyon süresi
+                double snifferSure = 0;
+                var sureVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_SNIFFER_SURE");
+                if (sureVar != null) double.TryParse(sureVar.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out snifferSure);
+                if (snifferSure > 0)
+                {
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON stabilizasyon bekleniyor ({snifferSure:F0}ms)");
+                    await Task.Delay((int)Math.Min(snifferSure, 30000));
+                }
+
+                // INFICON ölçüm
+                bool olcumOK = true;
+                double olcumDeger = 0.0;
+                // *** INFICON SDK ENTEGRASYON NOKTASI ***
+                // var inficonResult = await InficonService.Instance.MeasureAsync();
+                // olcumOK = inficonResult.IsPass;
+                // olcumDeger = inficonResult.LeakRate;
+
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON sonuç: {(olcumOK ? "OK" : "NOK")} (Değer={olcumDeger:F4})");
+
+                await WriteToAllRobotsAsync("G_SNIFFER_OK", olcumOK ? "TRUE" : "FALSE");
+                await WriteToAllRobotsAsync("G_SNIFFER_DEGER", olcumDeger.ToString("F4", System.Globalization.CultureInfo.InvariantCulture));
+                await WriteToAllRobotsAsync("G_SNIFFER_TAMAM", "TRUE");
+            }
+            catch (Exception ex)
+            {
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON sniffer hatası: {ex.Message}");
+                try
+                {
+                    await WriteToAllRobotsAsync("G_SNIFFER_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_SNIFFER_TAMAM", "TRUE");
+                }
+                catch { }
+            }
+            finally
+            {
+                _snifferOlcumProcessing = false;
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════
 
         private static void TriggerVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -1727,7 +2069,9 @@ namespace App4.Utilities
         public static async Task RunAutomationSequence()
         {
             if (IsProcessRunning) return;
+            if (OlcumInProgress) return; // HandleOlcumTetikAsync zaten calisiyor
             IsProcessRunning = true;
+            OlcumInProgress = true;
             ProcessStatus = "İŞLENİYOR...";
 
             // ▼▼▼ SİNYAL SIFIRLA (Ölçüm başlıyor) ▼▼▼
@@ -1737,15 +2081,11 @@ namespace App4.Utilities
 
             try
             {
-                // RFID Variable Bul
-                var rfidVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_RfidTag);
-                if (rfidVar == null && PlcService.Instance != null) 
-                    rfidVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == Auto_RfidTag);
+                // RFID Variable Bul (PLC + Robot tüm kaynaklarda ara)
+                var rfidVar = FindPlcVarByName(Auto_RfidTag);
 
-                // Index Variable Bul
-                var indexVar = GeneralInputVars.FirstOrDefault(v => v.Name == Auto_IndexTag);
-                if (indexVar == null && PlcService.Instance != null)
-                    indexVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == Auto_IndexTag);
+                // Index Variable Bul (G_JOB_INDEX gibi robot değişkenleri de dahil)
+                var indexVar = FindPlcVarByName(Auto_IndexTag);
 
                 string currentRfid = rfidVar?.Value ?? "---";
                 string currentIndex = indexVar?.Value ?? "0";
@@ -1893,6 +2233,35 @@ namespace App4.Utilities
                         }
                     });
 
+                    // ▼▼▼ ROBOT GERİ YAZMA ▼▼▼
+                    string[] offsets;
+                    if (idx == 0)
+                    {
+                        offsets = new[] { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z",
+                                          "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
+                        for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
+                            await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
+                        await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "TRUE");
+                    }
+                    else
+                    {
+                        offsets = new[] { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
+                                          "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
+                        for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
+                            await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                        await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "TRUE");
+                    }
+
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "2"); // TamamOK
+                    OnAutomationLog?.Invoke("Robot write-back: Offset + G_OLCUM_OK yazildi");
+
+                    // G_OLCUM_TAMAM pulse (robot KRL bunu bekliyor)
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    await Task.Delay(500);
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
+
                     ProcessStatus = "TAMAMLANDI";
                     // Olcum bitti — index gostergesini temizle
                     UpdateCurrentJobIndex(-1);
@@ -1904,6 +2273,14 @@ namespace App4.Utilities
                     UpdateCurrentJobIndex(-1);
                     ProcessStatus = "VERİ YOK";
                     OnAutomationLog?.Invoke("Olcum alinamadi: Cikti yok veya zaman asimi.");
+
+                    // Robot'a basarisizlik bildirimi
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync(idx == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    await Task.Delay(500);
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
                 }
             }
             catch (Exception ex)
@@ -1911,10 +2288,24 @@ namespace App4.Utilities
                 ProcessStatus = "HATA";
                 UpdateCurrentJobIndex(-1);
                 OnAutomationLog?.Invoke($"Hata: {ex.Message}");
+
+                // Robot'a hata bildirimi
+                try
+                {
+                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "FALSE");
+                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    await Task.Delay(500);
+                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
+                }
+                catch { }
             }
             finally
             {
                 IsProcessRunning = false;
+                OlcumInProgress = false;
                 await Task.Delay(2000);
                 if (ProcessStatus == "TAMAMLANDI" || ProcessStatus == "VERİ YOK" || ProcessStatus == "HATA") ProcessStatus = "HAZIR";
             }

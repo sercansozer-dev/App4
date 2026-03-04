@@ -58,7 +58,18 @@ namespace App4
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[APP_CLOSE] Kayıt hatası: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[APP_CLOSE] PlcTag kayıt hatası: {ex.Message}");
+                }
+
+                // Robot Input/Output degiskenlerini kaydet
+                try
+                {
+                    App4.Utilities.KukaRobotManager.Instance?.SaveRobotVariables();
+                    System.Diagnostics.Debug.WriteLine("[APP_CLOSE] Robot degiskenleri kaydedildi.");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APP_CLOSE] Robot degisken kayıt hatası: {ex.Message}");
                 }
             };
 

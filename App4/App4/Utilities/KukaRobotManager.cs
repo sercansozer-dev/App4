@@ -574,6 +574,10 @@ namespace App4.Utilities
                 _stream = _client.GetStream();
                 IsConnected = true;
                 OnLog?.Invoke($"[{Name}] ✅ Bağlandı!");
+
+                // Robot bağlandıktan sonra tetik dinleyicilerini yeniden bağla
+                // Böylece GlobalData statik kopya yerine canlı instance değişkeni kullanılır
+                try { GlobalData.StartAutomationListener(); } catch { }
             }
             catch (Exception ex)
             {
@@ -1214,8 +1218,15 @@ namespace App4.Utilities
                 catch { /* ignore backup errors */ }
 
                 File.WriteAllText(_robotVarsPath, json);
+
+                // Debug: kayit dogrulama
+                foreach (var r in Robots)
+                    System.Diagnostics.Debug.WriteLine($"[ROBOT_VARS_SAVE] {r.Name}: {r.InputVars.Count} input, {r.OutputVars.Count} output -> {_robotVarsPath}");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ROBOT_VARS_SAVE] HATA: {ex.Message}");
+            }
         }
 
         private void LoadRobotVariables()
@@ -1259,16 +1270,9 @@ namespace App4.Utilities
                             newList.Add(nv);
                         }
 
-                        // Merge: Kaydedilmiş dosyada olmayan varsayılan değişkenleri de koru
-                        // (Yeni eklenen değişkenler kaybolmasın)
-                        var savedNames = new HashSet<string>(
-                            newList.Select(v => v.Name),
-                            StringComparer.OrdinalIgnoreCase);
-                        foreach (var defaultVar in target.ToList())
-                        {
-                            if (!savedNames.Contains(defaultVar.Name))
-                                newList.Add(defaultVar);
-                        }
+                        // Kaydedilmis dosya varsa otorite odur - kullanicinin sildigi
+                        // varsayilan degiskenleri geri ekleme.
+                        // (Eski merge mantigi silinenler geri geliyordu)
 
                         target.Clear();
                         foreach (var nv in newList) target.Add(nv);
@@ -1276,9 +1280,14 @@ namespace App4.Utilities
 
                     LoadVars("inputs", robot.InputVars);
                     LoadVars("outputs", robot.OutputVars);
+
+                    System.Diagnostics.Debug.WriteLine($"[ROBOT_VARS_LOAD] {robotName}: {robot.InputVars.Count} input, {robot.OutputVars.Count} output (JSON'dan yuklendi)");
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ROBOT_VARS_LOAD] HATA: {ex.Message}");
+            }
         }
 
         #region Handshake Config

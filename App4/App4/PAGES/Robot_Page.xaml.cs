@@ -310,9 +310,10 @@ namespace App4.Pages
             colHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
             colHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });
             colHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
+            colHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(45) });
             colHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
 
-            var headers = new[] { "#", "İsim", "Tip", "KRL Tag", "Değer", "Sil" };
+            var headers = new[] { "#", "İsim", "Tip", "KRL Tag", "Değer", "Sıra", "Sil" };
             for (int i = 0; i < headers.Length; i++)
             {
                 var tb = new TextBlock { Text = headers[i], FontSize = 7, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 85, 85, 85)), FontWeight = Microsoft.UI.Text.FontWeights.Bold, TextAlignment = i == 1 ? TextAlignment.Left : TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
@@ -541,6 +542,36 @@ namespace App4.Pages
                     try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { }
                 }
             }
+        }
+
+        private void BtnMoveUp_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is PlcVariable v)
+            {
+                foreach (var robot in KukaRobotManager.Instance.Robots)
+                {
+                    int idx = robot.InputVars.IndexOf(v);
+                    if (idx > 0) { robot.InputVars.Move(idx, idx - 1); SaveAndReturn(); return; }
+                    idx = robot.OutputVars.IndexOf(v);
+                    if (idx > 0) { robot.OutputVars.Move(idx, idx - 1); SaveAndReturn(); return; }
+                }
+            }
+            void SaveAndReturn() { try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { } }
+        }
+
+        private void BtnMoveDown_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is PlcVariable v)
+            {
+                foreach (var robot in KukaRobotManager.Instance.Robots)
+                {
+                    int idx = robot.InputVars.IndexOf(v);
+                    if (idx >= 0 && idx < robot.InputVars.Count - 1) { robot.InputVars.Move(idx, idx + 1); SaveAndReturn(); return; }
+                    idx = robot.OutputVars.IndexOf(v);
+                    if (idx >= 0 && idx < robot.OutputVars.Count - 1) { robot.OutputVars.Move(idx, idx + 1); SaveAndReturn(); return; }
+                }
+            }
+            void SaveAndReturn() { try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { } }
         }
 
         private void Variable_Edited_LostFocus(object sender, RoutedEventArgs e)

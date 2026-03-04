@@ -26,7 +26,10 @@
       "Bash(type \"C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Yeni klasör\\\\Simbiosis_Programs$config.dat\")",
       "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Yeni klasör\\\\Simbiosis_Programs\\\\`$config.dat'' -Raw\")",
       "Bash(powershell -Command 'Get-Content \"\"C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Yeni klasör\\\\Simbiosis_Programs\\\\$config.dat\"\" -Raw')",
-      "Bash(powershell -Command \"Get-Content -LiteralPath ''C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Yeni klasör\\\\Simbiosis_Programs\\\\`$config.dat'' -Raw\")"
+      "Bash(powershell -Command \"Get-Content -LiteralPath ''C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\robot_2_codes\\\\Yeni klasör\\\\Simbiosis_Programs\\\\`$config.dat'' -Raw\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\RB_CODES\\\\R1_LEFT\\\\MAIN.dat'' -Encoding UTF8 -TotalCount 80\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\RB_CODES\\\\R1_LEFT\\\\IS_YAP.dat'' -Encoding UTF8 -TotalCount 50\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Simbiosis\\\\Desktop\\\\robot_codes\\\\RB_CODES\\\\R1_LEFT\\\\BORU_OLCUM.dat'' -Encoding UTF8 -TotalCount 50\")"
     ]
   }
 }
