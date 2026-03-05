@@ -25,6 +25,7 @@ using Microsoft.UI.Dispatching;
 using System.IO.Compression; // Zip dosyası yapmak için şart
 using Windows.Storage.Pickers; // Kayıt penceresi için
 using App4.Utilities; // <-- BU SATIRI MUTLAKA EKLEYİN
+using App4.Utilities.GoRobotMath;
 
 
 namespace App4.PAGES
@@ -984,6 +985,9 @@ namespace App4.PAGES
             {
                 AddLog("⚠ Job listesi boş veya çekilemedi.");
             }
+
+            // Kalibrasyon Job ComboBox'ini da guncelle
+            RefreshCalibJobList();
         }
 
         // 2. COMBOBOX YÜKLENDİĞİNDE İÇİNİ DOLDUR
@@ -1107,6 +1111,9 @@ namespace App4.PAGES
                         AddLog($"✓ Önbellekten {list.Count} adet Job yüklendi.");
                     }
                 }
+
+                // Kalibrasyon Job ComboBox'ini da guncelle
+                RefreshCalibJobList();
             }
             catch (Exception ex) { AddLog("Job Cache yüklenemedi: " + ex.Message); }
         }
@@ -1641,6 +1648,9 @@ namespace App4.PAGES
             App4.Utilities.GlobalData.OnAutomationStatusChanged -= _automationStatusHandler;
             App4.Utilities.GlobalData.OnAutomationStatusChanged += _automationStatusHandler;
 
+            // 6. Kalibrasyon servisini başlat
+            InitCalibrationUI();
+
             if (_isWebViewInitialized) return;
 
             try
@@ -2034,9 +2044,640 @@ namespace App4.PAGES
 
 
         #endregion
+
+        #region ═══ KAMERA KALİBRASYON ═══
+
+        // --- Kalibrasyon degiskenleri ---
+        private DispatcherTimer _calibTimer;
+        private KukaRobotInstance _calibSelectedRobot;
+        // Her poz icin ham olcum sonuclarini sakla (tabloda gostermek icin)
+        private readonly List<List<GocatorMeasurement>> _calibPoseMeasurements = new();
+
+        /// <summary>
+        /// Kalibrasyon UI baslatir: robot listesi, job listesi, canli guncelleme.
+        /// </summary>
+        private void InitCalibrationUI()
+        {
+            try
+            {
+                // Robot ComboBox doldur
+                CmbCalibRobot.Items.Clear();
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null)
+                {
+                    for (int i = 0; i < robots.Count; i++)
+                    {
+                        CmbCalibRobot.Items.Add($"Robot {i + 1} - {robots[i].Name}");
+                    }
+                    if (robots.Count > 0)
+                        CmbCalibRobot.SelectedIndex = 0;
+                }
+
+                // Job ComboBox doldur (mevcut AvailableJobs listesinden)
+                RefreshCalibJobList();
+
+                // Kalibrasyon servisini baslat (varsa kayitli kalibrasyonu yukle)
+                CalibrationService.Instance.Initialize();
+                GlobalData.UpdateActiveCalibrationInfo();
+                RefreshCalibrationInfoPanel();
+                UpdateCalibrationStatus();
+
+                // BallBar parametrelerini UI'a yukle
+                LoadBallBarParamsToUI();
+
+                // Canli pozisyon guncelleme timer
+                if (_calibTimer == null)
+                {
+                    _calibTimer = new DispatcherTimer();
+                    _calibTimer.Interval = TimeSpan.FromMilliseconds(200);
+                    _calibTimer.Tick += CalibTimer_Tick;
+                }
+                _calibTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Kalibrasyon UI baslatma hatasi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Aktif kalibrasyon panelindeki TextBlock'lari GlobalData'dan gunceller.
+        /// </summary>
+        private void RefreshCalibrationInfoPanel()
+        {
+            try
+            {
+                CalibMatX.Text = GlobalData.CalibHandEyeX;
+                CalibMatY.Text = GlobalData.CalibHandEyeY;
+                CalibMatZ.Text = GlobalData.CalibHandEyeZ;
+                CalibMatA.Text = GlobalData.CalibHandEyeA;
+                CalibMatB.Text = GlobalData.CalibHandEyeB;
+                CalibMatC.Text = GlobalData.CalibHandEyeC;
+                CalibMatAccuracy.Text = GlobalData.CalibAccuracyMm;
+                CalibMatDate.Text = GlobalData.CalibDate;
+                CalibMatRobot.Text = GlobalData.CalibRobotName;
+
+                CalibActiveStatusDot.Fill = new SolidColorBrush(
+                    GlobalData.CalibIsActive
+                        ? Microsoft.UI.Colors.LimeGreen
+                        : Microsoft.UI.Colors.Gray);
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Kalibrasyon Job ComboBox'ini AvailableJobs listesinden doldurur.
+        /// </summary>
+        private void RefreshCalibJobList()
+        {
+            try
+            {
+                CmbCalibJob.Items.Clear();
+                foreach (var job in AvailableJobs)
+                {
+                    CmbCalibJob.Items.Add(job);
+                }
+                if (CmbCalibJob.Items.Count > 0)
+                    CmbCalibJob.SelectedIndex = 0;
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Robot secimi degistiginde.
+        /// </summary>
+        private void CmbCalibRobot_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null || CmbCalibRobot.SelectedIndex < 0) return;
+
+            int idx = CmbCalibRobot.SelectedIndex;
+            if (idx < robots.Count)
+                _calibSelectedRobot = robots[idx];
+        }
+
+        /// <summary>
+        /// 200ms'de bir secili robotun canli pozisyonunu gunceller.
+        /// </summary>
+        private void CalibTimer_Tick(object sender, object e)
+        {
+            try
+            {
+                if (_calibSelectedRobot == null || !_calibSelectedRobot.IsConnected)
+                {
+                    CalibPosX.Text = "---";
+                    CalibPosY.Text = "---";
+                    CalibPosZ.Text = "---";
+                    CalibPosA.Text = "---";
+                    CalibPosB.Text = "---";
+                    CalibPosC.Text = "---";
+                    return;
+                }
+
+                CalibPosX.Text = _calibSelectedRobot.PosX.ToString("F2");
+                CalibPosY.Text = _calibSelectedRobot.PosY.ToString("F2");
+                CalibPosZ.Text = _calibSelectedRobot.PosZ.ToString("F2");
+                CalibPosA.Text = _calibSelectedRobot.PosA.ToString("F2");
+                CalibPosB.Text = _calibSelectedRobot.PosB.ToString("F2");
+                CalibPosC.Text = _calibSelectedRobot.PosC.ToString("F2");
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// POZ YAKALA butonu:
+        /// 1. Secili Gocator job varsa yukler (opsiyonel)
+        /// 2. Sensorden olcum alir (ayni BtnGetMeasurement_Click mantigi)
+        /// 3. Robot flange pozunu okur
+        /// 4. Sensor matrisini olcum degerlerinden olusturur
+        /// 5. (flange, sensor) ciftini kaydeder
+        /// 6. Sonuclari tabloya yazar (Robot XYZABC + Sensor output degerleri)
+        /// </summary>
+        private async void BtnCalibCapture_Click(object sender, RoutedEventArgs e)
+        {
+            if (_calibSelectedRobot == null || !_calibSelectedRobot.IsConnected)
+            {
+                AddLog("Kalibrasyon: Robot bagli degil!");
+                return;
+            }
+
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+
+            try
+            {
+                int poseNum = CalibrationService.Instance.CollectedPoseCount + 1;
+
+                // --- 1. Secili Job varsa yukle (yoksa mevcut aktif job ile devam) ---
+                string selectedJob = CmbCalibJob.SelectedItem as string;
+                if (!string.IsNullOrEmpty(selectedJob))
+                {
+                    AddLog($"[Poz {poseNum}] Job yukleniyor: {selectedJob}");
+                    bool jobLoaded = await App4.Utilities.GocatorJobLogic.LoadJob(selectedJob, AddLog);
+                    if (!jobLoaded)
+                    {
+                        AddLog($"[Poz {poseNum}] Job yuklenemedi: {selectedJob}");
+                        return;
+                    }
+                    AddLog($"[Poz {poseNum}] Job aktif: {selectedJob}");
+                }
+
+                // --- 2. Sensorden olcum al (BtnGetMeasurement_Click ile ayni) ---
+                AddLog($"[Poz {poseNum}] Olcum alma istegi gonderildi...");
+                var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+
+                int status = result.Item1;
+                var measurements = result.Item2;
+
+                if (status != 1 || measurements == null || measurements.Count == 0)
+                {
+                    AddLog($"[Poz {poseNum}] Olcum basarisiz! (status={status}, count={measurements?.Count ?? 0})");
+                    return;
+                }
+                AddLog($"[Poz {poseNum}] {measurements.Count} olcum degeri alindi.");
+
+                // --- 3. Robot flange pozunu oku + Sensor matrisini olustur + Kaydet ---
+                bool success = await CalibrationService.Instance.CapturePoseWithMeasurementsAsync(
+                    _calibSelectedRobot, measurements);
+
+                if (success)
+                {
+                    // Ham olcumleri sakla (tabloda gostermek icin)
+                    _calibPoseMeasurements.Add(new List<GocatorMeasurement>(measurements));
+
+                    AddLog($"[Poz {poseNum}] Poz kaydedildi.");
+                    AddCalibPoseRow(CalibrationService.Instance.CollectedPoseCount, measurements);
+                    UpdateCalibrationStatus();
+                }
+                else
+                {
+                    AddLog($"[Poz {poseNum}] Poz kaydedilemedi: {CalibrationService.Instance.StatusMessage}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Poz yakalama hatasi: {ex.Message}");
+            }
+            finally
+            {
+                if (btn != null) btn.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// KALIBRASYONU CALISTIR butonu.
+        /// </summary>
+        private void BtnCalibRun_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (CalibrationService.Instance.CollectedPoseCount < 3)
+                {
+                    AddLog($"Kalibrasyon: En az 3 poz gerekli (mevcut: {CalibrationService.Instance.CollectedPoseCount})");
+                    return;
+                }
+
+                AddLog("Tsai-Lenz kalibrasyonu calistiriliyor...");
+
+                var accuracy = CalibrationService.Instance.RunCalibration();
+                var handEyePose = KukaPose.FromMatrix(CalibrationService.Instance.HandEyeMatrix);
+
+                CalibResultText.Text = handEyePose.ToKukaString();
+                CalibAccuracyPos.Text = $"{accuracy.PositionStdMm:F3} mm";
+                CalibAccuracyAng.Text = $"{accuracy.AngleStdDeg:F3} deg";
+
+                UpdateCalibrationStatus();
+                GlobalData.UpdateActiveCalibrationInfo();
+                RefreshCalibrationInfoPanel();
+
+                AddLog($"Kalibrasyon tamamlandi! Pozisyon std: {accuracy.PositionStdMm:F3} mm, Aci std: {accuracy.AngleStdDeg:F3} deg");
+                AddLog($"   Hand-Eye: {handEyePose.ToKukaString()}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Kalibrasyon hatasi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// KAYDET butonu.
+        /// </summary>
+        private void BtnCalibSave_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string robotName = _calibSelectedRobot?.Name ?? "Robot1";
+                CalibrationService.Instance.SaveCalibration(robotName);
+                GlobalData.UpdateActiveCalibrationInfo();
+                RefreshCalibrationInfoPanel();
+                AddLog($"Kalibrasyon kaydedildi: {robotName}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Kaydetme hatasi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// YUKLE butonu.
+        /// </summary>
+        private void BtnCalibLoad_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                bool loaded = CalibrationService.Instance.LoadCalibration();
+                if (loaded)
+                {
+                    var data = CalibrationService.Instance.LastCalibrationData;
+                    var handEyePose = KukaPose.FromMatrix(CalibrationService.Instance.HandEyeMatrix);
+
+                    CalibResultText.Text = handEyePose.ToKukaString();
+                    CalibAccuracyPos.Text = $"{data.PositionStdMm:F3} mm";
+                    CalibAccuracyAng.Text = $"{data.AngleStdDeg:F3} deg";
+
+                    // Poz listesini yeniden olustur — kayitli flange/sensor verileriyle
+                    CalibPoseListPanel.Children.Clear();
+                    CalibNoPoseText.Visibility = Visibility.Collapsed;
+                    if (data.PoseRecords != null)
+                    {
+                        for (int i = 0; i < data.PoseRecords.Count; i++)
+                        {
+                            var record = data.PoseRecords[i];
+                            KukaPose flangePose = null;
+                            if (record.FlangeInBase?.Length == 12)
+                            {
+                                flangePose = KukaPose.FromMatrix(App4.Utilities.GoRobotMath.TransformMatrix.FromArray(record.FlangeInBase));
+                            }
+                            AddCalibPoseRow(i + 1,
+                                measurements: null,
+                                loadedFlangePose: flangePose,
+                                loadedSensorData: record.TargetInSensor);
+                        }
+                    }
+
+                    UpdateCalibrationStatus();
+                    GlobalData.UpdateActiveCalibrationInfo();
+                    RefreshCalibrationInfoPanel();
+                    LoadBallBarParamsToUI();
+                    AddLog($"Kalibrasyon yuklendi ({data.CalibrationDate:yyyy-MM-dd HH:mm}), Robot: {data.RobotName}");
+                }
+                else
+                {
+                    AddLog("Kalibrasyon dosyasi bulunamadi veya gecersiz.");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Yukleme hatasi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// TEMIZLE butonu.
+        /// </summary>
+        private void BtnCalibClear_Click(object sender, RoutedEventArgs e)
+        {
+            CalibrationService.Instance.ClearPoses();
+            _calibPoseMeasurements.Clear();
+            CalibPoseListPanel.Children.Clear();
+            CalibNoPoseText.Visibility = Visibility.Visible;
+            CalibResultText.Text = "Kalibrasyon yapilmadi";
+            CalibAccuracyPos.Text = "--- mm";
+            CalibAccuracyAng.Text = "--- deg";
+            UpdateCalibrationStatus();
+            GlobalData.UpdateActiveCalibrationInfo();
+            RefreshCalibrationInfoPanel();
+            AddLog("Kalibrasyon pozlari temizlendi.");
+        }
+
+        /// <summary>
+        /// Poz tablosuna yeni satir ekler.
+        /// Ust satir: Robot pozu (XYZABC)
+        /// Alt satir: Gocator olcum ciktilari (SourceId=Value) veya sensor matris degerleri
+        /// </summary>
+        /// <param name="poseIndex">Poz numarasi (1-bazli)</param>
+        /// <param name="measurements">Canli yakalama sirasinda Gocator olcumleri (opsiyonel)</param>
+        /// <param name="loadedFlangePose">Yuklenen kalibrasyon verisi icin flange pozu (opsiyonel)</param>
+        /// <param name="loadedSensorData">Yuklenen kalibrasyon verisi icin sensor matrisi 12-eleman (opsiyonel)</param>
+        private void AddCalibPoseRow(int poseIndex,
+            List<GocatorMeasurement> measurements = null,
+            KukaPose loadedFlangePose = null,
+            double[] loadedSensorData = null)
+        {
+            CalibNoPoseText.Visibility = Visibility.Collapsed;
+            CalibPoseCountBadge.Text = CalibrationService.Instance.CollectedPoseCount.ToString();
+
+            var border = new Border
+            {
+                Background = new SolidColorBrush(poseIndex % 2 == 1
+                    ? Windows.UI.Color.FromArgb(255, 20, 20, 25)
+                    : Windows.UI.Color.FromArgb(255, 25, 25, 30)),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(10, 6, 10, 6)
+            };
+
+            var outerStack = new StackPanel { Spacing = 4 };
+
+            // --- UST SATIR: #index + Robot XYZABC ---
+            var robotGrid = new Grid { ColumnSpacing = 8 };
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            robotGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            // Index badge
+            var idxText = new TextBlock
+            {
+                Text = $"#{poseIndex}",
+                FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 111, 0)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(idxText, 0);
+            robotGrid.Children.Add(idxText);
+
+            // Robot XYZABC degerleri — yuklenmis poz veya canli robot
+            double[] vals = null;
+            if (loadedFlangePose != null)
+            {
+                // Kaydedilmis flange matrisinden XYZABC
+                vals = new double[] { loadedFlangePose.X, loadedFlangePose.Y, loadedFlangePose.Z,
+                                      loadedFlangePose.A, loadedFlangePose.B, loadedFlangePose.C };
+            }
+            else if (_calibSelectedRobot != null)
+            {
+                // Canli robot pozisyonu
+                vals = new double[] { _calibSelectedRobot.PosX, _calibSelectedRobot.PosY, _calibSelectedRobot.PosZ,
+                                      _calibSelectedRobot.PosA, _calibSelectedRobot.PosB, _calibSelectedRobot.PosC };
+            }
+
+            if (vals != null)
+            {
+                string[] labels = { "X", "Y", "Z", "A", "B", "C" };
+                for (int i = 0; i < 6; i++)
+                {
+                    var sp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center };
+                    sp.Children.Add(new TextBlock
+                    {
+                        Text = $"{labels[i]}:",
+                        FontSize = 9,
+                        Foreground = new SolidColorBrush(i < 3
+                            ? Windows.UI.Color.FromArgb(255, 0, 164, 239)
+                            : Windows.UI.Color.FromArgb(255, 255, 184, 28)),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    sp.Children.Add(new TextBlock
+                    {
+                        Text = vals[i].ToString("F2"),
+                        FontSize = 10,
+                        Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 220, 220, 220)),
+                        FontFamily = new FontFamily("Cascadia Mono"),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    Grid.SetColumn(sp, i + 1);
+                    robotGrid.Children.Add(sp);
+                }
+            }
+
+            outerStack.Children.Add(robotGrid);
+
+            // --- ALT SATIR: Gocator olcum ciktilari ---
+            if (measurements != null && measurements.Count > 0)
+            {
+                // Canli yakalama: GocatorMeasurement listesi goster
+                var sensorPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(30, 0, 0, 0) };
+
+                sensorPanel.Children.Add(new TextBlock
+                {
+                    Text = "SENSOR:",
+                    FontSize = 8, FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 4, 0)
+                });
+
+                foreach (var m in measurements)
+                {
+                    var mBorder = new Border
+                    {
+                        Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 35, 30)),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(4, 1, 4, 1)
+                    };
+
+                    var mStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+                    mStack.Children.Add(new TextBlock
+                    {
+                        Text = $"[{m.SourceId}]",
+                        FontSize = 8,
+                        Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 120, 120, 120)),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    mStack.Children.Add(new TextBlock
+                    {
+                        Text = m.Value.ToString("F3"),
+                        FontSize = 9,
+                        Foreground = new SolidColorBrush(
+                            m.Decision == "Pass" || m.Decision == "OK"
+                                ? Windows.UI.Color.FromArgb(255, 76, 175, 80)
+                                : Windows.UI.Color.FromArgb(255, 220, 220, 220)),
+                        FontFamily = new FontFamily("Cascadia Mono"),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    mBorder.Child = mStack;
+                    sensorPanel.Children.Add(mBorder);
+                }
+
+                var sensorScroll = new ScrollViewer
+                {
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                    Content = sensorPanel
+                };
+                outerStack.Children.Add(sensorScroll);
+            }
+            else if (loadedSensorData != null && loadedSensorData.Length == 12)
+            {
+                // Yuklenmis kalibrasyon: sensor matris degerlerini goster
+                var sensorPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(30, 0, 0, 0) };
+
+                sensorPanel.Children.Add(new TextBlock
+                {
+                    Text = "SENSOR:",
+                    FontSize = 8, FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 4, 0)
+                });
+
+                // Sensor matris XYZABC olarak goster
+                var sensorMatrix = App4.Utilities.GoRobotMath.TransformMatrix.FromArray(loadedSensorData);
+                var sensorPose = KukaPose.FromMatrix(sensorMatrix);
+                string[] sLabels = { "X", "Y", "Z", "A", "B", "C" };
+                double[] sVals = { sensorPose.X, sensorPose.Y, sensorPose.Z,
+                                   sensorPose.A, sensorPose.B, sensorPose.C };
+
+                for (int si = 0; si < 6; si++)
+                {
+                    var mBorder = new Border
+                    {
+                        Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 35, 30)),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(4, 1, 4, 1)
+                    };
+                    var mStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+                    mStack.Children.Add(new TextBlock
+                    {
+                        Text = $"{sLabels[si]}:",
+                        FontSize = 8,
+                        Foreground = new SolidColorBrush(si < 3
+                            ? Windows.UI.Color.FromArgb(255, 76, 175, 80)
+                            : Windows.UI.Color.FromArgb(255, 100, 200, 100)),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    mStack.Children.Add(new TextBlock
+                    {
+                        Text = sVals[si].ToString("F3"),
+                        FontSize = 9,
+                        Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 220, 220, 220)),
+                        FontFamily = new FontFamily("Cascadia Mono"),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                    mBorder.Child = mStack;
+                    sensorPanel.Children.Add(mBorder);
+                }
+
+                var sensorScroll = new ScrollViewer
+                {
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                    Content = sensorPanel
+                };
+                outerStack.Children.Add(sensorScroll);
+            }
+
+            border.Child = outerStack;
+            CalibPoseListPanel.Children.Add(border);
+        }
+
+        /// <summary>
+        /// Kalibrasyon durumunu gunceller (status dot + text).
+        /// </summary>
+        private void UpdateCalibrationStatus()
+        {
+            if (CalibrationService.Instance.IsCalibrated)
+            {
+                CalibStatusDot.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80));
+                CalibStatusText.Text = $"Kalibre edildi ({CalibrationService.Instance.CollectedPoseCount} poz)";
+                CalibStatusText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80));
+                CalibStatusBorder.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 45, 30));
+            }
+            else if (CalibrationService.Instance.CollectedPoseCount > 0)
+            {
+                CalibStatusDot.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28));
+                CalibStatusText.Text = $"Poz toplama: {CalibrationService.Instance.CollectedPoseCount} adet";
+                CalibStatusText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 184, 28));
+                CalibStatusBorder.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 45, 40, 20));
+            }
+            else
+            {
+                CalibStatusDot.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136));
+                CalibStatusText.Text = "Kalibrasyon yapilmamis";
+                CalibStatusText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136));
+                CalibStatusBorder.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 30, 30, 35));
+            }
+
+            CalibPoseCountBadge.Text = CalibrationService.Instance.CollectedPoseCount.ToString();
+        }
+
+        /// <summary>
+        /// BallBar parametre degistiginde CalibrationService'e yaz ve ozet guncelle.
+        /// </summary>
+        private void CalibBallBarParam_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            try
+            {
+                if (double.IsNaN(args.NewValue)) return;
+
+                // XAML parse sirasinda kontroller henuz olusturulmamis olabilir
+                if (NbCalibSphere1Radius == null || NbCalibSphere2Radius == null || NbCalibBarLength == null || CalibBallBarSummary == null)
+                    return;
+
+                CalibrationService.Instance.Sphere1Radius = NbCalibSphere1Radius.Value;
+                CalibrationService.Instance.Sphere2Radius = NbCalibSphere2Radius.Value;
+                CalibrationService.Instance.BarLength = NbCalibBarLength.Value;
+
+                CalibBallBarSummary.Text =
+                    $"Top1 R={NbCalibSphere1Radius.Value:F1}mm | Top2 R={NbCalibSphere2Radius.Value:F1}mm | Cubuk={NbCalibBarLength.Value:F0}mm";
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// CalibrationService'deki BallBar degerlerini NumberBox'lara yukler.
+        /// </summary>
+        private void LoadBallBarParamsToUI()
+        {
+            try
+            {
+                NbCalibSphere1Radius.Value = CalibrationService.Instance.Sphere1Radius;
+                NbCalibSphere2Radius.Value = CalibrationService.Instance.Sphere2Radius;
+                NbCalibBarLength.Value = CalibrationService.Instance.BarLength;
+
+                CalibBallBarSummary.Text =
+                    $"Top1 R={NbCalibSphere1Radius.Value:F1}mm | Top2 R={NbCalibSphere2Radius.Value:F1}mm | Cubuk={NbCalibBarLength.Value:F0}mm";
+            }
+            catch { }
+        }
+
+        #endregion
+
     }
 
-   
+
     #region ═══ GOCATOR CLASSES ═══
 
     public class ReceiveImageSample
@@ -2401,12 +3042,8 @@ namespace App4.PAGES
             [JsonProperty("intensity")]
             public byte intensity { get; set; }
         }
-    }
-   
-    // BU SINIF Camera_Page.xaml.cs EN ALTINA Gelecek (Namespace içine)
-    
 
- #endregion
+    #endregion
 
-
+}
 }

@@ -9,8 +9,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Globalization;
 using Microsoft.UI.Dispatching;
 using App4.Models;
+using App4.Utilities.GoRobotMath;
 
 namespace App4.Utilities
 {
@@ -1007,6 +1009,56 @@ namespace App4.Utilities
                 offset += read;
             }
             return offset;
+        }
+
+        #endregion
+
+        #region GoRobot Kalibrasyon Yardımcıları
+
+        /// <summary>
+        /// Robot flange donusum matrisini okur.
+        /// Flange = TCP * Tool^(-1)
+        ///
+        /// $POS_ACT TCP pozisyonu (tool offset dahil) verir.
+        /// $TOOL[n] tool offset'ini verir.
+        /// Flange = TCP pozu - Tool offset = TCP * Tool_inverse
+        /// </summary>
+        /// <returns>Flange pozu 4x4 donusum matrisi olarak, veya null</returns>
+        public async Task<TransformMatrix> GetFlangeMatrixAsync()
+        {
+            try
+            {
+                // TCP pozu (surekli okunan degerler)
+                var tcpPose = new KukaPose(PosX, PosY, PosZ, PosA, PosB, PosC);
+                var tcpMatrix = tcpPose.ToMatrix();
+
+                if (ToolNo <= 0) return tcpMatrix; // Tool 0 = flange = TCP ayni
+
+                // $TOOL[n] degerlerini oku
+                double tx = ParseDouble(await ReadVariableAsync($"$TOOL[{ToolNo}].X"));
+                double ty = ParseDouble(await ReadVariableAsync($"$TOOL[{ToolNo}].Y"));
+                double tz = ParseDouble(await ReadVariableAsync($"$TOOL[{ToolNo}].Z"));
+                double ta = ParseDouble(await ReadVariableAsync($"$TOOL[{ToolNo}].A"));
+                double tb = ParseDouble(await ReadVariableAsync($"$TOOL[{ToolNo}].B"));
+                double tc = ParseDouble(await ReadVariableAsync($"$TOOL[{ToolNo}].C"));
+
+                var toolMatrix = new KukaPose(tx, ty, tz, ta, tb, tc).ToMatrix();
+
+                // Flange = TCP * Tool^(-1)
+                return tcpMatrix * toolMatrix.Inverse();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Mevcut TCP pozunu KukaPose olarak dondurur.
+        /// </summary>
+        public KukaPose GetCurrentTcpPose()
+        {
+            return new KukaPose(PosX, PosY, PosZ, PosA, PosB, PosC);
         }
 
         #endregion

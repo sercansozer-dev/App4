@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Media;
 using static App4.PAGES.Camera_Page;
 using static App4.Utilities.ExtendedStationViewModel;
+using App4.Utilities.GoRobotMath;
 
 namespace App4.Utilities
 {
@@ -31,6 +32,7 @@ namespace App4.Utilities
         private static readonly string _measurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_Measurements.json");
         private static readonly string _transferRowsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Camera_PlcTransfer.json");
         private static readonly string _systemChecksFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "System_Checks.json");
+        private static readonly string _transformedMeasurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Transformed_Measurements.json");
         private static readonly string _robotSliderMappingFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Slider_Mapping.json");
 
         // --- GLOBAL LİSTELER ---
@@ -43,6 +45,55 @@ namespace App4.Utilities
         public static ObservableCollection<SystemCheckItem> SystemCheckList { get; private set; } = new();
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> PlcTransferRows { get; private set; } = new();
+
+        // DÖNÜŞTÜRÜLMÜŞ ÖLÇÜM (Hand-Eye kalibrasyon sonrası base koordinatları)
+        public static ObservableCollection<GocatorMeasurement> TransformedMeasurements { get; private set; } = new();
+
+        // ═══ AKTİF KALİBRASYON BİLGİLERİ (tüm sayfalardan erişilebilir) ═══
+        public static string CalibHandEyeX { get; set; } = "---";
+        public static string CalibHandEyeY { get; set; } = "---";
+        public static string CalibHandEyeZ { get; set; } = "---";
+        public static string CalibHandEyeA { get; set; } = "---";
+        public static string CalibHandEyeB { get; set; } = "---";
+        public static string CalibHandEyeC { get; set; } = "---";
+        public static string CalibAccuracyMm { get; set; } = "--- mm";
+        public static string CalibDate { get; set; } = "---";
+        public static string CalibRobotName { get; set; } = "---";
+        public static bool CalibIsActive { get; set; } = false;
+
+        /// <summary>
+        /// Aktif kalibrasyon bilgilerini gunceller (tum sayfalardan gorulebilir).
+        /// CalibrationService.LoadCalibration veya RunCalibration sonrasi cagirilir.
+        /// </summary>
+        public static void UpdateActiveCalibrationInfo()
+        {
+            var svc = CalibrationService.Instance;
+            if (svc.IsCalibrated && svc.HandEyeMatrix != null)
+            {
+                var pose = KukaPose.FromMatrix(svc.HandEyeMatrix);
+                CalibHandEyeX = pose.X.ToString("F2");
+                CalibHandEyeY = pose.Y.ToString("F2");
+                CalibHandEyeZ = pose.Z.ToString("F2");
+                CalibHandEyeA = pose.A.ToString("F2");
+                CalibHandEyeB = pose.B.ToString("F2");
+                CalibHandEyeC = pose.C.ToString("F2");
+                CalibIsActive = true;
+
+                if (svc.LastCalibrationData != null)
+                {
+                    CalibAccuracyMm = $"{svc.LastCalibrationData.PositionStdMm:F3} mm";
+                    CalibDate = svc.LastCalibrationData.CalibrationDate.ToString("yyyy-MM-dd HH:mm");
+                    CalibRobotName = svc.LastCalibrationData.RobotName ?? "---";
+                }
+            }
+            else
+            {
+                CalibHandEyeX = "---"; CalibHandEyeY = "---"; CalibHandEyeZ = "---";
+                CalibHandEyeA = "---"; CalibHandEyeB = "---"; CalibHandEyeC = "---";
+                CalibAccuracyMm = "--- mm"; CalibDate = "---"; CalibRobotName = "---";
+                CalibIsActive = false;
+            }
+        }
 
         // TABLA KAÇIKLIK İÇİN AYRI LİSTELER
         public static ObservableCollection<GocatorMeasurement> TablaLastMeasurements { get; private set; } = new();
@@ -586,6 +637,7 @@ namespace App4.Utilities
             // İkinci kez çağrılırsa dosyadan RB1/RB2 gibi kaldırılmış değişkenleri geri yükler.
             LoadSystemChecks();
             LoadMeasurements();
+            LoadTransformedMeasurements();
             LoadTransferRows();
             LoadTablaMeasurements();
             LoadTablaTransferRows();
@@ -716,6 +768,32 @@ namespace App4.Utilities
 
         public static void SaveTablaMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(TablaLastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_tablaMeasurementsFilePath, json); } catch { } }
         private static void LoadTablaMeasurements() { try { if (File.Exists(_tablaMeasurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_tablaMeasurementsFilePath)); if (list != null) { TablaLastMeasurements.Clear(); foreach (var item in list) TablaLastMeasurements.Add(item); } } } catch { } }
+
+        public static void SaveTransformedMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(TransformedMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_transformedMeasurementsFilePath, json); } catch { } }
+        private static void LoadTransformedMeasurements() { try { if (File.Exists(_transformedMeasurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_transformedMeasurementsFilePath)); if (list != null) { TransformedMeasurements.Clear(); foreach (var item in list) TransformedMeasurements.Add(item); } } } catch { } }
+
+        /// <summary>
+        /// Hand-Eye donusum sonuclarini TransformedMeasurements koleksiyonuna yazar.
+        /// </summary>
+        public static void PopulateTransformedMeasurements(KukaPose basePose)
+        {
+            TransformedMeasurements.Clear();
+            string[] names = { "Base X", "Base Y", "Base Z", "Base A", "Base B", "Base C" };
+            string[] units = { "mm", "mm", "mm", "deg", "deg", "deg" };
+            double[] vals = { basePose.X, basePose.Y, basePose.Z, basePose.A, basePose.B, basePose.C };
+            for (int i = 0; i < 6; i++)
+            {
+                TransformedMeasurements.Add(new GocatorMeasurement
+                {
+                    Id = i + 1,
+                    Name = names[i],
+                    Value = vals[i],
+                    Unit = units[i],
+                    Decision = "OK"
+                });
+            }
+            SaveTransformedMeasurements();
+        }
 
         public static void SaveTablaTransferRows()
         {
@@ -1525,10 +1603,47 @@ namespace App4.Utilities
                         // --- BORU ÖLÇÜM (JOB 1..N) ---
                         string[] boruOffsets = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                                  "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
-                        for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
-                            await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
 
-                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} offset yazıldı");
+                        if (CalibrationService.Instance.IsCalibrated && results.Count >= 6)
+                        {
+                            // Hand-Eye kalibrasyon ile sensor → base donusumu
+                            double gocX = results[0].Value, gocY = results[1].Value, gocZ = results[2].Value;
+                            double gocA = results[3].Value, gocB = results[4].Value, gocC = results[5].Value;
+
+                            // Sensor koordinatlarinda hedef matris olustur
+                            var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
+
+                            // Robot flange → base donusumu uygula
+                            var basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget);
+
+                            if (basePose != null)
+                            {
+                                // UI'da dönüştürülmüş verileri göster
+                                try { await PlcService.Instance.RunOnUiAsync(() => PopulateTransformedMeasurements(basePose)); } catch { }
+
+                                double[] baseVals = { basePose.X, basePose.Y, basePose.Z,
+                                                      basePose.A, basePose.B, basePose.C };
+                                for (int i = 0; i < 6; i++)
+                                    await WriteToAllRobotsAsync(boruOffsets[i], baseVals[i].ToString("F3"));
+
+                                OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - HandEye dönüşüm uygulandı: " +
+                                    $"X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
+                            }
+                            else
+                            {
+                                OnAutomationLog?.Invoke($"[Robot {robotNo}] UYARI: HandEye dönüşüm başarısız, ham değerler yazılıyor");
+                                for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                                    await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                            }
+                        }
+                        else
+                        {
+                            // Kalibrasyon yoksa ham değerleri yaz
+                            for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                                await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+
+                            OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} ham offset yazıldı (kalibrasyon yok)");
+                        }
                     }
 
                     // Başarı sinyali
@@ -2239,8 +2354,46 @@ namespace App4.Utilities
                     {
                         offsets = new[] { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                           "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
-                        for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
-                            await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+
+                        if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 6)
+                        {
+                            // Hand-Eye kalibrasyon ile sensor → base donusumu
+                            double gocX = measurements[0].Value, gocY = measurements[1].Value, gocZ = measurements[2].Value;
+                            double gocA = measurements[3].Value, gocB = measurements[4].Value, gocC = measurements[5].Value;
+
+                            var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
+
+                            // Robot 1'i (Gocator monte) bul
+                            var robot = KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                            KukaPose basePose = null;
+                            if (robot != null)
+                                basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget);
+
+                            if (basePose != null)
+                            {
+                                // UI'da dönüştürülmüş verileri göster
+                                try { await PlcService.Instance.RunOnUiAsync(() => PopulateTransformedMeasurements(basePose)); } catch { }
+
+                                double[] baseVals = { basePose.X, basePose.Y, basePose.Z,
+                                                      basePose.A, basePose.B, basePose.C };
+                                for (int i = 0; i < 6; i++)
+                                    await WriteToAllRobotsAsync(offsets[i], baseVals[i].ToString("F3"));
+
+                                OnAutomationLog?.Invoke($"HandEye dönüşüm: X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} " +
+                                    $"A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
+                            }
+                            else
+                            {
+                                OnAutomationLog?.Invoke("UYARI: HandEye dönüşüm başarısız, ham değerler yazılıyor");
+                                for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
+                                    await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
+                                await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                        }
                     }
 
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");

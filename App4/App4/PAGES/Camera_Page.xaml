@@ -163,10 +163,281 @@
                     </Grid>
                 </Border>
 
+                <!-- ═══════════════════════════════════════════════════════════════════ -->
+                <!-- KAMERA KALİBRASYON - Eye-on-Hand Kalibrasyon Alanı -->
+                <!-- ═══════════════════════════════════════════════════════════════════ -->
+                <Border Background="#1A1A1C" Margin="20,0" CornerRadius="10" BorderThickness="1" BorderBrush="#333" Padding="15">
+                    <Grid RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <Grid Grid.Row="0">
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Border Background="#FF6F00" CornerRadius="6" Padding="10" MinWidth="40" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE81E;" Foreground="White" FontSize="18"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="KAMERA KALİBRASYON" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Eye-on-Hand | Gocator - Robot TCP Eşleştirme" FontSize="9" Foreground="#AAA"/>
+                                </StackPanel>
+                                <Rectangle Width="1" Height="30" Fill="#FF6F00" Opacity="0.3" Margin="10,0"/>
+                                <!-- Kalibrasyon Durumu -->
+                                <Border x:Name="CalibStatusBorder" Background="#1E2D1E" CornerRadius="6" Padding="12,6">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse x:Name="CalibStatusDot" Width="8" Height="8" Fill="#888"/>
+                                        <TextBlock x:Name="CalibStatusText" Text="Kalibrasyon yapılmamış" FontSize="11" Foreground="#888"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Sag taraf: Butonlar -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                <Button x:Name="BtnCalibLoad" Click="BtnCalibLoad_Click"
+                                        Background="#2A2A2E" CornerRadius="6" Height="36" Padding="12,0"
+                                        ToolTipService.ToolTip="Kaydedilmiş kalibrasyonu yükle">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE8E5;" FontSize="12" Foreground="#00A4EF"/>
+                                        <TextBlock Text="YÜKLE" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="BtnCalibSave" Click="BtnCalibSave_Click"
+                                        Background="#2A2A2E" CornerRadius="6" Height="36" Padding="12,0"
+                                        ToolTipService.ToolTip="Kalibrasyonu kaydet">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE74E;" FontSize="12" Foreground="#4CAF50"/>
+                                        <TextBlock Text="KAYDET" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="BtnCalibClear" Click="BtnCalibClear_Click"
+                                        Background="#2A2A2E" CornerRadius="6" Height="36" Padding="12,0"
+                                        ToolTipService.ToolTip="Toplanan pozları temizle">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#E74C3C"/>
+                                        <TextBlock Text="TEMİZLE" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- BallBar Parametreleri -->
+                        <Border Grid.Row="1" Background="#141418" CornerRadius="8" Padding="10,8" BorderBrush="#333" BorderThickness="1">
+                            <Grid ColumnSpacing="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Baslik -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xECAD;" Foreground="#FF6F00" FontSize="14"/>
+                                    <TextBlock Text="BALLBAR" FontSize="10" FontWeight="Bold" Foreground="#FF6F00" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Top 1 Yaricap -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="Top 1 R:" FontSize="10" Foreground="#AAA" VerticalAlignment="Center"/>
+                                    <controls:NumberBox x:Name="NbCalibSphere1Radius" Value="12.5" Minimum="1" Maximum="100"
+                                              SpinButtonPlacementMode="Compact" SmallChange="0.1"
+                                              FontSize="11" Width="100" Height="30"
+                                              ValueChanged="CalibBallBarParam_ValueChanged"/>
+                                    <TextBlock Text="mm" FontSize="9" Foreground="#666" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Top 2 Yaricap -->
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="Top 2 R:" FontSize="10" Foreground="#AAA" VerticalAlignment="Center"/>
+                                    <controls:NumberBox x:Name="NbCalibSphere2Radius" Value="12.5" Minimum="1" Maximum="100"
+                                              SpinButtonPlacementMode="Compact" SmallChange="0.1"
+                                              FontSize="11" Width="100" Height="30"
+                                              ValueChanged="CalibBallBarParam_ValueChanged"/>
+                                    <TextBlock Text="mm" FontSize="9" Foreground="#666" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Cubuk Uzunlugu (merkez-merkez) -->
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="Cubuk:" FontSize="10" Foreground="#AAA" VerticalAlignment="Center"/>
+                                    <controls:NumberBox x:Name="NbCalibBarLength" Value="50" Minimum="10" Maximum="500"
+                                              SpinButtonPlacementMode="Compact" SmallChange="1"
+                                              FontSize="11" Width="100" Height="30"
+                                              ValueChanged="CalibBallBarParam_ValueChanged"/>
+                                    <TextBlock Text="mm" FontSize="9" Foreground="#666" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Ozet -->
+                                <TextBlock Grid.Column="4" x:Name="CalibBallBarSummary"
+                                           Text="Top R=12.5mm | Cubuk=50mm (merkez-merkez)"
+                                           FontSize="9" Foreground="#555" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                           FontFamily="Cascadia Mono"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Aktif Robot Pozisyonu (canli) -->
+                        <Border Grid.Row="2" Background="#141418" CornerRadius="8" Padding="12" BorderBrush="#333" BorderThickness="1">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Robot Secimi -->
+                                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center" MinWidth="100">
+                                    <TextBlock Text="ROBOT" FontSize="9" FontWeight="Bold" Foreground="#FF6F00"/>
+                                    <ComboBox x:Name="CmbCalibRobot" PlaceholderText="Robot Sec" FontSize="10" Height="30" MinWidth="100"
+                                              SelectionChanged="CmbCalibRobot_SelectionChanged"/>
+                                </StackPanel>
+
+                                <!-- Job Secimi -->
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center" MinWidth="140">
+                                    <TextBlock Text="GOCATOR JOB" FontSize="9" FontWeight="Bold" Foreground="#FFB81C"/>
+                                    <ComboBox x:Name="CmbCalibJob" PlaceholderText="Job Sec..." FontSize="10" Height="30" MinWidth="140"/>
+                                </StackPanel>
+
+                                <!-- X -->
+                                <StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="X (mm)" FontSize="9" FontWeight="Bold" Foreground="#00A4EF" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CalibPosX" Text="---" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" FontFamily="Cascadia Mono"/>
+                                </StackPanel>
+                                <!-- Y -->
+                                <StackPanel Grid.Column="3" Spacing="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="Y (mm)" FontSize="9" FontWeight="Bold" Foreground="#00A4EF" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CalibPosY" Text="---" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" FontFamily="Cascadia Mono"/>
+                                </StackPanel>
+                                <!-- Z -->
+                                <StackPanel Grid.Column="4" Spacing="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="Z (mm)" FontSize="9" FontWeight="Bold" Foreground="#00A4EF" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CalibPosZ" Text="---" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" FontFamily="Cascadia Mono"/>
+                                </StackPanel>
+                                <!-- A -->
+                                <StackPanel Grid.Column="5" Spacing="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="A (deg)" FontSize="9" FontWeight="Bold" Foreground="#FFB81C" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CalibPosA" Text="---" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" FontFamily="Cascadia Mono"/>
+                                </StackPanel>
+                                <!-- B -->
+                                <StackPanel Grid.Column="6" Spacing="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="B (deg)" FontSize="9" FontWeight="Bold" Foreground="#FFB81C" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CalibPosB" Text="---" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" FontFamily="Cascadia Mono"/>
+                                </StackPanel>
+                                <!-- C -->
+                                <StackPanel Grid.Column="7" Spacing="2" HorizontalAlignment="Center">
+                                    <TextBlock Text="C (deg)" FontSize="9" FontWeight="Bold" Foreground="#FFB81C" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="CalibPosC" Text="---" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" FontFamily="Cascadia Mono"/>
+                                </StackPanel>
+
+                                <!-- POZ YAKALA Butonu -->
+                                <Button Grid.Column="8" x:Name="BtnCalibCapture" Click="BtnCalibCapture_Click"
+                                        Background="#FF6F00" CornerRadius="8" Height="40" Padding="16,0"
+                                        ToolTipService.ToolTip="Secili job'i yukleyip olcum alir, robot pozu ile eslestirir">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE710;" FontSize="14" Foreground="White"/>
+                                        <TextBlock Text="POZ YAKALA" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Toplanan Pozlar Tablosu -->
+                        <Border Grid.Row="3" Background="#141418" CornerRadius="8" BorderBrush="#333" BorderThickness="1" MinHeight="120" MaxHeight="250">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="35"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Tablo Header -->
+                                <Border Grid.Row="0" Background="#1E1E22" CornerRadius="8,8,0,0" Padding="12,0">
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE8EF;" Foreground="#FF6F00" FontSize="14"/>
+                                            <TextBlock Text="TOPLANAN KALİBRASYON POZLARI" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            <Border Background="#FF6F00" CornerRadius="10" Padding="8,2" Margin="5,0">
+                                                <TextBlock x:Name="CalibPoseCountBadge" Text="0" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock x:Name="CalibMinPoseHint" Text="(Min. 3 poz gerekli, 5+ önerilir)"
+                                                   FontSize="9" Foreground="#888" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Tablo İçerik -->
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                                    <StackPanel x:Name="CalibPoseListPanel" Spacing="4">
+                                        <!-- Poz satırları code-behind'dan dinamik eklenir -->
+                                        <TextBlock x:Name="CalibNoPoseText" Text="Henüz poz toplanmadı. Robotu farklı pozisyonlara götürüp 'POZ YAKALA' butonuna basın."
+                                                   FontSize="10" Foreground="#555" TextWrapping="Wrap" Padding="10" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- Kalibrasyon Calistir + Sonuc -->
+                        <Grid Grid.Row="4" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Kalibrasyon Çalıştır Butonu -->
+                            <Button Grid.Column="0" x:Name="BtnCalibRun" Click="BtnCalibRun_Click"
+                                    Background="#4CAF50" CornerRadius="8" Height="44" Padding="20,0"
+                                    ToolTipService.ToolTip="Tsai-Lenz kalibrasyonu çalıştır">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE768;" FontSize="16" Foreground="White"/>
+                                    <TextBlock Text="KALİBRASYONU ÇALIŞTIR" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Sonuç Bilgisi -->
+                            <Border Grid.Column="1" Background="#141418" CornerRadius="8" Padding="12" BorderBrush="#333" BorderThickness="1">
+                                <Grid ColumnSpacing="20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                        <TextBlock Text="HAND-EYE MATRİS" FontSize="9" FontWeight="Bold" Foreground="#FF6F00"/>
+                                        <TextBlock x:Name="CalibResultText" Text="Kalibrasyon yapılmadı" FontSize="10" Foreground="#888" FontFamily="Cascadia Mono" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center" MinWidth="100">
+                                        <TextBlock Text="POZ. HASSASIYET" FontSize="9" FontWeight="Bold" Foreground="#4CAF50"/>
+                                        <TextBlock x:Name="CalibAccuracyPos" Text="--- mm" FontSize="12" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" MinWidth="100">
+                                        <TextBlock Text="AÇI HASSASIYET" FontSize="9" FontWeight="Bold" Foreground="#FFB81C"/>
+                                        <TextBlock x:Name="CalibAccuracyAng" Text="--- °" FontSize="12" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                    </Grid>
+                </Border>
+
                 <Grid Margin="20,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="15"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="10"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -470,12 +741,92 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="2" ColumnSpacing="20" RowSpacing="15">
+                    <!-- ═══ AKTİF KALİBRASYON MATRİSİ PANELİ ═══ -->
+                    <Border Grid.Row="2" Background="#141418" CornerRadius="8" Padding="12" BorderBrush="#333" BorderThickness="1">
+                        <Grid ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Durum ikonu + baslik -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Ellipse x:Name="CalibActiveStatusDot" Width="10" Height="10" Fill="#888"/>
+                                <TextBlock Text="AKTİF KALİBRASYON" FontSize="10" FontWeight="Bold" Foreground="#FF6F00" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Hand-Eye Matris XYZABC -->
+                            <Border Grid.Column="1" Background="#1E1E22" CornerRadius="6" Padding="10,6">
+                                <Grid ColumnSpacing="15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="HAND-EYE:" FontSize="9" FontWeight="Bold" Foreground="#FF6F00" VerticalAlignment="Center"/>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                                        <TextBlock Text="X:" FontSize="9" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatX" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="3">
+                                        <TextBlock Text="Y:" FontSize="9" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatY" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="3">
+                                        <TextBlock Text="Z:" FontSize="9" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatZ" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="3">
+                                        <TextBlock Text="A:" FontSize="9" Foreground="#FFB81C" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatA" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="3">
+                                        <TextBlock Text="B:" FontSize="9" Foreground="#FFB81C" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatB" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="3">
+                                        <TextBlock Text="C:" FontSize="9" Foreground="#FFB81C" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatC" Text="---" FontSize="10" FontWeight="Bold" Foreground="White" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="7" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0">
+                                        <TextBlock Text="Hassasiyet:" FontSize="9" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="CalibMatAccuracy" Text="--- mm" FontSize="10" FontWeight="Bold" Foreground="#4CAF50" FontFamily="Cascadia Mono" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Tarih -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE787;" FontSize="11" Foreground="#888"/>
+                                <TextBlock x:Name="CalibMatDate" Text="---" FontSize="9" Foreground="#888" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Robot -->
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE99A;" FontSize="11" Foreground="#888"/>
+                                <TextBlock x:Name="CalibMatRobot" Text="---" FontSize="9" Foreground="#888" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="4" ColumnSpacing="15" RowSpacing="15">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- ═══ SÜTUN 0: GOCATOR HAM VERİ ═══ -->
                         <Border Grid.Column="0" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -485,67 +836,130 @@
                                 </Grid.RowDefinitions>
 
                                 <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
                                         <FontIcon Glyph="&#xE8F4;" Foreground="#FF9800" FontSize="16"/>
-                                        <TextBlock Text="BORU ÖLÇÜM SONUÇLARI" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                        <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="JOB 1+" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
+                                        <TextBlock Text="GOCATOR HAM VERİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                        <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="SENSOR" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
                                     </StackPanel>
                                 </Border>
 
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
-                                    <StackPanel Spacing="5">
-                                        <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                                    <StackPanel Spacing="4">
+                                        <Grid Background="#2A2A2C" Height="30" CornerRadius="5">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="40"/>
+                                                <ColumnDefinition Width="30"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="50"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="1" Text="ÖLÇÜM ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="3" Text="DURUM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                            <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="1" Text="ÖLÇÜM ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="8,0" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="3" Text="DURUM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="9"/>
                                         </Grid>
 
                                         <ItemsControl ItemsSource="{x:Bind utils:GlobalData.LastMeasurements, Mode=OneWay}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="utils:GocatorMeasurement">
-                                                    <Grid Height="40" Margin="0,0,0,2" Background="#0F0F0F" CornerRadius="4">
+                                                    <Grid Height="36" Margin="0,0,0,2" Background="#0F0F0F" CornerRadius="4">
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="40"/>
+                                                            <ColumnDefinition Width="30"/>
                                                             <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="80"/>
-                                                            <ColumnDefinition Width="60"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                            <ColumnDefinition Width="50"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5"/>
-                                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="10,0" Foreground="White"/>
+                                                        <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="White" FontSize="11"/>
                                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Value}" Foreground="#00A4EF" FontWeight="Bold"/>
-                                                            <TextBlock Text="{x:Bind Unit}" Foreground="#00A4EF" Margin="4,0,0,0" FontSize="10" VerticalAlignment="Bottom"/>
+                                                            <TextBlock Text="{x:Bind Value}" Foreground="#00A4EF" FontWeight="Bold" FontSize="11"/>
+                                                            <TextBlock Text="{x:Bind Unit}" Foreground="#00A4EF" Margin="3,0,0,0" FontSize="9" VerticalAlignment="Bottom"/>
                                                         </StackPanel>
-                                                        <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="20" Width="50">
-                                                            <TextBlock Text="{x:Bind Decision}" FontSize="10" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="18" Width="40">
+                                                            <TextBlock Text="{x:Bind Decision}" FontSize="9" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
 
-                                        <TextBlock Text="Henüz ölçüm alınmadı." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0"
+                                        <TextBlock Text="Henüz ölçüm alınmadı." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0" FontSize="10"
                                    Visibility="{x:Bind utils:GlobalData.LastMeasurements.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
                                     </StackPanel>
                                 </ScrollViewer>
 
-                                <Button Grid.Row="2" Click="BtnGetMeasurement_Click" Margin="10,0,10,10" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <FontIcon Glyph="&#xE916;" FontSize="12" Foreground="Orange"/>
-                                        <TextBlock Text="SENSÖRDEN YENİ ÖLÇÜM AL" FontSize="11" Foreground="White"/>
+                                <Button Grid.Row="2" Click="BtnGetMeasurement_Click" Margin="8,0,8,8" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE916;" FontSize="11" Foreground="Orange"/>
+                                        <TextBlock Text="YENİ ÖLÇÜM AL" FontSize="10" Foreground="White"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
                         </Border>
 
+                        <!-- ═══ SÜTUN 1: DÖNÜŞTÜRÜLMÜŞ VERİ (BASE KOORDİNAT) ═══ -->
                         <Border Grid.Column="1" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="45"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0" Background="#1E2D1E" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <FontIcon Glyph="&#xE81E;" Foreground="#4CAF50" FontSize="16"/>
+                                        <TextBlock Text="BASE KOORDİNAT" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                        <Border Background="#4CAF50" CornerRadius="4" Padding="6,2"><TextBlock Text="HAND-EYE" FontSize="8" FontWeight="Bold" Foreground="White"/></Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                                    <StackPanel Spacing="4">
+                                        <Grid Background="#2A2A2C" Height="30" CornerRadius="5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="50"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="1" Text="ÖLÇÜM ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="8,0" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="3" Text="DURUM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="9"/>
+                                        </Grid>
+
+                                        <ItemsControl ItemsSource="{x:Bind utils:GlobalData.TransformedMeasurements, Mode=OneWay}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="utils:GocatorMeasurement">
+                                                    <Grid Height="36" Margin="0,0,0,2" Background="#0F150F" CornerRadius="4">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="30"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="50"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold"/>
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Value}" Foreground="#4CAF50" FontWeight="Bold" FontSize="11"/>
+                                                            <TextBlock Text="{x:Bind Unit}" Foreground="#4CAF50" Margin="3,0,0,0" FontSize="9" VerticalAlignment="Bottom"/>
+                                                        </StackPanel>
+                                                        <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="18" Width="40">
+                                                            <TextBlock Text="{x:Bind Decision}" FontSize="9" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <TextBlock Text="Kalibrasyon dönüşümü bekleniyor..." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0" FontSize="10"
+                                   Visibility="{x:Bind utils:GlobalData.TransformedMeasurements.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- ═══ SÜTUN 2: BORU ÖLÇÜM AKTARIM ═══ -->
+                        <Border Grid.Column="2" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="45"/>
@@ -559,15 +973,15 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                                             <FontIcon Glyph="&#xE975;" Foreground="#FF9800" FontSize="16"/>
-                                            <TextBlock Text="BORU PLC AKTARIM" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                            <TextBlock Text="BORU ÖLÇÜM AKTARIM" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Right">
                                             <Button Click="BtnBackup_Click" Height="26" Padding="8,0" CornerRadius="4" Background="#D35400" BorderThickness="0" ToolTipService.ToolTip="Uygulama Verilerini Yedekle">
                                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                                     <FontIcon Glyph="&#xE753;" Foreground="White" FontSize="10"/>
-                                                    <TextBlock Text="APP YEDEK" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                    <TextBlock Text="YEDEK" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Click="BtnBackupGocator_Click" Height="26" Padding="8,0" CornerRadius="4" Background="#00A4EF" BorderThickness="0" ToolTipService.ToolTip="Sensör Yedeğini İndir">
@@ -580,41 +994,41 @@
                                     </Grid>
                                 </Border>
 
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">
-                                    <StackPanel x:Name="PlcTransferContainer" Spacing="5">
-                                        <Grid Background="#2A2A2C" Height="35" CornerRadius="5">
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                                    <StackPanel x:Name="PlcTransferContainer" Spacing="4">
+                                        <Grid Background="#2A2A2C" Height="30" CornerRadius="5">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="40"/>
+                                                <ColumnDefinition Width="30"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="40"/>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="1" Text="PLC TAG SEÇİMİ" Foreground="#AAA" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                            <TextBlock Grid.Column="3" Text="SİL" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="9"/>
+                                            <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="1" Text="TAG SEÇİMİ" Foreground="#AAA" VerticalAlignment="Center" Margin="8,0" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="10"/>
+                                            <TextBlock Grid.Column="3" Text="SİL" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="8"/>
                                         </Grid>
 
                                         <ItemsControl ItemsSource="{Binding PlcTransferRows}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid Background="{Binding BackgroundColor}" Height="40" CornerRadius="4">
+                                                    <Grid Background="{Binding BackgroundColor}" Height="36" CornerRadius="4">
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="40"/>
+                                                            <ColumnDefinition Width="30"/>
                                                             <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="80"/>
-                                                            <ColumnDefinition Width="40"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                            <ColumnDefinition Width="35"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5"/>
+                                                        <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5" FontSize="10"/>
                                                         <ComboBox Grid.Column="1"
                                                             ItemsSource="{Binding ElementName=PageRoot, Path=Robot1OutputTags}"
                                                             SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
-                                                            Margin="5,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4"
-                                                            Foreground="White" PlaceholderText="Tag Seçiniz..." FontSize="11"
+                                                            Margin="4,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4"
+                                                            Foreground="White" PlaceholderText="Tag Seç..." FontSize="10"
                                                             VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold" FontSize="10"/>
                                                         <Button Grid.Column="3" Click="BtnDeletePlcRow_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Center">
-                                                            <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#E74C3C"/>
+                                                            <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="#E74C3C"/>
                                                         </Button>
                                                     </Grid>
                                                 </DataTemplate>
@@ -628,10 +1042,10 @@
                                     </StackPanel>
                                 </ScrollViewer>
 
-                                <Button Grid.Row="2" Click="BtnAddPlcRow_Click" Margin="10,0,10,10" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon Glyph="&#xE710;" FontSize="12" Foreground="#00FF88"/>
-                                        <TextBlock Text="YENİ SATIR EKLE" FontSize="11" Foreground="White" FontWeight="Bold"/>
+                                <Button Grid.Row="2" Click="BtnAddPlcRow_Click" Margin="8,0,8,8" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE710;" FontSize="11" Foreground="#00FF88"/>
+                                        <TextBlock Text="YENİ SATIR EKLE" FontSize="10" Foreground="White" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
