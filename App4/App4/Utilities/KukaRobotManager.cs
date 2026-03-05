@@ -397,7 +397,8 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "G_OFFSET_A_RD", Type = "REAL", PlcTag = "G_OFFSET_A", Direction = "Input", Description = "Boru offset A geri okuma" });
             InputVars.Add(new PlcVariable { Name = "G_OFFSET_B_RD", Type = "REAL", PlcTag = "G_OFFSET_B", Direction = "Input", Description = "Boru offset B geri okuma" });
             InputVars.Add(new PlcVariable { Name = "G_OFFSET_C_RD", Type = "REAL", PlcTag = "G_OFFSET_C", Direction = "Input", Description = "Boru offset C geri okuma" });
-            InputVars.Add(new PlcVariable { Name = "G_OLCUM_TAMAM_RD", Type = "BOOL", PlcTag = "G_OLCUM_TAMAM", Direction = "Input", Description = "Ölçüm tamamlandı geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_BORU_OLCUM_TAMAM_RD", Type = "BOOL", PlcTag = "G_BORU_OLCUM_TAMAM", Direction = "Input", Description = "Boru ölçüm tamamlandı geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OLCUM_TAMAM_RD", Type = "BOOL", PlcTag = "G_TABLA_OLCUM_TAMAM", Direction = "Input", Description = "Tabla ölçüm tamamlandı geri okuma" });
             InputVars.Add(new PlcVariable { Name = "G_OLCUM_OK_RD", Type = "BOOL", PlcTag = "G_OLCUM_OK", Direction = "Input", Description = "Ölçüm OK/NOK geri okuma" });
 
             // ═══ GOCATOR TABLA OFFSET (Robot → PC) ═══
@@ -464,8 +465,9 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "G_OFFSET_A", Type = "REAL", PlcTag = "G_OFFSET_A", Direction = "Output", Description = "Boru A dönüşü (derece)" });
             OutputVars.Add(new PlcVariable { Name = "G_OFFSET_B", Type = "REAL", PlcTag = "G_OFFSET_B", Direction = "Output", Description = "Boru B dönüşü (derece)" });
             OutputVars.Add(new PlcVariable { Name = "G_OFFSET_C", Type = "REAL", PlcTag = "G_OFFSET_C", Direction = "Output", Description = "Boru C dönüşü (derece)" });
-            // Ölçüm Sonuç Sinyalleri (JOB INDEX tabanlı birleşik)
-            OutputVars.Add(new PlcVariable { Name = "G_OLCUM_TAMAM", Type = "BOOL", PlcTag = "G_OLCUM_TAMAM", Direction = "Output", Description = "Ölçüm tamamlandı (pulse)" });
+            // Ölçüm Sonuç Sinyalleri (Boru/Tabla ayrı TAMAM pulse)
+            OutputVars.Add(new PlcVariable { Name = "G_BORU_OLCUM_TAMAM", Type = "BOOL", PlcTag = "G_BORU_OLCUM_TAMAM", Direction = "Output", Description = "Boru ölçüm tamamlandı (pulse)" });
+            OutputVars.Add(new PlcVariable { Name = "G_TABLA_OLCUM_TAMAM", Type = "BOOL", PlcTag = "G_TABLA_OLCUM_TAMAM", Direction = "Output", Description = "Tabla ölçüm tamamlandı (pulse)" });
             OutputVars.Add(new PlcVariable { Name = "G_OLCUM_OK", Type = "BOOL", PlcTag = "G_OLCUM_OK", Direction = "Output", Description = "Ölçüm sonucu OK/NOK" });
             OutputVars.Add(new PlcVariable { Name = "G_KLIMA_ADET", Type = "INT", PlcTag = "G_KLIMA_ADET", Direction = "Output", Description = "Toplam klima tipi sayısı" });
 

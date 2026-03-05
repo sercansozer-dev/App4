@@ -900,7 +900,8 @@ namespace App4.Utilities
                 // --- GOCATOR OLCUM SISTEMI (TEKLI JOB INDEX) ---
                 RobotInputVars.Add(Create("G_JOB_INDEX", "INT", "Input", 0));             // Gocator job (0=tabla, 1..N=boru noktasi)
                 RobotInputVars.Add(Create("G_OLCUM_TETIK", "BOOL", "Input", false));      // Robot -> PC : Olcum baslat
-                RobotInputVars.Add(Create("G_OLCUM_TAMAM", "BOOL", "Input", false));      // PC -> Robot : Olcum tamamlandi
+                RobotInputVars.Add(Create("G_BORU_OLCUM_TAMAM", "BOOL", "Input", false));  // PC -> Robot : Boru olcum tamamlandi
+                RobotInputVars.Add(Create("G_TABLA_OLCUM_TAMAM", "BOOL", "Input", false)); // PC -> Robot : Tabla olcum tamamlandi
                 RobotInputVars.Add(Create("G_OLCUM_OK", "BOOL", "Input", false));         // PC -> Robot : Sonuc OK/NOK
                 // --- GOCATOR TABLA OFFSET ---
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Input", 0.0));
@@ -952,7 +953,8 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_OFFSET_B", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_OFFSET_C", "REAL", "Output", 0.0));
                 // --- OLCUM SONUC (PC -> Robot) ---
-                RobotOutputVars.Add(Create("G_OLCUM_TAMAM", "BOOL", "Output", false));    // Olcum tamamlandi (PC -> Robot)
+                RobotOutputVars.Add(Create("G_BORU_OLCUM_TAMAM", "BOOL", "Output", false));  // Boru olcum tamamlandi (PC -> Robot)
+                RobotOutputVars.Add(Create("G_TABLA_OLCUM_TAMAM", "BOOL", "Output", false)); // Tabla olcum tamamlandi (PC -> Robot)
                 RobotOutputVars.Add(Create("G_OLCUM_OK", "BOOL", "Output", false));       // Sonuc OK/NOK (PC -> Robot)
                 // --- GOCATOR TABLA OFFSET (PC yazar) ---
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Output", 0.0));
@@ -1447,19 +1449,16 @@ namespace App4.Utilities
 
             _olcumTetikProcessing = true;
             OlcumInProgress = true;
+            int jobIndex = 0;
             try
             {
                 // 1. JOB_INDEX'i robottan oku
                 var jobIndexVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
-                int jobIndex = 0;
                 if (jobIndexVar != null) int.TryParse(jobIndexVar.Value, out jobIndex);
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex})");
 
-                // 2. G_OLCUM_DURUM = 1 (ÇekimYapılıyor)
-                await WriteToAllRobotsAsync("G_OLCUM_DURUM", "1");
-
-                // 3. Aktif RFID'den job adını bul
+                // 2. Aktif RFID'den job adını bul
                 string currentRfid = AktuelRfid;
                 var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
                 string jobName = null;
@@ -1471,8 +1470,6 @@ namespace App4.Utilities
                 {
                     OnAutomationLog?.Invoke($"[Robot {robotNo}] Job bulunamadı (RFID={currentRfid}, Index={jobIndex})");
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync(jobIndex == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
                     return;
                 }
 
@@ -1483,8 +1480,6 @@ namespace App4.Utilities
                 {
                     OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yüklenemedi: {jobName}");
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync(jobIndex == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
                     return;
                 }
 
@@ -1519,7 +1514,6 @@ namespace App4.Utilities
                             await WriteToAllRobotsAsync(tablaOffsets[i], results[i].Value.ToString("F3"));
 
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
-                        await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "TRUE");
                         OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı");
                     }
                     else
@@ -1530,13 +1524,11 @@ namespace App4.Utilities
                         for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
                             await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
 
-                        await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "TRUE");
                         OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} offset yazıldı");
                     }
 
-                    // Başarı sinyalleri
+                    // Başarı sinyali
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "2"); // TamamOK
 
                     // PLC çıktı sinyali
                     if (jobIndex == 0)
@@ -1548,8 +1540,6 @@ namespace App4.Utilities
                 {
                     OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm BAŞARISIZ (Job {jobIndex}: {jobName})");
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync(jobIndex == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
                 }
             }
             catch (Exception ex)
@@ -1558,21 +1548,19 @@ namespace App4.Utilities
                 try
                 {
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
                 }
                 catch { }
             }
             finally
             {
-                // G_OLCUM_TAMAM pulse - robot KRL bu sinyali WHILE dongusunde bekliyor
+                // TAMAM pulse - robot KRL bu sinyali REPEAT/UNTIL dongusunde bekliyor
                 try
                 {
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    string tamamSignal = jobIndex == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
+                    await WriteToAllRobotsAsync(tamamSignal, "TRUE");
                     await Task.Delay(500);
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] G_OLCUM_TAMAM pulse gönderildi");
+                    await WriteToAllRobotsAsync(tamamSignal, "FALSE");
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] {tamamSignal} pulse gönderildi");
                 }
                 catch { }
 
@@ -2242,7 +2230,6 @@ namespace App4.Utilities
                         for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
                             await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
-                        await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "TRUE");
                     }
                     else
                     {
@@ -2250,17 +2237,16 @@ namespace App4.Utilities
                                           "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
                         for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
                             await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
-                        await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "TRUE");
                     }
 
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "2"); // TamamOK
                     OnAutomationLog?.Invoke("Robot write-back: Offset + G_OLCUM_OK yazildi");
 
-                    // G_OLCUM_TAMAM pulse (robot KRL bunu bekliyor)
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    // TAMAM pulse (robot KRL REPEAT/UNTIL dongusunde bekliyor)
+                    string tamamSignal = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
+                    await WriteToAllRobotsAsync(tamamSignal, "TRUE");
                     await Task.Delay(500);
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
+                    await WriteToAllRobotsAsync(tamamSignal, "FALSE");
 
                     ProcessStatus = "TAMAMLANDI";
                     // Olcum bitti — index gostergesini temizle
@@ -2276,11 +2262,10 @@ namespace App4.Utilities
 
                     // Robot'a basarisizlik bildirimi
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync(idx == 0 ? "G_TABLA_OLCUM_OK" : "G_BORU_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    string tamamSignalErr = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
+                    await WriteToAllRobotsAsync(tamamSignalErr, "TRUE");
                     await Task.Delay(500);
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
+                    await WriteToAllRobotsAsync(tamamSignalErr, "FALSE");
                 }
             }
             catch (Exception ex)
@@ -2293,12 +2278,12 @@ namespace App4.Utilities
                 try
                 {
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_BORU_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_OK", "FALSE");
-                    await WriteToAllRobotsAsync("G_OLCUM_DURUM", "3"); // Hata
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "TRUE");
+                    // Exception durumunda her iki TAMAM sinyalini de pulse et
+                    await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "TRUE");
+                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "TRUE");
                     await Task.Delay(500);
-                    await WriteToAllRobotsAsync("G_OLCUM_TAMAM", "FALSE");
+                    await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
                 }
                 catch { }
             }
