@@ -419,7 +419,8 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "G_R2_HOME", Type = "BOOL", PlcTag = "G_R2_HOME", Direction = "Input", Description = "Robot 2 home pozisyonunda" });
 
             // ═══ ROBOT 2 - SNİFFER ÖLÇÜM (Robot → PC) ═══
-            InputVars.Add(new PlcVariable { Name = "G_SNIFFER_OLCUM_YAP", Type = "BOOL", PlcTag = "G_SNIFFER_OLCUM_YAP", Direction = "Input", Description = "Robot 2 sniffer olcum istedi" });
+            InputVars.Add(new PlcVariable { Name = "G_SNIFFER_OLCUM_TETIK", Type = "BOOL", PlcTag = "G_SNIFFER_OLCUM_TETIK", Direction = "Input", Description = "Robot sniffer olcum tetik (R1 + R2)" });
+            InputVars.Add(new PlcVariable { Name = "G_SNIFFER_OLCUM_BITTI", Type = "BOOL", PlcTag = "G_SNIFFER_OLCUM_BITTI", Direction = "Input", Description = "Robot sniffer olcum tamamlandi (R1 + R2)" });
             InputVars.Add(new PlcVariable { Name = "G_AKTIF_CIZGI", Type = "INT", PlcTag = "G_AKTIF_CIZGI", Direction = "Input", Description = "Robot 2 aktif sniffer cizgi no" });
             InputVars.Add(new PlcVariable { Name = "G_TOPLAM_CIZGI", Type = "INT", PlcTag = "G_TOPLAM_CIZGI", Direction = "Input", Description = "Robot 2 toplam cizgi sayisi" });
             InputVars.Add(new PlcVariable { Name = "G_NOK_CIZGI", Type = "INT", PlcTag = "G_NOK_CIZGI", Direction = "Input", Description = "Robot 2 son NOK cizgi no" });

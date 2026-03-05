@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.271
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KukaSnapshot_EyeOnHand", "KukaSnapshot_EyeOnHand\KukaSnapshot_EyeOnHand.vcxproj", "{0A2157D3-487F-5D27-A90D-2569F7315E88}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KukaLaserLine_EyeOnHand", "KukaLaserLine_EyeOnHand\KukaLaserLine_EyeOnHand.vcxproj", "{5F242C32-FAD5-58CC-96AA-EB02DE57013A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KukaSnapshot_EyeToHand", "KukaSnapshot_EyeToHand\KukaSnapshot_EyeToHand.vcxproj", "{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Debug|x64.ActiveCfg = Debug|x64
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Debug|x64.Build.0 = Debug|x64
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Debug|x86.ActiveCfg = Debug|Win32
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Debug|x86.Build.0 = Debug|Win32
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Release|x64.ActiveCfg = Release|x64
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Release|x64.Build.0 = Release|x64
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Release|x86.ActiveCfg = Release|Win32
+		{0A2157D3-487F-5D27-A90D-2569F7315E88}.Release|x86.Build.0 = Release|Win32
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Debug|x64.ActiveCfg = Debug|x64
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Debug|x64.Build.0 = Debug|x64
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Debug|x86.ActiveCfg = Debug|Win32
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Debug|x86.Build.0 = Debug|Win32
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Release|x64.ActiveCfg = Release|x64
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Release|x64.Build.0 = Release|x64
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Release|x86.ActiveCfg = Release|Win32
+		{5F242C32-FAD5-58CC-96AA-EB02DE57013A}.Release|x86.Build.0 = Release|Win32
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Debug|x64.ActiveCfg = Debug|x64
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Debug|x64.Build.0 = Debug|x64
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Debug|x86.ActiveCfg = Debug|Win32
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Debug|x86.Build.0 = Debug|Win32
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Release|x64.ActiveCfg = Release|x64
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Release|x64.Build.0 = Release|x64
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Release|x86.ActiveCfg = Release|Win32
+		{CA1BE99F-C354-5B69-AE55-BA0F87AED01E}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D22887E0-3773-4678-B20F-41031E1EAFD2}
+	EndGlobalSection
+EndGlobal

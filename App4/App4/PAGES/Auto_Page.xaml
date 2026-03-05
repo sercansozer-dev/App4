@@ -562,7 +562,7 @@
                                                 <!-- Robot 1 (Gocator + Helyum) -->
                                                 <Grid Width="60">
                                                     <Grid HorizontalAlignment="Center">
-                                                        <Ellipse Width="50" Height="50" StrokeThickness="3">
+                                                        <Ellipse x:Name="R1RobotEllipse" Width="50" Height="50" StrokeThickness="3">
                                                             <Ellipse.Fill>
                                                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                                                     <GradientStop Color="#2A2A2A" Offset="0"/>
@@ -576,7 +576,7 @@
                                                                 </LinearGradientBrush>
                                                             </Ellipse.Stroke>
                                                         </Ellipse>
-                                                        <FontIcon Glyph="&#xE99A;" FontSize="20" Foreground="#4CAF50"/>
+                                                        <FontIcon x:Name="R1RobotIcon" Glyph="&#xE99A;" FontSize="20" Foreground="#4CAF50"/>
                                                         <!-- Gocator İkonu -->
                                                         <Border Background="#FF9800" CornerRadius="3" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
                                                             <FontIcon Glyph="&#xE945;" FontSize="7" Foreground="White"/>
@@ -595,7 +595,7 @@
                                                 <!-- Robot 2 (Sadece Helyum) -->
                                                 <Grid Width="60">
                                                     <Grid HorizontalAlignment="Center">
-                                                        <Ellipse Width="50" Height="50" StrokeThickness="3">
+                                                        <Ellipse x:Name="R2RobotEllipse" Width="50" Height="50" StrokeThickness="3">
                                                             <Ellipse.Fill>
                                                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                                                     <GradientStop Color="#2A2A2A" Offset="0"/>
@@ -609,7 +609,7 @@
                                                                 </LinearGradientBrush>
                                                             </Ellipse.Stroke>
                                                         </Ellipse>
-                                                        <FontIcon Glyph="&#xE99A;" FontSize="20" Foreground="#0078D4"/>
+                                                        <FontIcon x:Name="R2RobotIcon" Glyph="&#xE99A;" FontSize="20" Foreground="#0078D4"/>
                                                         <!-- Helyum İkonu -->
                                                         <Border Background="#9C27B0" CornerRadius="3" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
                                                             <TextBlock Text="He" FontSize="6" FontWeight="Bold" Foreground="White"/>

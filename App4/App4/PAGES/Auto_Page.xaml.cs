@@ -2088,7 +2088,7 @@ namespace App4
         // ROBOT DURUM İZLEME PANELİ
         // ═══════════════════════════════════════════════════════════════
 
-        // NOT: Robot sinyal tetiklemeleri (G_OLCUM_TETIK, G_SNIFFER_OLCUM_YAP)
+        // NOT: Robot sinyal tetiklemeleri (G_OLCUM_TETIK, G_SNIFFER_OLCUM_TETIK)
         // artık GlobalData.StartRobotSignalMonitoring() üzerinden sayfa bağımsız çalışır.
 
         private void InitializeRobotStatusMonitoring()
@@ -2108,7 +2108,7 @@ namespace App4
                 };
 
                 // InputVars değişikliklerini dinle (Sadece UI güncelleme)
-                // NOT: G_OLCUM_TETIK/G_SNIFFER_OLCUM_YAP artık GlobalData'dan dinleniyor
+                // NOT: G_OLCUM_TETIK/G_SNIFFER_OLCUM_TETIK artık GlobalData'dan dinleniyor
                 foreach (var v in robots[0].InputVars)
                 {
                     v.PropertyChanged += (s, e) =>
@@ -2140,6 +2140,27 @@ namespace App4
                             // Alarm sinyalleri değiştiğinde alarm sistemini güncelle
                             if (v.Name == "G_HATA_VAR" || v.Name == "G_ROBOT_DURUM" || v.Name == "G_HATA_KODU")
                                 this.DispatcherQueue.TryEnqueue(() => UpdateLineStatusVisuals());
+                        }
+                    };
+                }
+            }
+
+            // --- GeneralInputVars sniffer tetik sinyalleri değiştiğinde ellipse güncelle ---
+            foreach (var gv in GlobalData.GeneralInputVars)
+            {
+                if (gv.Name == "R1_SNIFFER_TETIK" || gv.Name == "R2_SNIFFER_TETIK")
+                {
+                    gv.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName == nameof(PlcVariable.Value))
+                        {
+                            this.DispatcherQueue.TryEnqueue(() =>
+                            {
+                                if (gv.Name == "R1_SNIFFER_TETIK")
+                                    UpdateSnifferEllipseFromGeneralInput("R1_SNIFFER_TETIK", R1RobotEllipse, isR1: true);
+                                else
+                                    UpdateSnifferEllipseFromGeneralInput("R2_SNIFFER_TETIK", R2RobotEllipse, isR1: false);
+                            });
                         }
                     };
                 }
@@ -2329,6 +2350,8 @@ namespace App4
                     SetDotColor(Robot1StatusDot, dotColor);
                     SetBorderBgSafe(Robot1HataBadge, hataBadgeBg);
                     SetBorderColorSafe(Robot1StatusCard, cardBorderColor);
+                    // Sniffer tetik → R1 robot sembolü renklendirme (GeneralInputVars'dan okur)
+                    UpdateSnifferEllipseFromGeneralInput("R1_SNIFFER_TETIK", R1RobotEllipse, isR1: true);
                 }
                 else
                 {
@@ -2338,6 +2361,8 @@ namespace App4
                     SetDotColor(Robot2StatusDot, dotColor);
                     SetBorderBgSafe(Robot2HataBadge, hataBadgeBg);
                     SetBorderColorSafe(Robot2StatusCard, cardBorderColor);
+                    // Sniffer tetik → R2 robot sembolü renklendirme (GeneralInputVars'dan okur)
+                    UpdateSnifferEllipseFromGeneralInput("R2_SNIFFER_TETIK", R2RobotEllipse, isR1: false);
                 }
             }
             catch { /* Güvenli hata yutma */ }
@@ -2446,6 +2471,60 @@ namespace App4
         {
             if (border == null) return;
             try { border.BorderBrush = new SolidColorBrush(ParseHexColor(color)); } catch { }
+        }
+
+        /// <summary>
+        /// GeneralInputVars'daki sniffer tetik sinyaline göre robot ellipse + ikon rengini günceller.
+        /// Tetik aktifken: Yeşil arka plan + Beyaz robot ikonu
+        /// Tetik pasifken: Koyu arka plan + Orijinal renk (R1=Yeşil, R2=Mavi)
+        /// </summary>
+        private void UpdateSnifferEllipseFromGeneralInput(string varName, Microsoft.UI.Xaml.Shapes.Ellipse ellipse, bool isR1)
+        {
+            if (ellipse == null) return;
+            try
+            {
+                // GeneralInputVars tablosundan sniffer tetik değerini oku
+                var snifferVar = GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == varName);
+                bool snifferActive = snifferVar?.Value?.ToUpper() == "TRUE" || snifferVar?.Value == "1";
+
+                // İlgili robot ikonunu bul
+                var robotIcon = isR1 ? R1RobotIcon : R2RobotIcon;
+
+                if (snifferActive)
+                {
+                    // Sniffer aktif → Yeşil parlak arka plan
+                    var activeBrush = new LinearGradientBrush();
+                    activeBrush.StartPoint = new Windows.Foundation.Point(0, 0);
+                    activeBrush.EndPoint = new Windows.Foundation.Point(1, 1);
+                    activeBrush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(255, 76, 175, 80), Offset = 0 });   // #4CAF50
+                    activeBrush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(255, 46, 125, 50), Offset = 1 });   // #2E7D32
+                    ellipse.Fill = activeBrush;
+
+                    // Robot ikonu beyaz
+                    if (robotIcon != null)
+                        robotIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                }
+                else
+                {
+                    // Sniffer pasif → Orijinal koyu gradyan
+                    var normalBrush = new LinearGradientBrush();
+                    normalBrush.StartPoint = new Windows.Foundation.Point(0, 0);
+                    normalBrush.EndPoint = new Windows.Foundation.Point(1, 1);
+                    normalBrush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(255, 42, 42, 42), Offset = 0 });    // #2A2A2A
+                    normalBrush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(255, 26, 26, 26), Offset = 1 });    // #1A1A1A
+                    ellipse.Fill = normalBrush;
+
+                    // Robot ikonu orijinal renk (R1=Yeşil, R2=Mavi)
+                    if (robotIcon != null)
+                    {
+                        var originalColor = isR1
+                            ? Windows.UI.Color.FromArgb(255, 76, 175, 80)    // #4CAF50 (R1 Yeşil)
+                            : Windows.UI.Color.FromArgb(255, 0, 120, 212);   // #0078D4 (R2 Mavi)
+                        robotIcon.Foreground = new SolidColorBrush(originalColor);
+                    }
+                }
+            }
+            catch { }
         }
 
         private void SetWarning(Border border, TextBlock text, string message)

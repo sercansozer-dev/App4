@@ -849,6 +849,9 @@ namespace App4.Utilities
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)
             GeneralOutputVars.Add(Create("KL100_HEDEF_GIT", "BOOL", "Output", false));       // KL100 hedef istasyona git komutu
+            // ▼▼▼ SNİFFER TETİK SİNYALLERİ (Robot → PC, görselleştirme için) ▼▼▼
+            GeneralInputVars.Add(Create("R1_SNIFFER_TETIK", "BOOL", "Input", false));          // Robot 1 sniffer tetik sinyali (slider görselleştirme)
+            GeneralInputVars.Add(Create("R2_SNIFFER_TETIK", "BOOL", "Input", false));          // Robot 2 sniffer tetik sinyali (slider görselleştirme)
             // ▼▼▼ ROBOT GİT KOMUTLARI (PLC → PC) ▼▼▼
             GeneralInputVars.Add(Create("FIRST_ROBOT_GO", "BOOL", "Input", false));           // PLC Robot 1 başlat komutu
             GeneralInputVars.Add(Create("SECOND_ROBOT_GO", "BOOL", "Input", false));          // PLC Robot 2 başlat komutu
@@ -918,7 +921,8 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_R1_HOME", "BOOL", "Input", false));           // Robot 1 home pozisyonunda
                 RobotInputVars.Add(Create("G_R2_HOME", "BOOL", "Input", false));           // Robot 2 home pozisyonunda
                 // --- INFICON SNIFFER OLCUM (Her iki robot) ---
-                RobotInputVars.Add(Create("G_SNIFFER_OLCUM_YAP", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum baslat (R1 + R2)
+                RobotInputVars.Add(Create("G_SNIFFER_OLCUM_TETIK", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum baslat/durdur (R1 + R2)
+                RobotInputVars.Add(Create("G_SNIFFER_OLCUM_BITTI", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum tamamlandi (R1 + R2)
                 RobotInputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Input", 0.0));      // Sniffer olcum degeri (geri okuma)
                 RobotInputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Input", false));    // PC -> Robot : INFICON cihazi hazir (geri okuma)
                 RobotInputVars.Add(Create("G_AKTIF_CIZGI", "INT", "Input", 0));           // Robot 2 aktif sniffer cizgi no
@@ -1338,7 +1342,7 @@ namespace App4.Utilities
                 }
             }
 
-            // Robot InputVars sinyal izlemeyi de başlat (G_OLCUM_TETIK, G_SNIFFER_OLCUM_YAP)
+            // Robot InputVars sinyal izlemeyi de başlat (G_OLCUM_TETIK, G_SNIFFER_OLCUM_TETIK)
             StartRobotSignalMonitoring();
         }
 
@@ -1376,7 +1380,7 @@ namespace App4.Utilities
         }
 
         // ─── ROBOT SİNYAL İZLEME (GLOBAL - SAYFA BAĞIMSIZ) ───
-        // G_OLCUM_TETIK ve G_SNIFFER_OLCUM_YAP sinyallerini GlobalData'dan dinler.
+        // G_OLCUM_TETIK ve G_SNIFFER_OLCUM_TETIK sinyallerini GlobalData'dan dinler.
         // Hangi sayfada olursa olsun tetik alınır ve işlenir.
         // ════════════════════════════════════════════════════════════
 
@@ -1428,7 +1432,7 @@ namespace App4.Utilities
                         _ = HandleOlcumTetikAsync(robot, robotNo);
                     break;
 
-                case "G_SNIFFER_OLCUM_YAP":
+                case "G_SNIFFER_OLCUM_TETIK":
                     if (!_snifferOlcumProcessing)
                         _ = HandleSnifferOlcumAsync(robot, robotNo);
                     break;
@@ -1571,7 +1575,7 @@ namespace App4.Utilities
 
         // =====================================================
         // INFICON SNIFFER ÖLÇÜM (GLOBAL)
-        // Robot G_SNIFFER_OLCUM_YAP=TRUE → INFICON ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
+        // Robot G_SNIFFER_OLCUM_TETIK=TRUE → INFICON ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
         // =====================================================
         public static async Task HandleSnifferOlcumAsync(KukaRobotInstance robot, int robotNo)
         {
