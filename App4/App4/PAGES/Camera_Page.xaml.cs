@@ -460,7 +460,9 @@ namespace App4.PAGES
 
         private List<string> _logHistory = new();
         private bool _isWebViewInitialized = false;
-      
+
+        // Veri kaynağı seçimi: false = SENSOR (ham), true = HAND-EYE (dönüştürülmüş)
+        private bool _useTransformedForTransfer = false;
 
         // Cached brushes for better performance
         private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.Colors.Orange);
@@ -532,15 +534,105 @@ namespace App4.PAGES
 
             AddLog("► Ölçüm alma isteği gönderildi...");
 
-            // DÜZELTME: Metot artık Tuple döndürüyor (int status, List data).
-            // Deconstruction yaparak sadece status'u alıyoruz veya sonucu kontrol ediyoruz.
             var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
 
-            // result.Item1 = Status (int)
-            // result.Item2 = Data List (List<GocatorMeasurement>)
             if (result.Item1 == 1) // 1 = Başarılı
             {
-                TransferMeasurementsToPlcRows();
+                // Hand-Eye dönüşüm uygula (kalibrasyon varsa) - her zaman BASE KOORDİNAT panelini doldur
+                var measurements = GlobalData.LastMeasurements;
+                bool transformSuccess = false;
+
+                if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 3)
+                {
+                    try
+                    {
+                        // --- 1. Gocator ham verileri logla ---
+                        double gocX = measurements[0].Value;
+                        double gocY = measurements[1].Value;
+                        double gocZ = measurements[2].Value;
+                        double gocA = measurements.Count > 3 ? measurements[3].Value : 0;
+                        double gocB = measurements.Count > 4 ? measurements[4].Value : 0;
+                        double gocC = measurements.Count > 5 ? measurements[5].Value : 0;
+
+                        AddLog($"[DEBUG] Gocator ham: X={gocX:F3} Y={gocY:F3} Z={gocZ:F3} A={gocA:F3} B={gocB:F3} C={gocC:F3}");
+
+                        var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
+
+                        // --- 2. Robot bilgileri logla ---
+                        var robot = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                        if (robot != null && robot.IsConnected)
+                        {
+                            AddLog($"[DEBUG] Robot TCP ($POS_ACT): X={robot.PosX:F2} Y={robot.PosY:F2} Z={robot.PosZ:F2} A={robot.PosA:F2} B={robot.PosB:F2} C={robot.PosC:F2}");
+                            AddLog($"[DEBUG] Aktif Tool#: {robot.ToolNo}");
+
+                            // --- 3. $TOOL değerlerini logla ---
+                            if (robot.ToolNo > 0)
+                            {
+                                try
+                                {
+                                    string tX = await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].X");
+                                    string tY = await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].Y");
+                                    string tZ = await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].Z");
+                                    string tA = await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].A");
+                                    string tB = await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].B");
+                                    string tC = await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].C");
+                                    AddLog($"[DEBUG] $TOOL[{robot.ToolNo}]: X={tX} Y={tY} Z={tZ} A={tA} B={tB} C={tC}");
+                                }
+                                catch { AddLog("[DEBUG] $TOOL okunamadı"); }
+                            }
+
+                            // --- 4. Hand-Eye matrisi logla ---
+                            var hePose = KukaPose.FromMatrix(CalibrationService.Instance.HandEyeMatrix);
+                            AddLog($"[DEBUG] HandEye: X={hePose.X:F2} Y={hePose.Y:F2} Z={hePose.Z:F2} A={hePose.A:F2} B={hePose.B:F2} C={hePose.C:F2}");
+
+                            // --- 5. $ACT_BASE logla ---
+                            try
+                            {
+                                string baseAct = await robot.ReadVariableAsync("$ACT_BASE");
+                                AddLog($"[DEBUG] $ACT_BASE={baseAct}");
+                            }
+                            catch { }
+
+                            // --- 6. Dönüşüm yap (userBaseNo=1 → sonucu Base 1'e dönüştür) ---
+                            var basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget, userBaseNo: 1);
+
+                            if (basePose != null)
+                            {
+                                AddLog($"[DEBUG] ► SONUÇ Base: X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
+                                GlobalData.PopulateTransformedMeasurements(basePose);
+                                transformSuccess = true;
+                            }
+                            else
+                            {
+                                AddLog("⚠ Hand-Eye dönüşüm yapılamadı");
+                            }
+                        }
+                        else
+                        {
+                            AddLog("⚠ Robot bağlı değil, dönüşüm yapılamadı");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"⚠ Hand-Eye dönüşüm hatası: {ex.Message}");
+                    }
+                }
+
+                // BORU ÖLÇÜM AKTARIM: Kullanıcı seçimine göre aktar
+                if (_useTransformedForTransfer && transformSuccess)
+                {
+                    TransferTransformedToPlcRows();
+                }
+                else if (_useTransformedForTransfer && !transformSuccess)
+                {
+                    AddLog("⚠ HAND-EYE seçili ama dönüşüm başarısız, ham veriler aktarılıyor");
+                    TransferMeasurementsToPlcRows();
+                }
+                else
+                {
+                    // SENSOR seçili: ham veriyi aktar
+                    TransferMeasurementsToPlcRows();
+                }
             }
 
             if (btn != null) btn.IsEnabled = true;
@@ -765,6 +857,63 @@ namespace App4.PAGES
         }
 
 
+
+        /// <summary>
+        /// Hand-Eye dönüştürülmüş verileri PLC aktarım tablosuna yazar.
+        /// TransformedMeasurements koleksiyonundaki base koordinatlarını kullanır.
+        /// </summary>
+        private void TransferTransformedToPlcRows()
+        {
+            try
+            {
+                var transformed = GlobalData.TransformedMeasurements;
+                if (transformed.Count == 0) return;
+
+                int count = Math.Min(transformed.Count, PlcTransferRows.Count);
+                for (int i = 0; i < count; i++)
+                {
+                    PlcTransferRows[i].Value = transformed[i].Value.ToString("F3");
+                    PlcTransferRows[i].Status = "WAIT";
+                    PlcTransferRows[i].StatusColor = BrushOrange;
+                }
+
+                AddLog($"► {count} adet dönüştürülmüş veri PLC tablosuna aktarıldı.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Dönüştürülmüş veri aktarım hatası: {ex.Message}");
+            }
+        }
+
+        // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır) ---
+        private void ChkSourceSensor_Checked(object sender, RoutedEventArgs e)
+        {
+            _useTransformedForTransfer = false;
+            if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+            AddLog("► Veri kaynağı: SENSOR (Ham Gocator verisi)");
+
+            // Mevcut ham veriyi hemen aktar
+            if (GlobalData.LastMeasurements.Count > 0)
+                TransferMeasurementsToPlcRows();
+        }
+
+        private void ChkSourceHandEye_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!CalibrationService.Instance.IsCalibrated)
+            {
+                AddLog("⚠ Hand-Eye kalibrasyon aktif değil! Önce kalibrasyon yapın.");
+                if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+                if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = true;
+                return;
+            }
+            _useTransformedForTransfer = true;
+            if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
+            AddLog("► Veri kaynağı: HAND-EYE (Dönüştürülmüş base koordinat)");
+
+            // Mevcut dönüştürülmüş veriyi hemen aktar
+            if (GlobalData.TransformedMeasurements.Count > 0)
+                TransferTransformedToPlcRows();
+        }
 
         // --- YENİ SATIR EKLEME ---
         private void BtnAddPlcRow_Click(object sender, RoutedEventArgs e)
@@ -1358,7 +1507,54 @@ namespace App4.PAGES
                         {
                             // --- BORU ÖLÇÜM (JOB 1..N) ---
                             App4.Utilities.GlobalData.SetMeasurementSignal();
-                            TransferMeasurementsToPlcRows();
+
+                            // Kullanıcı seçimine göre aktarım
+                            if (_useTransformedForTransfer && CalibrationService.Instance.IsCalibrated)
+                            {
+                                // Hand-Eye dönüşüm yap ve transformed veriyi aktar
+                                try
+                                {
+                                    var meas = GlobalData.LastMeasurements;
+                                    if (meas.Count >= 3)
+                                    {
+                                        double gX = meas[0].Value, gY = meas[1].Value, gZ = meas[2].Value;
+                                        double gA = meas.Count > 3 ? meas[3].Value : 0;
+                                        double gB = meas.Count > 4 ? meas[4].Value : 0;
+                                        double gC = meas.Count > 5 ? meas[5].Value : 0;
+                                        var st = new KukaPose(gX, gY, gZ, gA, gB, gC).ToMatrix();
+                                        var rb = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                                        if (rb != null && rb.IsConnected)
+                                        {
+                                            var bp = await CalibrationService.Instance.LocateFromRobotAsync(rb, st, userBaseNo: 1);
+                                            if (bp != null)
+                                            {
+                                                GlobalData.PopulateTransformedMeasurements(bp);
+                                                TransferTransformedToPlcRows();
+                                            }
+                                            else
+                                            {
+                                                AddLog("⚠ Dönüşüm başarısız, ham veri aktarılıyor");
+                                                TransferMeasurementsToPlcRows();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            AddLog("⚠ Robot bağlı değil, ham veri aktarılıyor");
+                                            TransferMeasurementsToPlcRows();
+                                        }
+                                    }
+                                    else TransferMeasurementsToPlcRows();
+                                }
+                                catch (Exception ex2)
+                                {
+                                    AddLog($"⚠ Dönüşüm hatası: {ex2.Message}, ham veri aktarılıyor");
+                                    TransferMeasurementsToPlcRows();
+                                }
+                            }
+                            else
+                            {
+                                TransferMeasurementsToPlcRows();
+                            }
                         }
 
                         AddLog($"✅ BAŞARILI!");

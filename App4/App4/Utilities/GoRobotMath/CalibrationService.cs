@@ -460,7 +460,7 @@ namespace App4.Utilities.GoRobotMath
         /// Tam akis: Robot'tan flange oku → sensor olcumunu donustur → KukaPose dondur.
         /// </summary>
         public async Task<KukaPose> LocateFromRobotAsync(
-            KukaRobotInstance robot, TransformMatrix targetInSensor)
+            KukaRobotInstance robot, TransformMatrix targetInSensor, int userBaseNo = -1)
         {
             if (!IsCalibrated)
                 throw new InvalidOperationException("Kalibrasyon yapilmamis.");
@@ -468,8 +468,78 @@ namespace App4.Utilities.GoRobotMath
             var flangeMatrix = await GetFlangeMatrixFromRobotAsync(robot);
             if (flangeMatrix == null) return null;
 
-            var targetInBase = LocateInBase(flangeMatrix, targetInSensor);
-            return KukaPose.FromMatrix(targetInBase);
+            // Debug: Flange matrisini logla
+            var flangePose = KukaPose.FromMatrix(flangeMatrix);
+            StatusMessage = $"[DEBUG] Flange: X={flangePose.X:F2} Y={flangePose.Y:F2} Z={flangePose.Z:F2} A={flangePose.A:F2} B={flangePose.B:F2} C={flangePose.C:F2}";
+
+            // Hand-Eye donusum: sonuc $POS_ACT'in baz aldigi koordinat sisteminde
+            var targetInActiveBase = LocateInBase(flangeMatrix, targetInSensor);
+
+            // Kullanici farkli bir base'de calisiyorsa donustur
+            if (userBaseNo >= 0)
+            {
+                targetInActiveBase = await ConvertToUserBaseAsync(robot, targetInActiveBase, userBaseNo);
+            }
+
+            return KukaPose.FromMatrix(targetInActiveBase);
+        }
+
+        /// <summary>
+        /// Sonucu $BASE_ACT koordinat sisteminden kullanicinin istegi base'e donusturur.
+        /// $POS_ACT, $BASE_ACT'in tanimladigi base'de veri verir.
+        /// Kullanici farkli bir base (ornegin Base 1) ile calisiyorsa:
+        ///   result_userBase = UserBase^(-1) * ActiveBase * result_activeBase
+        /// </summary>
+        private async Task<TransformMatrix> ConvertToUserBaseAsync(
+            KukaRobotInstance robot, TransformMatrix resultInActiveBase, int userBaseNo)
+        {
+            try
+            {
+                int activeBase = (int)ParseRobotDouble(await robot.ReadVariableAsync("$ACT_BASE"));
+
+                StatusMessage = $"[DEBUG] $ACT_BASE={activeBase}, Hedef Base={userBaseNo}";
+
+                if (activeBase == userBaseNo)
+                    return resultInActiveBase; // Zaten dogru base'de
+
+                // Aktif base matrisi (0=World=Identity)
+                TransformMatrix activeBM = TransformMatrix.Identity;
+                if (activeBase > 0)
+                    activeBM = await ReadBaseMatrixAsync(robot, activeBase);
+
+                // Kullanici base matrisi
+                TransformMatrix userBM = TransformMatrix.Identity;
+                if (userBaseNo > 0)
+                    userBM = await ReadBaseMatrixAsync(robot, userBaseNo);
+
+                // World'e cevir, sonra kullanici base'ine cevir
+                var resultInWorld = activeBM * resultInActiveBase;
+                var resultInUserBase = userBM.Inverse() * resultInWorld;
+
+                var dbgPose = KukaPose.FromMatrix(resultInUserBase);
+                StatusMessage = $"[DEBUG] Base{userBaseNo}'e donusturuldu: X={dbgPose.X:F2} Y={dbgPose.Y:F2} Z={dbgPose.Z:F2}";
+
+                return resultInUserBase;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"[DEBUG] Base donusum hatasi: {ex.Message}, donusturmeden devam";
+                return resultInActiveBase;
+            }
+        }
+
+        /// <summary>
+        /// $BASE[n] degerlerini okuyarak TransformMatrix olusturur.
+        /// </summary>
+        private async Task<TransformMatrix> ReadBaseMatrixAsync(KukaRobotInstance robot, int baseNo)
+        {
+            double bx = ParseRobotDouble(await robot.ReadVariableAsync($"$BASE[{baseNo}].X"));
+            double by = ParseRobotDouble(await robot.ReadVariableAsync($"$BASE[{baseNo}].Y"));
+            double bz = ParseRobotDouble(await robot.ReadVariableAsync($"$BASE[{baseNo}].Z"));
+            double ba = ParseRobotDouble(await robot.ReadVariableAsync($"$BASE[{baseNo}].A"));
+            double bb = ParseRobotDouble(await robot.ReadVariableAsync($"$BASE[{baseNo}].B"));
+            double bc = ParseRobotDouble(await robot.ReadVariableAsync($"$BASE[{baseNo}].C"));
+            return new KukaPose(bx, by, bz, ba, bb, bc).ToMatrix();
         }
 
         #endregion

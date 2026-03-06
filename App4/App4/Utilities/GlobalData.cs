@@ -1604,17 +1604,19 @@ namespace App4.Utilities
                         string[] boruOffsets = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                                  "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
 
-                        if (CalibrationService.Instance.IsCalibrated && results.Count >= 6)
+                        if (CalibrationService.Instance.IsCalibrated && results.Count >= 3)
                         {
                             // Hand-Eye kalibrasyon ile sensor → base donusumu
                             double gocX = results[0].Value, gocY = results[1].Value, gocZ = results[2].Value;
-                            double gocA = results[3].Value, gocB = results[4].Value, gocC = results[5].Value;
+                            double gocA = results.Count > 3 ? results[3].Value : 0;
+                            double gocB = results.Count > 4 ? results[4].Value : 0;
+                            double gocC = results.Count > 5 ? results[5].Value : 0;
 
                             // Sensor koordinatlarinda hedef matris olustur
                             var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
 
-                            // Robot flange → base donusumu uygula
-                            var basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget);
+                            // Robot flange → kullanıcı base donusumu uygula (Base 1)
+                            var basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget, userBaseNo: 1);
 
                             if (basePose != null)
                             {
@@ -1626,7 +1628,7 @@ namespace App4.Utilities
                                 for (int i = 0; i < 6; i++)
                                     await WriteToAllRobotsAsync(boruOffsets[i], baseVals[i].ToString("F3"));
 
-                                OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - HandEye dönüşüm uygulandı: " +
+                                OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - HandEye dönüşüm (Base1): " +
                                     $"X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
                             }
                             else
@@ -2355,11 +2357,13 @@ namespace App4.Utilities
                         offsets = new[] { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                           "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
 
-                        if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 6)
+                        if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 3)
                         {
                             // Hand-Eye kalibrasyon ile sensor → base donusumu
                             double gocX = measurements[0].Value, gocY = measurements[1].Value, gocZ = measurements[2].Value;
-                            double gocA = measurements[3].Value, gocB = measurements[4].Value, gocC = measurements[5].Value;
+                            double gocA = measurements.Count > 3 ? measurements[3].Value : 0;
+                            double gocB = measurements.Count > 4 ? measurements[4].Value : 0;
+                            double gocC = measurements.Count > 5 ? measurements[5].Value : 0;
 
                             var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
 
@@ -2367,7 +2371,7 @@ namespace App4.Utilities
                             var robot = KukaRobotManager.Instance?.Robots?.FirstOrDefault();
                             KukaPose basePose = null;
                             if (robot != null)
-                                basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget);
+                                basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget, userBaseNo: 1);
 
                             if (basePose != null)
                             {

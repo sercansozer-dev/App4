@@ -836,11 +836,18 @@
                                 </Grid.RowDefinitions>
 
                                 <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                                        <FontIcon Glyph="&#xE8F4;" Foreground="#FF9800" FontSize="16"/>
-                                        <TextBlock Text="GOCATOR HAM VERİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                        <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="SENSOR" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                            <FontIcon Glyph="&#xE8F4;" Foreground="#FF9800" FontSize="16"/>
+                                            <TextBlock Text="GOCATOR HAM VERİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                            <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="SENSOR" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkSourceSensor" Grid.Column="1" Checked="ChkSourceSensor_Checked" IsChecked="True" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu veriyi Boru Ölçüm Aktarım tablosuna ilet"/>
+                                    </Grid>
                                 </Border>
 
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
@@ -905,11 +912,18 @@
                                 </Grid.RowDefinitions>
 
                                 <Border Grid.Row="0" Background="#1E2D1E" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                                        <FontIcon Glyph="&#xE81E;" Foreground="#4CAF50" FontSize="16"/>
-                                        <TextBlock Text="BASE KOORDİNAT" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                        <Border Background="#4CAF50" CornerRadius="4" Padding="6,2"><TextBlock Text="HAND-EYE" FontSize="8" FontWeight="Bold" Foreground="White"/></Border>
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                            <FontIcon Glyph="&#xE81E;" Foreground="#4CAF50" FontSize="16"/>
+                                            <TextBlock Text="BASE KOORDİNAT" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                            <Border Background="#4CAF50" CornerRadius="4" Padding="6,2"><TextBlock Text="HAND-EYE" FontSize="8" FontWeight="Bold" Foreground="White"/></Border>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkSourceHandEye" Grid.Column="1" Checked="ChkSourceHandEye_Checked" IsChecked="False" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu veriyi Boru Ölçüm Aktarım tablosuna ilet"/>
+                                    </Grid>
                                 </Border>
 
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
