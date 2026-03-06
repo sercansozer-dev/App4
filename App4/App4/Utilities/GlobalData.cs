@@ -626,6 +626,35 @@ namespace App4.Utilities
             return result;
         }
 
+        // ═══ CODESYS Matematik Fonksiyonu Ayarları (kalıcı) ═══
+        private static double _codesysOffsetX = 7.44;
+        public static double CodesysOffsetX
+        {
+            get => _codesysOffsetX;
+            set { _codesysOffsetX = value; SaveAutomationSettings(); }
+        }
+
+        private static double _codesysOffsetY = 16.79;
+        public static double CodesysOffsetY
+        {
+            get => _codesysOffsetY;
+            set { _codesysOffsetY = value; SaveAutomationSettings(); }
+        }
+
+        private static double _codesysOffsetZ = 242.90;
+        public static double CodesysOffsetZ
+        {
+            get => _codesysOffsetZ;
+            set { _codesysOffsetZ = value; SaveAutomationSettings(); }
+        }
+
+        private static string _codesysGocMappings = "0,1,2,3";
+        public static string CodesysGocMappings
+        {
+            get => _codesysGocMappings;
+            set { _codesysGocMappings = value ?? "0,1,2,3"; SaveAutomationSettings(); }
+        }
+
         // Tool göreceli konum verileri (JSON formatında kalıcı kayıt)
         private static string _savedToolRelativeOffsets = "";
         public static string SavedToolRelativeOffsets
@@ -1363,6 +1392,24 @@ namespace App4.Utilities
                 try { _savedToolRelativeOffsets = settings["ToolRelativeOffsets"] as string ?? ""; } catch { }
             }
 
+            // CODESYS matematik fonksiyonu ayarları
+            if (settings.ContainsKey("CodesysOffsetX"))
+            {
+                try { _codesysOffsetX = (double)settings["CodesysOffsetX"]; } catch { }
+            }
+            if (settings.ContainsKey("CodesysOffsetY"))
+            {
+                try { _codesysOffsetY = (double)settings["CodesysOffsetY"]; } catch { }
+            }
+            if (settings.ContainsKey("CodesysOffsetZ"))
+            {
+                try { _codesysOffsetZ = (double)settings["CodesysOffsetZ"]; } catch { }
+            }
+            if (settings.ContainsKey("CodesysGocMappings"))
+            {
+                try { _codesysGocMappings = settings["CodesysGocMappings"] as string ?? "0,1,2,3"; } catch { }
+            }
+
             // Debug log
             System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}, ReadSpeed={_robotReadSpeed}ms");
         }
@@ -1387,6 +1434,12 @@ namespace App4.Utilities
             settings["Gocator_Port"] = Gocator_Port;
             settings["Gocator_AxisMapping"] = string.Join(",", GocatorAxisMapping);
             settings["ToolRelativeOffsets"] = SavedToolRelativeOffsets ?? "";
+
+            // CODESYS matematik fonksiyonu ayarları
+            settings["CodesysOffsetX"] = CodesysOffsetX;
+            settings["CodesysOffsetY"] = CodesysOffsetY;
+            settings["CodesysOffsetZ"] = CodesysOffsetZ;
+            settings["CodesysGocMappings"] = CodesysGocMappings ?? "0,1,2,3";
 
             // KL100 Slider R1/R2 Home sinyal se\u00e7imleri
             settings["KL100_R1Home"] = KL100_Robot1HomeSignal ?? "";

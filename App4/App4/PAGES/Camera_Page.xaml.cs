@@ -639,9 +639,17 @@ namespace App4.PAGES
         // CODESYS hesaplama sonuçları
         public ObservableCollection<GocatorMeasurement> CodesysResults { get; } = new ObservableCollection<GocatorMeasurement>();
 
+        // CODESYS matematik fonksiyonu instance (ayrı .cs dosyasında tanımlı)
+        private readonly CodesysMathFunction _codesysMath = new CodesysMathFunction();
+
         // 3D Spatial Visualizer
         private bool _isVisualizerWebViewInitialized = false;
         private DispatcherTimer _liveTcpTimer;
+
+        // Tool tanım cache — her 500ms'de 30 ayrı ReadVariable yerine cache kullan
+        private readonly double[][] _vizToolDefCache = new double[3][];  // [toolIndex][0..5] = X,Y,Z,A,B,C
+        private DateTime _vizToolDefCacheTime = DateTime.MinValue;
+        private static readonly TimeSpan VizToolCacheExpiry = TimeSpan.FromSeconds(5);
 
         // Snapshot sistemi — tüm veriler ÖLÇÜM ANINDA yakalanır
         public ObservableCollection<SnapshotRecord> SnapshotRecords { get; } = new ObservableCollection<SnapshotRecord>();
@@ -702,6 +710,9 @@ namespace App4.PAGES
 
             this.Loaded += Camera_Page_Loaded;
             this.Unloaded += Camera_Page_Unloaded;
+
+            // CODESYS ayarlarını GlobalData'dan yükle
+            LoadCodesysSettings();
         }
 
         private void Camera_Page_Unloaded(object sender, RoutedEventArgs e)
@@ -863,8 +874,14 @@ namespace App4.PAGES
                     }
                 }
 
-                // BORU ÖLÇÜM AKTARIM: Kullanıcı seçimine göre aktar
-                if (_useTransformedForTransfer && transformSuccess)
+                // BORU ÖLÇÜM AKTARIM: Kullanıcı seçimine göre aktar (3 seçenek)
+                if (_useCodesysForTransfer)
+                {
+                    // CODESYS matematik fonksiyonu ile hesapla ve aktar
+                    RunCodesysCalculation();
+                    TransferCodesysToPlcRows();
+                }
+                else if (_useTransformedForTransfer && transformSuccess)
                 {
                     TransferTransformedToPlcRows();
                 }
@@ -1439,11 +1456,211 @@ namespace App4.PAGES
             }
         }
 
-        // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır) ---
+        // ═══════════════════════════════════════════════════════════════════
+        // CODESYS MATEMATİK FONKSİYONU — Bağımsız hesaplama motoru
+        // Gocator ham verisini KUKA eksenlerine çevirip optik ofset ekler,
+        // ardından Robot Tool2 TCP matrisi ile çarparak hedef noktayı bulur.
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// CODESYS hesaplama sonuçlarını PLC aktarım tablosuna yazar.
+        /// </summary>
+        private void TransferCodesysToPlcRows()
+        {
+            try
+            {
+                if (CodesysResults.Count == 0) return;
+
+                int count = Math.Min(CodesysResults.Count, PlcTransferRows.Count);
+                for (int i = 0; i < count; i++)
+                {
+                    PlcTransferRows[i].Value = CodesysResults[i].Value.ToString("F3");
+                    PlcTransferRows[i].Status = "WAIT";
+                    PlcTransferRows[i].StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0));
+                }
+
+                AddLog($"► CODESYS sonuçları aktarım tablosuna yazıldı ({count} değer).");
+
+                // Robota yaz: her satırda seçili tag varsa robota gönder
+                _ = WriteTransferRowsToRobotAsync();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ CODESYS aktarım hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// CODESYS hesaplamasını tetikler: Gocator ham → eşleştirme → CodesysMathFunction.Calculate() → sonuç.
+        /// Matematik fonksiyonu Utilities/CodesysMathFunction.cs dosyasında tanımlıdır.
+        /// </summary>
+        private void RunCodesysCalculation()
+        {
+            try
+            {
+                var measurements = GlobalData.LastMeasurements;
+                if (measurements.Count == 0)
+                {
+                    AddLog("⚠ CODESYS: Gocator verisi yok, önce ölçüm alın.");
+                    return;
+                }
+
+                // Ofsetleri güncelle (UI'dan değişmiş olabilir)
+                _codesysMath.OffsetX = _codesysOffsetX;
+                _codesysMath.OffsetY = _codesysOffsetY;
+                _codesysMath.OffsetZ = _codesysOffsetZ;
+
+                // Eşleştirme index'lerini güncelle
+                _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
+                _codesysMath.MapIndexY = CodesysMappings[1].GocatorIndex;
+                _codesysMath.MapIndexZ = CodesysMappings[2].GocatorIndex;
+                _codesysMath.MapIndexAngleZ = CodesysMappings[3].GocatorIndex;
+
+                // Gocator ham ölçüm değerlerini diziye çevir
+                var gocValues = new double[measurements.Count];
+                for (int i = 0; i < measurements.Count; i++)
+                    gocValues[i] = measurements[i].Value;
+
+                // Eşleştirme tablosundaki değerleri güncelle (UI'da göstermek için)
+                foreach (var mapping in CodesysMappings)
+                {
+                    double val = mapping.GocatorIndex < gocValues.Length ? gocValues[mapping.GocatorIndex] : 0;
+                    mapping.CurrentValue = val;
+                }
+
+                // Robot Tool2 TCP pozisyonunu oku
+                var robot = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                if (robot == null || !robot.IsConnected)
+                {
+                    AddLog("⚠ CODESYS: Robot bağlı değil, hesaplama yapılamıyor.");
+                    return;
+                }
+
+                var robotTool2Pose = new KukaPose
+                {
+                    X = robot.PosX, Y = robot.PosY, Z = robot.PosZ,
+                    A = robot.PosA, B = robot.PosB, C = robot.PosC
+                };
+
+                // CodesysMathFunction.cs'deki hesaplama fonksiyonunu çağır
+                var targetPose = _codesysMath.CalculateFromArray(gocValues, robotTool2Pose);
+
+                if (!_codesysMath.LastCalculationSuccess)
+                {
+                    AddLog($"⚠ CODESYS hesaplama hatası: {_codesysMath.LastError}");
+                    return;
+                }
+
+                // Sonuçları göster
+                CodesysResults.Clear();
+                CodesysResults.Add(new GocatorMeasurement { Id = 1, Name = "Target X", Value = Math.Round(targetPose.X, 3), Unit = "mm", Decision = "Pass" });
+                CodesysResults.Add(new GocatorMeasurement { Id = 2, Name = "Target Y", Value = Math.Round(targetPose.Y, 3), Unit = "mm", Decision = "Pass" });
+                CodesysResults.Add(new GocatorMeasurement { Id = 3, Name = "Target Z", Value = Math.Round(targetPose.Z, 3), Unit = "mm", Decision = "Pass" });
+                CodesysResults.Add(new GocatorMeasurement { Id = 4, Name = "Target A", Value = Math.Round(targetPose.A, 3), Unit = "°", Decision = "Pass" });
+                CodesysResults.Add(new GocatorMeasurement { Id = 5, Name = "Target B", Value = Math.Round(targetPose.B, 3), Unit = "°", Decision = "Pass" });
+                CodesysResults.Add(new GocatorMeasurement { Id = 6, Name = "Target C", Value = Math.Round(targetPose.C, 3), Unit = "°", Decision = "Pass" });
+
+                AddLog($"✓ CODESYS hedef hesaplandı: X={targetPose.X:F2} Y={targetPose.Y:F2} Z={targetPose.Z:F2} A={targetPose.A:F2} B={targetPose.B:F2} C={targetPose.C:F2}");
+                AddLog($"  Girdiler: RawX={CodesysMappings[0].CurrentValue:F2} RawY={CodesysMappings[1].CurrentValue:F2} RawZ={CodesysMappings[2].CurrentValue:F2} AngleZ={CodesysMappings[3].CurrentValue:F2} | Ofset: X={_codesysOffsetX} Y={_codesysOffsetY} Z={_codesysOffsetZ}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ CODESYS hesaplama hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// CODESYS ofset ayarlarını kaydet.
+        /// </summary>
+        private void BtnCodesysSave_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // NumberBox'lardan oku
+                if (NbCodesysOffsetX != null) _codesysOffsetX = NbCodesysOffsetX.Value;
+                if (NbCodesysOffsetY != null) _codesysOffsetY = NbCodesysOffsetY.Value;
+                if (NbCodesysOffsetZ != null) _codesysOffsetZ = NbCodesysOffsetZ.Value;
+
+                // Eşleştirme index'lerini oku
+                if (NbCodesysMapX != null) CodesysMappings[0].GocatorIndex = (int)NbCodesysMapX.Value;
+                if (NbCodesysMapY != null) CodesysMappings[1].GocatorIndex = (int)NbCodesysMapY.Value;
+                if (NbCodesysMapZ != null) CodesysMappings[2].GocatorIndex = (int)NbCodesysMapZ.Value;
+                if (NbCodesysMapA != null) CodesysMappings[3].GocatorIndex = (int)NbCodesysMapA.Value;
+
+                // GlobalData'ya kaydet
+                GlobalData.CodesysOffsetX = _codesysOffsetX;
+                GlobalData.CodesysOffsetY = _codesysOffsetY;
+                GlobalData.CodesysOffsetZ = _codesysOffsetZ;
+                GlobalData.CodesysGocMappings = $"{CodesysMappings[0].GocatorIndex},{CodesysMappings[1].GocatorIndex},{CodesysMappings[2].GocatorIndex},{CodesysMappings[3].GocatorIndex}";
+
+                AddLog($"✓ CODESYS ayarları kaydedildi — Ofset: X={_codesysOffsetX} Y={_codesysOffsetY} Z={_codesysOffsetZ} | Eşleştirme: {GlobalData.CodesysGocMappings}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ CODESYS kayıt hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// CODESYS ofset ayarlarını varsayılana sıfırla.
+        /// </summary>
+        private void BtnCodesysReset_Click(object sender, RoutedEventArgs e)
+        {
+            _codesysOffsetX = 7.44;
+            _codesysOffsetY = 16.79;
+            _codesysOffsetZ = 242.90;
+
+            if (NbCodesysOffsetX != null) NbCodesysOffsetX.Value = _codesysOffsetX;
+            if (NbCodesysOffsetY != null) NbCodesysOffsetY.Value = _codesysOffsetY;
+            if (NbCodesysOffsetZ != null) NbCodesysOffsetZ.Value = _codesysOffsetZ;
+
+            CodesysMappings[0].GocatorIndex = 0;
+            CodesysMappings[1].GocatorIndex = 1;
+            CodesysMappings[2].GocatorIndex = 2;
+            CodesysMappings[3].GocatorIndex = 3;
+
+            if (NbCodesysMapX != null) NbCodesysMapX.Value = 0;
+            if (NbCodesysMapY != null) NbCodesysMapY.Value = 1;
+            if (NbCodesysMapZ != null) NbCodesysMapZ.Value = 2;
+            if (NbCodesysMapA != null) NbCodesysMapA.Value = 3;
+
+            AddLog("► CODESYS ofsetler varsayılana sıfırlandı: X=7.44 Y=16.79 Z=242.90");
+        }
+
+        /// <summary>
+        /// CODESYS ayarlarını GlobalData'dan yükle (sayfa açılışında çağrılır).
+        /// </summary>
+        private void LoadCodesysSettings()
+        {
+            _codesysOffsetX = GlobalData.CodesysOffsetX;
+            _codesysOffsetY = GlobalData.CodesysOffsetY;
+            _codesysOffsetZ = GlobalData.CodesysOffsetZ;
+
+            // Eşleştirme index'lerini parse et
+            var parts = (GlobalData.CodesysGocMappings ?? "0,1,2,3").Split(',');
+            for (int i = 0; i < Math.Min(parts.Length, CodesysMappings.Count); i++)
+            {
+                if (int.TryParse(parts[i].Trim(), out int idx))
+                    CodesysMappings[i].GocatorIndex = idx;
+            }
+
+            // CodesysMathFunction instance'ını senkronize et
+            _codesysMath.OffsetX = _codesysOffsetX;
+            _codesysMath.OffsetY = _codesysOffsetY;
+            _codesysMath.OffsetZ = _codesysOffsetZ;
+            _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
+            _codesysMath.MapIndexY = CodesysMappings[1].GocatorIndex;
+            _codesysMath.MapIndexZ = CodesysMappings[2].GocatorIndex;
+            _codesysMath.MapIndexAngleZ = CodesysMappings[3].GocatorIndex;
+        }
+
+        // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır, 3 seçenek) ---
         private void ChkSourceSensor_Checked(object sender, RoutedEventArgs e)
         {
             _useTransformedForTransfer = false;
+            _useCodesysForTransfer = false;
             if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+            if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
             AddLog("► Veri kaynağı: SENSOR (Ham Gocator verisi)");
 
             // Mevcut ham veriyi hemen aktar
@@ -1461,12 +1678,30 @@ namespace App4.PAGES
                 return;
             }
             _useTransformedForTransfer = true;
+            _useCodesysForTransfer = false;
             if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
+            if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
             AddLog("► Veri kaynağı: HAND-EYE (Dönüştürülmüş base koordinat)");
 
             // Mevcut dönüştürülmüş veriyi hemen aktar
             if (GlobalData.TransformedMeasurements.Count > 0)
                 TransferTransformedToPlcRows();
+        }
+
+        private void ChkSourceCodesys_Checked(object sender, RoutedEventArgs e)
+        {
+            _useCodesysForTransfer = true;
+            _useTransformedForTransfer = false;
+            if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
+            if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+            AddLog("► Veri kaynağı: CODESYS (Matematik fonksiyon hesaplaması)");
+
+            // Mevcut veri varsa hemen hesapla ve aktar
+            if (GlobalData.LastMeasurements.Count > 0)
+            {
+                RunCodesysCalculation();
+                TransferCodesysToPlcRows();
+            }
         }
 
         // --- YENİ SATIR EKLEME ---
@@ -2062,8 +2297,14 @@ namespace App4.PAGES
                             // --- BORU ÖLÇÜM (JOB 1..N) ---
                             App4.Utilities.GlobalData.SetMeasurementSignal();
 
-                            // Kullanıcı seçimine göre aktarım
-                            if (_useTransformedForTransfer && CalibrationService.Instance.IsCalibrated)
+                            // Kullanıcı seçimine göre aktarım (3 seçenek)
+                            if (_useCodesysForTransfer)
+                            {
+                                // CODESYS matematik fonksiyonu ile hesapla ve aktar
+                                RunCodesysCalculation();
+                                TransferCodesysToPlcRows();
+                            }
+                            else if (_useTransformedForTransfer && CalibrationService.Instance.IsCalibrated)
                             {
                                 // Hand-Eye dönüşüm yap ve transformed veriyi aktar
                                 try
@@ -2605,23 +2846,40 @@ namespace App4.PAGES
                                             robot.PosA, robot.PosB, robot.PosC);
                 var tcpMatrix = tcpPose.ToMatrix();
 
-                // 2. Flange = TCP × Tool⁻¹
-                TransformMatrix flangeMatrix = tcpMatrix;
+                // ── Tool tanım cache'ini güncelle (5 saniyede bir, her 500ms'de değil) ──
                 int toolNo = robot.ToolNo;
-                if (toolNo > 0 && robot.IsConnected)
+                bool toolCacheExpired = (DateTime.UtcNow - _vizToolDefCacheTime) > VizToolCacheExpiry;
+                if (robot.IsConnected && (toolCacheExpired || _vizToolDefCache[0] == null))
                 {
-                    try
+                    for (int ti = 0; ti <= 2; ti++)
                     {
-                        double tx = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].X"));
-                        double ty = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].Y"));
-                        double tz = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].Z"));
-                        double ta = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].A"));
-                        double tb = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].B"));
-                        double tc = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].C"));
-                        var activeToolMatrix = new KukaPose(tx, ty, tz, ta, tb, tc).ToMatrix();
-                        flangeMatrix = tcpMatrix * activeToolMatrix.Inverse();
+                        try
+                        {
+                            var v = new double[6];
+                            v[0] = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].X"));
+                            v[1] = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].Y"));
+                            v[2] = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].Z"));
+                            v[3] = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].A"));
+                            v[4] = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].B"));
+                            v[5] = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].C"));
+                            _vizToolDefCache[ti] = v;
+                            Debug.WriteLine($"[Visualizer] Tool[{ti}] cache güncellendi: X={v[0]:F1} Y={v[1]:F1} Z={v[2]:F1}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[Visualizer] Tool[{ti}] cache okunamadı: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex) { Debug.WriteLine($"[Visualizer] Tool[{toolNo}] okunamadı: {ex.Message}"); }
+                    _vizToolDefCacheTime = DateTime.UtcNow;
+                }
+
+                // 2. Flange = TCP × Tool⁻¹ (cache'den tool tanımı kullan)
+                TransformMatrix flangeMatrix = tcpMatrix;
+                if (toolNo > 0 && toolNo <= 2 && _vizToolDefCache[toolNo] != null)
+                {
+                    var t = _vizToolDefCache[toolNo];
+                    var activeToolMatrix = new KukaPose(t[0], t[1], t[2], t[3], t[4], t[5]).ToMatrix();
+                    flangeMatrix = tcpMatrix * activeToolMatrix.Inverse();
                 }
 
                 // 3. Camera = Flange × HandEye
@@ -2631,21 +2889,12 @@ namespace App4.PAGES
                     cameraMatrix = flangeMatrix * CalibrationService.Instance.HandEyeMatrix;
                 }
 
-                // 4. Tool[1] Sniffer = Flange × Tool[1]
+                // 4. Tool[1] Sniffer = Flange × Tool[1] (cache'den)
                 TransformMatrix tool1Matrix = null;
-                if (robot.IsConnected)
+                if (_vizToolDefCache[1] != null)
                 {
-                    try
-                    {
-                        double t1x = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].X"));
-                        double t1y = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].Y"));
-                        double t1z = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].Z"));
-                        double t1a = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].A"));
-                        double t1b = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].B"));
-                        double t1c = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].C"));
-                        tool1Matrix = flangeMatrix * new KukaPose(t1x, t1y, t1z, t1a, t1b, t1c).ToMatrix();
-                    }
-                    catch (Exception ex) { Debug.WriteLine($"[Visualizer] Tool[1] okunamadı: {ex.Message}"); }
+                    var t = _vizToolDefCache[1];
+                    tool1Matrix = flangeMatrix * new KukaPose(t[0], t[1], t[2], t[3], t[4], t[5]).ToMatrix();
                 }
 
                 // 5. Target (son dönüştürülmüş ölçüm)
@@ -2688,29 +2937,35 @@ namespace App4.PAGES
                 sb.Append($"\"tcp\":{{\"x\":{tcpPose.X.ToString("F2", ic)},\"y\":{tcpPose.Y.ToString("F2", ic)},\"z\":{tcpPose.Z.ToString("F2", ic)},");
                 sb.Append($"\"a\":{tcpPose.A.ToString("F2", ic)},\"b\":{tcpPose.B.ToString("F2", ic)},\"c\":{tcpPose.C.ToString("F2", ic)}}}");
 
-                // Tool tanımları (Tool[0], Tool[1], Tool[2]) + aktif tool no
+                // Tool tanımları + aktif tool no + eksen açıları
                 sb.Append(",");
                 int activeToolNo = robot.IsConnected ? robot.ToolNo : 0;
                 sb.Append($"\"activeToolNo\":{activeToolNo}");
+
+                // Tool tanımları — cache'den oku (artık her 500ms'de 18 ayrı ReadVariable yapmıyoruz)
+                sb.Append(",\"tools\":{");
+                for (int ti = 0; ti <= 2; ti++)
+                {
+                    if (ti > 0) sb.Append(",");
+                    var cached = _vizToolDefCache[ti];
+                    if (cached != null)
+                        sb.Append($"\"Tool[{ti}]\":\"X:{cached[0].ToString("F1", ic)} Y:{cached[1].ToString("F1", ic)} Z:{cached[2].ToString("F1", ic)} A:{cached[3].ToString("F1", ic)} B:{cached[4].ToString("F1", ic)} C:{cached[5].ToString("F1", ic)}\"");
+                    else
+                        sb.Append($"\"Tool[{ti}]\":\"bekliyor...\"");
+                }
+                sb.Append("}");
+
+                // Robot eksen açıları (A1-A6) — 3D robot görselleştirmesi için
                 if (robot.IsConnected)
                 {
-                    sb.Append(",\"tools\":{");
-                    for (int ti = 0; ti <= 2; ti++)
-                    {
-                        try
-                        {
-                            double ttx = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].X"));
-                            double tty = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].Y"));
-                            double ttz = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].Z"));
-                            double tta = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].A"));
-                            double ttb = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].B"));
-                            double ttc = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].C"));
-                            if (ti > 0) sb.Append(",");
-                            sb.Append($"\"Tool[{ti}]\":\"X:{ttx.ToString("F1", ic)} Y:{tty.ToString("F1", ic)} Z:{ttz.ToString("F1", ic)} A:{tta.ToString("F1", ic)} B:{ttb.ToString("F1", ic)} C:{ttc.ToString("F1", ic)}\"");
-                        }
-                        catch { if (ti > 0) sb.Append(","); sb.Append($"\"Tool[{ti}]\":\"okunamadı\""); }
-                    }
-                    sb.Append("}");
+                    sb.Append($",\"axes\":{{");
+                    sb.Append($"\"a1\":{robot.A1.ToString("F2", ic)},");
+                    sb.Append($"\"a2\":{robot.A2.ToString("F2", ic)},");
+                    sb.Append($"\"a3\":{robot.A3.ToString("F2", ic)},");
+                    sb.Append($"\"a4\":{robot.A4.ToString("F2", ic)},");
+                    sb.Append($"\"a5\":{robot.A5.ToString("F2", ic)},");
+                    sb.Append($"\"a6\":{robot.A6.ToString("F2", ic)}");
+                    sb.Append($"}}");
                 }
 
                 sb.Append("}");

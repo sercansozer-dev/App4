@@ -1480,6 +1480,251 @@
                 </Grid>
 
                 <!-- ═══════════════════════════════════════════════════════════════ -->
+                <!-- CODESYS MATEMATİK FONKSİYONU — Gocator Ham → Hedef Nokta -->
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <Grid Margin="20,0" ColumnSpacing="15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ═══ SOL: GİRDİ EŞLEŞTİRME + OPTİK OFSETLER ═══ -->
+                    <Border Grid.Column="0" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="45"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#1A0A2E" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <FontIcon Glyph="&#xE9D9;" Foreground="#9C27B0" FontSize="16"/>
+                                        <TextBlock Text="CODESYS FONKSİYON" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                        <Border Background="#9C27B0" CornerRadius="4" Padding="6,2"><TextBlock Text="MATEMATİK" FontSize="8" FontWeight="Bold" Foreground="White"/></Border>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ChkSourceCodesys" Grid.Column="1" Checked="ChkSourceCodesys_Checked" IsChecked="False" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu fonksiyon sonucunu Boru Ölçüm Aktarım tablosuna ilet"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- OPTİK OFSETLER -->
+                            <Border Grid.Row="1" Background="#1E1020" Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#2A2A2C">
+                                <StackPanel Spacing="6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE81E;" Foreground="#CE93D8" FontSize="11"/>
+                                            <TextBlock Text="OPTİK OFSETLER" FontSize="9" FontWeight="Bold" Foreground="#CE93D8"/>
+                                            <TextBlock Text="(mm)" FontSize="8" Foreground="#888"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                            <Button x:Name="BtnCodesysSave" Click="BtnCodesysSave_Click"
+                                                    Background="Transparent" BorderThickness="0" Padding="4,2" Height="22" MinWidth="0"
+                                                    ToolTipService.ToolTip="Ayarları kaydet">
+                                                <FontIcon Glyph="&#xE74E;" FontSize="10" Foreground="#4CAF50"/>
+                                            </Button>
+                                            <Button x:Name="BtnCodesysReset" Click="BtnCodesysReset_Click"
+                                                    Background="Transparent" BorderThickness="0" Padding="4,2" Height="22" MinWidth="0"
+                                                    ToolTipService.ToolTip="Varsayılana sıfırla (7.44, 16.79, 242.90)">
+                                                <FontIcon Glyph="&#xE72C;" FontSize="10" Foreground="#FF9800"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid ColumnSpacing="6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- X Offset -->
+                                        <Border Grid.Column="0" Background="#252526" CornerRadius="4" Padding="6,4">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="X Ofset" Foreground="#E74C3C" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                <NumberBox x:Name="NbCodesysOffsetX" Value="7.44" Minimum="-1000" Maximum="1000"
+                                                           SpinButtonPlacementMode="Compact" SmallChange="0.01" LargeChange="1"
+                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <!-- Y Offset -->
+                                        <Border Grid.Column="1" Background="#252526" CornerRadius="4" Padding="6,4">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Y Ofset" Foreground="#2ECC71" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                <NumberBox x:Name="NbCodesysOffsetY" Value="16.79" Minimum="-1000" Maximum="1000"
+                                                           SpinButtonPlacementMode="Compact" SmallChange="0.01" LargeChange="1"
+                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <!-- Z Offset -->
+                                        <Border Grid.Column="2" Background="#252526" CornerRadius="4" Padding="6,4">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Z Ofset" Foreground="#3498DB" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                <NumberBox x:Name="NbCodesysOffsetZ" Value="242.90" Minimum="-1000" Maximum="1000"
+                                                           SpinButtonPlacementMode="Compact" SmallChange="0.01" LargeChange="1"
+                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- GOCATOR → FONKSİYON GİRDİ EŞLEŞTİRME -->
+                            <Border Grid.Row="2" Background="#1E1020" Padding="10,6" BorderThickness="0,0,0,1" BorderBrush="#2A2A2C">
+                                <StackPanel Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE8CB;" Foreground="#CE93D8" FontSize="10"/>
+                                        <TextBlock Text="GOCATOR HAM → FONKSİYON GİRDİ" FontSize="9" FontWeight="Bold" Foreground="#CE93D8"/>
+                                    </StackPanel>
+
+                                    <!-- Tablo Başlık -->
+                                    <Grid Background="#252526" Height="24" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="FONKSİYON GİRDİ" Foreground="#888" FontSize="8" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="GOC #" Foreground="#888" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#888" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Gocator_Raw_X -->
+                                    <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Raw_X" Foreground="#E74C3C" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <NumberBox x:Name="NbCodesysMapX" Grid.Column="1" Value="0" Minimum="0" Maximum="11"
+                                                   SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[0].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Gocator_Raw_Y -->
+                                    <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Raw_Y" Foreground="#2ECC71" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <NumberBox x:Name="NbCodesysMapY" Grid.Column="1" Value="1" Minimum="0" Maximum="11"
+                                                   SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[1].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Gocator_Raw_Z -->
+                                    <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Raw_Z" Foreground="#3498DB" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <NumberBox x:Name="NbCodesysMapZ" Grid.Column="1" Value="2" Minimum="0" Maximum="11"
+                                                   SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[2].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Gocator_Raw_AngleZ -->
+                                    <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Angle_Z" Foreground="#E67E22" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <NumberBox x:Name="NbCodesysMapA" Grid.Column="1" Value="3" Minimum="0" Maximum="11"
+                                                   SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[3].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- FORMÜL BİLGİSİ -->
+                            <Border Grid.Row="3" Background="#150A20" Padding="10,6" CornerRadius="0,0,8,8">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Formül:" Foreground="#9C27B0" FontSize="8" FontWeight="Bold"/>
+                                    <TextBlock Text="PartInCam.X = Raw_Y + OffsetX" Foreground="#666" FontSize="8" FontFamily="Consolas"/>
+                                    <TextBlock Text="PartInCam.Y = -Raw_X + OffsetY" Foreground="#666" FontSize="8" FontFamily="Consolas"/>
+                                    <TextBlock Text="PartInCam.Z = OffsetZ - Raw_Z" Foreground="#666" FontSize="8" FontFamily="Consolas"/>
+                                    <TextBlock Text="Target = RobotTool2 × PartInCam" Foreground="#9C27B0" FontSize="8" FontFamily="Consolas" FontWeight="Bold" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- ═══ SAĞ: CODESYS SONUÇ (Target_Pose) ═══ -->
+                    <Border Grid.Column="1" Background="#1A1A1C" BorderThickness="1" BorderBrush="#333" CornerRadius="10" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="45"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#1A0A2E" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                    <FontIcon Glyph="&#xE81E;" Foreground="#9C27B0" FontSize="16"/>
+                                    <TextBlock Text="HEDEF NOKTA" FontSize="11" FontWeight="Bold" Foreground="#CE93D8" VerticalAlignment="Center"/>
+                                    <Border Background="#7B1FA2" CornerRadius="4" Padding="6,2"><TextBlock Text="Target_Pose" FontSize="8" FontWeight="Bold" Foreground="White"/></Border>
+                                </StackPanel>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                                <StackPanel Spacing="4">
+                                    <Grid Background="#2A2A2C" Height="30" CornerRadius="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="#" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="10"/>
+                                        <TextBlock Grid.Column="1" Text="ÖLÇÜM ADI" Foreground="#AAA" VerticalAlignment="Center" Margin="8,0" FontWeight="Bold" FontSize="10"/>
+                                        <TextBlock Grid.Column="2" Text="DEĞER" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Left" FontWeight="Bold" FontSize="10"/>
+                                        <TextBlock Grid.Column="3" Text="BİRİM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="9"/>
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{x:Bind CodesysResults, Mode=OneWay}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="utils:GocatorMeasurement">
+                                                <Grid Height="36" Margin="0,0,0,2" Background="#0F0A15" CornerRadius="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                        <ColumnDefinition Width="50"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="#CE93D8" FontSize="11" FontWeight="SemiBold"/>
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Value}" Foreground="#CE93D8" FontWeight="Bold" FontSize="11"/>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind Unit}" Foreground="#9C27B0" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="Henüz hesaplama yapılmadı. Ölçüm alıp CODESYS seçin." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0" FontSize="10"
+                                               Visibility="{x:Bind CodesysResults.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ═══════════════════════════════════════════════════════════════ -->
                 <!-- TABLA KAÇIKLIK: ÖLÇÜM SONUÇLARI + PLC AKTARIM -->
                 <!-- ═══════════════════════════════════════════════════════════════ -->
                 <Grid Margin="20,0" ColumnSpacing="20" RowSpacing="15">
