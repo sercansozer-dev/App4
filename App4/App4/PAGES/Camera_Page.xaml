@@ -438,6 +438,10 @@
                         <RowDefinition Height="10"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="10"/>
+                        <RowDefinition Height="800"/>
+                        <RowDefinition Height="10"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="10"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -819,7 +823,155 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="4" ColumnSpacing="15" RowSpacing="15">
+                    <!-- ═══ 3D UZAY GÖRSELLEŞTİRİCİ (Hand-Eye Spatial View) ═══ -->
+                    <Border Grid.Row="4" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#252526" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <FontIcon Glyph="&#xE809;" Foreground="#E040FB" FontSize="16"/>
+                                        <TextBlock Text="3D UZAY GÖRSELLEŞTİRİCİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                        <Border Background="#E040FB" CornerRadius="4" Padding="6,2">
+                                            <TextBlock Text="HAND-EYE" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" VerticalAlignment="Center">
+                                        <Button x:Name="BtnRefreshVisualizer" Click="BtnRefreshVisualizer_Click" Background="#333" BorderThickness="0" Padding="8,4" CornerRadius="4" Height="28"
+                                                ToolTipService.ToolTip="Görselleştiriciyi güncelle">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE72C;" FontSize="11" Foreground="#AAA"/>
+                                                <TextBlock Text="Güncelle" FontSize="9" Foreground="#AAA"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <ToggleSwitch x:Name="ToggleLiveTcp" OffContent="Canlı" OnContent="Canlı" Toggled="ToggleLiveTcp_Toggled" MinWidth="0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Grid Grid.Row="1" Background="#111111">
+                                <controls:WebView2 x:Name="HandEyeVisualizerWebView"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- ═══ SNAPSHOT VERİ TABLOSU (Tool Doğrulama) ═══ -->
+                    <Border Grid.Row="6" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="40"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Header -->
+                            <Border Grid.Row="0" Background="#1B2838" CornerRadius="10,10,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <FontIcon Glyph="&#xE787;" Foreground="#00BCD4" FontSize="16"/>
+                                        <TextBlock Text="SNAPSHOT VERİ TABLOSU" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                        <Border Background="#00BCD4" CornerRadius="4" Padding="6,2">
+                                            <TextBlock Text="TOOL DOĞRULAMA" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" VerticalAlignment="Center">
+                                        <Button x:Name="BtnSnapshotSave" Click="BtnSnapshotSave_Click" Background="#1B3D1B" BorderThickness="1" BorderBrush="#4CAF50" Padding="10,4" CornerRadius="4" Height="28">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <FontIcon Glyph="&#xE74E;" FontSize="11" Foreground="#4CAF50"/>
+                                                <TextBlock Text="Snapshot Kaydet" FontSize="9" Foreground="#4CAF50" FontWeight="Bold"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button x:Name="BtnSnapshotClear" Click="BtnSnapshotClear_Click" Background="#333" BorderThickness="0" Padding="8,4" CornerRadius="4" Height="28">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="#F44336"/>
+                                                <TextBlock Text="Temizle" FontSize="9" Foreground="#AAA"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Tablo Başlıkları -->
+                            <Grid Grid.Row="1" Background="#252526" Padding="8,4" ColumnSpacing="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="35"/>
+                                    <ColumnDefinition Width="50"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="#" Foreground="#888" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="TOOL" Foreground="#FFD700" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="SAAT" Foreground="#888" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="TCP (X,Y,Z)" Foreground="#00A4EF" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="GOC HAM (X,Y,Z)" Foreground="#FF9800" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="BASE (X,Y,Z)" Foreground="#4CAF50" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="6" Text="FLANGE (X,Y,Z)" Foreground="#FFD700" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="7" Text="ΔFlange" Foreground="#E040FB" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="8" Text="ΔHedef" Foreground="#FF6E40" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Snapshot Satırları -->
+                            <ItemsControl Grid.Row="2" ItemsSource="{x:Bind SnapshotRecords, Mode=OneWay}" Padding="4,2,4,8">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:SnapshotRecord">
+                                        <Grid Height="34" Margin="0,1" Background="#0F0F12" CornerRadius="4" Padding="4,0" ColumnSpacing="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30"/>
+                                                <ColumnDefinition Width="35"/>
+                                                <ColumnDefinition Width="50"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="80"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- # -->
+                                            <TextBlock Grid.Column="0" Text="{x:Bind No}" Foreground="#AAA" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- Tool -->
+                                            <Border Grid.Column="1" Background="#2A2500" CornerRadius="3" Padding="3,1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind ToolLabel}" Foreground="#FFD700" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+
+                                            <!-- Saat -->
+                                            <TextBlock Grid.Column="2" Text="{x:Bind TimeLabel}" Foreground="#666" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- TCP -->
+                                            <TextBlock Grid.Column="3" Text="{x:Bind TcpDisplay}" Foreground="#00A4EF" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- Gocator Ham -->
+                                            <TextBlock Grid.Column="4" Text="{x:Bind GocDisplay}" Foreground="#FF9800" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- Base Koordinat -->
+                                            <TextBlock Grid.Column="5" Text="{x:Bind BaseDisplay}" Foreground="#4CAF50" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- Flange -->
+                                            <TextBlock Grid.Column="6" Text="{x:Bind FlangeDisplay}" Foreground="#FFD700" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- ΔFlange -->
+                                            <TextBlock Grid.Column="7" Text="{x:Bind DeltaFlange}" Foreground="#E040FB" FontSize="9" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- ΔHedef -->
+                                            <TextBlock Grid.Column="8" Text="{x:Bind DeltaTarget}" Foreground="#FF6E40" FontSize="9" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="8" ColumnSpacing="15" RowSpacing="15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
@@ -831,6 +983,7 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="45"/>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="40"/>
                                 </Grid.RowDefinitions>
@@ -850,7 +1003,93 @@
                                     </Grid>
                                 </Border>
 
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
+                                <!-- ═══ EKSEN EŞLEME YAPILANDIRMASI ═══ -->
+                                <Border Grid.Row="1" Background="#1E1E20" Padding="6,4" BorderThickness="0,0,0,1" BorderBrush="#2A2A2C">
+                                    <StackPanel Spacing="3">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <FontIcon Glyph="&#xE8CB;" Foreground="#888" FontSize="10"/>
+                                                <TextBlock Text="EKSEN EŞLEME" FontSize="9" FontWeight="SemiBold" Foreground="#888"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Button x:Name="BtnAxisMappingSave" Click="BtnAxisMappingSave_Click"
+                                                        Background="Transparent" BorderThickness="0" Padding="4,2" Height="22" MinWidth="0"
+                                                        ToolTipService.ToolTip="Eşlemeyi kaydet">
+                                                    <FontIcon Glyph="&#xE74E;" FontSize="10" Foreground="#4CAF50"/>
+                                                </Button>
+                                                <Button x:Name="BtnAxisMappingReset" Click="BtnAxisMappingReset_Click"
+                                                        Background="Transparent" BorderThickness="0" Padding="4,2" Height="22" MinWidth="0"
+                                                        ToolTipService.ToolTip="Varsayılana sıfırla (0,1,2,3,4,5)">
+                                                    <FontIcon Glyph="&#xE72C;" FontSize="10" Foreground="#FF9800"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid ColumnSpacing="2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- X -->
+                                            <Border Grid.Column="0" Background="#252526" CornerRadius="3" Padding="2">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="X←" Foreground="#E74C3C" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <NumberBox x:Name="NbMapX" Value="0" Minimum="0" Maximum="11" SpinButtonPlacementMode="Hidden"
+                                                               Width="30" Height="22" FontSize="9" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <!-- Y -->
+                                            <Border Grid.Column="1" Background="#252526" CornerRadius="3" Padding="2">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="Y←" Foreground="#2ECC71" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <NumberBox x:Name="NbMapY" Value="1" Minimum="0" Maximum="11" SpinButtonPlacementMode="Hidden"
+                                                               Width="30" Height="22" FontSize="9" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <!-- Z -->
+                                            <Border Grid.Column="2" Background="#252526" CornerRadius="3" Padding="2">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="Z←" Foreground="#3498DB" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <NumberBox x:Name="NbMapZ" Value="2" Minimum="0" Maximum="11" SpinButtonPlacementMode="Hidden"
+                                                               Width="30" Height="22" FontSize="9" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <!-- A -->
+                                            <Border Grid.Column="3" Background="#252526" CornerRadius="3" Padding="2">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="A←" Foreground="#E67E22" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <NumberBox x:Name="NbMapA" Value="3" Minimum="0" Maximum="11" SpinButtonPlacementMode="Hidden"
+                                                               Width="30" Height="22" FontSize="9" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <!-- B -->
+                                            <Border Grid.Column="4" Background="#252526" CornerRadius="3" Padding="2">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="B←" Foreground="#9B59B6" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <NumberBox x:Name="NbMapB" Value="4" Minimum="0" Maximum="11" SpinButtonPlacementMode="Hidden"
+                                                               Width="30" Height="22" FontSize="9" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <!-- C -->
+                                            <Border Grid.Column="5" Background="#252526" CornerRadius="3" Padding="2">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="C←" Foreground="#1ABC9C" FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <NumberBox x:Name="NbMapC" Value="5" Minimum="0" Maximum="11" SpinButtonPlacementMode="Hidden"
+                                                               Width="30" Height="22" FontSize="9" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="8">
                                     <StackPanel Spacing="4">
                                         <Grid Background="#2A2A2C" Height="30" CornerRadius="5">
                                             <Grid.ColumnDefinitions>
@@ -894,7 +1133,7 @@
                                     </StackPanel>
                                 </ScrollViewer>
 
-                                <Button Grid.Row="2" Click="BtnGetMeasurement_Click" Margin="8,0,8,8" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
+                                <Button Grid.Row="3" Click="BtnGetMeasurement_Click" Margin="8,0,8,8" HorizontalAlignment="Stretch" Background="#222" BorderBrush="#444" BorderThickness="1">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE916;" FontSize="11" Foreground="Orange"/>
                                         <TextBlock Text="YENİ ÖLÇÜM AL" FontSize="10" Foreground="White"/>

@@ -30,9 +30,80 @@ using App4.Utilities.GoRobotMath;
 
 namespace App4.PAGES
 {
-    
+    /// <summary>
+    /// Snapshot kaydı: Gocator ham, Base koordinat ve TCP verilerini tutar.
+    /// Farklı tool'lardan alınan ölçümlerin karşılaştırılması için kullanılır.
+    /// </summary>
+    public class SnapshotRecord : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
 
-    
+        public int No { get; set; }
+        public int ToolNo { get; set; }
+        public DateTime Timestamp { get; set; }
+
+        // Robot TCP ($POS_ACT)
+        public double TcpX { get; set; }
+        public double TcpY { get; set; }
+        public double TcpZ { get; set; }
+        public double TcpA { get; set; }
+        public double TcpB { get; set; }
+        public double TcpC { get; set; }
+
+        // Gocator ham verileri (mapping uygulanmış)
+        public double GocX { get; set; }
+        public double GocY { get; set; }
+        public double GocZ { get; set; }
+        public double GocA { get; set; }
+        public double GocB { get; set; }
+        public double GocC { get; set; }
+
+        // Base koordinatları (Hand-Eye dönüşüm sonucu)
+        public double BaseX { get; set; }
+        public double BaseY { get; set; }
+        public double BaseZ { get; set; }
+        public double BaseA { get; set; }
+        public double BaseB { get; set; }
+        public double BaseC { get; set; }
+
+        // Flange pozisyonu (TCP × Tool⁻¹)
+        public double FlangeX { get; set; }
+        public double FlangeY { get; set; }
+        public double FlangeZ { get; set; }
+
+        // Karşılaştırma sonuçları (ilk snapshot referans)
+        private string _deltaFlange = "-";
+        public string DeltaFlange
+        {
+            get => _deltaFlange;
+            set { _deltaFlange = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeltaFlange))); }
+        }
+
+        private string _deltaTarget = "-";
+        public string DeltaTarget
+        {
+            get => _deltaTarget;
+            set { _deltaTarget = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeltaTarget))); }
+        }
+
+        private string _deltaColor = "#888888";
+        public string DeltaColor
+        {
+            get => _deltaColor;
+            set { _deltaColor = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeltaColor))); }
+        }
+
+        // Formatlı gösterimler
+        public string TcpDisplay => $"{TcpX:F1}, {TcpY:F1}, {TcpZ:F1}";
+        public string TcpRotDisplay => $"{TcpA:F1}, {TcpB:F1}, {TcpC:F1}";
+        public string GocDisplay => $"{GocX:F2}, {GocY:F2}, {GocZ:F2}";
+        public string GocRotDisplay => $"{GocA:F2}, {GocB:F2}, {GocC:F2}";
+        public string BaseDisplay => $"{BaseX:F2}, {BaseY:F2}, {BaseZ:F2}";
+        public string BaseRotDisplay => $"{BaseA:F2}, {BaseB:F2}, {BaseC:F2}";
+        public string FlangeDisplay => $"{FlangeX:F1}, {FlangeY:F1}, {FlangeZ:F1}";
+        public string ToolLabel => $"T{ToolNo}";
+        public string TimeLabel => Timestamp.ToString("HH:mm:ss");
+    }
 
     public sealed partial class Camera_Page : Page, INotifyPropertyChanged
     {
@@ -464,6 +535,16 @@ namespace App4.PAGES
         // Veri kaynağı seçimi: false = SENSOR (ham), true = HAND-EYE (dönüştürülmüş)
         private bool _useTransformedForTransfer = false;
 
+        // 3D Spatial Visualizer
+        private bool _isVisualizerWebViewInitialized = false;
+        private DispatcherTimer _liveTcpTimer;
+
+        // Snapshot sistemi
+        public ObservableCollection<SnapshotRecord> SnapshotRecords { get; } = new ObservableCollection<SnapshotRecord>();
+        private double[] _lastMappedGocator; // son ölçümdeki mapped gocator verileri
+        private KukaPose _lastBasePose;       // son ölçümdeki base koordinatları
+        private double _lastFlangeX, _lastFlangeY, _lastFlangeZ; // son ölçümdeki flange pozisyonu
+
         // Cached brushes for better performance
         private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.Colors.Orange);
         private static readonly SolidColorBrush BrushGreen = new(Microsoft.UI.Colors.LimeGreen);
@@ -525,6 +606,10 @@ namespace App4.PAGES
             if (_watchedTriggerVar2 != null) _watchedTriggerVar2.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedTablaOutputVar != null) _watchedTablaOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
+
+            // Visualizer timer temizle
+            _liveTcpTimer?.Stop();
+            _liveTcpTimer = null;
         }
 
         private async void BtnGetMeasurement_Click(object sender, RoutedEventArgs e)
@@ -546,15 +631,21 @@ namespace App4.PAGES
                 {
                     try
                     {
-                        // --- 1. Gocator ham verileri logla ---
-                        double gocX = measurements[0].Value;
-                        double gocY = measurements[1].Value;
-                        double gocZ = measurements[2].Value;
-                        double gocA = measurements.Count > 3 ? measurements[3].Value : 0;
-                        double gocB = measurements.Count > 4 ? measurements[4].Value : 0;
-                        double gocC = measurements.Count > 5 ? measurements[5].Value : 0;
+                        // --- 1. Gocator ham verileri + eksen mapping uygula ---
+                        var mapped = GlobalData.ApplyAxisMapping(measurements);
+                        double gocX = mapped[0]; // X
+                        double gocY = mapped[1]; // Y
+                        double gocZ = mapped[2]; // Z
+                        double gocA = mapped[3]; // A (Roll)
+                        double gocB = mapped[4]; // B (Pitch)
+                        double gocC = mapped[5]; // C (Yaw)
 
-                        AddLog($"[DEBUG] Gocator ham: X={gocX:F3} Y={gocY:F3} Z={gocZ:F3} A={gocA:F3} B={gocB:F3} C={gocC:F3}");
+                        var axisMap = GlobalData.GocatorAxisMapping;
+                        AddLog($"[DEBUG] Eksen Mapping: X←[{axisMap[0]}] Y←[{axisMap[1]}] Z←[{axisMap[2]}] A←[{axisMap[3]}] B←[{axisMap[4]}] C←[{axisMap[5]}]");
+                        AddLog($"[DEBUG] Gocator (mapped): X={gocX:F3} Y={gocY:F3} Z={gocZ:F3} A={gocA:F3} B={gocB:F3} C={gocC:F3}");
+
+                        // Snapshot sistemi: mapped gocator verilerini sakla
+                        _lastMappedGocator = new double[] { gocX, gocY, gocZ, gocA, gocB, gocC };
 
                         var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
 
@@ -601,6 +692,32 @@ namespace App4.PAGES
                                 AddLog($"[DEBUG] ► SONUÇ Base: X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
                                 GlobalData.PopulateTransformedMeasurements(basePose);
                                 transformSuccess = true;
+
+                                // Snapshot sistemi: base ve flange verilerini sakla
+                                _lastBasePose = basePose;
+                                try
+                                {
+                                    var tcpMatrix = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC).ToMatrix();
+                                    double ttX = 0, ttY = 0, ttZ = 0, ttA = 0, ttB = 0, ttC = 0;
+                                    if (robot.ToolNo > 0)
+                                    {
+                                        ttX = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].X"));
+                                        ttY = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].Y"));
+                                        ttZ = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].Z"));
+                                        ttA = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].A"));
+                                        ttB = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].B"));
+                                        ttC = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].C"));
+                                    }
+                                    var toolMatrix = new KukaPose(ttX, ttY, ttZ, ttA, ttB, ttC).ToMatrix();
+                                    var flangeMatrix = tcpMatrix.Multiply(toolMatrix.Inverse());
+                                    var flangePose = KukaPose.FromMatrix(flangeMatrix);
+                                    _lastFlangeX = flangePose.X;
+                                    _lastFlangeY = flangePose.Y;
+                                    _lastFlangeZ = flangePose.Z;
+                                }
+                                catch { }
+
+                                _ = UpdateHandEyeVisualizerAsync();
                             }
                             else
                             {
@@ -633,6 +750,9 @@ namespace App4.PAGES
                     // SENSOR seçili: ham veriyi aktar
                     TransferMeasurementsToPlcRows();
                 }
+
+                // 3D Visualizer güncelle (her ölçüm sonrası)
+                _ = UpdateHandEyeVisualizerAsync();
             }
 
             if (btn != null) btn.IsEnabled = true;
@@ -849,6 +969,9 @@ namespace App4.PAGES
                 }
 
                 AddLog($"► {count} adet veri PLC tablosuna aktarıldı.");
+
+                // Robota yaz: her satırda seçili tag varsa robota gönder
+                _ = WriteTransferRowsToRobotAsync();
             }
             catch (Exception ex)
             {
@@ -878,10 +1001,175 @@ namespace App4.PAGES
                 }
 
                 AddLog($"► {count} adet dönüştürülmüş veri PLC tablosuna aktarıldı.");
+
+                // Robota yaz: her satırda seçili tag varsa robota gönder
+                _ = WriteTransferRowsToRobotAsync();
             }
             catch (Exception ex)
             {
                 AddLog($"Dönüştürülmüş veri aktarım hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// BORU ÖLÇÜM AKTARIM tablosundaki her satırın seçili tag'ına karşılık gelen değeri
+        /// Robot 1 Output değişkenlerine ve robota yazar.
+        /// </summary>
+        private async Task WriteTransferRowsToRobotAsync()
+        {
+            try
+            {
+                int written = 0;
+                foreach (var row in PlcTransferRows)
+                {
+                    if (string.IsNullOrEmpty(row.SelectedTag) || string.IsNullOrEmpty(row.Value))
+                        continue;
+
+                    // Değeri InvariantCulture formatında gönder (virgül → nokta)
+                    string writeVal = row.Value.Replace(",", ".");
+
+                    await GlobalData.WriteToAllRobotsAsync(row.SelectedTag, writeVal);
+                    written++;
+
+                    // Satır durumunu güncelle
+                    row.Status = "OK";
+                    row.StatusColor = BrushGreen;
+                }
+
+                if (written > 0)
+                    AddLog($"✓ {written} adet değer robota yazıldı (Robot 1 Output)");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Robot yazma hatası: {ex.Message}");
+            }
+        }
+
+        // --- EKSEN EŞLEME (Axis Mapping) ---
+        private void LoadAxisMappingUI()
+        {
+            var map = GlobalData.GocatorAxisMapping;
+            NbMapX.Value = map[0];
+            NbMapY.Value = map[1];
+            NbMapZ.Value = map[2];
+            NbMapA.Value = map[3];
+            NbMapB.Value = map[4];
+            NbMapC.Value = map[5];
+        }
+
+        private void BtnAxisMappingSave_Click(object sender, RoutedEventArgs e)
+        {
+            var newMap = new int[]
+            {
+                (int)NbMapX.Value,
+                (int)NbMapY.Value,
+                (int)NbMapZ.Value,
+                (int)NbMapA.Value,
+                (int)NbMapB.Value,
+                (int)NbMapC.Value
+            };
+            GlobalData.GocatorAxisMapping = newMap;
+            AddLog($"✓ Eksen eşleme kaydedildi: X←[{newMap[0]}] Y←[{newMap[1]}] Z←[{newMap[2]}] A←[{newMap[3]}] B←[{newMap[4]}] C←[{newMap[5]}]");
+        }
+
+        private void BtnAxisMappingReset_Click(object sender, RoutedEventArgs e)
+        {
+            GlobalData.GocatorAxisMapping = new int[] { 0, 1, 2, 3, 4, 5 };
+            LoadAxisMappingUI();
+            AddLog("✓ Eksen eşleme varsayılana sıfırlandı: X←[0] Y←[1] Z←[2] A←[3] B←[4] C←[5]");
+        }
+
+        // ═══ SNAPSHOT SİSTEMİ ═══
+
+        /// <summary>
+        /// Mevcut ölçüm verilerinden snapshot kaydı oluşturur.
+        /// Gocator ham, Base koordinat, TCP ve Flange verilerini toplar.
+        /// </summary>
+        private void BtnSnapshotSave_Click(object sender, RoutedEventArgs e)
+        {
+            var robot = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+
+            // Kontrol: ölçüm verisi var mı?
+            if (_lastMappedGocator == null || _lastMappedGocator.Length < 6)
+            {
+                AddLog("⚠ Snapshot kaydedilemedi: önce bir ölçüm alın.");
+                return;
+            }
+
+            int toolNo = 0;
+            double tcpX = 0, tcpY = 0, tcpZ = 0, tcpA = 0, tcpB = 0, tcpC = 0;
+            if (robot != null && robot.IsConnected)
+            {
+                toolNo = robot.ToolNo;
+                tcpX = robot.PosX; tcpY = robot.PosY; tcpZ = robot.PosZ;
+                tcpA = robot.PosA; tcpB = robot.PosB; tcpC = robot.PosC;
+            }
+
+            var snap = new SnapshotRecord
+            {
+                No = SnapshotRecords.Count + 1,
+                ToolNo = toolNo,
+                Timestamp = DateTime.Now,
+                // TCP
+                TcpX = tcpX, TcpY = tcpY, TcpZ = tcpZ,
+                TcpA = tcpA, TcpB = tcpB, TcpC = tcpC,
+                // Gocator ham
+                GocX = _lastMappedGocator[0], GocY = _lastMappedGocator[1], GocZ = _lastMappedGocator[2],
+                GocA = _lastMappedGocator[3], GocB = _lastMappedGocator[4], GocC = _lastMappedGocator[5],
+                // Base koordinat
+                BaseX = _lastBasePose?.X ?? 0, BaseY = _lastBasePose?.Y ?? 0, BaseZ = _lastBasePose?.Z ?? 0,
+                BaseA = _lastBasePose?.A ?? 0, BaseB = _lastBasePose?.B ?? 0, BaseC = _lastBasePose?.C ?? 0,
+                // Flange
+                FlangeX = _lastFlangeX, FlangeY = _lastFlangeY, FlangeZ = _lastFlangeZ
+            };
+
+            SnapshotRecords.Add(snap);
+            RecalculateSnapshotDeltas();
+            AddLog($"📌 Snapshot #{snap.No} kaydedildi (Tool:{toolNo}, Base: X={snap.BaseX:F2} Y={snap.BaseY:F2} Z={snap.BaseZ:F2})");
+        }
+
+        /// <summary>
+        /// Tüm snapshot kayıtlarını temizler.
+        /// </summary>
+        private void BtnSnapshotClear_Click(object sender, RoutedEventArgs e)
+        {
+            SnapshotRecords.Clear();
+            AddLog("🗑 Snapshot tablosu temizlendi.");
+        }
+
+        /// <summary>
+        /// İlk snapshot'ı referans alarak Flange ve Hedef (Base) fark mesafelerini hesaplar.
+        /// </summary>
+        private void RecalculateSnapshotDeltas()
+        {
+            if (SnapshotRecords.Count == 0) return;
+
+            var refSnap = SnapshotRecords[0];
+            refSnap.DeltaFlange = "REF";
+            refSnap.DeltaTarget = "REF";
+            refSnap.DeltaColor = "#4CAF50";
+
+            for (int i = 1; i < SnapshotRecords.Count; i++)
+            {
+                var s = SnapshotRecords[i];
+
+                // ΔFlange
+                double dfx = s.FlangeX - refSnap.FlangeX;
+                double dfy = s.FlangeY - refSnap.FlangeY;
+                double dfz = s.FlangeZ - refSnap.FlangeZ;
+                double dFlange = Math.Sqrt(dfx * dfx + dfy * dfy + dfz * dfz);
+                s.DeltaFlange = $"{dFlange:F3} mm";
+
+                // ΔHedef (Base koordinat farkı)
+                double dtx = s.BaseX - refSnap.BaseX;
+                double dty = s.BaseY - refSnap.BaseY;
+                double dtz = s.BaseZ - refSnap.BaseZ;
+                double dTarget = Math.Sqrt(dtx * dtx + dty * dty + dtz * dtz);
+                s.DeltaTarget = $"{dTarget:F3} mm";
+
+                // Renk: yeşil < 1mm, turuncu < 5mm, kırmızı >= 5mm
+                double maxDelta = Math.Max(dFlange, dTarget);
+                s.DeltaColor = maxDelta < 1 ? "#4CAF50" : maxDelta < 5 ? "#FF9800" : "#F44336";
             }
         }
 
@@ -1847,6 +2135,9 @@ namespace App4.PAGES
             // 6. Kalibrasyon servisini başlat
             InitCalibrationUI();
 
+            // 7. Eksen eşleme ayarlarını yükle
+            LoadAxisMappingUI();
+
             if (_isWebViewInitialized) return;
 
             try
@@ -1907,8 +2198,37 @@ namespace App4.PAGES
             catch (Exception ex)
             {
                 AddLog($"✗ WebView2 Başlatma Hatası: {ex.Message}");
-                // UI'daki yükleniyor ekranını kaldırıp hata göster
                 ShowCloudStatus("HATA: WebView2 Başlatılamadı", Microsoft.UI.Colors.Red, false);
+            }
+
+            // ═══ 3D Spatial Visualizer WebView2 ═══
+            if (!_isVisualizerWebViewInitialized)
+            {
+                try
+                {
+                    string vizCacheFolder = Path.Combine(Path.GetTempPath(), "App4_WebView2_Visualizer_Cache");
+                    var vizEnv = await CoreWebView2Environment.CreateWithOptionsAsync(null, vizCacheFolder, null);
+                    await HandEyeVisualizerWebView.EnsureCoreWebView2Async(vizEnv);
+
+                    string assetsPath2;
+                    try { assetsPath2 = Path.Combine(Package.Current.InstalledLocation.Path, "Assets"); }
+                    catch { assetsPath2 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets"); }
+
+                    HandEyeVisualizerWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                        "vizassets", assetsPath2, CoreWebView2HostResourceAccessKind.Allow);
+                    HandEyeVisualizerWebView.CoreWebView2.Settings.IsScriptEnabled = true;
+                    HandEyeVisualizerWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+
+                    HandEyeVisualizerWebView.NavigationCompleted += VisualizerWebView_NavigationCompleted;
+                    HandEyeVisualizerWebView.Source = new Uri("https://vizassets/HandEyeVisualizer.html");
+
+                    _isVisualizerWebViewInitialized = true;
+                    AddLog("✓ 3D Spatial Visualizer başlatıldı");
+                }
+                catch (Exception ex)
+                {
+                    AddLog($"✗ Visualizer WebView2 Hatası: {ex.Message}");
+                }
             }
         }
 
@@ -1940,6 +2260,221 @@ namespace App4.PAGES
                 }
             }
             catch { }
+        }
+
+        #endregion
+
+        #region ═══ 3D Spatial Visualizer ═══
+
+        private void VisualizerWebView_NavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
+        {
+            if (args.IsSuccess)
+            {
+                AddLog("✓ HandEye Visualizer HTML yüklendi");
+                _ = UpdateHandEyeVisualizerAsync();
+            }
+            else
+            {
+                AddLog($"✗ Visualizer navigasyon hatası: {args.WebErrorStatus}");
+            }
+        }
+
+        private void BtnRefreshVisualizer_Click(object sender, RoutedEventArgs e)
+        {
+            _ = UpdateHandEyeVisualizerAsync();
+        }
+
+        private void ToggleLiveTcp_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (ToggleLiveTcp.IsOn)
+            {
+                _liveTcpTimer = new DispatcherTimer();
+                _liveTcpTimer.Interval = TimeSpan.FromMilliseconds(500);
+                _liveTcpTimer.Tick += async (s, args) => await UpdateHandEyeVisualizerAsync();
+                _liveTcpTimer.Start();
+                AddLog("► 3D Visualizer: Canlı TCP izleme AÇIK");
+            }
+            else
+            {
+                _liveTcpTimer?.Stop();
+                _liveTcpTimer = null;
+                AddLog("► 3D Visualizer: Canlı TCP izleme KAPALI");
+            }
+        }
+
+        /// <summary>
+        /// Flange, Camera, Tool[1], Target pozisyonlarını toplar ve 3D sahneye gönderir.
+        /// </summary>
+        private async Task UpdateHandEyeVisualizerAsync()
+        {
+            if (!_isVisualizerWebViewInitialized || HandEyeVisualizerWebView?.CoreWebView2 == null)
+            {
+                Debug.WriteLine($"[Visualizer] WebView hazır değil: init={_isVisualizerWebViewInitialized}, CoreWebView2={HandEyeVisualizerWebView?.CoreWebView2 != null}");
+                return;
+            }
+
+            try
+            {
+                // Robot bul: GlobalData'daki bağlantı bilgisi üzerinden
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots == null || robots.Count == 0)
+                {
+                    Debug.WriteLine("[Visualizer] Robot listesi boş");
+                    return;
+                }
+
+                // Kalibrasyon seçili → bağlı ilk robot → ilk robot (sıralı fallback)
+                var robot = _calibSelectedRobot
+                    ?? robots.FirstOrDefault(r => r.IsConnected)
+                    ?? robots.FirstOrDefault();
+
+                if (robot == null) return;
+
+                Debug.WriteLine($"[Visualizer] Robot: {robot.Name}, Bağlı: {robot.IsConnected}, " +
+                    $"Global: {GlobalData.RobotConnectedCount}/{GlobalData.RobotTotalCount}, " +
+                    $"TCP: X={robot.PosX:F2} Y={robot.PosY:F2} Z={robot.PosZ:F2}");
+
+                // 1. TCP
+                var tcpPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ,
+                                            robot.PosA, robot.PosB, robot.PosC);
+                var tcpMatrix = tcpPose.ToMatrix();
+
+                // 2. Flange = TCP × Tool⁻¹
+                TransformMatrix flangeMatrix = tcpMatrix;
+                int toolNo = robot.ToolNo;
+                if (toolNo > 0 && robot.IsConnected)
+                {
+                    try
+                    {
+                        double tx = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].X"));
+                        double ty = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].Y"));
+                        double tz = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].Z"));
+                        double ta = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].A"));
+                        double tb = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].B"));
+                        double tc = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{toolNo}].C"));
+                        var activeToolMatrix = new KukaPose(tx, ty, tz, ta, tb, tc).ToMatrix();
+                        flangeMatrix = tcpMatrix * activeToolMatrix.Inverse();
+                    }
+                    catch (Exception ex) { Debug.WriteLine($"[Visualizer] Tool[{toolNo}] okunamadı: {ex.Message}"); }
+                }
+
+                // 3. Camera = Flange × HandEye
+                TransformMatrix cameraMatrix = null;
+                if (CalibrationService.Instance.IsCalibrated)
+                {
+                    cameraMatrix = flangeMatrix * CalibrationService.Instance.HandEyeMatrix;
+                }
+
+                // 4. Tool[1] Sniffer = Flange × Tool[1]
+                TransformMatrix tool1Matrix = null;
+                if (robot.IsConnected)
+                {
+                    try
+                    {
+                        double t1x = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].X"));
+                        double t1y = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].Y"));
+                        double t1z = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].Z"));
+                        double t1a = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].A"));
+                        double t1b = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].B"));
+                        double t1c = VizParseDouble(await robot.ReadVariableAsync("$TOOL[1].C"));
+                        tool1Matrix = flangeMatrix * new KukaPose(t1x, t1y, t1z, t1a, t1b, t1c).ToMatrix();
+                    }
+                    catch (Exception ex) { Debug.WriteLine($"[Visualizer] Tool[1] okunamadı: {ex.Message}"); }
+                }
+
+                // 5. Target (son dönüştürülmüş ölçüm)
+                double? targetX = null, targetY = null, targetZ = null;
+                var transformed = GlobalData.TransformedMeasurements;
+                if (transformed.Count >= 3)
+                {
+                    targetX = transformed[0].Value;
+                    targetY = transformed[1].Value;
+                    targetZ = transformed[2].Value;
+                }
+
+                // 6. JSON oluştur
+                var sb = new System.Text.StringBuilder();
+                sb.Append("{");
+
+                // Flange
+                AppendTransformJson(sb, "flange", flangeMatrix);
+                sb.Append(",");
+
+                // Camera
+                if (cameraMatrix != null) { AppendTransformJson(sb, "camera", cameraMatrix); }
+                else { sb.Append("\"camera\":null"); }
+                sb.Append(",");
+
+                // Tool
+                if (tool1Matrix != null) { AppendTransformJson(sb, "tool", tool1Matrix); }
+                else { sb.Append("\"tool\":null"); }
+                sb.Append(",");
+
+                // Target
+                var ic = System.Globalization.CultureInfo.InvariantCulture;
+                if (targetX.HasValue)
+                    sb.Append($"\"target\":{{\"position\":[{targetX.Value.ToString("F3", ic)},{targetY.Value.ToString("F3", ic)},{targetZ.Value.ToString("F3", ic)}]}}");
+                else
+                    sb.Append("\"target\":null");
+                sb.Append(",");
+
+                // TCP info
+                sb.Append($"\"tcp\":{{\"x\":{tcpPose.X.ToString("F2", ic)},\"y\":{tcpPose.Y.ToString("F2", ic)},\"z\":{tcpPose.Z.ToString("F2", ic)},");
+                sb.Append($"\"a\":{tcpPose.A.ToString("F2", ic)},\"b\":{tcpPose.B.ToString("F2", ic)},\"c\":{tcpPose.C.ToString("F2", ic)}}}");
+
+                // Tool tanımları (Tool[0], Tool[1], Tool[2]) + aktif tool no
+                sb.Append(",");
+                int activeToolNo = robot.IsConnected ? robot.ToolNo : 0;
+                sb.Append($"\"activeToolNo\":{activeToolNo}");
+                if (robot.IsConnected)
+                {
+                    sb.Append(",\"tools\":{");
+                    for (int ti = 0; ti <= 2; ti++)
+                    {
+                        try
+                        {
+                            double ttx = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].X"));
+                            double tty = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].Y"));
+                            double ttz = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].Z"));
+                            double tta = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].A"));
+                            double ttb = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].B"));
+                            double ttc = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{ti}].C"));
+                            if (ti > 0) sb.Append(",");
+                            sb.Append($"\"Tool[{ti}]\":\"X:{ttx.ToString("F1", ic)} Y:{tty.ToString("F1", ic)} Z:{ttz.ToString("F1", ic)} A:{tta.ToString("F1", ic)} B:{ttb.ToString("F1", ic)} C:{ttc.ToString("F1", ic)}\"");
+                        }
+                        catch { if (ti > 0) sb.Append(","); sb.Append($"\"Tool[{ti}]\":\"okunamadı\""); }
+                    }
+                    sb.Append("}");
+                }
+
+                sb.Append("}");
+
+                // 7. JS'e gönder
+                Debug.WriteLine($"[Visualizer] JSON gönderiliyor: flange=OK, camera={cameraMatrix != null}, tool={tool1Matrix != null}, target={targetX.HasValue}");
+                await HandEyeVisualizerWebView.ExecuteScriptAsync(
+                    $"(function(){{ try {{ window.updateScene({sb}); }} catch(e){{ console.error(e); }} }})();");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Visualizer] Update error: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        private static void AppendTransformJson(System.Text.StringBuilder sb, string name, TransformMatrix m)
+        {
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            sb.Append($"\"{name}\":{{\"position\":[{m.Tx.ToString("F3", ic)},{m.Ty.ToString("F3", ic)},{m.Tz.ToString("F3", ic)}],");
+            sb.Append($"\"rotation\":[{m.Ix.ToString("F6", ic)},{m.Iy.ToString("F6", ic)},{m.Iz.ToString("F6", ic)},");
+            sb.Append($"{m.Jx.ToString("F6", ic)},{m.Jy.ToString("F6", ic)},{m.Jz.ToString("F6", ic)},");
+            sb.Append($"{m.Kx.ToString("F6", ic)},{m.Ky.ToString("F6", ic)},{m.Kz.ToString("F6", ic)}]}}");
+        }
+
+        private static double VizParseDouble(string val)
+        {
+            if (string.IsNullOrEmpty(val)) return 0;
+            val = val.Replace(",", ".").Trim();
+            return double.TryParse(val, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
         #endregion
@@ -2274,6 +2809,14 @@ namespace App4.PAGES
 
                 // Kalibrasyon servisini baslat (varsa kayitli kalibrasyonu yukle)
                 CalibrationService.Instance.Initialize();
+
+                // Kayıtlı kalibrasyon varsa UI'ı otomatik doldur
+                if (CalibrationService.Instance.IsCalibrated)
+                {
+                    PopulateCalibrationUI();
+                    AddLog($"✓ Kayıtlı kalibrasyon otomatik yüklendi ({CalibrationService.Instance.LastCalibrationData?.RobotName})");
+                }
+
                 GlobalData.UpdateActiveCalibrationInfo();
                 RefreshCalibrationInfoPanel();
                 UpdateCalibrationStatus();
@@ -2496,21 +3039,46 @@ namespace App4.PAGES
         }
 
         /// <summary>
-        /// KAYDET butonu.
+        /// KAYDET butonu — onay dialogu ile.
         /// </summary>
-        private void BtnCalibSave_Click(object sender, RoutedEventArgs e)
+        private async void BtnCalibSave_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 string robotName = _calibSelectedRobot?.Name ?? "Robot1";
+                int poseCount = CalibrationService.Instance.CollectedPoseCount;
+                string accuracy = CalibrationService.Instance.LastCalibrationData?.PositionStdMm.ToString("F3") ?? "?";
+
+                // Onay dialogu
+                var dialog = new ContentDialog
+                {
+                    Title = "Kalibrasyonu Kaydet",
+                    Content = $"Kalibrasyon verisi kaydedilsin mi?\n\n" +
+                              $"Robot: {robotName}\n" +
+                              $"Poz Sayısı: {poseCount}\n" +
+                              $"Hassasiyet: {accuracy} mm\n\n" +
+                              $"⚠ Mevcut kayıtlı kalibrasyon üzerine yazılacak.",
+                    PrimaryButtonText = "Kaydet",
+                    CloseButtonText = "İptal",
+                    DefaultButton = ContentDialogButton.Primary,
+                    XamlRoot = this.XamlRoot
+                };
+
+                var result = await dialog.ShowAsync();
+                if (result != ContentDialogResult.Primary)
+                {
+                    AddLog("► Kaydetme iptal edildi.");
+                    return;
+                }
+
                 CalibrationService.Instance.SaveCalibration(robotName);
                 GlobalData.UpdateActiveCalibrationInfo();
                 RefreshCalibrationInfoPanel();
-                AddLog($"Kalibrasyon kaydedildi: {robotName}");
+                AddLog($"✓ Kalibrasyon kaydedildi: {robotName} ({poseCount} poz, {accuracy} mm)");
             }
             catch (Exception ex)
             {
-                AddLog($"Kaydetme hatasi: {ex.Message}");
+                AddLog($"Kaydetme hatası: {ex.Message}");
             }
         }
 
@@ -2524,47 +3092,66 @@ namespace App4.PAGES
                 bool loaded = CalibrationService.Instance.LoadCalibration();
                 if (loaded)
                 {
-                    var data = CalibrationService.Instance.LastCalibrationData;
-                    var handEyePose = KukaPose.FromMatrix(CalibrationService.Instance.HandEyeMatrix);
-
-                    CalibResultText.Text = handEyePose.ToKukaString();
-                    CalibAccuracyPos.Text = $"{data.PositionStdMm:F3} mm";
-                    CalibAccuracyAng.Text = $"{data.AngleStdDeg:F3} deg";
-
-                    // Poz listesini yeniden olustur — kayitli flange/sensor verileriyle
-                    CalibPoseListPanel.Children.Clear();
-                    CalibNoPoseText.Visibility = Visibility.Collapsed;
-                    if (data.PoseRecords != null)
-                    {
-                        for (int i = 0; i < data.PoseRecords.Count; i++)
-                        {
-                            var record = data.PoseRecords[i];
-                            KukaPose flangePose = null;
-                            if (record.FlangeInBase?.Length == 12)
-                            {
-                                flangePose = KukaPose.FromMatrix(App4.Utilities.GoRobotMath.TransformMatrix.FromArray(record.FlangeInBase));
-                            }
-                            AddCalibPoseRow(i + 1,
-                                measurements: null,
-                                loadedFlangePose: flangePose,
-                                loadedSensorData: record.TargetInSensor);
-                        }
-                    }
-
-                    UpdateCalibrationStatus();
+                    PopulateCalibrationUI();
                     GlobalData.UpdateActiveCalibrationInfo();
                     RefreshCalibrationInfoPanel();
                     LoadBallBarParamsToUI();
-                    AddLog($"Kalibrasyon yuklendi ({data.CalibrationDate:yyyy-MM-dd HH:mm}), Robot: {data.RobotName}");
+                    AddLog($"✓ Kalibrasyon yüklendi ({CalibrationService.Instance.LastCalibrationData?.CalibrationDate:yyyy-MM-dd HH:mm}), Robot: {CalibrationService.Instance.LastCalibrationData?.RobotName}");
                 }
                 else
                 {
-                    AddLog("Kalibrasyon dosyasi bulunamadi veya gecersiz.");
+                    AddLog("Kalibrasyon dosyası bulunamadı veya geçersiz.");
                 }
             }
             catch (Exception ex)
             {
-                AddLog($"Yukleme hatasi: {ex.Message}");
+                AddLog($"Yükleme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Kayıtlı kalibrasyon verisini UI'a yansıtır.
+        /// Hem InitCalibrationUI (otomatik yükleme) hem BtnCalibLoad_Click tarafından kullanılır.
+        /// </summary>
+        private void PopulateCalibrationUI()
+        {
+            try
+            {
+                var data = CalibrationService.Instance.LastCalibrationData;
+                if (data == null) return;
+
+                var handEyePose = KukaPose.FromMatrix(CalibrationService.Instance.HandEyeMatrix);
+
+                // Sonuç yazıları
+                CalibResultText.Text = handEyePose.ToKukaString();
+                CalibAccuracyPos.Text = $"{data.PositionStdMm:F3} mm";
+                CalibAccuracyAng.Text = $"{data.AngleStdDeg:F3} deg";
+
+                // Poz listesini doldur
+                CalibPoseListPanel.Children.Clear();
+                CalibNoPoseText.Visibility = Visibility.Collapsed;
+                if (data.PoseRecords != null)
+                {
+                    for (int i = 0; i < data.PoseRecords.Count; i++)
+                    {
+                        var record = data.PoseRecords[i];
+                        KukaPose flangePose = null;
+                        if (record.FlangeInBase?.Length == 12)
+                        {
+                            flangePose = KukaPose.FromMatrix(App4.Utilities.GoRobotMath.TransformMatrix.FromArray(record.FlangeInBase));
+                        }
+                        AddCalibPoseRow(i + 1,
+                            measurements: null,
+                            loadedFlangePose: flangePose,
+                            loadedSensorData: record.TargetInSensor);
+                    }
+                }
+
+                UpdateCalibrationStatus();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Kalibrasyon UI doldurma hatası: {ex.Message}");
             }
         }
 

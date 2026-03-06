@@ -591,6 +591,41 @@ namespace App4.Utilities
             set { if (_gocatorOnline != value) { _gocatorOnline = value; OnEquipmentStatusChanged?.Invoke(); } }
         }
 
+        // --- GOCATOR EKSEN EŞLEME (Axis Mapping) ---
+        // Varsayılan: [0,1,2,3,4,5] = X,Y,Z,A,B,C sırasıyla
+        // Eğer Gocator GDP çıktıları farklı sırada geliyorsa, hangi indeksin hangi eksene karşılık geldiğini belirtir
+        // Örnek: GDP'den Pitch,Roll,X,Y,Yaw,Z geliyorsa → mapping = [2,3,5,1,0,4]
+        //   yani X ← measurements[2], Y ← measurements[3], Z ← measurements[5],
+        //        A ← measurements[1], B ← measurements[0], C ← measurements[4]
+        private static int[] _gocatorAxisMapping = new int[] { 0, 1, 2, 3, 4, 5 };
+        public static int[] GocatorAxisMapping
+        {
+            get => _gocatorAxisMapping;
+            set
+            {
+                if (value != null && value.Length == 6)
+                {
+                    _gocatorAxisMapping = value;
+                    SaveAutomationSettings();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gocator ölçümlerine eksen mapping uygular.
+        /// Dönen dizi: [X, Y, Z, A, B, C] sırasında değerler içerir.
+        /// </summary>
+        public static double[] ApplyAxisMapping(System.Collections.Generic.IList<GocatorMeasurement> measurements)
+        {
+            double[] result = new double[6];
+            for (int axis = 0; axis < 6; axis++)
+            {
+                int srcIdx = _gocatorAxisMapping[axis];
+                result[axis] = (srcIdx >= 0 && srcIdx < measurements.Count) ? measurements[srcIdx].Value : 0;
+            }
+            return result;
+        }
+
         private static int _robotConnectedCount;
         public static int RobotConnectedCount
         {
@@ -1292,6 +1327,24 @@ namespace App4.Utilities
             {
                 try { _gocatorPort = Convert.ToInt32(settings["Gocator_Port"]); } catch { }
             }
+            if (settings.ContainsKey("Gocator_AxisMapping"))
+            {
+                try
+                {
+                    var mapStr = settings["Gocator_AxisMapping"] as string;
+                    if (!string.IsNullOrEmpty(mapStr))
+                    {
+                        var parts = mapStr.Split(',');
+                        if (parts.Length == 6)
+                        {
+                            var map = new int[6];
+                            for (int i = 0; i < 6; i++) map[i] = int.Parse(parts[i]);
+                            _gocatorAxisMapping = map;
+                        }
+                    }
+                }
+                catch { }
+            }
 
             // Debug log
             System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}, ReadSpeed={_robotReadSpeed}ms");
@@ -1315,6 +1368,7 @@ namespace App4.Utilities
 
             settings["Gocator_IpAddress"] = Gocator_IpAddress;
             settings["Gocator_Port"] = Gocator_Port;
+            settings["Gocator_AxisMapping"] = string.Join(",", GocatorAxisMapping);
 
             // KL100 Slider R1/R2 Home sinyal se\u00e7imleri
             settings["KL100_R1Home"] = KL100_Robot1HomeSignal ?? "";
@@ -1429,7 +1483,7 @@ namespace App4.Utilities
         /// Değişkeni 3 katmana yazar: GlobalData, PLC, tüm bağlı robotlar.
         /// Hem RunAutomationSequence hem HandleOlcumTetikAsync tarafından kullanılır.
         /// </summary>
-        private static async Task WriteToAllRobotsAsync(string varName, string value)
+        public static async Task WriteToAllRobotsAsync(string varName, string value)
         {
             // 1. GlobalData output var güncelle
             var gVar = RobotOutputVars.FirstOrDefault(v => v.Name == varName);

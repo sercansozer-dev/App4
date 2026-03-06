@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand-Eye Spatial Visualizer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; color: white; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #info {
+            position: absolute; top: 10px; left: 10px; z-index: 100;
+            background: rgba(0,0,0,0.9); padding: 14px 18px; border-radius: 8px;
+            border-left: 3px solid #E040FB; font-size: 11px; line-height: 1.7;
+            pointer-events: none; min-width: 300px; max-width: 380px;
+        }
+        #info .title { font-weight: bold; color: #E040FB; margin-bottom: 8px; font-size: 13px; }
+        #info .section-title { font-weight: bold; margin-top: 4px; margin-bottom: 2px; font-size: 11px; }
+        #info .row { display: flex; justify-content: space-between; gap: 8px; }
+        #info .label { color: #888; white-space: nowrap; min-width: 28px; }
+        #info .value { color: #FFF; font-family: 'Cascadia Mono', monospace; font-size: 10.5px; text-align: right; }
+        #info .dist { color: #FF9800; font-weight: bold; font-size: 14px; }
+        #info .dist-good { color: #4CAF50; font-weight: bold; font-size: 14px; }
+        #info .sep { border-top: 1px solid #333; margin: 6px 0; }
+        #info .compare-box {
+            background: rgba(255,255,255,0.05); border-radius: 6px; padding: 8px 10px; margin: 4px 0;
+        }
+        #info .delta-row { display: flex; justify-content: space-between; gap: 8px; }
+        #info .delta-val { font-family: 'Cascadia Mono', monospace; font-size: 10.5px; }
+        #info .delta-pos { color: #FF5252; }
+        #info .delta-neg { color: #69F0AE; }
+        #info .delta-zero { color: #888; }
+        #legend {
+            position: absolute; bottom: 10px; left: 10px; z-index: 100;
+            background: rgba(0,0,0,0.85); padding: 10px 14px; border-radius: 8px;
+            font-size: 10px; pointer-events: none;
+        }
+        #legend .item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+        #legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        #viewControls {
+            position: absolute; top: 10px; right: 10px; z-index: 100;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        #viewControls button {
+            background: rgba(0,0,0,0.85); color: #fff; border: 1px solid #444;
+            border-radius: 6px; padding: 6px 12px; font-size: 11px; cursor: pointer;
+            font-family: 'Segoe UI', sans-serif; transition: all 0.15s; min-width: 90px;
+            text-align: left;
+        }
+        #viewControls button:hover { background: rgba(80,80,80,0.9); border-color: #E040FB; }
+        #viewControls button.active { border-color: #E040FB; color: #E040FB; }
+        #viewControls .group-label {
+            color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+            padding: 4px 4px 0; margin-top: 4px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="info">
+        <div class="title">3D UZAY GÖRSELLEŞTİRİCİ</div>
+        <div id="tcpInfo">Robot bağlantısı bekleniyor...</div>
+    </div>
+    <div id="legend">
+        <div class="item"><span class="dot" style="background:#FFD700"></span> Flange</div>
+        <div class="item"><span class="dot" style="background:#00BCD4"></span> Kamera (Gocator)</div>
+        <div class="item"><span class="dot" style="background:#4CAF50"></span> Tool[1] Sniffer</div>
+        <div class="item"><span class="dot" style="background:#FF5722"></span> Hedef Nokta</div>
+    </div>
+
+    <div id="viewControls">
+        <div class="group-label">BAKIŞ AÇISI</div>
+        <button onclick="setView('top')" title="Z ekseninden aşağı bak (XY düzlemi)">⬇ Üstten (Z)</button>
+        <button onclick="setView('front')" title="Y ekseninden bak (XZ düzlemi)">➡ Önden (Y)</button>
+        <button onclick="setView('side')" title="X ekseninden bak (YZ düzlemi)">🔄 Yandan (X)</button>
+        <button onclick="setView('iso')" title="İzometrik bakış">🔷 İzometrik</button>
+        <div class="group-label">ODAKLA</div>
+        <button onclick="fitAll()" title="Tüm noktaları göster">📐 Hepsini Göster</button>
+        <button onclick="focusTarget()" title="Hedef noktaya odaklan">🎯 Hedefe Odakla</button>
+        <button onclick="focusTool()" title="Tool noktasına odaklan">🔧 Tool'a Odakla</button>
+        <div class="group-label">TOOL DOĞRULAMA</div>
+        <button onclick="saveSnapshot()" title="Mevcut durumu kaydet" style="background:rgba(76,175,80,0.3);border-color:#4CAF50">📌 Snapshot Kaydet</button>
+        <button onclick="clearSnapshots()" title="Tüm snapshot'ları temizle" style="font-size:10px">🗑 Temizle</button>
+    </div>
+    <div id="snapshotPanel" style="display:none; position:absolute; bottom:10px; right:10px; z-index:100; background:rgba(0,0,0,0.92); padding:12px; border-radius:8px; border:1px solid #4CAF50; max-width:500px; font-size:10px;">
+        <div style="font-weight:bold;color:#4CAF50;margin-bottom:6px;font-size:12px">📊 TOOL DOĞRULAMA KARŞILAŞTIRMASI</div>
+        <div id="snapshotContent"></div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let flangeGroup, cameraGroup, toolGroup, targetGroup;
+        let lineFlangeCam, lineFlangeTool, lineCamTarget, lineToolTarget, toolDirArrow;
+        let targetPulse = 0;
+        let firstDataReceived = false;
+        let lastSceneData = null;  // son gelen veri
+        let snapshots = [];        // kayıtlı snapshot'lar
+
+        function initVisualizer() {
+            // Sahne
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111);
+
+            // Kamera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 50000);
+            camera.position.set(600, 400, 600);
+            camera.up.set(0, 0, 1); // Z yukari (robot konvansiyonu)
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.target.set(400, 0, -200);
+
+            // Isik
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(500, 500, 500);
+            scene.add(dirLight);
+
+            // Base eksenleri
+            createBaseAxes();
+
+            // Grid (XY duzlemi, Z=0)
+            const grid = new THREE.GridHelper(2000, 20, 0x333333, 0x222222);
+            grid.rotation.x = Math.PI / 2; // XY duzlemine dondur
+            scene.add(grid);
+
+            // Gruplar
+            flangeGroup = createFlangeModel();
+            cameraGroup = createCameraModel();
+            toolGroup = createToolModel();
+            targetGroup = createTargetModel();
+
+            scene.add(flangeGroup);
+            scene.add(cameraGroup);
+            scene.add(toolGroup);
+            scene.add(targetGroup);
+
+            // Baglanti cizgileri
+            lineFlangeCam = makeDashedLine(0x00BCD4);
+            lineFlangeTool = makeDashedLine(0x4CAF50);
+            lineCamTarget = makeDashedLine(0xFF5722);
+            lineToolTarget = makeDashedLine(0xFF9800);
+            scene.add(lineFlangeCam);
+            scene.add(lineFlangeTool);
+            scene.add(lineCamTarget);
+            scene.add(lineToolTarget);
+
+            // Tool diklik gostergesi (Tool Z-ekseni → hedef yonu karsilastirmasi)
+            toolDirArrow = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), 100, 0xFFFF00, 15, 10
+            );
+            toolDirArrow.visible = false;
+            scene.add(toolDirArrow);
+
+            // Baslangicta gizle
+            flangeGroup.visible = false;
+            cameraGroup.visible = false;
+            toolGroup.visible = false;
+            targetGroup.visible = false;
+            lineFlangeCam.visible = false;
+            lineFlangeTool.visible = false;
+            lineCamTarget.visible = false;
+            lineToolTarget.visible = false;
+
+            window.addEventListener('resize', onResize);
+            animate();
+            return "Visualizer Ready";
+        }
+
+        // ═══ MODEL OLUSTURMA ═══
+
+        function createFlangeModel() {
+            const group = new THREE.Group();
+            // Kure (flange merkezi)
+            const geo = new THREE.SphereGeometry(12, 16, 16);
+            const mat = new THREE.MeshPhongMaterial({ color: 0xFFD700, emissive: 0x332200 });
+            group.add(new THREE.Mesh(geo, mat));
+            // Eksenler (X=kirmizi, Y=yesil, Z=mavi)
+            group.add(new THREE.AxesHelper(60));
+            // Flange Z-yonu oku (kalin mavi ok = flange'in baktigi yon)
+            group.add(new THREE.ArrowHelper(
+                new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0),
+                80, 0x4488ff, 12, 8
+            ));
+            // Etiket
+            const label = makeLabel("FLANGE", "#FFD700");
+            label.position.set(0, 20, 0);
+            group.add(label);
+            return group;
+        }
+
+        function createCameraModel() {
+            const group = new THREE.Group();
+
+            // --- Gocator sensör konvansiyonu ---
+            // +Z = sensör gövdesine dogru (YUKARI/UZAGA)
+            // -Z = ölçüm yönü (HEDEFE dogru, ASAGI)
+            // Yani kamera -Z yönüne BAKIYOR!
+
+            // Koni: FOV görseli, -Z yönüne açılır (bakış yönü)
+            const geo = new THREE.ConeGeometry(18, 45, 8);
+            geo.rotateX(-Math.PI / 2); // sivri uç +Z, geniş taban -Z → -Z'ye açılır
+            geo.translate(0, 0, -25);
+            const mat = new THREE.MeshPhongMaterial({
+                color: 0x00BCD4, emissive: 0x002233,
+                transparent: true, opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            group.add(new THREE.Mesh(geo, mat));
+
+            // Wire frame
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0x00BCD4, wireframe: true, transparent: true, opacity: 0.3 });
+            const wireGeo = new THREE.ConeGeometry(18, 45, 8);
+            wireGeo.rotateX(-Math.PI / 2);
+            wireGeo.translate(0, 0, -25);
+            group.add(new THREE.Mesh(wireGeo, wireMat));
+
+            // Kamera gövdesi (+Z tarafında, sensör arkası)
+            const bodyGeo = new THREE.BoxGeometry(14, 10, 12);
+            bodyGeo.translate(0, 0, 8);
+            const bodyMat = new THREE.MeshPhongMaterial({ color: 0x008B8B, emissive: 0x003333 });
+            group.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+            // Bakış yönü oku (-Z = ölçüm yönü, CYAN ok)
+            const lookArrow = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0),
+                70, 0x00BCD4, 12, 8
+            );
+            group.add(lookArrow);
+
+            // Eksenler (referans: X=kırmızı Y=yeşil Z=mavi)
+            group.add(new THREE.AxesHelper(40));
+            // Etiket
+            const label = makeLabel("KAMERA", "#00BCD4");
+            label.position.set(0, 20, 0);
+            group.add(label);
+            return group;
+        }
+
+        function createToolModel() {
+            const group = new THREE.Group();
+
+            // --- Sniffer govde (silindir) ---
+            // KUKA Tool konvansiyonu: +Z = yaklasma yonu (flange'dan uce dogru)
+            // Silindir: genis kisim flange tarafinda (0), sivri uc +Z yonunde
+            const geo = new THREE.CylinderGeometry(3, 7, 50, 8);
+            geo.rotateX(Math.PI / 2); // Y ekseninden Z eksenine cevir
+            geo.translate(0, 0, 25);   // +Z yonune kaydir (uc +Z'de)
+            const mat = new THREE.MeshPhongMaterial({ color: 0x4CAF50, emissive: 0x0a1f0a });
+            group.add(new THREE.Mesh(geo, mat));
+
+            // Uc nokta kure (+Z yonunde = sniffer ucu)
+            const tipGeo = new THREE.SphereGeometry(5, 12, 12);
+            tipGeo.translate(0, 0, 50);
+            const tipMat = new THREE.MeshPhongMaterial({ color: 0x76FF03, emissive: 0x1a3300 });
+            group.add(new THREE.Mesh(tipGeo, tipMat));
+
+            // Yaklasma yonu oku (+Z = tool ucu yonu, YESIL ok)
+            group.add(new THREE.ArrowHelper(
+                new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0),
+                70, 0x4CAF50, 10, 6
+            ));
+
+            // Eksenler
+            group.add(new THREE.AxesHelper(40));
+            // Etiket
+            const label = makeLabel("SNIFFER", "#4CAF50");
+            label.position.set(0, 20, 0);
+            group.add(label);
+            return group;
+        }
+
+        function createTargetModel() {
+            const group = new THREE.Group();
+            // Ana kure
+            const geo = new THREE.SphereGeometry(10, 16, 16);
+            const mat = new THREE.MeshPhongMaterial({ color: 0xFF5722, emissive: 0x551100 });
+            group.add(new THREE.Mesh(geo, mat));
+            // Parlama halkasi
+            const ringGeo = new THREE.RingGeometry(14, 18, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xFF5722, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.name = 'pulseRing';
+            group.add(ring);
+            // Etiket
+            const label = makeLabel("HEDEF", "#FF5722");
+            label.position.set(0, 0, 25);
+            group.add(label);
+            return group;
+        }
+
+        function createBaseAxes() {
+            const len = 150;
+            const headLen = 15;
+            const headW = 5;
+
+            // X - Kirmizi
+            scene.add(new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), len, 0xff0000, headLen, headW));
+            scene.add(makeLabelAt("X", "#ff0000", len+10, 0, 0));
+
+            // Y - Yesil
+            scene.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), len, 0x00ff00, headLen, headW));
+            scene.add(makeLabelAt("Y", "#00ff00", 0, len+10, 0));
+
+            // Z - Mavi
+            scene.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,0), len, 0x4488ff, headLen, headW));
+            scene.add(makeLabelAt("Z", "#4488ff", 0, 0, len+10));
+
+            // Origin kure
+            const originGeo = new THREE.SphereGeometry(4, 12, 12);
+            const originMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            scene.add(new THREE.Mesh(originGeo, originMat));
+        }
+
+        // ═══ GUNCELLEME ═══
+
+        function updateScene(data) {
+            if (!data) return;
+            lastSceneData = JSON.parse(JSON.stringify(data)); // derin kopya
+
+            // Flange
+            if (data.flange) {
+                applyTransform(flangeGroup, data.flange);
+                flangeGroup.visible = true;
+            } else {
+                flangeGroup.visible = false;
+            }
+
+            // Kamera
+            if (data.camera) {
+                applyTransform(cameraGroup, data.camera);
+                cameraGroup.visible = true;
+            } else {
+                cameraGroup.visible = false;
+            }
+
+            // Tool[1]
+            if (data.tool) {
+                applyTransform(toolGroup, data.tool);
+                toolGroup.visible = true;
+            } else {
+                toolGroup.visible = false;
+            }
+
+            // Hedef
+            if (data.target && data.target.position) {
+                const tp = data.target.position;
+                targetGroup.position.set(tp[0], tp[1], tp[2]);
+                targetGroup.visible = true;
+            } else {
+                targetGroup.visible = false;
+            }
+
+            // Baglanti cizgileri guncelle
+            updateLines(data);
+
+            // Tool diklik gostergesi guncelle
+            updateToolDirectionArrow(data);
+
+            // Bilgi paneli guncelle
+            updateInfoPanel(data);
+
+            // İlk veri geldiğinde otomatik odakla
+            if (!firstDataReceived && (flangeGroup.visible || targetGroup.visible)) {
+                firstDataReceived = true;
+                setTimeout(() => fitAll(), 200);
+            }
+        }
+
+        function applyTransform(group, data) {
+            if (!data || !data.position) return;
+            group.position.set(data.position[0], data.position[1], data.position[2]);
+
+            if (data.rotation && data.rotation.length === 9) {
+                const r = data.rotation;
+                // TransformMatrix: I=(Ix,Iy,Iz), J=(Jx,Jy,Jz), K=(Kx,Ky,Kz) column-major
+                // Three.js Matrix4.set() row-major:
+                const m4 = new THREE.Matrix4();
+                m4.set(
+                    r[0], r[3], r[6], 0,
+                    r[1], r[4], r[7], 0,
+                    r[2], r[5], r[8], 0,
+                    0,    0,    0,    1
+                );
+                group.setRotationFromMatrix(m4);
+            }
+        }
+
+        function updateLines(data) {
+            const fp = data.flange ? new THREE.Vector3(...data.flange.position) : null;
+            const cp = data.camera ? new THREE.Vector3(...data.camera.position) : null;
+            const tp = data.tool ? new THREE.Vector3(...data.tool.position) : null;
+            const hp = data.target && data.target.position ? new THREE.Vector3(...data.target.position) : null;
+
+            // Flange → Kamera
+            if (fp && cp) { updateDashedLine(lineFlangeCam, fp, cp); lineFlangeCam.visible = true; }
+            else { lineFlangeCam.visible = false; }
+
+            // Flange → Tool
+            if (fp && tp) { updateDashedLine(lineFlangeTool, fp, tp); lineFlangeTool.visible = true; }
+            else { lineFlangeTool.visible = false; }
+
+            // Kamera → Hedef
+            if (cp && hp) { updateDashedLine(lineCamTarget, cp, hp); lineCamTarget.visible = true; }
+            else { lineCamTarget.visible = false; }
+
+            // Tool → Hedef (en onemli: mesafe gosterimi)
+            if (tp && hp) { updateDashedLine(lineToolTarget, tp, hp); lineToolTarget.visible = true; }
+            else { lineToolTarget.visible = false; }
+        }
+
+        // Tool Z-ekseni yonunu hedefe dogru goster (diklik kontrolu)
+        function updateToolDirectionArrow(data) {
+            if (!data.tool || !data.tool.position || !data.tool.rotation ||
+                !data.target || !data.target.position) {
+                toolDirArrow.visible = false;
+                return;
+            }
+
+            const tp = data.tool.position;
+            const hp = data.target.position;
+            const r = data.tool.rotation;
+
+            // Tool Z-ekseni (K column)
+            const toolZ = new THREE.Vector3(r[6], r[7], r[8]).normalize();
+
+            // Tool → Hedef vektoru
+            const toTarget = new THREE.Vector3(hp[0]-tp[0], hp[1]-tp[1], hp[2]-tp[2]);
+            const dist = toTarget.length();
+            if (dist < 0.01) { toolDirArrow.visible = false; return; }
+
+            // Tool Z-ekseni yonunde ok ciz (tool pozisyonundan baslayarak)
+            toolDirArrow.position.set(tp[0], tp[1], tp[2]);
+            toolDirArrow.setDirection(toolZ);
+            toolDirArrow.setLength(Math.min(dist * 0.8, 150), 15, 10);
+
+            // Aci hesapla - diklik kontrolu
+            const dot = toolZ.dot(toTarget.normalize());
+            const angleDeg = Math.acos(Math.min(1, Math.max(-1, dot))) * 180 / Math.PI;
+
+            // Renk: yesil (dik), turuncu (sapma), kirmizi (ters)
+            const color = angleDeg < 15 ? 0x4CAF50 : angleDeg < 45 ? 0xFF9800 : 0xF44336;
+            toolDirArrow.setColor(color);
+            toolDirArrow.visible = true;
+        }
+
+        function fmtDelta(v) {
+            const abs = Math.abs(v);
+            const s = (v >= 0 ? '+' : '') + v.toFixed(3);
+            if (abs < 0.05) return `<span class="delta-val delta-zero">${s}</span>`;
+            if (v > 0) return `<span class="delta-val delta-pos">${s}</span>`;
+            return `<span class="delta-val delta-neg">${s}</span>`;
+        }
+
+        function updateInfoPanel(data) {
+            let html = '';
+
+            // ── TCP (aktif tool ile) ──
+            if (data.tcp) {
+                const t = data.tcp;
+                html += `<div class="section-title" style="color:#FFD700">📍 Robot TCP</div>`;
+                html += `<div class="row"><span class="label">Poz:</span><span class="value">X:${t.x.toFixed(2)}  Y:${t.y.toFixed(2)}  Z:${t.z.toFixed(2)}</span></div>`;
+                html += `<div class="row"><span class="label">Açı:</span><span class="value">A:${t.a.toFixed(2)}  B:${t.b.toFixed(2)}  C:${t.c.toFixed(2)}</span></div>`;
+            }
+
+            // ── Tool[1] Sniffer pozisyonu (Base'de) ──
+            if (data.tool && data.tool.position) {
+                const tp = data.tool.position;
+                html += `<div class="sep"></div>`;
+                html += `<div class="section-title" style="color:#4CAF50">🔧 Tool[1] Sniffer (Base)</div>`;
+                html += `<div class="row"><span class="label">X:</span><span class="value" style="color:#4CAF50">${tp[0].toFixed(3)} mm</span></div>`;
+                html += `<div class="row"><span class="label">Y:</span><span class="value" style="color:#4CAF50">${tp[1].toFixed(3)} mm</span></div>`;
+                html += `<div class="row"><span class="label">Z:</span><span class="value" style="color:#4CAF50">${tp[2].toFixed(3)} mm</span></div>`;
+            }
+
+            // ── Hedef nokta (Kamera → Base dönüşüm) ──
+            if (data.target && data.target.position) {
+                const hp = data.target.position;
+                html += `<div class="sep"></div>`;
+                html += `<div class="section-title" style="color:#FF6E40">🎯 Hedef Nokta (Kamera→Base)</div>`;
+                html += `<div class="row"><span class="label">X:</span><span class="value" style="color:#FF6E40">${hp[0].toFixed(3)} mm</span></div>`;
+                html += `<div class="row"><span class="label">Y:</span><span class="value" style="color:#FF6E40">${hp[1].toFixed(3)} mm</span></div>`;
+                html += `<div class="row"><span class="label">Z:</span><span class="value" style="color:#FF6E40">${hp[2].toFixed(3)} mm</span></div>`;
+            }
+
+            // ── KARŞILAŞTIRMA: Tool[1] vs Hedef ──
+            if (data.tool && data.tool.position && data.target && data.target.position) {
+                const tp = data.tool.position;
+                const hp = data.target.position;
+                const dx = tp[0]-hp[0], dy = tp[1]-hp[1], dz = tp[2]-hp[2];
+                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+                html += `<div class="sep"></div>`;
+                html += `<div class="compare-box">`;
+                html += `<div class="section-title" style="color:#FF9800">⚡ Tool ↔ Hedef Karşılaştırma</div>`;
+
+                // Toplam mesafe
+                const distClass = dist < 1.0 ? 'dist-good' : 'dist';
+                html += `<div class="row"><span class="label">Mesafe:</span><span class="${distClass}">${dist.toFixed(3)} mm</span></div>`;
+
+                // Delta detay
+                html += `<div style="margin-top:4px">`;
+                html += `<div class="delta-row"><span class="label">ΔX:</span>${fmtDelta(dx)} mm</div>`;
+                html += `<div class="delta-row"><span class="label">ΔY:</span>${fmtDelta(dy)} mm</div>`;
+                html += `<div class="delta-row"><span class="label">ΔZ:</span>${fmtDelta(dz)} mm</div>`;
+                html += `</div>`;
+
+                // Tool diklik kontrolu
+                if (data.tool.rotation && data.tool.rotation.length === 9 && dist > 0.01) {
+                    const r = data.tool.rotation;
+                    // Tool Z-ekseni (K column)
+                    const kx = r[6], ky = r[7], kz = r[8];
+                    // Tool → Hedef birim vektoru
+                    const nx = (hp[0]-tp[0])/dist, ny = (hp[1]-tp[1])/dist, nz = (hp[2]-tp[2])/dist;
+                    const dot = kx*nx + ky*ny + kz*nz;
+                    const toolAngle = Math.acos(Math.min(1, Math.max(-1, dot))) * 180 / Math.PI;
+                    const taColor = toolAngle < 15 ? '#4CAF50' : toolAngle < 45 ? '#FF9800' : '#F44336';
+                    const taLabel = toolAngle < 15 ? 'DİK ✓' : toolAngle < 45 ? 'SAPMA' : (toolAngle > 135 ? 'TERS!' : 'EĞRİ');
+                    html += `<div style="margin-top:6px; border-top:1px solid #333; padding-top:4px">`;
+                    html += `<div class="row"><span class="label">Tool→Hedef:</span><span class="value" style="color:${taColor};font-weight:bold">${toolAngle.toFixed(1)}° ${taLabel}</span></div>`;
+                    html += `<div class="row"><span class="label" style="font-size:9px">Tool Z:</span><span class="value" style="font-size:9px;color:#888">(${kx.toFixed(3)}, ${ky.toFixed(3)}, ${kz.toFixed(3)})</span></div>`;
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+            }
+
+            // ── Kamera pozisyonu + bakis yonu ──
+            if (data.camera && data.camera.position) {
+                const cp = data.camera.position;
+                html += `<div class="sep"></div>`;
+                html += `<div class="section-title" style="color:#00E5FF">📷 Kamera (Base)</div>`;
+                html += `<div class="row"><span class="label">Poz:</span><span class="value" style="color:#00E5FF">X:${cp[0].toFixed(1)}  Y:${cp[1].toFixed(1)}  Z:${cp[2].toFixed(1)}</span></div>`;
+
+                // Kamera bakis yonu (-Z = olcum yonu, Gocator konvansiyonu)
+                if (data.camera.rotation && data.camera.rotation.length === 9) {
+                    const r = data.camera.rotation;
+                    // Bakis yonu = -Z = -K column = [-Kx, -Ky, -Kz]
+                    const lookX = -r[6], lookY = -r[7], lookZ = -r[8];
+                    html += `<div class="row"><span class="label">Bakış:</span><span class="value" style="color:#00BCD4">(${lookX.toFixed(3)}, ${lookY.toFixed(3)}, ${lookZ.toFixed(3)})</span></div>`;
+
+                    // Kamera→Hedef aci kontrolu (bakis yonu = -Z)
+                    if (data.target && data.target.position) {
+                        const hp = data.target.position;
+                        const dx = hp[0]-cp[0], dy = hp[1]-cp[1], dz = hp[2]-cp[2];
+                        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                        if (dist > 0.01) {
+                            // Kamera -Z ekseni (bakis yonu) ile kamera→hedef arasindaki aci
+                            const dot = (lookX*dx + lookY*dy + lookZ*dz) / dist;
+                            const angleDeg = Math.acos(Math.min(1, Math.max(-1, dot))) * 180 / Math.PI;
+                            const angleColor = angleDeg < 30 ? '#4CAF50' : angleDeg < 90 ? '#FF9800' : '#F44336';
+                            const angleLabel = angleDeg < 30 ? 'FOV İÇİ ✓' : angleDeg < 60 ? 'SAPMA' : 'FOV DIŞI!';
+                            html += `<div class="row"><span class="label">→Hedef:</span><span class="value" style="color:${angleColor}">${angleDeg.toFixed(1)}° ${angleLabel}</span></div>`;
+                        }
+                    }
+                }
+            }
+
+            // ── Tool bilgileri (Robot'tan okunan TOOL[0], TOOL[1], TOOL[2]) ──
+            if (data.tools) {
+                html += `<div class="sep"></div>`;
+                html += `<div class="section-title" style="color:#B0BEC5">🔧 KUKA Tool Tanımları</div>`;
+                for (const [name, vals] of Object.entries(data.tools)) {
+                    const isActive = data.activeToolNo !== undefined && name === `Tool[${data.activeToolNo}]`;
+                    const clr = isActive ? '#FFD700' : '#666';
+                    const tag = isActive ? ' ◀ AKTİF' : '';
+                    html += `<div class="row"><span class="label" style="color:${clr}">${name}${tag}:</span><span class="value" style="font-size:9px;color:${clr}">${vals}</span></div>`;
+                }
+            }
+
+            if (html === '') html = '<div style="color:#FF9800;font-size:12px">⏳ Robot bağlantısı bekleniyor...</div>';
+            document.getElementById('tcpInfo').innerHTML = html;
+        }
+
+        // ═══ YARDIMCI ═══
+
+        function makeLabel(text, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.font = 'bold 26px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 128, 42);
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(70, 17, 1);
+            return sprite;
+        }
+
+        function makeLabelAt(text, color, x, y, z) {
+            const sprite = makeLabel(text, color);
+            sprite.position.set(x, y, z);
+            sprite.scale.set(40, 10, 1);
+            return sprite;
+        }
+
+        function makeDashedLine(color) {
+            const geom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(), new THREE.Vector3()
+            ]);
+            const mat = new THREE.LineDashedMaterial({ color: color, dashSize: 8, gapSize: 4, linewidth: 1 });
+            const line = new THREE.Line(geom, mat);
+            line.computeLineDistances();
+            return line;
+        }
+
+        function updateDashedLine(line, p1, p2) {
+            const pos = line.geometry.attributes.position.array;
+            pos[0] = p1.x; pos[1] = p1.y; pos[2] = p1.z;
+            pos[3] = p2.x; pos[4] = p2.y; pos[5] = p2.z;
+            line.geometry.attributes.position.needsUpdate = true;
+            line.computeLineDistances();
+        }
+
+        function clearTarget() {
+            targetGroup.visible = false;
+            lineCamTarget.visible = false;
+            lineToolTarget.visible = false;
+            toolDirArrow.visible = false;
+        }
+
+        function resetView() {
+            camera.position.set(600, 400, 600);
+            controls.target.set(400, 0, -200);
+            controls.update();
+        }
+
+        // ═══ BAKIŞ AÇISI KONTROL ═══
+
+        // Tüm görünür noktaların merkez ve boyut bilgisini hesapla
+        function getSceneBounds() {
+            const points = [];
+            if (flangeGroup.visible) points.push(flangeGroup.position.clone());
+            if (cameraGroup.visible) points.push(cameraGroup.position.clone());
+            if (toolGroup.visible) points.push(toolGroup.position.clone());
+            if (targetGroup.visible) points.push(targetGroup.position.clone());
+
+            if (points.length === 0) return { center: new THREE.Vector3(400, 0, 200), radius: 500 };
+
+            const center = new THREE.Vector3();
+            points.forEach(p => center.add(p));
+            center.divideScalar(points.length);
+
+            let maxDist = 100; // minimum radius
+            points.forEach(p => {
+                const d = center.distanceTo(p);
+                if (d > maxDist) maxDist = d;
+            });
+
+            return { center: center, radius: maxDist };
+        }
+
+        function animateCamera(targetPos, lookAt, duration) {
+            const startPos = camera.position.clone();
+            const startLook = controls.target.clone();
+            const startTime = performance.now();
+            duration = duration || 500;
+
+            function step(now) {
+                const t = Math.min((now - startTime) / duration, 1);
+                const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOutQuad
+
+                camera.position.lerpVectors(startPos, targetPos, ease);
+                controls.target.lerpVectors(startLook, lookAt, ease);
+                controls.update();
+
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function setView(viewName) {
+            const bounds = getSceneBounds();
+            const c = bounds.center;
+            const r = bounds.radius * 1.8 + 100; // biraz margin
+
+            // Aktif buton stili
+            document.querySelectorAll('#viewControls button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            switch (viewName) {
+                case 'top': // Üstten (Z ekseni boyunca aşağı bak)
+                    animateCamera(
+                        new THREE.Vector3(c.x, c.y, c.z + r),
+                        new THREE.Vector3(c.x, c.y, c.z)
+                    );
+                    break;
+                case 'front': // Önden (Y ekseni boyunca bak)
+                    animateCamera(
+                        new THREE.Vector3(c.x, c.y - r, c.z),
+                        new THREE.Vector3(c.x, c.y, c.z)
+                    );
+                    break;
+                case 'side': // Yandan (X ekseni boyunca bak)
+                    animateCamera(
+                        new THREE.Vector3(c.x + r, c.y, c.z),
+                        new THREE.Vector3(c.x, c.y, c.z)
+                    );
+                    break;
+                case 'iso': // İzometrik
+                    animateCamera(
+                        new THREE.Vector3(c.x + r * 0.6, c.y - r * 0.6, c.z + r * 0.5),
+                        new THREE.Vector3(c.x, c.y, c.z)
+                    );
+                    break;
+            }
+        }
+
+        function fitAll() {
+            const bounds = getSceneBounds();
+            const c = bounds.center;
+            const r = bounds.radius * 2.0 + 100;
+            animateCamera(
+                new THREE.Vector3(c.x + r * 0.5, c.y - r * 0.5, c.z + r * 0.4),
+                new THREE.Vector3(c.x, c.y, c.z)
+            );
+        }
+
+        function focusTarget() {
+            if (!targetGroup.visible) return;
+            const p = targetGroup.position;
+            const r = 200;
+            animateCamera(
+                new THREE.Vector3(p.x + r * 0.5, p.y - r * 0.5, p.z + r * 0.4),
+                new THREE.Vector3(p.x, p.y, p.z)
+            );
+        }
+
+        function focusTool() {
+            if (!toolGroup.visible) return;
+            const p = toolGroup.position;
+            const r = 200;
+            animateCamera(
+                new THREE.Vector3(p.x + r * 0.5, p.y - r * 0.5, p.z + r * 0.4),
+                new THREE.Vector3(p.x, p.y, p.z)
+            );
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+
+            // Hedef pulse efekti
+            if (targetGroup.visible) {
+                targetPulse += 0.05;
+                const ring = targetGroup.getObjectByName('pulseRing');
+                if (ring) {
+                    const s = 1 + 0.3 * Math.sin(targetPulse);
+                    ring.scale.set(s, s, s);
+                    ring.material.opacity = 0.2 + 0.2 * Math.sin(targetPulse);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Sayfa yuklendiginde baslat
+        window.addEventListener('DOMContentLoaded', initVisualizer);
+
+        // ═══ SNAPSHOT (TOOL DOĞRULAMA) ═══
+
+        function saveSnapshot() {
+            if (!lastSceneData) { alert('Önce veri yükleyin (Güncelle butonuna basın)'); return; }
+            const d = lastSceneData;
+            const snap = {
+                id: snapshots.length + 1,
+                toolNo: d.activeToolNo !== undefined ? d.activeToolNo : '?',
+                tcp: d.tcp ? { x: d.tcp.x, y: d.tcp.y, z: d.tcp.z, a: d.tcp.a, b: d.tcp.b, c: d.tcp.c } : null,
+                flange: d.flange ? { pos: [...d.flange.position] } : null,
+                camera: d.camera ? { pos: [...d.camera.position] } : null,
+                target: d.target && d.target.position ? { pos: [...d.target.position] } : null,
+                tool1: d.tool ? { pos: [...d.tool.position] } : null
+            };
+            snapshots.push(snap);
+            renderSnapshots();
+        }
+
+        function clearSnapshots() {
+            snapshots = [];
+            document.getElementById('snapshotPanel').style.display = 'none';
+        }
+
+        function renderSnapshots() {
+            const panel = document.getElementById('snapshotPanel');
+            const content = document.getElementById('snapshotContent');
+            if (snapshots.length === 0) { panel.style.display = 'none'; return; }
+            panel.style.display = 'block';
+
+            let html = '<table style="border-collapse:collapse;width:100%;color:#ccc;font-size:10px">';
+            html += '<tr style="border-bottom:1px solid #444">';
+            html += '<th style="text-align:left;padding:3px;color:#4CAF50">#</th>';
+            html += '<th style="text-align:left;padding:3px;color:#FFD700">Tool</th>';
+            html += '<th style="text-align:left;padding:3px;color:#FFD700">TCP (X,Y,Z)</th>';
+            html += '<th style="text-align:left;padding:3px;color:#FFD700">Flange (X,Y,Z)</th>';
+            html += '<th style="text-align:left;padding:3px;color:#FF6E40">Hedef (X,Y,Z)</th>';
+            html += '</tr>';
+
+            for (const s of snapshots) {
+                const tcpStr = s.tcp ? `${s.tcp.x.toFixed(1)}, ${s.tcp.y.toFixed(1)}, ${s.tcp.z.toFixed(1)}` : '-';
+                const flStr = s.flange ? `${s.flange.pos[0].toFixed(1)}, ${s.flange.pos[1].toFixed(1)}, ${s.flange.pos[2].toFixed(1)}` : '-';
+                const tgStr = s.target ? `${s.target.pos[0].toFixed(1)}, ${s.target.pos[1].toFixed(1)}, ${s.target.pos[2].toFixed(1)}` : '-';
+                html += `<tr style="border-bottom:1px solid #333">`;
+                html += `<td style="padding:3px;color:#4CAF50">${s.id}</td>`;
+                html += `<td style="padding:3px;color:#FFD700">T${s.toolNo}</td>`;
+                html += `<td style="padding:3px;font-family:monospace">${tcpStr}</td>`;
+                html += `<td style="padding:3px;font-family:monospace">${flStr}</td>`;
+                html += `<td style="padding:3px;font-family:monospace;color:#FF6E40">${tgStr}</td>`;
+                html += '</tr>';
+            }
+            html += '</table>';
+
+            // Karsilastirma (2+ snapshot varsa)
+            if (snapshots.length >= 2) {
+                html += '<div style="margin-top:8px;border-top:1px solid #4CAF50;padding-top:6px">';
+                html += '<div style="font-weight:bold;color:#FF9800;margin-bottom:4px">FARK ANALİZİ (ilk snapshot referans)</div>';
+                const ref = snapshots[0];
+                for (let i = 1; i < snapshots.length; i++) {
+                    const s = snapshots[i];
+                    html += `<div style="color:#888;margin-top:4px">Snap ${ref.id} (T${ref.toolNo}) → Snap ${s.id} (T${s.toolNo}):</div>`;
+
+                    // Flange farki
+                    if (ref.flange && s.flange) {
+                        const dx = s.flange.pos[0]-ref.flange.pos[0];
+                        const dy = s.flange.pos[1]-ref.flange.pos[1];
+                        const dz = s.flange.pos[2]-ref.flange.pos[2];
+                        const dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
+                        const clr = dist < 1 ? '#4CAF50' : dist < 5 ? '#FF9800' : '#F44336';
+                        html += `<div style="display:flex;justify-content:space-between"><span style="color:#FFD700">ΔFlange:</span><span style="color:${clr};font-weight:bold;font-family:monospace">${dist.toFixed(3)} mm</span></div>`;
+                    }
+
+                    // Hedef farki
+                    if (ref.target && s.target) {
+                        const dx = s.target.pos[0]-ref.target.pos[0];
+                        const dy = s.target.pos[1]-ref.target.pos[1];
+                        const dz = s.target.pos[2]-ref.target.pos[2];
+                        const dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
+                        const clr = dist < 1 ? '#4CAF50' : dist < 5 ? '#FF9800' : '#F44336';
+                        html += `<div style="display:flex;justify-content:space-between"><span style="color:#FF6E40">ΔHedef:</span><span style="color:${clr};font-weight:bold;font-family:monospace">${dist.toFixed(3)} mm</span></div>`;
+                    }
+                }
+
+                // Sonuc
+                html += '<div style="margin-top:6px;border-top:1px solid #333;padding-top:4px">';
+                const allFlangeOk = snapshots.every((s, i) => {
+                    if (i === 0 || !snapshots[0].flange || !s.flange) return true;
+                    const r = snapshots[0].flange.pos, p = s.flange.pos;
+                    return Math.sqrt((p[0]-r[0])**2+(p[1]-r[1])**2+(p[2]-r[2])**2) < 2;
+                });
+                const allTargetOk = snapshots.every((s, i) => {
+                    if (i === 0 || !snapshots[0].target || !s.target) return true;
+                    const r = snapshots[0].target.pos, p = s.target.pos;
+                    return Math.sqrt((p[0]-r[0])**2+(p[1]-r[1])**2+(p[2]-r[2])**2) < 3;
+                });
+                if (allFlangeOk && allTargetOk) {
+                    html += '<div style="color:#4CAF50;font-weight:bold;font-size:12px">✅ TOOL TANIMLARI TUTARLI</div>';
+                } else if (!allFlangeOk) {
+                    html += '<div style="color:#F44336;font-weight:bold;font-size:12px">❌ FLANGE FARKI VAR — Tool tanımları tutarsız!</div>';
+                } else {
+                    html += '<div style="color:#FF9800;font-weight:bold;font-size:12px">⚠ HEDEF FARKI VAR — Kalibrasyon kontrol edilmeli</div>';
+                }
+                html += '</div>';
+                html += '</div>';
+            }
+
+            content.innerHTML = html;
+        }
+
+        // .NET'ten cagirilabilir
+        window.initVisualizer = initVisualizer;
+        window.updateScene = updateScene;
+        window.clearTarget = clearTarget;
+        window.resetView = resetView;
+        window.saveSnapshot = saveSnapshot;
+        window.clearSnapshots = clearSnapshots;
+    </script>
+</body>
+</html>
