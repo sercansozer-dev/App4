@@ -66,10 +66,13 @@ namespace App4.PAGES
         public double BaseB { get; set; }
         public double BaseC { get; set; }
 
-        // Flange pozisyonu (TCP × Tool⁻¹)
+        // Flange pozisyonu (TCP × Tool⁻¹) — full 6DOF
         public double FlangeX { get; set; }
         public double FlangeY { get; set; }
         public double FlangeZ { get; set; }
+        public double FlangeA { get; set; }
+        public double FlangeB { get; set; }
+        public double FlangeC { get; set; }
 
         // Karşılaştırma sonuçları (ilk snapshot referans)
         private string _deltaFlange = "-";
@@ -103,6 +106,87 @@ namespace App4.PAGES
         public string FlangeDisplay => $"{FlangeX:F1}, {FlangeY:F1}, {FlangeZ:F1}";
         public string ToolLabel => $"T{ToolNo}";
         public string TimeLabel => Timestamp.ToString("HH:mm:ss");
+    }
+
+    /// <summary>
+    /// Tool dokunma noktası kaydı: Robot tool ucunu hedefe dokundurarak TCP kaydı tutar.
+    /// Gocator ölçümünden bağımsız, sadece robot TCP pozisyonu.
+    /// </summary>
+    public class ToolTouchRecord
+    {
+        public int No { get; set; }
+        public int ToolNo { get; set; }
+        public DateTime Timestamp { get; set; }
+
+        // Robot TCP ($POS_ACT) — dokunma anındaki
+        public double TcpX { get; set; }
+        public double TcpY { get; set; }
+        public double TcpZ { get; set; }
+        public double TcpA { get; set; }
+        public double TcpB { get; set; }
+        public double TcpC { get; set; }
+
+        // Formatlı gösterimler
+        public string ToolLabel => $"T{ToolNo}";
+        public string TimeLabel => Timestamp.ToString("HH:mm:ss");
+        public string TcpPosDisplay => $"{TcpX:F2}, {TcpY:F2}, {TcpZ:F2}";
+        public string TcpRotDisplay => $"{TcpA:F2}, {TcpB:F2}, {TcpC:F2}";
+    }
+
+    /// <summary>
+    /// Tool göreceli konum kaydı: İki tool arasındaki XYZABC offset.
+    /// Dokunma noktalarından TCP_a⁻¹ × TCP_b hesaplanarak çıkarılır.
+    /// </summary>
+    public class ToolRelativeRecord
+    {
+        public string Label { get; set; }       // "T0 → T2"
+        public int FromTool { get; set; }
+        public int ToTool { get; set; }
+
+        // KUKA XYZABC formatında offset
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
+        public double A { get; set; }
+        public double B { get; set; }
+        public double C { get; set; }
+
+        // Öklid mesafesi (mm)
+        public double Distance => Math.Sqrt(X * X + Y * Y + Z * Z);
+
+        // Formatlı gösterimler
+        public string PosDisplay => $"{X:F3}, {Y:F3}, {Z:F3}";
+        public string RotDisplay => $"{A:F3}, {B:F3}, {C:F3}";
+        public string DistDisplay => $"{Distance:F2} mm";
+        public string LabelColor => FromTool == 0 ? "#FFD700" : "#888888";
+    }
+
+    /// <summary>
+    /// CODESYS matematik fonksiyonu input eşleştirmesi.
+    /// Gocator ham ölçüm index'ini fonksiyon girdisine bağlar.
+    /// </summary>
+    public class CodesysMappingItem : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public string InputName { get; set; }       // "Gocator_Raw_X"
+        public string Description { get; set; }     // "Gocator Ham X"
+
+        private int _gocatorIndex;
+        public int GocatorIndex
+        {
+            get => _gocatorIndex;
+            set { _gocatorIndex = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GocatorIndex))); }
+        }
+
+        private double _currentValue;
+        public double CurrentValue
+        {
+            get => _currentValue;
+            set { _currentValue = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentValue))); PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ValueDisplay))); }
+        }
+
+        public string ValueDisplay => $"{CurrentValue:F3}";
     }
 
     public sealed partial class Camera_Page : Page, INotifyPropertyChanged
@@ -535,15 +619,45 @@ namespace App4.PAGES
         // Veri kaynağı seçimi: false = SENSOR (ham), true = HAND-EYE (dönüştürülmüş)
         private bool _useTransformedForTransfer = false;
 
+        // CODESYS matematik fonksiyonu veri kaynağı seçimi
+        private bool _useCodesysForTransfer = false;
+
+        // CODESYS optik ofset parametreleri (değiştirilebilir)
+        private double _codesysOffsetX = 7.44;     // Lens montaj kayması X (mm)
+        private double _codesysOffsetY = 16.79;    // Lens montaj kayması Y (mm)
+        private double _codesysOffsetZ = 242.90;   // Optik odak uzaklığı Z (mm)
+
+        // CODESYS input eşleştirmeleri (Gocator index → fonksiyon girdisi)
+        public ObservableCollection<CodesysMappingItem> CodesysMappings { get; } = new ObservableCollection<CodesysMappingItem>
+        {
+            new CodesysMappingItem { InputName = "Gocator_Raw_X", Description = "Gocator Ham X", GocatorIndex = 0 },
+            new CodesysMappingItem { InputName = "Gocator_Raw_Y", Description = "Gocator Ham Y", GocatorIndex = 1 },
+            new CodesysMappingItem { InputName = "Gocator_Raw_Z", Description = "Gocator Ham Z", GocatorIndex = 2 },
+            new CodesysMappingItem { InputName = "Gocator_Raw_AngleZ", Description = "Gocator Açı Z", GocatorIndex = 3 }
+        };
+
+        // CODESYS hesaplama sonuçları
+        public ObservableCollection<GocatorMeasurement> CodesysResults { get; } = new ObservableCollection<GocatorMeasurement>();
+
         // 3D Spatial Visualizer
         private bool _isVisualizerWebViewInitialized = false;
         private DispatcherTimer _liveTcpTimer;
 
-        // Snapshot sistemi
+        // Snapshot sistemi — tüm veriler ÖLÇÜM ANINDA yakalanır
         public ObservableCollection<SnapshotRecord> SnapshotRecords { get; } = new ObservableCollection<SnapshotRecord>();
-        private double[] _lastMappedGocator; // son ölçümdeki mapped gocator verileri
-        private KukaPose _lastBasePose;       // son ölçümdeki base koordinatları
-        private double _lastFlangeX, _lastFlangeY, _lastFlangeZ; // son ölçümdeki flange pozisyonu
+
+        // Tool Dokunma Noktaları — her tool ile hedefe dokunulduğunda TCP kaydı
+        public ObservableCollection<ToolTouchRecord> ToolTouchRecords { get; } = new ObservableCollection<ToolTouchRecord>();
+
+        // Tool Göreceli Konum — dokunma noktalarından hesaplanan tool offset'leri
+        public ObservableCollection<ToolRelativeRecord> ToolRelativeRecords { get; } = new ObservableCollection<ToolRelativeRecord>();
+        private double[] _lastMappedGocator;   // son ölçümdeki mapped gocator verileri
+        private KukaPose _lastBasePose;         // son ölçümdeki base koordinatları
+        private double _lastFlangeX, _lastFlangeY, _lastFlangeZ; // son ölçümdeki flange pozisyon
+        private double _lastFlangeA, _lastFlangeB, _lastFlangeC; // son ölçümdeki flange rotasyon
+        private int _lastSnapToolNo;            // ölçüm anındaki aktif tool numarası
+        private double _lastSnapTcpX, _lastSnapTcpY, _lastSnapTcpZ; // ölçüm anındaki TCP pozisyon
+        private double _lastSnapTcpA, _lastSnapTcpB, _lastSnapTcpC; // ölçüm anındaki TCP açı
 
         // Cached brushes for better performance
         private static readonly SolidColorBrush BrushOrange = new(Microsoft.UI.Colors.Orange);
@@ -651,6 +765,14 @@ namespace App4.PAGES
 
                         // --- 2. Robot bilgileri logla ---
                         var robot = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+
+                        // TCP ve Tool bilgisini ÖLÇÜM ANINDA yakala (snapshot için)
+                        if (robot != null && robot.IsConnected)
+                        {
+                            _lastSnapToolNo = robot.ToolNo;
+                            _lastSnapTcpX = robot.PosX; _lastSnapTcpY = robot.PosY; _lastSnapTcpZ = robot.PosZ;
+                            _lastSnapTcpA = robot.PosA; _lastSnapTcpB = robot.PosB; _lastSnapTcpC = robot.PosC;
+                        }
                         if (robot != null && robot.IsConnected)
                         {
                             AddLog($"[DEBUG] Robot TCP ($POS_ACT): X={robot.PosX:F2} Y={robot.PosY:F2} Z={robot.PosZ:F2} A={robot.PosA:F2} B={robot.PosB:F2} C={robot.PosC:F2}");
@@ -697,25 +819,31 @@ namespace App4.PAGES
                                 _lastBasePose = basePose;
                                 try
                                 {
-                                    var tcpMatrix = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC).ToMatrix();
+                                    // Ölçüm anında saklanan TCP kullan (tutarlılık)
+                                    var snapTcpMatrix = new KukaPose(_lastSnapTcpX, _lastSnapTcpY, _lastSnapTcpZ,
+                                                                      _lastSnapTcpA, _lastSnapTcpB, _lastSnapTcpC).ToMatrix();
                                     double ttX = 0, ttY = 0, ttZ = 0, ttA = 0, ttB = 0, ttC = 0;
-                                    if (robot.ToolNo > 0)
+                                    if (_lastSnapToolNo > 0)
                                     {
-                                        ttX = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].X"));
-                                        ttY = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].Y"));
-                                        ttZ = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].Z"));
-                                        ttA = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].A"));
-                                        ttB = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].B"));
-                                        ttC = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{robot.ToolNo}].C"));
+                                        ttX = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{_lastSnapToolNo}].X"));
+                                        ttY = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{_lastSnapToolNo}].Y"));
+                                        ttZ = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{_lastSnapToolNo}].Z"));
+                                        ttA = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{_lastSnapToolNo}].A"));
+                                        ttB = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{_lastSnapToolNo}].B"));
+                                        ttC = VizParseDouble(await robot.ReadVariableAsync($"$TOOL[{_lastSnapToolNo}].C"));
                                     }
                                     var toolMatrix = new KukaPose(ttX, ttY, ttZ, ttA, ttB, ttC).ToMatrix();
-                                    var flangeMatrix = tcpMatrix.Multiply(toolMatrix.Inverse());
+                                    var flangeMatrix = snapTcpMatrix.Multiply(toolMatrix.Inverse());
                                     var flangePose = KukaPose.FromMatrix(flangeMatrix);
                                     _lastFlangeX = flangePose.X;
                                     _lastFlangeY = flangePose.Y;
                                     _lastFlangeZ = flangePose.Z;
+                                    _lastFlangeA = flangePose.A;
+                                    _lastFlangeB = flangePose.B;
+                                    _lastFlangeC = flangePose.C;
+                                    AddLog($"[DEBUG] Snapshot Flange: X={_lastFlangeX:F2} Y={_lastFlangeY:F2} Z={_lastFlangeZ:F2} A={_lastFlangeA:F2} B={_lastFlangeB:F2} C={_lastFlangeC:F2} (Tool:{_lastSnapToolNo})");
                                 }
-                                catch { }
+                                catch (Exception ex) { AddLog($"[DEBUG] Flange hesap hatası: {ex.Message}"); }
 
                                 _ = UpdateHandEyeVisualizerAsync();
                             }
@@ -1087,8 +1215,6 @@ namespace App4.PAGES
         /// </summary>
         private void BtnSnapshotSave_Click(object sender, RoutedEventArgs e)
         {
-            var robot = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
-
             // Kontrol: ölçüm verisi var mı?
             if (_lastMappedGocator == null || _lastMappedGocator.Length < 6)
             {
@@ -1096,36 +1222,29 @@ namespace App4.PAGES
                 return;
             }
 
-            int toolNo = 0;
-            double tcpX = 0, tcpY = 0, tcpZ = 0, tcpA = 0, tcpB = 0, tcpC = 0;
-            if (robot != null && robot.IsConnected)
-            {
-                toolNo = robot.ToolNo;
-                tcpX = robot.PosX; tcpY = robot.PosY; tcpZ = robot.PosZ;
-                tcpA = robot.PosA; tcpB = robot.PosB; tcpC = robot.PosC;
-            }
-
+            // TÜM veriler ÖLÇÜM ANINDAN — canlı robot değil!
             var snap = new SnapshotRecord
             {
                 No = SnapshotRecords.Count + 1,
-                ToolNo = toolNo,
+                ToolNo = _lastSnapToolNo,
                 Timestamp = DateTime.Now,
-                // TCP
-                TcpX = tcpX, TcpY = tcpY, TcpZ = tcpZ,
-                TcpA = tcpA, TcpB = tcpB, TcpC = tcpC,
-                // Gocator ham
+                // TCP (ölçüm anındaki)
+                TcpX = _lastSnapTcpX, TcpY = _lastSnapTcpY, TcpZ = _lastSnapTcpZ,
+                TcpA = _lastSnapTcpA, TcpB = _lastSnapTcpB, TcpC = _lastSnapTcpC,
+                // Gocator ham (ölçüm anındaki)
                 GocX = _lastMappedGocator[0], GocY = _lastMappedGocator[1], GocZ = _lastMappedGocator[2],
                 GocA = _lastMappedGocator[3], GocB = _lastMappedGocator[4], GocC = _lastMappedGocator[5],
-                // Base koordinat
+                // Base koordinat (ölçüm anındaki)
                 BaseX = _lastBasePose?.X ?? 0, BaseY = _lastBasePose?.Y ?? 0, BaseZ = _lastBasePose?.Z ?? 0,
                 BaseA = _lastBasePose?.A ?? 0, BaseB = _lastBasePose?.B ?? 0, BaseC = _lastBasePose?.C ?? 0,
-                // Flange
-                FlangeX = _lastFlangeX, FlangeY = _lastFlangeY, FlangeZ = _lastFlangeZ
+                // Flange (ölçüm anındaki — full 6DOF)
+                FlangeX = _lastFlangeX, FlangeY = _lastFlangeY, FlangeZ = _lastFlangeZ,
+                FlangeA = _lastFlangeA, FlangeB = _lastFlangeB, FlangeC = _lastFlangeC
             };
 
             SnapshotRecords.Add(snap);
             RecalculateSnapshotDeltas();
-            AddLog($"📌 Snapshot #{snap.No} kaydedildi (Tool:{toolNo}, Base: X={snap.BaseX:F2} Y={snap.BaseY:F2} Z={snap.BaseZ:F2})");
+            AddLog($"📌 Snapshot #{snap.No} kaydedildi (Tool:T{snap.ToolNo}, TCP: X={snap.TcpX:F2} Y={snap.TcpY:F2} Z={snap.TcpZ:F2}, Base: X={snap.BaseX:F2} Y={snap.BaseY:F2} Z={snap.BaseZ:F2})");
         }
 
         /// <summary>
@@ -1170,6 +1289,153 @@ namespace App4.PAGES
                 // Renk: yeşil < 1mm, turuncu < 5mm, kırmızı >= 5mm
                 double maxDelta = Math.Max(dFlange, dTarget);
                 s.DeltaColor = maxDelta < 1 ? "#4CAF50" : maxDelta < 5 ? "#FF9800" : "#F44336";
+            }
+        }
+
+        // ═══ TOOL DOKUNMA NOKTASI + GÖRECELİ KONUM HESAPLAMA ═══
+
+        /// <summary>
+        /// "Nokta Kaydet" — Aktif tool ile hedefe dokunulduğunda robot TCP'sini kaydeder.
+        /// Gocator ölçümünden bağımsız, sadece robot pozisyonu.
+        /// </summary>
+        private void BtnToolTouchSave_Click(object sender, RoutedEventArgs e)
+        {
+            var robot = _calibSelectedRobot ?? KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+            if (robot == null || !robot.IsConnected)
+            {
+                AddLog("⚠ Robot bağlı değil. Dokunma noktası kaydedilemedi.");
+                return;
+            }
+
+            var touch = new ToolTouchRecord
+            {
+                No = ToolTouchRecords.Count + 1,
+                ToolNo = robot.ToolNo,
+                Timestamp = DateTime.Now,
+                TcpX = robot.PosX, TcpY = robot.PosY, TcpZ = robot.PosZ,
+                TcpA = robot.PosA, TcpB = robot.PosB, TcpC = robot.PosC
+            };
+
+            ToolTouchRecords.Add(touch);
+            AddLog($"📍 Tool dokunma #{touch.No} kaydedildi — T{touch.ToolNo}: X={touch.TcpX:F2} Y={touch.TcpY:F2} Z={touch.TcpZ:F2} A={touch.TcpA:F2} B={touch.TcpB:F2} C={touch.TcpC:F2}");
+        }
+
+        /// <summary>
+        /// "Temizle" — Dokunma noktalarını ve hesaplamaları temizler.
+        /// </summary>
+        private void BtnToolTouchClear_Click(object sender, RoutedEventArgs e)
+        {
+            ToolTouchRecords.Clear();
+            ToolRelativeRecords.Clear();
+            AddLog("🗑 Tool dokunma noktaları ve göreceli konum tablosu temizlendi.");
+        }
+
+        /// <summary>
+        /// "Hesapla" — Dokunma noktalarından tool göreceli konumları hesaplar.
+        /// Formül: Tool_b göreceli Tool_a = TCP_a⁻¹ × TCP_b
+        /// Aynı hedefe farklı tool ile dokunulmuş olmalı.
+        /// </summary>
+        private void BtnCalcToolRelative_Click(object sender, RoutedEventArgs e)
+        {
+            ToolRelativeRecords.Clear();
+
+            if (ToolTouchRecords.Count < 2)
+            {
+                AddLog("⚠ En az 2 farklı tool ile dokunma noktası gerekli.");
+                return;
+            }
+
+            // Benzersiz tool numaralarını bul
+            var toolGroups = ToolTouchRecords.GroupBy(t => t.ToolNo).OrderBy(g => g.Key).ToList();
+            if (toolGroups.Count < 2)
+            {
+                AddLog("⚠ En az 2 farklı tool numarası olmalı. Farklı tool'larla hedefe dokunun.");
+                return;
+            }
+
+            // Her tool grubu için son kaydı kullan
+            var touchPoints = toolGroups.Select(g => g.Last()).ToList();
+
+            AddLog($"► Tool göreceli konum hesaplanıyor ({touchPoints.Count} farklı tool)...");
+
+            // Her tool çifti için göreceli konum hesapla
+            for (int i = 0; i < touchPoints.Count; i++)
+            {
+                for (int j = i + 1; j < touchPoints.Count; j++)
+                {
+                    var tA = touchPoints[i];
+                    var tB = touchPoints[j];
+
+                    try
+                    {
+                        // TCP matrislerini oluştur
+                        var matA = new KukaPose(tA.TcpX, tA.TcpY, tA.TcpZ,
+                                                tA.TcpA, tA.TcpB, tA.TcpC).ToMatrix();
+                        var matB = new KukaPose(tB.TcpX, tB.TcpY, tB.TcpZ,
+                                                tB.TcpA, tB.TcpB, tB.TcpC).ToMatrix();
+
+                        // Tool_a → Tool_b = TCP_a⁻¹ × TCP_b
+                        var relativeMatrix = matA.Inverse() * matB;
+                        var relativePose = KukaPose.FromMatrix(relativeMatrix);
+
+                        var record = new ToolRelativeRecord
+                        {
+                            Label = $"T{tA.ToolNo} → T{tB.ToolNo}",
+                            FromTool = tA.ToolNo,
+                            ToTool = tB.ToolNo,
+                            X = relativePose.X, Y = relativePose.Y, Z = relativePose.Z,
+                            A = relativePose.A, B = relativePose.B, C = relativePose.C
+                        };
+
+                        ToolRelativeRecords.Add(record);
+                        AddLog($"  {record.Label}: X={record.X:F3} Y={record.Y:F3} Z={record.Z:F3} A={record.A:F3} B={record.B:F3} C={record.C:F3} ({record.DistDisplay})");
+                    }
+                    catch (Exception ex)
+                    {
+                        AddLog($"  ⚠ T{tA.ToolNo}→T{tB.ToolNo} hesaplanamadı: {ex.Message}");
+                    }
+                }
+            }
+
+            AddLog($"✓ {ToolRelativeRecords.Count} tool göreceli konum hesaplandı.");
+        }
+
+        /// <summary>
+        /// "Temizle" butonu — sadece göreceli konum sonuçlarını temizler.
+        /// </summary>
+        private void BtnClearToolRelative_Click(object sender, RoutedEventArgs e)
+        {
+            ToolRelativeRecords.Clear();
+            AddLog("🗑 Tool göreceli konum sonuçları temizlendi.");
+        }
+
+        /// <summary>
+        /// "Kaydet" butonu — hesaplanan tool offset'lerini kalıcı olarak kaydeder.
+        /// </summary>
+        private void BtnSaveToolRelative_Click(object sender, RoutedEventArgs e)
+        {
+            if (ToolRelativeRecords.Count == 0)
+            {
+                AddLog("⚠ Kaydedilecek hesaplama yok. Önce 'Hesapla' basın.");
+                return;
+            }
+
+            try
+            {
+                var offsets = new Dictionary<string, double[]>();
+                foreach (var rec in ToolRelativeRecords)
+                {
+                    string key = $"T{rec.FromTool}_T{rec.ToTool}";
+                    offsets[key] = new double[] { rec.X, rec.Y, rec.Z, rec.A, rec.B, rec.C };
+                }
+
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(offsets, Newtonsoft.Json.Formatting.Indented);
+                GlobalData.SavedToolRelativeOffsets = json;
+                AddLog($"✓ {offsets.Count} tool göreceli konum kaydedildi.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Kayıt hatası: {ex.Message}");
             }
         }
 

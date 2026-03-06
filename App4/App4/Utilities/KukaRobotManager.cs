@@ -282,8 +282,8 @@ namespace App4.Utilities
                 ("$STEP_NAME[]", v => CurrentStep = v?.Trim() ?? ""),
 
                 // ═══ TOOL & BASE ═══
-                ("$TOOL_ACT", v => ToolNo = ParseInt(v)),
-                ("$BASE_ACT", v => BaseNo = ParseInt(v)),
+                ("$ACT_TOOL", v => ToolNo = ParseInt(v)),
+                ("$ACT_BASE", v => BaseNo = ParseInt(v)),
 
                 // ═══ HATA BİLGİLERİ ═══
                 ("$ERR.NO", v => ErrorNo = ParseInt(v)),

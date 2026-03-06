@@ -626,6 +626,18 @@ namespace App4.Utilities
             return result;
         }
 
+        // Tool göreceli konum verileri (JSON formatında kalıcı kayıt)
+        private static string _savedToolRelativeOffsets = "";
+        public static string SavedToolRelativeOffsets
+        {
+            get => _savedToolRelativeOffsets;
+            set
+            {
+                _savedToolRelativeOffsets = value ?? "";
+                SaveAutomationSettings();
+            }
+        }
+
         private static int _robotConnectedCount;
         public static int RobotConnectedCount
         {
@@ -1346,6 +1358,11 @@ namespace App4.Utilities
                 catch { }
             }
 
+            if (settings.ContainsKey("ToolRelativeOffsets"))
+            {
+                try { _savedToolRelativeOffsets = settings["ToolRelativeOffsets"] as string ?? ""; } catch { }
+            }
+
             // Debug log
             System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}, ReadSpeed={_robotReadSpeed}ms");
         }
@@ -1369,6 +1386,7 @@ namespace App4.Utilities
             settings["Gocator_IpAddress"] = Gocator_IpAddress;
             settings["Gocator_Port"] = Gocator_Port;
             settings["Gocator_AxisMapping"] = string.Join(",", GocatorAxisMapping);
+            settings["ToolRelativeOffsets"] = SavedToolRelativeOffsets ?? "";
 
             // KL100 Slider R1/R2 Home sinyal se\u00e7imleri
             settings["KL100_R1Home"] = KL100_Robot1HomeSignal ?? "";

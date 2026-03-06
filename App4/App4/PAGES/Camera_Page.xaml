@@ -859,11 +859,14 @@
                         </Grid>
                     </Border>
 
-                    <!-- ═══ SNAPSHOT VERİ TABLOSU (Tool Doğrulama) ═══ -->
+                    <!-- ═══ SNAPSHOT VERİ TABLOSU (Tool Doğrulama) + TOOL GÖRECELİ KONUM ═══ -->
                     <Border Grid.Row="6" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="40"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
@@ -968,6 +971,176 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- ═══ TOOL DOKUNMA NOKTALARI (TCP Kaydı) ═══ -->
+                            <Border Grid.Row="3" Background="#0D1117" BorderThickness="0,1,0,0" BorderBrush="#333" Padding="0" Margin="0,8,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="36"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Header -->
+                                    <Border Grid.Row="0" Background="#2D1B00" Padding="12,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                        <Grid>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                                <FontIcon Glyph="&#xECAD;" Foreground="#FF9800" FontSize="14"/>
+                                                <TextBlock Text="TOOL DOKUNMA NOKTALARI" FontSize="10" FontWeight="Bold" Foreground="#FF9800" VerticalAlignment="Center"/>
+                                                <Border Background="#E65100" CornerRadius="3" Padding="5,1">
+                                                    <TextBlock Text="TCP KAYDI" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6" VerticalAlignment="Center">
+                                                <Button x:Name="BtnToolTouchSave" Click="BtnToolTouchSave_Click" Background="#2D1B00" BorderThickness="1" BorderBrush="#FF9800" Padding="8,3" CornerRadius="3" Height="26">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <FontIcon Glyph="&#xECAD;" FontSize="10" Foreground="#FF9800"/>
+                                                        <TextBlock Text="Nokta Kaydet" FontSize="9" Foreground="#FF9800" FontWeight="Bold"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnToolTouchClear" Click="BtnToolTouchClear_Click" Background="#333" BorderThickness="0" Padding="6,3" CornerRadius="3" Height="26">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="10" Foreground="#F44336"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Tablo Başlıkları -->
+                                    <Grid Grid.Row="1" Background="#1E1200" Padding="8,3" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="45"/>
+                                            <ColumnDefinition Width="55"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="#" Foreground="#888" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="TOOL" Foreground="#FFD700" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="SAAT" Foreground="#888" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="TCP POZİSYON (X, Y, Z) mm" Foreground="#FF9800" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="TCP ROTASYON (A, B, C) °" Foreground="#FFC107" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Dokunma Noktası Satırları -->
+                                    <ItemsControl Grid.Row="2" ItemsSource="{x:Bind ToolTouchRecords, Mode=OneWay}" Padding="4,2,4,6">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="local:ToolTouchRecord">
+                                                <Grid Height="32" Margin="0,1" Background="#0F0A00" CornerRadius="4" Padding="4,0" ColumnSpacing="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="45"/>
+                                                        <ColumnDefinition Width="55"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- # -->
+                                                    <TextBlock Grid.Column="0" Text="{x:Bind No}" Foreground="#AAA" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                    <!-- Tool -->
+                                                    <Border Grid.Column="1" Background="#2A2500" CornerRadius="3" Padding="3,1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind ToolLabel}" Foreground="#FFD700" FontSize="10" FontWeight="Bold"/>
+                                                    </Border>
+
+                                                    <!-- Saat -->
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind TimeLabel}" Foreground="#666" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                    <!-- TCP Pozisyon -->
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind TcpPosDisplay}" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                    <!-- TCP Rotasyon -->
+                                                    <TextBlock Grid.Column="4" Text="{x:Bind TcpRotDisplay}" Foreground="#FFC107" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+
+                            <!-- ═══ TOOL GÖRECELİ KONUM (Dokunma noktalarından hesaplanan) ═══ -->
+                            <Border Grid.Row="5" Background="#0D1117" BorderThickness="0,1,0,0" BorderBrush="#333" Padding="0" Margin="0,4,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="36"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Header -->
+                                    <Border Grid.Row="0" Background="#1B2530" Padding="12,0" BorderThickness="0,0,0,1" BorderBrush="#333">
+                                        <Grid>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                                <FontIcon Glyph="&#xE8AB;" Foreground="#00BCD4" FontSize="14"/>
+                                                <TextBlock Text="TOOL GÖRECELİ KONUM" FontSize="10" FontWeight="Bold" Foreground="#00BCD4" VerticalAlignment="Center"/>
+                                                <Border Background="#00796B" CornerRadius="3" Padding="5,1">
+                                                    <TextBlock Text="DOKUNMA NOKTALARINDAN" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6" VerticalAlignment="Center">
+                                                <Button x:Name="BtnCalcToolRelative" Click="BtnCalcToolRelative_Click" Background="#1B3D1B" BorderThickness="1" BorderBrush="#4CAF50" Padding="8,3" CornerRadius="3" Height="26">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <FontIcon Glyph="&#xE9D9;" FontSize="10" Foreground="#4CAF50"/>
+                                                        <TextBlock Text="Hesapla" FontSize="9" Foreground="#4CAF50" FontWeight="Bold"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnSaveToolRelative" Click="BtnSaveToolRelative_Click" Background="#2D2D00" BorderThickness="1" BorderBrush="#FFD700" Padding="8,3" CornerRadius="3" Height="26">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <FontIcon Glyph="&#xE74E;" FontSize="10" Foreground="#FFD700"/>
+                                                        <TextBlock Text="Kaydet" FontSize="9" Foreground="#FFD700" FontWeight="Bold"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="BtnClearToolRelative" Click="BtnClearToolRelative_Click" Background="#333" BorderThickness="0" Padding="6,3" CornerRadius="3" Height="26">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="10" Foreground="#F44336"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Tablo Başlıkları -->
+                                    <Grid Grid.Row="1" Background="#1A1E25" Padding="8,3" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="İLİŞKİ" Foreground="#00BCD4" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="POZİSYON (X, Y, Z) mm" Foreground="#FFD700" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="ROTASYON (A, B, C) °" Foreground="#E040FB" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="MESAFE" Foreground="#FF6E40" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Tool Göreceli Konum Satırları -->
+                                    <ItemsControl Grid.Row="2" ItemsSource="{x:Bind ToolRelativeRecords, Mode=OneWay}" Padding="4,2,4,6">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="local:ToolRelativeRecord">
+                                                <Grid Height="32" Margin="0,1" Background="#0A0E14" CornerRadius="4" Padding="4,0" ColumnSpacing="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="90"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="80"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- İlişki etiketi -->
+                                                    <Border Grid.Column="0" Background="#1A2530" CornerRadius="3" Padding="6,2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Label}" Foreground="#00BCD4" FontSize="10" FontWeight="Bold" FontFamily="Consolas"/>
+                                                    </Border>
+
+                                                    <!-- Pozisyon (X,Y,Z) -->
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind PosDisplay}" Foreground="#FFD700" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                    <!-- Rotasyon (A,B,C) -->
+                                                    <TextBlock Grid.Column="2" Text="{x:Bind RotDisplay}" Foreground="#E040FB" FontSize="10" FontFamily="Consolas" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                    <!-- Mesafe -->
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind DistDisplay}" Foreground="#FF6E40" FontSize="10" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Border>
 
