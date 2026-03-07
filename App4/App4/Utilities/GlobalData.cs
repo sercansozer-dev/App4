@@ -1674,11 +1674,27 @@ namespace App4.Utilities
             int jobIndex = 0;
             try
             {
-                // 1. JOB_INDEX'i robottan oku (KUKA REAL "2.0" formatını da destekler)
-                var jobIndexVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
-                if (jobIndexVar != null) TryParseIndex(jobIndexVar.Value, out jobIndex);
+                // 1. JOB_INDEX'i doğrudan robottan CANLI oku (cache'e güvenme — race condition önlenir)
+                string rawJobIndex = null;
+                try
+                {
+                    rawJobIndex = await robot.ReadVariableAsync("G_JOB_INDEX");
+                }
+                catch { }
 
-                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex}, raw=\"{jobIndexVar?.Value}\")");
+                // Canlı okuma başarılıysa onu kullan, değilse cache'e düş
+                if (!string.IsNullOrEmpty(rawJobIndex))
+                {
+                    TryParseIndex(rawJobIndex, out jobIndex);
+                }
+                else
+                {
+                    var jobIndexVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
+                    if (jobIndexVar != null) TryParseIndex(jobIndexVar.Value, out jobIndex);
+                    rawJobIndex = jobIndexVar?.Value ?? "null";
+                }
+
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex}, raw=\"{rawJobIndex}\")");
 
                 // ═══ SEÇİLİ INDEX'İN SNIFFER SÜRESİ + NOKTA SAPMA LİMİTİ GÜNCELLE ═══
                 UpdateCurrentJobIndex(jobIndex);
@@ -2581,13 +2597,34 @@ namespace App4.Utilities
                 // RFID Variable Bul (PLC + Robot tüm kaynaklarda ara)
                 var rfidVar = FindPlcVarByName(Auto_RfidTag);
 
-                // Index Variable Bul — önce canlı watcher'ı kullan, yoksa FindPlcVarByName ile ara
-                var indexVar = _currentIndexVar ?? FindPlcVarByName(Auto_IndexTag);
-
+                // Index değerini doğrudan robottan CANLI oku (cache race condition önlenir)
                 string currentRfid = rfidVar?.Value ?? "---";
-                string currentIndex = indexVar?.Value ?? "0";
+                string currentIndex = "0";
 
-                OnAutomationLog?.Invoke($"Tetik: {currentRfid} (Index: {currentIndex})");
+                // Önce canlı robot okuması dene
+                try
+                {
+                    var robots = KukaRobotManager.Instance?.Robots;
+                    var connectedRobot = robots?.FirstOrDefault(r => r.IsConnected);
+                    if (connectedRobot != null && !string.IsNullOrEmpty(Auto_IndexTag))
+                    {
+                        string freshVal = await connectedRobot.ReadVariableAsync(Auto_IndexTag);
+                        if (!string.IsNullOrEmpty(freshVal))
+                            currentIndex = freshVal;
+                    }
+                }
+                catch { }
+
+                // Canlı okuma başarısızsa cache'e düş
+                if (currentIndex == "0")
+                {
+                    var indexVar = _currentIndexVar ?? FindPlcVarByName(Auto_IndexTag);
+                    string cachedVal = indexVar?.Value;
+                    if (!string.IsNullOrEmpty(cachedVal) && cachedVal != "0")
+                        currentIndex = cachedVal;
+                }
+
+                OnAutomationLog?.Invoke($"Tetik: {currentRfid} (Index: {currentIndex} [CANLI])");
 
                 var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
                 if (recipe == null) throw new Exception("Tanımsız RFID");

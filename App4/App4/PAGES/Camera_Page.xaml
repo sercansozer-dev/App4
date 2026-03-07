@@ -1968,7 +1968,7 @@
                                                                     <!-- Nokta Sapma Limiti (mm) -->
                                                                     <controls:NumberBox Grid.Column="4"
                                                                                         Value="{x:Bind DeviationLimit, Mode=TwoWay}"
-                                                                                        Minimum="0" Maximum="500"
+                                                                                        Minimum="0" Maximum="9999"
                                                                                         SpinButtonPlacementMode="Compact"
                                                                                         Width="70" Height="24" FontSize="10"
                                                                                         VerticalAlignment="Center"
