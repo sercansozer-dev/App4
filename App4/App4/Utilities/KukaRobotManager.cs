@@ -599,8 +599,29 @@ namespace App4.Utilities
 
         #region Haberleşme Döngüsü
 
+        // ★ ÖNCELİKLİ DEĞİŞKEN İSİMLERİ — Tetik + Index (en hızlı okunması gereken)
+        private static readonly HashSet<string> _priorityVarNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "G_OLCUM_TETIK", "G_JOB_INDEX", "G_SNIFFER_OLCUM_TETIK",
+            "G_ROBOT_HAZIR", "G_IS_BITTI", "G_HATA_VAR"
+        };
+
         private async Task CommunicationLoop()
         {
+            // Çakışan tag'ları belirle: _standardReads'te OLUP InputVars'ta DA OLAN tag'lar
+            // Bunları _standardReads'ten atlayarak çift okuma engellenecek
+            var inputPlcTags = new HashSet<string>(
+                InputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).Select(v => v.PlcTag),
+                StringComparer.OrdinalIgnoreCase);
+
+            // ★ Çakışan tag'lar için: InputVar okunduğunda property setter'ı da çalıştır
+            var tagToSetter = new Dictionary<string, Action<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (tag, setter) in _standardReads)
+            {
+                if (inputPlcTags.Contains(tag) && !tagToSetter.ContainsKey(tag))
+                    tagToSetter[tag] = setter;
+            }
+
             while (_isRunning)
             {
                 try
@@ -620,10 +641,40 @@ namespace App4.Utilities
                             _initialSyncDone = true;
                         }
 
-                        // 1. Standart değişkenleri oku (pozisyon, eksen, override)
+                        var userInputs = InputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
+
+                        // ★★★ 1. ÖNCELİKLİ INPUT OKUMA — TETİK + INDEX (5ms delay) ★★★
+                        // Tetik değişkenleri her döngüde EN BAŞTA okunur → gecikme ~40ms
+                        var priorityInputs = userInputs.Where(v => _priorityVarNames.Contains(v.Name)).ToList();
+                        foreach (var variable in priorityInputs)
+                        {
+                            if (!_isRunning || !IsConnected) break;
+                            try
+                            {
+                                string val = await ReadVariableAsync(variable.PlcTag);
+                                if (!string.IsNullOrEmpty(val) && variable.Value != val)
+                                {
+                                    var capturedVar = variable;
+                                    var capturedVal = val;
+                                    DispatchToUi(() =>
+                                    {
+                                        capturedVar.Value = capturedVal;
+                                        // Çakışan standart property setter varsa onu da çağır
+                                        if (tagToSetter.TryGetValue(capturedVar.PlcTag, out var setter))
+                                            setter(capturedVal);
+                                    });
+                                }
+                            }
+                            catch { }
+                            await Task.Delay(5); // ★ Minimum delay — tetik hızı için kritik
+                        }
+
+                        // 2. Standart değişkenleri oku (pozisyon, eksen, override)
+                        //    InputVars'ta zaten OLAN tag'ları ATLA (çift okuma engellenir)
                         foreach (var (tag, setter) in _standardReads)
                         {
                             if (!_isRunning || !IsConnected) break;
+                            if (inputPlcTags.Contains(tag)) continue; // ★ Çakışan → atla (zaten aşağıda okunacak)
                             try
                             {
                                 string val = await ReadVariableAsync(tag);
@@ -633,12 +684,12 @@ namespace App4.Utilities
                                 }
                             }
                             catch { }
-                            await Task.Delay(30); // Değişkenler arası kısa bekleme
+                            await Task.Delay(20);
                         }
 
-                        // 2. Kullanıcı tanımlı Input değişkenlerini oku (OKUNAN VERİLER)
-                        var userInputs = InputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
-                        foreach (var variable in userInputs)
+                        // 3. Normal Input değişkenlerini oku (priority hariç — onlar zaten okundu)
+                        var normalInputs = userInputs.Where(v => !_priorityVarNames.Contains(v.Name)).ToList();
+                        foreach (var variable in normalInputs)
                         {
                             if (!_isRunning || !IsConnected) break;
                             try
@@ -646,14 +697,22 @@ namespace App4.Utilities
                                 string val = await ReadVariableAsync(variable.PlcTag);
                                 if (!string.IsNullOrEmpty(val) && variable.Value != val)
                                 {
-                                    DispatchToUi(() => variable.Value = val);
+                                    var capturedVar = variable;
+                                    var capturedVal = val;
+                                    DispatchToUi(() =>
+                                    {
+                                        capturedVar.Value = capturedVal;
+                                        // Çakışan standart property setter varsa onu da çağır
+                                        if (tagToSetter.TryGetValue(capturedVar.PlcTag, out var setter))
+                                            setter(capturedVal);
+                                    });
                                 }
                             }
                             catch { }
-                            await Task.Delay(30);
+                            await Task.Delay(15);
                         }
 
-                        // 3. Output değişkenlerini yaz (SADECE değişenler)
+                        // 4. Output değişkenlerini yaz (SADECE değişenler)
                         //    Her OutputVar için: in-memory değer son yazılandan farklıysa robota yaz
                         var userOutputs = OutputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
                         foreach (var variable in userOutputs)
@@ -675,7 +734,7 @@ namespace App4.Utilities
                                 }
                             }
                             catch { }
-                            await Task.Delay(30);
+                            await Task.Delay(20);
                         }
                     }
                 }

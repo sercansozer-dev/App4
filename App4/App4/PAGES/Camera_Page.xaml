@@ -1609,7 +1609,7 @@
                                         <TextBlock Grid.Column="3" Text="BİRİM" Foreground="#AAA" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="9"/>
                                     </Grid>
 
-                                    <ItemsControl ItemsSource="{x:Bind CodesysResults, Mode=OneWay}">
+                                    <ItemsControl ItemsSource="{x:Bind utils:GlobalData.CodesysTargetResults, Mode=OneWay}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="utils:GocatorMeasurement">
                                                 <Grid Height="36" Margin="0,0,0,2" Background="#0F0A15" CornerRadius="4">
@@ -1631,7 +1631,7 @@
                                     </ItemsControl>
 
                                     <TextBlock Text="Henüz hesaplama yapılmadı. Ölçüm alıp CODESYS seçin." Foreground="#444" HorizontalAlignment="Center" Margin="0,20,0,0" FontSize="10"
-                                               Visibility="{x:Bind CodesysResults.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
+                                               Visibility="{x:Bind utils:GlobalData.CodesysTargetResults.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse, Mode=OneWay}"/>
                                 </StackPanel>
                             </ScrollViewer>
                         </Grid>

@@ -1514,7 +1514,7 @@ namespace App4.PAGES
                     return;
                 }
 
-                // Sonuçları göster
+                // Sonuçları göster (hem yerel CodesysResults hem de GlobalData.CodesysTargetResults)
                 CodesysResults.Clear();
                 CodesysResults.Add(new GocatorMeasurement { Id = 1, Name = "Target X", Value = Math.Round(targetPose.X, 3), Unit = "mm", Decision = "Pass" });
                 CodesysResults.Add(new GocatorMeasurement { Id = 2, Name = "Target Y", Value = Math.Round(targetPose.Y, 3), Unit = "mm", Decision = "Pass" });
@@ -1522,6 +1522,11 @@ namespace App4.PAGES
                 CodesysResults.Add(new GocatorMeasurement { Id = 4, Name = "Target A", Value = Math.Round(targetPose.A, 3), Unit = "°", Decision = "Pass" });
                 CodesysResults.Add(new GocatorMeasurement { Id = 5, Name = "Target B", Value = Math.Round(targetPose.B, 3), Unit = "°", Decision = "Pass" });
                 CodesysResults.Add(new GocatorMeasurement { Id = 6, Name = "Target C", Value = Math.Round(targetPose.C, 3), Unit = "°", Decision = "Pass" });
+
+                // HEDEF NOKTA paneli GlobalData.CodesysTargetResults'a bağlı → onu da güncelle
+                App4.Utilities.GlobalData.CodesysTargetResults.Clear();
+                foreach (var item in CodesysResults)
+                    App4.Utilities.GlobalData.CodesysTargetResults.Add(item);
 
                 AddLog($"✓ CODESYS hedef hesaplandı: X={targetPose.X:F2} Y={targetPose.Y:F2} Z={targetPose.Z:F2} A={targetPose.A:F2} B={targetPose.B:F2} C={targetPose.C:F2}");
                 AddLog($"  Girdiler: RawX={CodesysMappings[0].CurrentValue:F2} RawY={CodesysMappings[1].CurrentValue:F2} RawZ={CodesysMappings[2].CurrentValue:F2} AngleZ={CodesysMappings[3].CurrentValue:F2} | Ofset: X={_codesysOffsetX} Y={_codesysOffsetY} Z={_codesysOffsetZ}");

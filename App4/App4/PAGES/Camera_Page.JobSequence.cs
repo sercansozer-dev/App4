@@ -136,7 +136,7 @@ namespace App4.PAGES
             }
         }
 
-        // Sniffer Suresi Degistiginde Kaydet
+        // Sniffer Suresi Degistiginde Kaydet + Aktif ise robota/Auto sayfaya propagate et
         private void SnifferDuration_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             if (sender.DataContext is App4.Utilities.IndexedJobItem jobItem)
@@ -148,11 +148,14 @@ namespace App4.PAGES
                     rfid.SnifferDurations[jobItem.Index] = newVal;
                     jobItem.SnifferDuration = newVal;
                     App4.Utilities.GlobalData.SaveRfids();
+
+                    // ═══ AKTİF KART + AKTİF JOB İSE HEMEN ROBOTA/AUTO SAYFAYA PROPAGATE ET ═══
+                    PropagateIfActiveJob(rfid, jobItem.Index);
                 }
             }
         }
 
-        // Nokta Sapma Limiti Degistiginde Kaydet
+        // Nokta Sapma Limiti Degistiginde Kaydet + Aktif ise robota/Auto sayfaya propagate et
         private void DeviationLimit_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             if (sender.DataContext is App4.Utilities.IndexedJobItem jobItem)
@@ -164,8 +167,37 @@ namespace App4.PAGES
                     rfid.DeviationLimits[jobItem.Index] = newVal;
                     jobItem.DeviationLimit = newVal;
                     App4.Utilities.GlobalData.SaveRfids();
+
+                    // ═══ AKTİF KART + AKTİF JOB İSE HEMEN ROBOTA/AUTO SAYFAYA PROPAGATE ET ═══
+                    PropagateIfActiveJob(rfid, jobItem.Index);
                 }
             }
+        }
+
+        /// <summary>
+        /// Değiştirilen Sniffer/Sapma değeri aktif kartın aktif job'una ait ise
+        /// hemen GlobalData üzerinden robota ve Auto sayfasına propagate eder.
+        /// </summary>
+        private void PropagateIfActiveJob(App4.Utilities.RfidDef rfid, int changedIndex)
+        {
+            try
+            {
+                // Bu kart aktif kart mı?
+                bool isActiveCard = string.Equals(
+                    rfid.Id,
+                    App4.Utilities.GlobalData.AktuelRfid,
+                    StringComparison.OrdinalIgnoreCase);
+
+                if (!isActiveCard) return;
+
+                // Değiştirilen index aktif job index'i mi?
+                if (changedIndex == rfid.CurrentJobIndex)
+                {
+                    // Sniffer + DeviationLimit output'larını güncelle ve robota yaz
+                    App4.Utilities.GlobalData.UpdateCurrentJobIndex(rfid.CurrentJobIndex);
+                }
+            }
+            catch { /* sessiz */ }
         }
     }
 }

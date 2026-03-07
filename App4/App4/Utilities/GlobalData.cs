@@ -49,6 +49,9 @@ namespace App4.Utilities
         // DÖNÜŞTÜRÜLMÜŞ ÖLÇÜM (Hand-Eye kalibrasyon sonrası base koordinatları)
         public static ObservableCollection<GocatorMeasurement> TransformedMeasurements { get; private set; } = new();
 
+        // CODESYS HESAPLAMA SONUÇLARI (otomasyon sırasında hesaplanan hedef nokta)
+        public static ObservableCollection<GocatorMeasurement> CodesysTargetResults { get; private set; } = new();
+
         // ═══ AKTİF KALİBRASYON BİLGİLERİ (tüm sayfalardan erişilebilir) ═══
         public static string CalibHandEyeX { get; set; } = "---";
         public static string CalibHandEyeY { get; set; } = "---";
@@ -407,15 +410,16 @@ namespace App4.Utilities
         }
 
         private static string _autoIndexTag;
-        public static string Auto_IndexTag 
-        { 
-            get => _autoIndexTag; 
-            set 
-            { 
-                if (_autoIndexTag == value) return; 
-                _autoIndexTag = value; 
-                SaveAutomationSettings(); 
-            } 
+        public static string Auto_IndexTag
+        {
+            get => _autoIndexTag;
+            set
+            {
+                if (_autoIndexTag == value) return;
+                _autoIndexTag = value;
+                SaveAutomationSettings();
+                StartAutomationListener(); // Index watcher'ı yeniden kur
+            }
         }
 
         private static string _autoTriggerTag;
@@ -1416,6 +1420,29 @@ namespace App4.Utilities
         // --- PLC DİNLEYİCİSİ (Çift Trigger) ---
         private static PlcVariable _currentTriggerVar;  // Boru ölçüm tetik
         private static PlcVariable _currentTriggerVar2; // Tabla kaçıklık tetik
+        private static PlcVariable? _currentIndexVar;   // Job index watcher (Camera sayfası kapalıyken de senkronize eder)
+
+        /// <summary>
+        /// KUKA REAL formatını ("2.0", "2.000") güvenli şekilde int'e çevirir.
+        /// int.TryParse "2.0" parse edemez — bu yüzden double üzerinden geçeriz.
+        /// </summary>
+        private static bool TryParseIndex(string value, out int index)
+        {
+            index = 0;
+            if (string.IsNullOrEmpty(value)) return false;
+
+            // Önce direkt int dene (en hızlı yol)
+            if (int.TryParse(value, out index)) return true;
+
+            // KUKA REAL format: "2.0", "2.000" vb. — double üzerinden çevir
+            if (double.TryParse(value, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out double d))
+            {
+                index = (int)Math.Round(d);
+                return true;
+            }
+            return false;
+        }
 
         private static PlcVariable FindPlcVarByName(string tagName)
         {
@@ -1507,6 +1534,29 @@ namespace App4.Utilities
                 else
                 {
                     OnAutomationLog?.Invoke($"⚠ UYARI: Tabla Trigger Tag '{Auto_TriggerTag2}' bulunamadı.");
+                }
+            }
+
+            // --- Index Watcher: G_JOB_INDEX değiştiğinde CurrentJobIndex + Sapma/Sniffer senkronize et ---
+            if (_currentIndexVar != null)
+            {
+                _currentIndexVar.PropertyChanged -= IndexVar_PropertyChanged;
+                _currentIndexVar = null;
+            }
+
+            if (!string.IsNullOrEmpty(Auto_IndexTag))
+            {
+                var indexVar = FindPlcVarByName(Auto_IndexTag);
+                if (indexVar != null)
+                {
+                    _currentIndexVar = indexVar;
+                    _currentIndexVar.PropertyChanged += IndexVar_PropertyChanged;
+
+                    // Mevcut değeri hemen senkronize et (KUKA REAL "2.0" formatını da destekler)
+                    if (TryParseIndex(indexVar.Value, out int currentIdx))
+                    {
+                        UpdateCurrentJobIndex(currentIdx);
+                    }
                 }
             }
 
@@ -1624,11 +1674,11 @@ namespace App4.Utilities
             int jobIndex = 0;
             try
             {
-                // 1. JOB_INDEX'i robottan oku
+                // 1. JOB_INDEX'i robottan oku (KUKA REAL "2.0" formatını da destekler)
                 var jobIndexVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
-                if (jobIndexVar != null) int.TryParse(jobIndexVar.Value, out jobIndex);
+                if (jobIndexVar != null) TryParseIndex(jobIndexVar.Value, out jobIndex);
 
-                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex})");
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex}, raw=\"{jobIndexVar?.Value}\")");
 
                 // ═══ SEÇİLİ INDEX'İN SNIFFER SÜRESİ + NOKTA SAPMA LİMİTİ GÜNCELLE ═══
                 UpdateCurrentJobIndex(jobIndex);
@@ -1740,21 +1790,42 @@ namespace App4.Utilities
                                     for (int i = 0; i < Math.Min(targetVals.Length, boruOffsets.Length); i++)
                                         await WriteToAllRobotsAsync(boruOffsets[i], targetVals[i].ToString("F3"));
 
+                                    // ═══ UI TABLOLARI GÜNCELLE (HEDEF NOKTA + BORU AKTARIM) ═══
+                                    try
+                                    {
+                                        await PlcService.Instance.RunOnUiAsync(() =>
+                                        {
+                                            UpdateCodesysTargetResults(target);
+                                            UpdatePlcTransferRowsFromValues(targetVals, PlcTransferRows);
+                                        });
+                                    }
+                                    catch { }
+
                                     OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - CODESYS hedef: " +
                                         $"X={target.X:F2} Y={target.Y:F2} Z={target.Z:F2} A={target.A:F2} B={target.B:F2} C={target.C:F2}");
                                 }
                                 else
                                 {
                                     OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hesaplama başarısız, ham değerler yazılıyor");
-                                    for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                                    double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                                    for (int i = 0; i < rawVals.Length; i++)
+                                    {
+                                        rawVals[i] = results[i].Value;
                                         await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                                    }
+                                    try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
                                 }
                             }
                             catch (Exception exCod)
                             {
                                 OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hatası: {exCod.Message}, ham değerler yazılıyor");
-                                for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
-                                    await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                                double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                                for (int i = 0; i < rawVals.Length; i++)
+                                {
+                                    rawVals[i] = results[i].Value;
+                                    _ = WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                                }
+                                try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
                             }
                         }
                         else if (CalibrationService.Instance.IsCalibrated && results.Count >= 3)
@@ -1781,21 +1852,34 @@ namespace App4.Utilities
                                 for (int i = 0; i < 6; i++)
                                     await WriteToAllRobotsAsync(boruOffsets[i], baseVals[i].ToString("F3"));
 
+                                // ═══ BORU AKTARIM TABLOSU GÜNCELLE ═══
+                                try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(baseVals, PlcTransferRows)); } catch { }
+
                                 OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - HandEye dönüşüm (Base1): " +
                                     $"X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
                             }
                             else
                             {
                                 OnAutomationLog?.Invoke($"[Robot {robotNo}] UYARI: HandEye dönüşüm başarısız, ham değerler yazılıyor");
-                                for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                                double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                                for (int i = 0; i < rawVals.Length; i++)
+                                {
+                                    rawVals[i] = results[i].Value;
                                     await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                                }
+                                try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
                             }
                         }
                         else
                         {
                             // Kalibrasyon yoksa ham değerleri yaz
-                            for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                            double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                            for (int i = 0; i < rawVals.Length; i++)
+                            {
+                                rawVals[i] = results[i].Value;
                                 await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                            }
+                            try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
 
                             OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} ham offset yazıldı (kalibrasyon yok)");
                         }
@@ -1912,6 +1996,23 @@ namespace App4.Utilities
             {
                 var plcVar = sender as PlcVariable;
                 if (plcVar != null && (plcVar.Value == "1" || plcVar.Value?.ToLower() == "true")) _ = RunAutomationSequence();
+            }
+        }
+
+        /// <summary>
+        /// G_JOB_INDEX değiştiğinde CurrentJobIndex + NOKTA_SAPMA_LIMIT + SNIFFER_OLCUM_SURE senkronize eder.
+        /// Camera sayfası kapalı olsa bile çalışır (GlobalData seviyesinde dinleme).
+        /// </summary>
+        private static void IndexVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "Value" || e.PropertyName == "CurrentValue")
+            {
+                var plcVar = sender as PlcVariable;
+                if (plcVar != null && TryParseIndex(plcVar.Value, out int newIdx))
+                {
+                    OnAutomationLog?.Invoke($"[IndexWatcher] G_JOB_INDEX değişti: {newIdx} (raw=\"{plcVar.Value}\")");
+                    UpdateCurrentJobIndex(newIdx);
+                }
             }
         }
 
@@ -2282,6 +2383,60 @@ namespace App4.Utilities
         }
 
         /// <summary>
+        /// CODESYS hesaplama sonucunu CodesysTargetResults koleksiyonuna yazar.
+        /// Camera sayfasındaki HEDEF NOKTA paneli bu koleksiyonu gösterir.
+        /// UI thread'de çağrılmalıdır.
+        /// </summary>
+        private static void UpdateCodesysTargetResults(KukaPose target)
+        {
+            CodesysTargetResults.Clear();
+            CodesysTargetResults.Add(new GocatorMeasurement { Id = 1, Name = "Target X", Value = Math.Round(target.X, 3), Unit = "mm", Decision = "Pass" });
+            CodesysTargetResults.Add(new GocatorMeasurement { Id = 2, Name = "Target Y", Value = Math.Round(target.Y, 3), Unit = "mm", Decision = "Pass" });
+            CodesysTargetResults.Add(new GocatorMeasurement { Id = 3, Name = "Target Z", Value = Math.Round(target.Z, 3), Unit = "mm", Decision = "Pass" });
+            CodesysTargetResults.Add(new GocatorMeasurement { Id = 4, Name = "Target A", Value = Math.Round(target.A, 3), Unit = "°", Decision = "Pass" });
+            CodesysTargetResults.Add(new GocatorMeasurement { Id = 5, Name = "Target B", Value = Math.Round(target.B, 3), Unit = "°", Decision = "Pass" });
+            CodesysTargetResults.Add(new GocatorMeasurement { Id = 6, Name = "Target C", Value = Math.Round(target.C, 3), Unit = "°", Decision = "Pass" });
+        }
+
+        /// <summary>
+        /// Hesaplanan değerleri PlcTransferRows (veya TablaTransferRows) tablosuna yazar.
+        /// HandleOlcumTetikAsync'ten çağrılır — RunAutomationSequence kendi mekanizmasını kullanır.
+        /// UI thread'de çağrılmalıdır.
+        /// </summary>
+        private static void UpdatePlcTransferRowsFromValues(double[] values, ObservableCollection<PlcTransferItem> targetRows)
+        {
+            // Tabloyu Genişlet (eksik satırlar varsa)
+            while (targetRows.Count < values.Length)
+            {
+                int index = targetRows.Count + 1;
+                var color = (index % 2 == 1)
+                    ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 15, 15, 15))
+                    : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 20, 20, 20));
+
+                var newItem = new PlcTransferItem
+                {
+                    Index = index,
+                    Value = "0",
+                    Status = "WAIT",
+                    StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0)),
+                    BackgroundColor = color
+                };
+                newItem.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") SaveTransferRows(); };
+                targetRows.Add(newItem);
+            }
+
+            // Değerleri Eşle
+            for (int i = 0; i < values.Length && i < targetRows.Count; i++)
+            {
+                var row = targetRows[i];
+                row.Value = values[i].ToString("F3");
+                row.Status = "OK";
+                row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)); // Yeşil
+            }
+            SaveTransferRows();
+        }
+
+        /// <summary>
         /// Seçili job index'inin nokta sapma limitini NOKTA_SAPMA_LIMIT output değişkenine yazar.
         /// Küp güvenlik kontrolü için robot tarafına aktarılır (G_HEDEF_NOKTA_LIMIT).
         /// GeneralOutputVars + PlcTag/PlcTag2 üzerinden doğrudan robota/PLC'ye yazılır.
@@ -2426,8 +2581,8 @@ namespace App4.Utilities
                 // RFID Variable Bul (PLC + Robot tüm kaynaklarda ara)
                 var rfidVar = FindPlcVarByName(Auto_RfidTag);
 
-                // Index Variable Bul (G_JOB_INDEX gibi robot değişkenleri de dahil)
-                var indexVar = FindPlcVarByName(Auto_IndexTag);
+                // Index Variable Bul — önce canlı watcher'ı kullan, yoksa FindPlcVarByName ile ara
+                var indexVar = _currentIndexVar ?? FindPlcVarByName(Auto_IndexTag);
 
                 string currentRfid = rfidVar?.Value ?? "---";
                 string currentIndex = indexVar?.Value ?? "0";
@@ -2437,7 +2592,8 @@ namespace App4.Utilities
                 var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
                 if (recipe == null) throw new Exception("Tanımsız RFID");
 
-                int.TryParse(currentIndex, out int idx);
+                TryParseIndex(currentIndex, out int idx);
+                OnAutomationLog?.Invoke($"[RunAuto] Parsed index: {idx} (raw=\"{currentIndex}\")");
                 if (idx < 0 || idx >= recipe.JobSequence.Count) throw new Exception("Geçersiz Index");
 
                 string jobName = recipe.JobSequence[idx];
