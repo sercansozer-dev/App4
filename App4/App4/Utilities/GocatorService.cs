@@ -211,40 +211,44 @@ namespace App4.Utilities
 
                                 if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
                                 {
-                                    // UI Temizliği (Sadece Dispatcher varsa)
-                                    if (dispatcher != null) dispatcher.TryEnqueue(() => GlobalData.LastMeasurements.Clear());
-
                                     int counter = 1;
                                     for (int i = 0; i < gdpClient.DataSet.Count; i++)
                                     {
                                         var msg = gdpClient.DataSet.GdpMsgAt(i);
                                         if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
                                         {
-                                            int.TryParse(mMsg.DataSourceId, out int parsedSourceId);
+                                            // GdpId = sensördeki GDP output index'i (0=X,1=Y,2=Z,3=Roll,4=Pitch,5=Yaw)
+                                            int gdpIndex = mMsg.GdpId;
                                             var newItem = new GocatorMeasurement
                                             {
                                                 Id = counter++,
-                                                SourceId = parsedSourceId,
-                                                Name = $"Measurement {mMsg.DataSourceId}",
+                                                SourceId = gdpIndex,
+                                                Name = $"Measurement {gdpIndex}",
                                                 Value = Math.Round(mMsg.Value, 3),
                                                 Decision = mMsg.Decision.ToString(),
                                             };
-
-                                            // 1. Sonuç listesine ekle (GlobalData için)
                                             results.Add(newItem);
-
-                                            // 2. UI Listesine ekle (Eğer sayfa açıksa)
-                                            if (dispatcher != null)
-                                            {
-                                                dispatcher.TryEnqueue(() =>
-                                                {
-                                                    GlobalData.LastMeasurements.Add(newItem);
-                                                    GlobalData.SaveMeasurements();
-                                                });
-                                            }
                                         }
                                     }
-                                    log?.Invoke($"✓ {results.Count} adet ölçüm alındı.");
+
+                                    // SourceId'ye göre sırala (GDP ID: X=0,Y=1,Z=2,Roll=3,Pitch=4,Yaw=5)
+                                    results = results.OrderBy(m => m.SourceId).ToList();
+                                    for (int si = 0; si < results.Count; si++) results[si].Id = si + 1;
+
+                                    // Sıralanmış verileri UI listesine ekle
+                                    if (dispatcher != null)
+                                    {
+                                        var sortedCopy = results.ToList();
+                                        dispatcher.TryEnqueue(() =>
+                                        {
+                                            GlobalData.LastMeasurements.Clear();
+                                            foreach (var item in sortedCopy)
+                                                GlobalData.LastMeasurements.Add(item);
+                                            GlobalData.SaveMeasurements();
+                                        });
+                                    }
+
+                                    log?.Invoke($"✓ {results.Count} adet ölçüm alındı (GdpId sıralı).");
                                 }
                                 else
                                 {

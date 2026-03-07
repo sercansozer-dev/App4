@@ -67,6 +67,13 @@ namespace App4.PAGES
                     rfidDef.SnifferDurations.RemoveAt(currentIndex);
                     rfidDef.SnifferDurations.Insert(currentIndex - 1, dur);
                 }
+                // DeviationLimits paralel tasima
+                if (currentIndex < rfidDef.DeviationLimits.Count)
+                {
+                    var lim = rfidDef.DeviationLimits[currentIndex];
+                    rfidDef.DeviationLimits.RemoveAt(currentIndex);
+                    rfidDef.DeviationLimits.Insert(currentIndex - 1, lim);
+                }
                 App4.Utilities.GlobalData.SaveRfids();
             }
         }
@@ -94,6 +101,13 @@ namespace App4.PAGES
                     rfidDef.SnifferDurations.RemoveAt(currentIndex);
                     rfidDef.SnifferDurations.Insert(currentIndex + 1, dur);
                 }
+                // DeviationLimits paralel tasima
+                if (currentIndex < rfidDef.DeviationLimits.Count)
+                {
+                    var lim = rfidDef.DeviationLimits[currentIndex];
+                    rfidDef.DeviationLimits.RemoveAt(currentIndex);
+                    rfidDef.DeviationLimits.Insert(currentIndex + 1, lim);
+                }
                 App4.Utilities.GlobalData.SaveRfids();
             }
         }
@@ -114,6 +128,9 @@ namespace App4.PAGES
                     // SnifferDurations paralel silme
                     if (idx >= 0 && idx < rfidDef.SnifferDurations.Count)
                         rfidDef.SnifferDurations.RemoveAt(idx);
+                    // DeviationLimits paralel silme
+                    if (idx >= 0 && idx < rfidDef.DeviationLimits.Count)
+                        rfidDef.DeviationLimits.RemoveAt(idx);
                     App4.Utilities.GlobalData.SaveRfids();
                 }
             }
@@ -130,6 +147,22 @@ namespace App4.PAGES
                     double newVal = double.IsNaN(args.NewValue) ? 0.0 : args.NewValue;
                     rfid.SnifferDurations[jobItem.Index] = newVal;
                     jobItem.SnifferDuration = newVal;
+                    App4.Utilities.GlobalData.SaveRfids();
+                }
+            }
+        }
+
+        // Nokta Sapma Limiti Degistiginde Kaydet
+        private void DeviationLimit_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (sender.DataContext is App4.Utilities.IndexedJobItem jobItem)
+            {
+                var rfid = FindParentRfidDef(sender);
+                if (rfid != null && jobItem.Index < rfid.DeviationLimits.Count)
+                {
+                    double newVal = double.IsNaN(args.NewValue) ? 50.0 : args.NewValue;
+                    rfid.DeviationLimits[jobItem.Index] = newVal;
+                    jobItem.DeviationLimit = newVal;
                     App4.Utilities.GlobalData.SaveRfids();
                 }
             }

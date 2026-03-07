@@ -591,39 +591,13 @@ namespace App4.Utilities
             set { if (_gocatorOnline != value) { _gocatorOnline = value; OnEquipmentStatusChanged?.Invoke(); } }
         }
 
-        // --- GOCATOR EKSEN EŞLEME (Axis Mapping) ---
-        // Varsayılan: [0,1,2,3,4,5] = X,Y,Z,A,B,C sırasıyla
-        // Eğer Gocator GDP çıktıları farklı sırada geliyorsa, hangi indeksin hangi eksene karşılık geldiğini belirtir
-        // Örnek: GDP'den Pitch,Roll,X,Y,Yaw,Z geliyorsa → mapping = [2,3,5,1,0,4]
-        //   yani X ← measurements[2], Y ← measurements[3], Z ← measurements[5],
-        //        A ← measurements[1], B ← measurements[0], C ← measurements[4]
-        private static int[] _gocatorAxisMapping = new int[] { 0, 1, 2, 3, 4, 5 };
-        public static int[] GocatorAxisMapping
+        // ═══ VERİ KAYNAĞI SEÇİMİ (kalıcı) ═══
+        // "SENSOR" = Ham Gocator, "CODESYS" = Matematik fonksiyon, "HAND_EYE" = Kalibrasyon dönüşüm
+        private static string _dataSourceMode = "SENSOR";
+        public static string DataSourceMode
         {
-            get => _gocatorAxisMapping;
-            set
-            {
-                if (value != null && value.Length == 6)
-                {
-                    _gocatorAxisMapping = value;
-                    SaveAutomationSettings();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gocator ölçümlerine eksen mapping uygular.
-        /// Dönen dizi: [X, Y, Z, A, B, C] sırasında değerler içerir.
-        /// </summary>
-        public static double[] ApplyAxisMapping(System.Collections.Generic.IList<GocatorMeasurement> measurements)
-        {
-            double[] result = new double[6];
-            for (int axis = 0; axis < 6; axis++)
-            {
-                int srcIdx = _gocatorAxisMapping[axis];
-                result[axis] = (srcIdx >= 0 && srcIdx < measurements.Count) ? measurements[srcIdx].Value : 0;
-            }
-            return result;
+            get => _dataSourceMode;
+            set { _dataSourceMode = value ?? "SENSOR"; SaveAutomationSettings(); }
         }
 
         // ═══ CODESYS Matematik Fonksiyonu Ayarları (kalıcı) ═══
@@ -999,6 +973,7 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
             GeneralOutputVars.Add(Create("AKTUEL_RFID", "STRING", "Output", ""));            // Aktüel RFID Id string değeri
             GeneralOutputVars.Add(Create("SNIFFER_OLCUM_SURE", "REAL", "Output", "0"));       // Seçili index'in sniffer ölçüm süresi (ms)
+            GeneralOutputVars.Add(Create("NOKTA_SAPMA_LIMIT", "REAL", "Output", "0"));       // Seçili index'in nokta sapma limiti (mm)
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)
@@ -1368,28 +1343,16 @@ namespace App4.Utilities
             {
                 try { _gocatorPort = Convert.ToInt32(settings["Gocator_Port"]); } catch { }
             }
-            if (settings.ContainsKey("Gocator_AxisMapping"))
-            {
-                try
-                {
-                    var mapStr = settings["Gocator_AxisMapping"] as string;
-                    if (!string.IsNullOrEmpty(mapStr))
-                    {
-                        var parts = mapStr.Split(',');
-                        if (parts.Length == 6)
-                        {
-                            var map = new int[6];
-                            for (int i = 0; i < 6; i++) map[i] = int.Parse(parts[i]);
-                            _gocatorAxisMapping = map;
-                        }
-                    }
-                }
-                catch { }
-            }
-
             if (settings.ContainsKey("ToolRelativeOffsets"))
             {
                 try { _savedToolRelativeOffsets = settings["ToolRelativeOffsets"] as string ?? ""; } catch { }
+            }
+
+            // Veri kaynağı seçimi
+            if (settings.ContainsKey("DataSourceMode"))
+            {
+                var mode = settings["DataSourceMode"] as string;
+                if (!string.IsNullOrEmpty(mode)) _dataSourceMode = mode;
             }
 
             // CODESYS matematik fonksiyonu ayarları
@@ -1432,8 +1395,10 @@ namespace App4.Utilities
 
             settings["Gocator_IpAddress"] = Gocator_IpAddress;
             settings["Gocator_Port"] = Gocator_Port;
-            settings["Gocator_AxisMapping"] = string.Join(",", GocatorAxisMapping);
             settings["ToolRelativeOffsets"] = SavedToolRelativeOffsets ?? "";
+
+            // Veri kaynağı seçimi
+            settings["DataSourceMode"] = DataSourceMode;
 
             // CODESYS matematik fonksiyonu ayarları
             settings["CodesysOffsetX"] = CodesysOffsetX;
@@ -1665,6 +1630,9 @@ namespace App4.Utilities
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex})");
 
+                // ═══ SEÇİLİ INDEX'İN SNIFFER SÜRESİ + NOKTA SAPMA LİMİTİ GÜNCELLE ═══
+                UpdateCurrentJobIndex(jobIndex);
+
                 // 2. Aktif RFID'den job adını bul
                 string currentRfid = AktuelRfid;
                 var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
@@ -1726,10 +1694,70 @@ namespace App4.Utilities
                     else
                     {
                         // --- BORU ÖLÇÜM (JOB 1..N) ---
+
+                        // HAM VERİ TABLOSUNU GÜNCELLE (her zaman, veri izleme için)
+                        try
+                        {
+                            await PlcService.Instance.RunOnUiAsync(() =>
+                            {
+                                LastMeasurements.Clear();
+                                foreach (var m in results) LastMeasurements.Add(m);
+                                SaveMeasurements();
+                            });
+                        }
+                        catch { }
+
                         string[] boruOffsets = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                                  "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
 
-                        if (CalibrationService.Instance.IsCalibrated && results.Count >= 3)
+                        if (DataSourceMode == "CODESYS")
+                        {
+                            // CODESYS matematik fonksiyonu ile hedef hesapla
+                            try
+                            {
+                                var codesysCalc = new CodesysMathFunction
+                                {
+                                    OffsetX = CodesysOffsetX,
+                                    OffsetY = CodesysOffsetY,
+                                    OffsetZ = CodesysOffsetZ
+                                };
+                                var mappingParts = (CodesysGocMappings ?? "0,1,2,3").Split(',');
+                                if (mappingParts.Length >= 1 && int.TryParse(mappingParts[0], out int mx)) codesysCalc.MapIndexX = mx;
+                                if (mappingParts.Length >= 2 && int.TryParse(mappingParts[1], out int my)) codesysCalc.MapIndexY = my;
+                                if (mappingParts.Length >= 3 && int.TryParse(mappingParts[2], out int mz)) codesysCalc.MapIndexZ = mz;
+                                if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexAngleZ = ma;
+
+                                var gocValues = new double[results.Count];
+                                for (int gi = 0; gi < results.Count; gi++)
+                                    gocValues[gi] = results[gi].Value;
+
+                                var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
+                                var target = codesysCalc.CalculateFromArray(gocValues, robotPose);
+
+                                if (codesysCalc.LastCalculationSuccess)
+                                {
+                                    double[] targetVals = { target.X, target.Y, target.Z, target.A, target.B, target.C };
+                                    for (int i = 0; i < Math.Min(targetVals.Length, boruOffsets.Length); i++)
+                                        await WriteToAllRobotsAsync(boruOffsets[i], targetVals[i].ToString("F3"));
+
+                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - CODESYS hedef: " +
+                                        $"X={target.X:F2} Y={target.Y:F2} Z={target.Z:F2} A={target.A:F2} B={target.B:F2} C={target.C:F2}");
+                                }
+                                else
+                                {
+                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hesaplama başarısız, ham değerler yazılıyor");
+                                    for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                                        await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                                }
+                            }
+                            catch (Exception exCod)
+                            {
+                                OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hatası: {exCod.Message}, ham değerler yazılıyor");
+                                for (int i = 0; i < Math.Min(results.Count, boruOffsets.Length); i++)
+                                    await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
+                            }
+                        }
+                        else if (CalibrationService.Instance.IsCalibrated && results.Count >= 3)
                         {
                             // Hand-Eye kalibrasyon ile sensor → base donusumu
                             double gocX = results[0].Value, gocY = results[1].Value, gocZ = results[2].Value;
@@ -1804,9 +1832,7 @@ namespace App4.Utilities
                 {
                     string tamamSignal = jobIndex == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
                     await WriteToAllRobotsAsync(tamamSignal, "TRUE");
-                    await Task.Delay(500);
-                    await WriteToAllRobotsAsync(tamamSignal, "FALSE");
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] {tamamSignal} pulse gönderildi");
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] {tamamSignal} = TRUE gönderildi (robot FALSE'a çekecek)");
                 }
                 catch { }
 
@@ -2226,14 +2252,14 @@ namespace App4.Utilities
 
             recipe.CurrentJobIndex = jobIndex;
 
-            // ═══ SEÇİLİ INDEX'İN SNİFFER SÜRESİNİ OUTPUT TAG'E YAZ (ms) ═══
+            // ═══ SEÇİLİ INDEX'İN SNİFFER SÜRESİ + NOKTA SAPMA LİMİTİ OUTPUT TAG'E YAZ ═══
             UpdateSnifferDurationOutput(recipe, jobIndex);
+            UpdateDeviationLimitOutput(recipe, jobIndex);
         }
 
         /// <summary>
         /// Seçili job index'inin sniffer ölçüm süresini SNIFFER_OLCUM_SURE output değişkenine yazar.
-        /// Auto_Page'deki ConnectToPlcVariable / ConnectToPlcVariable2 PropertyChanged event'leri
-        /// ile PlcTag ve PlcTag2'ye otomatik yazılır.
+        /// GeneralOutputVars + PlcTag/PlcTag2 üzerinden doğrudan robota/PLC'ye yazılır.
         /// </summary>
         private static void UpdateSnifferDurationOutput(RfidDef recipe, int jobIndex)
         {
@@ -2243,13 +2269,95 @@ namespace App4.Utilities
                 snifferMs = recipe.SnifferDurations[jobIndex];
             }
 
-            // GeneralOutputVars tablosundaki değişkeni güncelle
-            // PropertyChanged tetiklenir → ConnectToPlcVariable PlcTag'e yazar
-            //                            → ConnectToPlcVariable2 PlcTag2'ye yazar
             var snifferVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "SNIFFER_OLCUM_SURE");
             if (snifferVar != null)
             {
                 snifferVar.CurrentValue = snifferMs;
+
+                // Bridge (Auto_Page ConnectToPlcVariable) sayfa ziyaret edilmemişse çalışmaz.
+                // Doğrudan PlcTag/PlcTag2 üzerinden robota yaz.
+                WriteOutputVarToTarget(snifferVar.PlcTag, snifferMs);
+                WriteOutputVarToTarget(snifferVar.PlcTag2, snifferMs);
+            }
+        }
+
+        /// <summary>
+        /// Seçili job index'inin nokta sapma limitini NOKTA_SAPMA_LIMIT output değişkenine yazar.
+        /// Küp güvenlik kontrolü için robot tarafına aktarılır (G_HEDEF_NOKTA_LIMIT).
+        /// GeneralOutputVars + PlcTag/PlcTag2 üzerinden doğrudan robota/PLC'ye yazılır.
+        /// </summary>
+        private static void UpdateDeviationLimitOutput(RfidDef recipe, int jobIndex)
+        {
+            double limitMm = 50.0;
+            if (jobIndex >= 0 && jobIndex < recipe.DeviationLimits.Count)
+            {
+                limitMm = recipe.DeviationLimits[jobIndex];
+            }
+
+            var limitVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "NOKTA_SAPMA_LIMIT");
+            if (limitVar != null)
+            {
+                limitVar.CurrentValue = limitMm;
+
+                // Bridge (Auto_Page ConnectToPlcVariable) sayfa ziyaret edilmemişse çalışmaz.
+                // Doğrudan PlcTag/PlcTag2 üzerinden robota yaz.
+                WriteOutputVarToTarget(limitVar.PlcTag, limitMm);
+                WriteOutputVarToTarget(limitVar.PlcTag2, limitMm);
+            }
+        }
+
+        /// <summary>
+        /// PlcTag formatındaki hedef değişkene değer yazar.
+        /// "R1:G_XXX" → Robot 1'in G_XXX output değişkenine yazar.
+        /// "TAG_NAME" → PLC output değişkenine yazar.
+        /// Auto_Page bridge mekanizmasına bağımlı olmadan doğrudan yazma sağlar.
+        /// </summary>
+        private static void WriteOutputVarToTarget(string plcTag, double value)
+        {
+            if (string.IsNullOrEmpty(plcTag)) return;
+
+            try
+            {
+                // "R1:G_XXX" formatı → Robot değişkeni
+                if (plcTag.Length > 3 && plcTag[0] == 'R' && plcTag[2] == ':')
+                {
+                    if (int.TryParse(plcTag.Substring(1, 1), out int robotNo) && robotNo >= 1)
+                    {
+                        var robots = KukaRobotManager.Instance?.Robots;
+                        if (robots != null && robotNo <= robots.Count)
+                        {
+                            var robot = robots[robotNo - 1];
+                            if (robot.IsConnected)
+                            {
+                                string varName = plcTag.Substring(3);
+                                var targetVar = robot.OutputVars.FirstOrDefault(v => v.Name == varName)
+                                             ?? robot.InputVars.FirstOrDefault(v => v.Name == varName);
+                                if (targetVar != null)
+                                {
+                                    targetVar.CurrentValue = value;
+                                }
+                                else
+                                {
+                                    _ = robot.WriteVariableAsync(varName, value.ToString("F3"));
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Normal PLC değişkeni
+                    var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == plcTag)
+                              ?? PlcService.Instance?.InputVariables?.FirstOrDefault(v => v.Name == plcTag);
+                    if (plcVar != null)
+                    {
+                        plcVar.CurrentValue = value;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WriteOutputVarToTarget] {plcTag} yazma hatası: {ex.Message}");
             }
         }
 
@@ -2357,6 +2465,56 @@ namespace App4.Utilities
 
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
 
+                    // ▼▼▼ CODESYS HESAPLAMA (DataSourceMode kontrolü) ▼▼▼
+                    double[] codesysTargetValues = null;
+                    if (idx > 0 && DataSourceMode == "CODESYS")
+                    {
+                        try
+                        {
+                            var robot = KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                            if (robot != null && robot.IsConnected)
+                            {
+                                var codesysCalc = new CodesysMathFunction
+                                {
+                                    OffsetX = CodesysOffsetX,
+                                    OffsetY = CodesysOffsetY,
+                                    OffsetZ = CodesysOffsetZ
+                                };
+                                var mappingParts = (CodesysGocMappings ?? "0,1,2,3").Split(',');
+                                if (mappingParts.Length >= 1 && int.TryParse(mappingParts[0], out int mx)) codesysCalc.MapIndexX = mx;
+                                if (mappingParts.Length >= 2 && int.TryParse(mappingParts[1], out int my)) codesysCalc.MapIndexY = my;
+                                if (mappingParts.Length >= 3 && int.TryParse(mappingParts[2], out int mz)) codesysCalc.MapIndexZ = mz;
+                                if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexAngleZ = ma;
+
+                                var gocValues = new double[measurements.Count];
+                                for (int gi = 0; gi < measurements.Count; gi++)
+                                    gocValues[gi] = measurements[gi].Value;
+
+                                var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
+                                var target = codesysCalc.CalculateFromArray(gocValues, robotPose);
+
+                                if (codesysCalc.LastCalculationSuccess)
+                                {
+                                    codesysTargetValues = new[] { target.X, target.Y, target.Z, target.A, target.B, target.C };
+                                    OnAutomationLog?.Invoke($"CODESYS hedef: X={target.X:F2} Y={target.Y:F2} Z={target.Z:F2} A={target.A:F2} B={target.B:F2} C={target.C:F2}");
+                                }
+                                else
+                                {
+                                    OnAutomationLog?.Invoke($"⚠ CODESYS hesaplama başarısız: {codesysCalc.LastError}, ham veri kullanılıyor");
+                                }
+                            }
+                            else
+                            {
+                                OnAutomationLog?.Invoke("⚠ CODESYS: Robot bağlı değil, ham veri kullanılıyor");
+                            }
+                        }
+                        catch (Exception exCod)
+                        {
+                            OnAutomationLog?.Invoke($"⚠ CODESYS hesaplama hatası: {exCod.Message}");
+                        }
+                    }
+                    // ▲▲▲ CODESYS HESAPLAMA SONU ▲▲▲
+
                     // Yazılacak verileri topla
                     List<string> tagsToWrite = new List<string>();
                     List<object> valuesToWrite = new List<object>();
@@ -2405,18 +2563,33 @@ namespace App4.Utilities
                             targetRows.Add(newItem);
                         }
 
-                        // Değerleri Eşle
-                        for (int i = 0; i < measurements.Count; i++)
+                        // Değerleri Eşle (CODESYS hesaplanmışsa hedef değerleri, yoksa ham ölçüm)
+                        if (codesysTargetValues != null)
                         {
-                            var row = targetRows[i];
-                            var meas = measurements[i];
-
-                            row.Value = meas.Value.ToString();
-                            row.Status = "WAIT"; // Önce WAIT (PLC yazılıyor)
-                            row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0));
-
-                            tagsToWrite.Add(row.SelectedTag);
-                            valuesToWrite.Add(meas.Value);
+                            // CODESYS hesaplanmış hedef değerleri
+                            int cCount = Math.Min(codesysTargetValues.Length, targetRows.Count);
+                            for (int i = 0; i < cCount; i++)
+                            {
+                                var row = targetRows[i];
+                                row.Value = codesysTargetValues[i].ToString("F3");
+                                row.Status = "WAIT";
+                                row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0));
+                                tagsToWrite.Add(row.SelectedTag);
+                                valuesToWrite.Add(codesysTargetValues[i]);
+                            }
+                        }
+                        else
+                        {
+                            // Ham ölçüm değerleri (SENSOR / HAND_EYE modu)
+                            for (int i = 0; i < measurements.Count; i++)
+                            {
+                                var row = targetRows[i];
+                                row.Value = measurements[i].Value.ToString();
+                                row.Status = "WAIT";
+                                row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0));
+                                tagsToWrite.Add(row.SelectedTag);
+                                valuesToWrite.Add(measurements[i].Value);
+                            }
                         }
                         saveAction();
                     });
@@ -2482,7 +2655,16 @@ namespace App4.Utilities
                         offsets = new[] { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                           "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
 
-                        if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 3)
+                        if (codesysTargetValues != null)
+                        {
+                            // CODESYS hesaplanmış hedef değerleri robota yaz
+                            for (int i = 0; i < Math.Min(codesysTargetValues.Length, offsets.Length); i++)
+                                await WriteToAllRobotsAsync(offsets[i], codesysTargetValues[i].ToString("F3"));
+
+                            OnAutomationLog?.Invoke($"Boru ölçüm OK (Job {idx}) - CODESYS hedef yazıldı: " +
+                                $"X={codesysTargetValues[0]:F2} Y={codesysTargetValues[1]:F2} Z={codesysTargetValues[2]:F2}");
+                        }
+                        else if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 3)
                         {
                             // Hand-Eye kalibrasyon ile sensor → base donusumu
                             double gocX = measurements[0].Value, gocY = measurements[1].Value, gocZ = measurements[2].Value;
@@ -2528,11 +2710,9 @@ namespace App4.Utilities
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
                     OnAutomationLog?.Invoke("Robot write-back: Offset + G_OLCUM_OK yazildi");
 
-                    // TAMAM pulse (robot KRL REPEAT/UNTIL dongusunde bekliyor)
+                    // TAMAM sinyali HOLD — robot islemini bitirince FALSE'a cekecek
                     string tamamSignal = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
                     await WriteToAllRobotsAsync(tamamSignal, "TRUE");
-                    await Task.Delay(500);
-                    await WriteToAllRobotsAsync(tamamSignal, "FALSE");
 
                     ProcessStatus = "TAMAMLANDI";
                     // Olcum bitti — index gostergesini temizle
@@ -2550,8 +2730,6 @@ namespace App4.Utilities
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
                     string tamamSignalErr = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
                     await WriteToAllRobotsAsync(tamamSignalErr, "TRUE");
-                    await Task.Delay(500);
-                    await WriteToAllRobotsAsync(tamamSignalErr, "FALSE");
                 }
             }
             catch (Exception ex)
@@ -2564,12 +2742,9 @@ namespace App4.Utilities
                 try
                 {
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    // Exception durumunda her iki TAMAM sinyalini de pulse et
+                    // Exception durumunda her iki TAMAM sinyalini HOLD (robot FALSE'a cekecek)
                     await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "TRUE");
                     await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "TRUE");
-                    await Task.Delay(500);
-                    await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
-                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
                 }
                 catch { }
             }

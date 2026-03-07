@@ -756,18 +756,15 @@ namespace App4.PAGES
                 {
                     try
                     {
-                        // --- 1. Gocator ham verileri + eksen mapping uygula ---
-                        var mapped = GlobalData.ApplyAxisMapping(measurements);
-                        double gocX = mapped[0]; // X
-                        double gocY = mapped[1]; // Y
-                        double gocZ = mapped[2]; // Z
-                        double gocA = mapped[3]; // A (Roll)
-                        double gocB = mapped[4]; // B (Pitch)
-                        double gocC = mapped[5]; // C (Yaw)
+                        // --- 1. Gocator ham verileri direkt oku (sıra: X, Y, Z, A, B, C) ---
+                        double gocX = measurements.Count > 0 ? measurements[0].Value : 0;
+                        double gocY = measurements.Count > 1 ? measurements[1].Value : 0;
+                        double gocZ = measurements.Count > 2 ? measurements[2].Value : 0;
+                        double gocA = measurements.Count > 3 ? measurements[3].Value : 0;
+                        double gocB = measurements.Count > 4 ? measurements[4].Value : 0;
+                        double gocC = measurements.Count > 5 ? measurements[5].Value : 0;
 
-                        var axisMap = GlobalData.GocatorAxisMapping;
-                        AddLog($"[DEBUG] Eksen Mapping: X←[{axisMap[0]}] Y←[{axisMap[1]}] Z←[{axisMap[2]}] A←[{axisMap[3]}] B←[{axisMap[4]}] C←[{axisMap[5]}]");
-                        AddLog($"[DEBUG] Gocator (mapped): X={gocX:F3} Y={gocY:F3} Z={gocZ:F3} A={gocA:F3} B={gocB:F3} C={gocC:F3}");
+                        AddLog($"[DEBUG] Gocator ham: X={gocX:F3} Y={gocY:F3} Z={gocZ:F3} A={gocA:F3} B={gocB:F3} C={gocC:F3}");
 
                         // Snapshot sistemi: mapped gocator verilerini sakla
                         _lastMappedGocator = new double[] { gocX, gocY, gocZ, gocA, gocB, gocC };
@@ -1188,40 +1185,6 @@ namespace App4.PAGES
             {
                 AddLog($"⚠ Robot yazma hatası: {ex.Message}");
             }
-        }
-
-        // --- EKSEN EŞLEME (Axis Mapping) ---
-        private void LoadAxisMappingUI()
-        {
-            var map = GlobalData.GocatorAxisMapping;
-            NbMapX.Value = map[0];
-            NbMapY.Value = map[1];
-            NbMapZ.Value = map[2];
-            NbMapA.Value = map[3];
-            NbMapB.Value = map[4];
-            NbMapC.Value = map[5];
-        }
-
-        private void BtnAxisMappingSave_Click(object sender, RoutedEventArgs e)
-        {
-            var newMap = new int[]
-            {
-                (int)NbMapX.Value,
-                (int)NbMapY.Value,
-                (int)NbMapZ.Value,
-                (int)NbMapA.Value,
-                (int)NbMapB.Value,
-                (int)NbMapC.Value
-            };
-            GlobalData.GocatorAxisMapping = newMap;
-            AddLog($"✓ Eksen eşleme kaydedildi: X←[{newMap[0]}] Y←[{newMap[1]}] Z←[{newMap[2]}] A←[{newMap[3]}] B←[{newMap[4]}] C←[{newMap[5]}]");
-        }
-
-        private void BtnAxisMappingReset_Click(object sender, RoutedEventArgs e)
-        {
-            GlobalData.GocatorAxisMapping = new int[] { 0, 1, 2, 3, 4, 5 };
-            LoadAxisMappingUI();
-            AddLog("✓ Eksen eşleme varsayılana sıfırlandı: X←[0] Y←[1] Z←[2] A←[3] B←[4] C←[5]");
         }
 
         // ═══ SNAPSHOT SİSTEMİ ═══
@@ -1655,12 +1618,63 @@ namespace App4.PAGES
         }
 
         // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır, 3 seçenek) ---
+        /// <summary>
+        /// Uygulama açılışında kayıtlı veri kaynağı modunu geri yükler.
+        /// </summary>
+        private void RestoreSavedDataSourceMode()
+        {
+            string savedMode = GlobalData.DataSourceMode ?? "SENSOR";
+
+            switch (savedMode)
+            {
+                case "CODESYS":
+                    _useCodesysForTransfer = true;
+                    _useTransformedForTransfer = false;
+                    if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
+                    if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+                    if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = true;
+                    AddLog("► Kayıtlı veri kaynağı yüklendi: CODESYS");
+                    break;
+
+                case "HAND_EYE":
+                    if (CalibrationService.Instance.IsCalibrated)
+                    {
+                        _useTransformedForTransfer = true;
+                        _useCodesysForTransfer = false;
+                        if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
+                        if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
+                        if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = true;
+                        AddLog("► Kayıtlı veri kaynağı yüklendi: HAND-EYE");
+                    }
+                    else
+                    {
+                        // Kalibrasyon yoksa SENSOR'a geri dön
+                        _useTransformedForTransfer = false;
+                        _useCodesysForTransfer = false;
+                        if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = true;
+                        if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+                        if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
+                        AddLog("⚠ HAND-EYE kayıtlıydı ama kalibrasyon yok, SENSOR'a dönüldü.");
+                    }
+                    break;
+
+                default: // "SENSOR"
+                    _useTransformedForTransfer = false;
+                    _useCodesysForTransfer = false;
+                    if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = true;
+                    if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+                    if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
+                    break;
+            }
+        }
+
         private void ChkSourceSensor_Checked(object sender, RoutedEventArgs e)
         {
             _useTransformedForTransfer = false;
             _useCodesysForTransfer = false;
             if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
             if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
+            GlobalData.DataSourceMode = "SENSOR";
             AddLog("► Veri kaynağı: SENSOR (Ham Gocator verisi)");
 
             // Mevcut ham veriyi hemen aktar
@@ -1681,6 +1695,7 @@ namespace App4.PAGES
             _useCodesysForTransfer = false;
             if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
             if (ChkSourceCodesys != null) ChkSourceCodesys.IsChecked = false;
+            GlobalData.DataSourceMode = "HAND_EYE";
             AddLog("► Veri kaynağı: HAND-EYE (Dönüştürülmüş base koordinat)");
 
             // Mevcut dönüştürülmüş veriyi hemen aktar
@@ -1694,6 +1709,7 @@ namespace App4.PAGES
             _useTransformedForTransfer = false;
             if (ChkSourceSensor != null) ChkSourceSensor.IsChecked = false;
             if (ChkSourceHandEye != null) ChkSourceHandEye.IsChecked = false;
+            GlobalData.DataSourceMode = "CODESYS";
             AddLog("► Veri kaynağı: CODESYS (Matematik fonksiyon hesaplaması)");
 
             // Mevcut veri varsa hemen hesapla ve aktar
@@ -2642,8 +2658,8 @@ namespace App4.PAGES
             // 6. Kalibrasyon servisini başlat
             InitCalibrationUI();
 
-            // 7. Eksen eşleme ayarlarını yükle
-            LoadAxisMappingUI();
+            // 7. Kayıtlı veri kaynağı modunu geri yükle (SENSOR / CODESYS / HAND_EYE)
+            RestoreSavedDataSourceMode();
 
             if (_isWebViewInitialized) return;
 

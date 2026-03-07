@@ -38,6 +38,14 @@ namespace App4.Utilities
             set { _snifferDuration = value; OnPropertyChanged(); }
         }
 
+        // Nokta sapma limiti (mm) - kup guvenlik kontrolu icin
+        private double _deviationLimit = 50.0;
+        public double DeviationLimit
+        {
+            get => _deviationLimit;
+            set { _deviationLimit = value; OnPropertyChanged(); }
+        }
+
         // Olcum sonucu durumu (runtime): null=olcum yapilmamis, "OK", "NOK"
         private string _measurementStatus;
         [JsonIgnore]
@@ -139,6 +147,14 @@ namespace App4.Utilities
             set { _snifferDurations = value ?? new ObservableCollection<double>(); OnPropertyChanged(); RefreshIndexedJobs(); }
         }
 
+        // Her job icin nokta sapma limiti (mm) - kup guvenlik kontrolu - JobSequence ile paralel
+        private ObservableCollection<double> _deviationLimits = new();
+        public ObservableCollection<double> DeviationLimits
+        {
+            get => _deviationLimits;
+            set { _deviationLimits = value ?? new ObservableCollection<double>(); OnPropertyChanged(); RefreshIndexedJobs(); }
+        }
+
         // INDEX'Lİ JOB LİSTESİ (UI GÖRÜNTÜLEME İÇİN)
         [JsonIgnore]
         public ObservableCollection<IndexedJobItem> IndexedJobSequence { get; } = new();
@@ -160,6 +176,9 @@ namespace App4.Utilities
             // SnifferDurations listesini JobSequence ile ayni boyutta tut
             while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5000);
             while (_snifferDurations.Count > _jobSequence.Count) _snifferDurations.RemoveAt(_snifferDurations.Count - 1);
+            // DeviationLimits listesini JobSequence ile ayni boyutta tut
+            while (_deviationLimits.Count < _jobSequence.Count) _deviationLimits.Add(50.0);
+            while (_deviationLimits.Count > _jobSequence.Count) _deviationLimits.RemoveAt(_deviationLimits.Count - 1);
 
             for (int i = 0; i < _jobSequence.Count; i++)
             {
@@ -167,7 +186,8 @@ namespace App4.Utilities
                 {
                     Index = i,
                     JobName = _jobSequence[i],
-                    SnifferDuration = _snifferDurations[i]
+                    SnifferDuration = _snifferDurations[i],
+                    DeviationLimit = _deviationLimits[i]
                 });
             }
             OnPropertyChanged(nameof(IndexedJobSequence));

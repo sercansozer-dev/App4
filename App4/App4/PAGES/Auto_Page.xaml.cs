@@ -1277,7 +1277,7 @@ namespace App4
         }
 
         // PC tarafından yönetilen bridge değişkenler (PLC'den geri okuma yapılmaz, sadece yazılır)
-        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX", "SNIFFER_OLCUM_SURE" };
+        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX", "SNIFFER_OLCUM_SURE", "NOKTA_SAPMA_LIMIT" };
 
         /// <summary>
         /// Tag adına göre PlcVariable'ı bulur.
@@ -2242,6 +2242,9 @@ namespace App4
                         5 => "Tabla Timeout",
                         6 => "Olcum Timeout",
                         8 => "Diger Robot Hatasi",
+                        50 => "Boru Olcum NOK",
+                        51 => "Boru Olcum Timeout",
+                        52 => "Hedef Nokta Limit Asildi",
                         99 => "Genel Hata",
                         _ => hataKodu > 0 ? $"Kod: {hataKodu}" : "Hata Var"
                     };
@@ -2417,31 +2420,33 @@ namespace App4
                 }
             }
 
-            // Klima tip kodlari: N*100 serisi
-            if (mesaj >= 100 && mesaj <= 1199)
+            // Klima nokta kodlari: (N+1)*100 serisi — Nokta 1=200, Nokta 2=300, ... Nokta 15=1600
+            if (mesaj >= 100 && mesaj <= 1699)
             {
                 int tipNo = mesaj / 100;
                 int alt = mesaj % 100;
+                int nokta = tipNo - 1;
 
                 if (robotNo == 1)
                 {
-                    // Robot 1: N*100=geçiş, +1=tetik, +2=ölçüm, +3=tamamlandı, +4=NOK
+                    // Robot 1: +0=geçiş, +10=gocator tetik, +1=hedefe gidiyor, +2=sniffer koklama, +3=tamamlandı
                     return alt switch
                     {
-                        0 => $"Tip {tipNo}: Geçiş pozisyonuna gidiyor",
-                        1 => $"Tip {tipNo}: Ölçüm noktasına gidiyor",
-                        2 => $"Tip {tipNo}: Gocator+Sniffer ölçüm yapılıyor",
-                        3 => $"Tip {tipNo}: Tamamlandı",
-                        4 => $"Tip {tipNo}: NOK sonuç",
-                        _ => $"Tip {tipNo}: Kod {alt}"
+                        0 => $"Nokta {nokta}: Geçiş pozisyonuna gidiyor",
+                        10 => $"Nokta {nokta}: Gocator ölçüm tetiklendi",
+                        1 => $"Nokta {nokta}: Hedefe gidiyor + Sniffer",
+                        2 => $"Nokta {nokta}: Sniffer koklama yapılıyor",
+                        3 => $"Nokta {nokta}: Tamamlandı",
+                        4 => $"Nokta {nokta}: NOK sonuç",
+                        _ => $"Nokta {nokta}: Kod {alt}"
                     };
                 }
                 else
                 {
                     // Robot 2: N*100=geçiş, +1..+7=çizgi no
-                    if (alt == 0) return $"Tip {tipNo}: Geçiş pozisyonu";
-                    if (alt >= 1 && alt <= 7) return $"Tip {tipNo}: Çizgi {alt} sniffer tarama";
-                    return $"Tip {tipNo}: Kod {alt}";
+                    if (alt == 0) return $"Nokta {nokta}: Geçiş pozisyonu";
+                    if (alt >= 1 && alt <= 7) return $"Nokta {nokta}: Çizgi {alt} sniffer tarama";
+                    return $"Nokta {nokta}: Kod {alt}";
                 }
             }
 
