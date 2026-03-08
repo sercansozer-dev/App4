@@ -124,6 +124,9 @@ namespace App4.Utilities
                     // Kamera sayfasindaki klima kartlarinin cercevesini guncelle
                     UpdateActiveRfidHighlight(_aktuelRfid);
                     System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelRfid = '{_aktuelRfid}'");
+
+                    // ═══ KRİTİK: Yeni klima tipi seçildiğinde Sniffer + Sapma limiti hemen robota yaz ═══
+                    SyncCurrentJobOutputs();
                 }
             }
         }
@@ -597,11 +600,11 @@ namespace App4.Utilities
 
         // ═══ VERİ KAYNAĞI SEÇİMİ (kalıcı) ═══
         // "SENSOR" = Ham Gocator, "CODESYS" = Matematik fonksiyon, "HAND_EYE" = Kalibrasyon dönüşüm
-        private static string _dataSourceMode = "SENSOR";
+        private static string _dataSourceMode = "CODESYS";
         public static string DataSourceMode
         {
             get => _dataSourceMode;
-            set { _dataSourceMode = value ?? "SENSOR"; SaveAutomationSettings(); }
+            set { _dataSourceMode = value ?? "CODESYS"; SaveAutomationSettings(); }
         }
 
         // ═══ CODESYS Matematik Fonksiyonu Ayarları (kalıcı) ═══
@@ -931,6 +934,7 @@ namespace App4.Utilities
             if (e.PropertyName == nameof(RfidDef.ModelFileName) ||
                 e.PropertyName == nameof(RfidDef.JobSequence) ||
                 e.PropertyName == nameof(RfidDef.SnifferDurations) ||
+                e.PropertyName == nameof(RfidDef.DeviationLimits) ||
                 e.PropertyName == nameof(RfidDef.Description))
                 SaveRfids();
         }
@@ -2349,6 +2353,46 @@ namespace App4.Utilities
         /// <summary>
         /// Aktuel RFID kartinda su an olculecek job index'ini isaretler.
         /// Kamera sayfasinda ilgili satir vurgulu gosterilir.
+        /// <summary>
+        /// Aktif kartın aktif job'unun SNIFFER + SAPMA değerlerini output tag'lere yazar.
+        /// Sayfa geçişlerinde, AktuelRfid değişmese bile doğru değerlerin yazılmasını sağlar.
+        /// Auto_Page.Page_Loaded'dan çağrılmalıdır.
+        /// </summary>
+        public static void SyncCurrentJobOutputs()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_aktuelRfid)) return;
+
+                var recipe = KnownRfids.FirstOrDefault(r =>
+                    string.Equals(r.Id, _aktuelRfid, StringComparison.OrdinalIgnoreCase));
+                if (recipe == null) return;
+
+                // Mevcut job index'i bul
+                int currentIdx = recipe.CurrentJobIndex;
+
+                // Eğer -1 (ölçüm bitmiş/temizlenmiş) ise G_JOB_INDEX'ten oku
+                if (currentIdx < 0 && !string.IsNullOrEmpty(Auto_IndexTag))
+                {
+                    var indexVar = FindPlcVarByName(Auto_IndexTag);
+                    if (indexVar != null && TryParseIndex(indexVar.Value, out int idx))
+                        currentIdx = idx;
+                }
+
+                if (currentIdx >= 0)
+                {
+                    UpdateSnifferDurationOutput(recipe, currentIdx);
+                    UpdateDeviationLimitOutput(recipe, currentIdx);
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[GlobalData] SyncCurrentJobOutputs → RFID={_aktuelRfid}, JobIndex={currentIdx}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GlobalData] SyncCurrentJobOutputs hatası: {ex.Message}");
+            }
+        }
+
         /// jobIndex: 0-based (RunAutomationSequence'daki idx degeri)
         /// -1 = hicbiri (olcum bitti/iptal)
         /// </summary>
@@ -2689,6 +2733,10 @@ namespace App4.Utilities
                                 if (codesysCalc.LastCalculationSuccess)
                                 {
                                     codesysTargetValues = new[] { target.X, target.Y, target.Z, target.A, target.B, target.C };
+
+                                    // ═══ HEDEF NOKTA TABLOSUNU GÜNCELLE (CodesysTargetResults) ═══
+                                    try { await PlcService.Instance.RunOnUiAsync(() => UpdateCodesysTargetResults(target)); } catch { }
+
                                     OnAutomationLog?.Invoke($"CODESYS hedef: X={target.X:F2} Y={target.Y:F2} Z={target.Z:F2} A={target.A:F2} B={target.B:F2} C={target.C:F2}");
                                 }
                                 else

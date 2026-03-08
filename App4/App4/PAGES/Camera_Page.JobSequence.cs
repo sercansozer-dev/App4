@@ -56,24 +56,23 @@ namespace App4.PAGES
             var rfidDef = FindParentRfidDef(btn);
             if (rfidDef != null && currentIndex > 0 && currentIndex < rfidDef.JobSequence.Count)
             {
-                // JobSequence tasima
-                var jobName = rfidDef.JobSequence[currentIndex];
-                rfidDef.JobSequence.RemoveAt(currentIndex);
-                rfidDef.JobSequence.Insert(currentIndex - 1, jobName);
-                // SnifferDurations paralel tasima
+                // ═══ ÖNCE paralel koleksiyonlari tasi (RefreshIndexedJobs tetiklenmeden) ═══
                 if (currentIndex < rfidDef.SnifferDurations.Count)
                 {
                     var dur = rfidDef.SnifferDurations[currentIndex];
                     rfidDef.SnifferDurations.RemoveAt(currentIndex);
                     rfidDef.SnifferDurations.Insert(currentIndex - 1, dur);
                 }
-                // DeviationLimits paralel tasima
                 if (currentIndex < rfidDef.DeviationLimits.Count)
                 {
                     var lim = rfidDef.DeviationLimits[currentIndex];
                     rfidDef.DeviationLimits.RemoveAt(currentIndex);
                     rfidDef.DeviationLimits.Insert(currentIndex - 1, lim);
                 }
+                // ═══ SONRA JobSequence tasi (RefreshIndexedJobs dogru verilerle calisir) ═══
+                var jobName = rfidDef.JobSequence[currentIndex];
+                rfidDef.JobSequence.RemoveAt(currentIndex);
+                rfidDef.JobSequence.Insert(currentIndex - 1, jobName);
                 App4.Utilities.GlobalData.SaveRfids();
             }
         }
@@ -90,24 +89,23 @@ namespace App4.PAGES
             var rfidDef = FindParentRfidDef(btn);
             if (rfidDef != null && currentIndex < rfidDef.JobSequence.Count - 1)
             {
-                // JobSequence tasima
-                var jobName = rfidDef.JobSequence[currentIndex];
-                rfidDef.JobSequence.RemoveAt(currentIndex);
-                rfidDef.JobSequence.Insert(currentIndex + 1, jobName);
-                // SnifferDurations paralel tasima
+                // ═══ ÖNCE paralel koleksiyonlari tasi (RefreshIndexedJobs tetiklenmeden) ═══
                 if (currentIndex < rfidDef.SnifferDurations.Count)
                 {
                     var dur = rfidDef.SnifferDurations[currentIndex];
                     rfidDef.SnifferDurations.RemoveAt(currentIndex);
                     rfidDef.SnifferDurations.Insert(currentIndex + 1, dur);
                 }
-                // DeviationLimits paralel tasima
                 if (currentIndex < rfidDef.DeviationLimits.Count)
                 {
                     var lim = rfidDef.DeviationLimits[currentIndex];
                     rfidDef.DeviationLimits.RemoveAt(currentIndex);
                     rfidDef.DeviationLimits.Insert(currentIndex + 1, lim);
                 }
+                // ═══ SONRA JobSequence tasi (RefreshIndexedJobs dogru verilerle calisir) ═══
+                var jobName = rfidDef.JobSequence[currentIndex];
+                rfidDef.JobSequence.RemoveAt(currentIndex);
+                rfidDef.JobSequence.Insert(currentIndex + 1, jobName);
                 App4.Utilities.GlobalData.SaveRfids();
             }
         }
@@ -124,13 +122,13 @@ namespace App4.PAGES
                 if (rfidDef != null && rfidDef.JobSequence.Contains(jobName))
                 {
                     int idx = rfidDef.JobSequence.IndexOf(jobName);
-                    rfidDef.JobSequence.Remove(jobName);
-                    // SnifferDurations paralel silme
+                    // ═══ ÖNCE paralel koleksiyonlari sil (RefreshIndexedJobs tetiklenmeden) ═══
                     if (idx >= 0 && idx < rfidDef.SnifferDurations.Count)
                         rfidDef.SnifferDurations.RemoveAt(idx);
-                    // DeviationLimits paralel silme
                     if (idx >= 0 && idx < rfidDef.DeviationLimits.Count)
                         rfidDef.DeviationLimits.RemoveAt(idx);
+                    // ═══ SONRA JobSequence'dan sil (RefreshIndexedJobs dogru verilerle calisir) ═══
+                    rfidDef.JobSequence.Remove(jobName);
                     App4.Utilities.GlobalData.SaveRfids();
                 }
             }

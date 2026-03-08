@@ -48,6 +48,9 @@ namespace App4
             TxtKL100St1Pos.Text = GlobalData.KL100_Station1Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
             TxtKL100St2Pos.Text = GlobalData.KL100_Station2Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
             TxtKL100St3Pos.Text = GlobalData.KL100_Station3Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            // SNIFFER + SAPMA değerlerini aktif kart+job'a göre senkronize et
+            GlobalData.SyncCurrentJobOutputs();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)

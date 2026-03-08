@@ -173,13 +173,10 @@ namespace App4.Utilities
         private void RefreshIndexedJobs()
         {
             IndexedJobSequence.Clear();
-            // SnifferDurations listesini JobSequence ile ayni boyutta tut
+            // SnifferDurations eksikse tamamla (fazlaysa dokunma — silme islemi zaten paralel yapiliyor)
             while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5000);
-            while (_snifferDurations.Count > _jobSequence.Count) _snifferDurations.RemoveAt(_snifferDurations.Count - 1);
-            // DeviationLimits listesini JobSequence ile ayni boyutta tut
+            // DeviationLimits eksikse tamamla (fazlaysa dokunma — silme islemi zaten paralel yapiliyor)
             while (_deviationLimits.Count < _jobSequence.Count) _deviationLimits.Add(50.0);
-            while (_deviationLimits.Count > _jobSequence.Count) _deviationLimits.RemoveAt(_deviationLimits.Count - 1);
-
             for (int i = 0; i < _jobSequence.Count; i++)
             {
                 IndexedJobSequence.Add(new IndexedJobItem

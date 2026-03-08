@@ -159,6 +159,10 @@ namespace App4
             // Tüm binding'ler tamamlandıktan sonra aktif istasyondan RFID bilgisini yaz
             UpdateAktuelRfidFromStation();
 
+            // 2.92. SNIFFER + SAPMA değerlerini aktif kart+job'a göre senkronize et
+            // AktuelRfid değişmemiş olsa bile doğru değerleri output tag'lere yazmayı garanti eder.
+            GlobalData.SyncCurrentJobOutputs();
+
             // 2.95. ComboBox PlcTag binding'lerini zorla güncelle
             // SORUN: InitializeComponent sırasında AvailableOutputPlcTags boş.
             //        x:Bind OneWay, PlcTag'ı boş listeye eşleştiremez → SelectedItem null kalır.

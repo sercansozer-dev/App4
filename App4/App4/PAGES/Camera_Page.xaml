@@ -1969,8 +1969,8 @@
                                                                     <controls:NumberBox Grid.Column="4"
                                                                                         Value="{x:Bind DeviationLimit, Mode=TwoWay}"
                                                                                         Minimum="0" Maximum="9999"
-                                                                                        SpinButtonPlacementMode="Compact"
-                                                                                        Width="70" Height="24" FontSize="10"
+                                                                                        SpinButtonPlacementMode="Hidden"
+                                                                                        Width="80" Height="24" FontSize="11"
                                                                                         VerticalAlignment="Center"
                                                                                         ValueChanged="DeviationLimit_ValueChanged"/>
                                                                     <!-- Yukari Tasi Butonu -->

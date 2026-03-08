@@ -1628,7 +1628,7 @@ namespace App4.PAGES
         /// </summary>
         private void RestoreSavedDataSourceMode()
         {
-            string savedMode = GlobalData.DataSourceMode ?? "SENSOR";
+            string savedMode = GlobalData.DataSourceMode ?? "CODESYS";
 
             switch (savedMode)
             {
@@ -2652,6 +2652,9 @@ namespace App4.PAGES
 
             // 4.1. Sayfa yuklendiginde mevcut index degerini kartlara yansit
             SyncCurrentJobIndexFromTag();
+
+            // 4.2. SNIFFER + SAPMA değerlerini aktif kart+job'a göre senkronize et
+            App4.Utilities.GlobalData.SyncCurrentJobOutputs();
 
             // 5. Event'leri bağla (Duplicate önlemek için önce çıkar)
             App4.Utilities.GlobalData.OnAutomationLog -= _automationLogHandler;
