@@ -1610,6 +1610,12 @@ namespace App4.Utilities
         private static bool _olcumTetikProcessing = false;
         private static bool _snifferOlcumProcessing = false;
 
+        // ═══ GOCATOR JOB ÖN-YÜKLEME (PRE-LOAD) ═══
+        // Robot G_JOB_INDEX değiştirdiği anda job yüklenir → robot hareket ederken paralel yükleme
+        // Ölçüm tetik geldiğinde LoadJob atlanır → süre kazanımı (~300-700ms per nokta)
+        private static string _preLoadedGocatorJob = null;
+        private static Task _jobPreLoadTask = Task.CompletedTask;
+
         /// <summary>
         /// Tüm robotların InputVars değişimlerini dinlemeye başlar.
         /// Bir kez çağrılır, sayfa değişse bile aktif kalır.
@@ -1644,6 +1650,14 @@ namespace App4.Utilities
 
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
         {
+            // ═══ G_JOB_INDEX DEĞİŞİMİ → JOB ÖN-YÜKLEME ═══
+            // Robot index'i değiştirdiği an job yüklenir (robot hareket ederken paralel)
+            if (changedVar.Name == "G_JOB_INDEX")
+            {
+                _jobPreLoadTask = HandleJobIndexChangeAsync(changedVar.Value, robotNo);
+                return;
+            }
+
             bool isTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
             if (!isTrue) return;
 
@@ -1658,6 +1672,57 @@ namespace App4.Utilities
                     if (!_snifferOlcumProcessing)
                         _ = HandleSnifferOlcumAsync(robot, robotNo);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// G_JOB_INDEX değiştiğinde çağrılır. Gocator'a ilgili job'u hemen yükler.
+        /// Robot ölçüm noktasına giderken paralel yükleme yapılır → süre kazanımı.
+        /// </summary>
+        private static async Task HandleJobIndexChangeAsync(string rawIndex, int robotNo)
+        {
+            try
+            {
+                TryParseIndex(rawIndex, out int idx);
+                if (idx < 0) return;
+
+                // Ölçüm devam ediyorsa ön-yükleme yapma (sensör meşgul)
+                if (OlcumInProgress) return;
+
+                string currentRfid = AktuelRfid;
+                var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
+                if (recipe?.JobSequence == null || idx >= recipe.JobSequence.Count) return;
+
+                string jobName = recipe.JobSequence[idx];
+                if (string.IsNullOrEmpty(jobName)) return;
+
+                // Zaten yüklü mü?
+                // ═══ SNIFFER SÜRESİ + SAPMA LİMİTİ ROBOTA GÖNDER (sayfa bağımsız) ═══
+                UpdateSnifferDurationOutput(recipe, idx);
+                UpdateDeviationLimitOutput(recipe, idx);
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] G_JOB_INDEX={idx} → Sniffer + Sapma limiti gönderildi");
+
+                // ═══ GOCATOR JOB ÖN-YÜKLEME ═══
+                if (_preLoadedGocatorJob == jobName) return;
+
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] G_JOB_INDEX={idx} → Job ön-yükleniyor: {jobName}...");
+                bool loadOk = await GocatorJobLogic.LoadJob(jobName, s => OnAutomationLog?.Invoke($"[Gocator] {s}"));
+
+                if (loadOk)
+                {
+                    _preLoadedGocatorJob = jobName;
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] ✓ Job ön-yükleme tamamlandı: {jobName} (robot hareket ederken hazır)");
+                }
+                else
+                {
+                    _preLoadedGocatorJob = null;
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] ⚠ Job ön-yükleme başarısız: {jobName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _preLoadedGocatorJob = null;
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] ⚠ Job ön-yükleme hatası: {ex.Message}");
             }
         }
 
@@ -1718,14 +1783,26 @@ namespace App4.Utilities
                     return;
                 }
 
-                // 4. Gocator job yükle
-                OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yükleniyor: {jobName}");
-                bool loadOk = await GocatorJobLogic.LoadJob(jobName, s => OnAutomationLog?.Invoke($"[Gocator] {s}"));
-                if (!loadOk)
+                // 4. Gocator job yükle (ÖN-YÜKLEME KONTROLÜ)
+                // Devam eden ön-yükleme varsa bekle (sensör çakışmasını önle)
+                try { await _jobPreLoadTask; } catch { }
+
+                if (_preLoadedGocatorJob != null && _preLoadedGocatorJob == jobName)
                 {
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yüklenemedi: {jobName}");
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    return;
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Job zaten ön-yüklü: {jobName} → LoadJob atlandı (süre kazanımı)");
+                    _preLoadedGocatorJob = null; // Kullanıldı, sıfırla
+                }
+                else
+                {
+                    _preLoadedGocatorJob = null; // Farklı job veya ilk çağrı
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yükleniyor: {jobName}");
+                    bool loadOk = await GocatorJobLogic.LoadJob(jobName, s => OnAutomationLog?.Invoke($"[Gocator] {s}"));
+                    if (!loadOk)
+                    {
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yüklenemedi: {jobName}");
+                        await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                        return;
+                    }
                 }
 
                 // 5. Gocator'dan ölçüm al
@@ -1918,11 +1995,13 @@ namespace App4.Utilities
                 {
                     OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm BAŞARISIZ (Job {jobIndex}: {jobName})");
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
+                    _preLoadedGocatorJob = null; // Hata durumunda sıfırla
                 }
             }
             catch (Exception ex)
             {
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik hatası: {ex.Message}");
+                _preLoadedGocatorJob = null; // Exception durumunda sıfırla
                 try
                 {
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
@@ -2527,6 +2606,12 @@ namespace App4.Utilities
         /// "TAG_NAME" → PLC output değişkenine yazar.
         /// Auto_Page bridge mekanizmasına bağımlı olmadan doğrudan yazma sağlar.
         /// </summary>
+        /// <summary>
+        /// PlcTag formatındaki hedef değişkene değer yazar.
+        /// "R1:G_XXX" → Robot 1'in G_XXX değişkenine doğrudan WriteVariableAsync ile yazar.
+        /// "TAG_NAME" → PLC output değişkenine yazar.
+        /// Auto_Page bridge mekanizmasına BAĞIMLI DEĞİLDİR — her sayfadan çalışır.
+        /// </summary>
         private static void WriteOutputVarToTarget(string plcTag, double value)
         {
             if (string.IsNullOrEmpty(plcTag)) return;
@@ -2545,16 +2630,14 @@ namespace App4.Utilities
                             if (robot.IsConnected)
                             {
                                 string varName = plcTag.Substring(3);
-                                var targetVar = robot.OutputVars.FirstOrDefault(v => v.Name == varName)
-                                             ?? robot.InputVars.FirstOrDefault(v => v.Name == varName);
+
+                                // Bellekteki değeri de güncelle (RSI output buffer)
+                                var targetVar = robot.OutputVars.FirstOrDefault(v => v.Name == varName);
                                 if (targetVar != null)
-                                {
                                     targetVar.CurrentValue = value;
-                                }
-                                else
-                                {
-                                    _ = robot.WriteVariableAsync(varName, value.ToString("F3"));
-                                }
+
+                                // Robota doğrudan yaz (Auto_Page bridge'e bağımlı değil)
+                                _ = robot.WriteVariableAsync(varName, value.ToString("F3"));
                             }
                         }
                     }
@@ -2683,8 +2766,22 @@ namespace App4.Utilities
                 // ▶ Anlik index gostergesini guncelle (kamera sayfasinda vurgulu satir)
                 UpdateCurrentJobIndex(idx);
 
-                bool loadOk = await App4.Utilities.GocatorJobLogic.LoadJob(jobName, (s) => OnAutomationLog?.Invoke(s));
-                if (!loadOk) throw new Exception("Job yüklenemedi");
+                // ▼▼▼ JOB YÜKLEME (ÖN-YÜKLEME KONTROLÜ) ▼▼▼
+                // Devam eden ön-yükleme varsa bekle (sensör çakışmasını önle)
+                try { await _jobPreLoadTask; } catch { }
+
+                if (_preLoadedGocatorJob != null && _preLoadedGocatorJob == jobName)
+                {
+                    OnAutomationLog?.Invoke($"Job zaten ön-yüklü: {jobName} → LoadJob atlandı (süre kazanımı)");
+                    _preLoadedGocatorJob = null; // Kullanıldı, sıfırla
+                }
+                else
+                {
+                    _preLoadedGocatorJob = null; // Farklı job veya ilk çağrı, sıfırla
+                    bool loadOk = await App4.Utilities.GocatorJobLogic.LoadJob(jobName, (s) => OnAutomationLog?.Invoke(s));
+                    if (!loadOk) throw new Exception("Job yüklenemedi");
+                }
+                // ▲▲▲ JOB YÜKLEME SONU ▲▲▲
 
                 ProcessStatus = "ÖLÇÜM...";
                 var (status, measurements) = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements((s) => OnAutomationLog?.Invoke(s), null);
@@ -2966,6 +3063,7 @@ namespace App4.Utilities
                     UpdateCurrentJobIndex(-1);
                     ProcessStatus = "VERİ YOK";
                     OnAutomationLog?.Invoke("Olcum alinamadi: Cikti yok veya zaman asimi.");
+                    _preLoadedGocatorJob = null; // Hata durumunda sıfırla
 
                     // Robot'a basarisizlik bildirimi
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
@@ -2977,6 +3075,7 @@ namespace App4.Utilities
             {
                 ProcessStatus = "HATA";
                 UpdateCurrentJobIndex(-1);
+                _preLoadedGocatorJob = null; // Hata durumunda ön-yükleme sıfırla
                 OnAutomationLog?.Invoke($"Hata: {ex.Message}");
 
                 // Robot'a hata bildirimi
