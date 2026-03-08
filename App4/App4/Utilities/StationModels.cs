@@ -46,6 +46,14 @@ namespace App4.Utilities
             set { _deviationLimit = value; OnPropertyChanged(); }
         }
 
+        // Olcum yontemi: "SENSOR" (ham veri), "HAND_EYE", "CODESYS" — her job icin ayri
+        private string _dataSourceMode = "SENSOR";
+        public string DataSourceMode
+        {
+            get => _dataSourceMode;
+            set { _dataSourceMode = value ?? "SENSOR"; OnPropertyChanged(); }
+        }
+
         // Olcum sonucu durumu (runtime): null=olcum yapilmamis, "OK", "NOK"
         private string _measurementStatus;
         [JsonIgnore]
@@ -155,6 +163,14 @@ namespace App4.Utilities
             set { _deviationLimits = value ?? new ObservableCollection<double>(); OnPropertyChanged(); RefreshIndexedJobs(); }
         }
 
+        // Her job icin olcum yontemi: "SENSOR" / "HAND_EYE" / "CODESYS" - JobSequence ile paralel
+        private ObservableCollection<string> _dataSourceModes = new();
+        public ObservableCollection<string> DataSourceModes
+        {
+            get => _dataSourceModes;
+            set { _dataSourceModes = value ?? new ObservableCollection<string>(); OnPropertyChanged(); RefreshIndexedJobs(); }
+        }
+
         // INDEX'Lİ JOB LİSTESİ (UI GÖRÜNTÜLEME İÇİN)
         [JsonIgnore]
         public ObservableCollection<IndexedJobItem> IndexedJobSequence { get; } = new();
@@ -177,6 +193,8 @@ namespace App4.Utilities
             while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5000);
             // DeviationLimits eksikse tamamla (fazlaysa dokunma — silme islemi zaten paralel yapiliyor)
             while (_deviationLimits.Count < _jobSequence.Count) _deviationLimits.Add(50.0);
+            // DataSourceModes eksikse tamamla (default: "SENSOR")
+            while (_dataSourceModes.Count < _jobSequence.Count) _dataSourceModes.Add("SENSOR");
             for (int i = 0; i < _jobSequence.Count; i++)
             {
                 IndexedJobSequence.Add(new IndexedJobItem
@@ -184,7 +202,8 @@ namespace App4.Utilities
                     Index = i,
                     JobName = _jobSequence[i],
                     SnifferDuration = _snifferDurations[i],
-                    DeviationLimit = _deviationLimits[i]
+                    DeviationLimit = _deviationLimits[i],
+                    DataSourceMode = _dataSourceModes[i]
                 });
             }
             OnPropertyChanged(nameof(IndexedJobSequence));
@@ -327,6 +346,15 @@ namespace App4.Utilities
         public string Unit { get; set; } = "mm";
         public string Decision { get; set; }  // Pass / Fail
         public int SourceId { get; set; }     // Sensördeki ID'si
+        public int PointIndex { get; set; } = 0; // 0-based nokta indexi (çoklu nokta desteği)
+
+        // Nokta başlığı (UI kart header): "NOKTA 1", "NOKTA 2"...
+        [Newtonsoft.Json.JsonIgnore]
+        public string PointLabel => $"NOKTA {PointIndex + 1}";
+
+        // Noktanın ilk elemanı mı? (kart başlığı gösterimi için)
+        [Newtonsoft.Json.JsonIgnore]
+        public bool IsFirstInPoint => (SourceId % 6 == 0);
 
         // UI Rengi: Pass ise Yeşil, Fail ise Kırmızı
         public SolidColorBrush StatusColor => (Decision == "Pass" || Decision == "OK")
@@ -691,6 +719,15 @@ namespace App4.Utilities
             // Normal: Sayı varsa GÖSTER, yoksa GİZLE
             return count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        public object ConvertBack(object value, System.Type targetType, object parameter, string language)
+            => throw new System.NotImplementedException();
+    }
+
+    public class BoolToVisibilityConverter : Microsoft.UI.Xaml.Data.IValueConverter
+    {
+        public object Convert(object value, System.Type targetType, object parameter, string language)
+            => (value is bool b && b) ? Visibility.Visible : Visibility.Collapsed;
 
         public object ConvertBack(object value, System.Type targetType, object parameter, string language)
             => throw new System.NotImplementedException();

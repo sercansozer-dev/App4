@@ -69,6 +69,12 @@ namespace App4.PAGES
                     rfidDef.DeviationLimits.RemoveAt(currentIndex);
                     rfidDef.DeviationLimits.Insert(currentIndex - 1, lim);
                 }
+                if (currentIndex < rfidDef.DataSourceModes.Count)
+                {
+                    var mode = rfidDef.DataSourceModes[currentIndex];
+                    rfidDef.DataSourceModes.RemoveAt(currentIndex);
+                    rfidDef.DataSourceModes.Insert(currentIndex - 1, mode);
+                }
                 // ═══ SONRA JobSequence tasi (RefreshIndexedJobs dogru verilerle calisir) ═══
                 var jobName = rfidDef.JobSequence[currentIndex];
                 rfidDef.JobSequence.RemoveAt(currentIndex);
@@ -102,6 +108,12 @@ namespace App4.PAGES
                     rfidDef.DeviationLimits.RemoveAt(currentIndex);
                     rfidDef.DeviationLimits.Insert(currentIndex + 1, lim);
                 }
+                if (currentIndex < rfidDef.DataSourceModes.Count)
+                {
+                    var mode = rfidDef.DataSourceModes[currentIndex];
+                    rfidDef.DataSourceModes.RemoveAt(currentIndex);
+                    rfidDef.DataSourceModes.Insert(currentIndex + 1, mode);
+                }
                 // ═══ SONRA JobSequence tasi (RefreshIndexedJobs dogru verilerle calisir) ═══
                 var jobName = rfidDef.JobSequence[currentIndex];
                 rfidDef.JobSequence.RemoveAt(currentIndex);
@@ -127,8 +139,48 @@ namespace App4.PAGES
                         rfidDef.SnifferDurations.RemoveAt(idx);
                     if (idx >= 0 && idx < rfidDef.DeviationLimits.Count)
                         rfidDef.DeviationLimits.RemoveAt(idx);
+                    if (idx >= 0 && idx < rfidDef.DataSourceModes.Count)
+                        rfidDef.DataSourceModes.RemoveAt(idx);
                     // ═══ SONRA JobSequence'dan sil (RefreshIndexedJobs dogru verilerle calisir) ═══
                     rfidDef.JobSequence.Remove(jobName);
+                    App4.Utilities.GlobalData.SaveRfids();
+                }
+            }
+        }
+
+        // ComboBox yüklendiğinde kaydedilmiş değeri seç (x:Bind SelectedItem DataTemplate'de güvenilir değil)
+        private void DataSourceModeComboBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is App4.Utilities.IndexedJobItem jobItem)
+            {
+                // Items içinden eşleşen string'i bul ve seç
+                foreach (var item in cb.Items)
+                {
+                    if (item is string s && s == jobItem.DataSourceMode)
+                    {
+                        cb.SelectedItem = item;
+                        return;
+                    }
+                }
+                // Eşleşme yoksa ilk item'ı seç (SENSOR)
+                if (cb.Items.Count > 0) cb.SelectedIndex = 0;
+            }
+        }
+
+        // Ölçüm Yöntemi Değiştiğinde Kaydet
+        private void DataSourceMode_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is App4.Utilities.IndexedJobItem jobItem)
+            {
+                string newMode = cb.SelectedItem as string;
+                if (string.IsNullOrEmpty(newMode)) return;
+                if (newMode == jobItem.DataSourceMode) return; // Değişiklik yoksa (Loaded tetiklemesi)
+
+                var rfid = FindParentRfidDef(cb);
+                if (rfid != null && jobItem.Index < rfid.DataSourceModes.Count)
+                {
+                    rfid.DataSourceModes[jobItem.Index] = newMode;
+                    jobItem.DataSourceMode = newMode;
                     App4.Utilities.GlobalData.SaveRfids();
                 }
             }

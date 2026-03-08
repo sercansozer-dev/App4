@@ -2489,21 +2489,22 @@ namespace App4.PAGES
             {
                 AddLog("► [TABLA] Job 0 yükleniyor...");
 
-                // 1. Job listesinden ilk job'u (index 0) al
-                if (AvailableJobs.Count == 0)
+                // 1. Aktif klima kartının JobSequence[0]'ını al
+                var activeRecipe = App4.Utilities.GlobalData.KnownRfids.FirstOrDefault(r => r.IsActive);
+                if (activeRecipe == null)
                 {
-                    AddLog("⚠ [TABLA] Job listesi boş, sensörden çekiliyor...");
-                    await RefreshJobList();
-                }
-
-                if (AvailableJobs.Count == 0)
-                {
-                    AddLog("❌ [TABLA] Sensörde hiç job bulunamadı.");
+                    AddLog("❌ [TABLA] Aktif klima kartı bulunamadı.");
                     return;
                 }
 
-                string job0Name = AvailableJobs[0]; // Job 0 = listedeki ilk job
-                AddLog($"► [TABLA] Job 0: {job0Name}");
+                if (activeRecipe.JobSequence == null || activeRecipe.JobSequence.Count == 0)
+                {
+                    AddLog("❌ [TABLA] Aktif klima kartında job tanımlı değil.");
+                    return;
+                }
+
+                string job0Name = activeRecipe.JobSequence[0]; // Klima kartının 0. indexindeki job
+                AddLog($"► [TABLA] Klima kartı ({activeRecipe.Id}) Job 0: {job0Name}");
 
                 // 2. Job 0'ı yükle
                 bool loadOk = await GocatorJobLogic.LoadJob(job0Name, AddLog);

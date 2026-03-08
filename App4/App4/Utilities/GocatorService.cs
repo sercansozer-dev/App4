@@ -233,7 +233,15 @@ namespace App4.Utilities
 
                                     // SourceId'ye göre sırala (GDP ID: X=0,Y=1,Z=2,Roll=3,Pitch=4,Yaw=5)
                                     results = results.OrderBy(m => m.SourceId).ToList();
-                                    for (int si = 0; si < results.Count; si++) results[si].Id = si + 1;
+
+                                    // Çoklu nokta: her 6 değer = 1 nokta (PointIndex + anlamlı isim)
+                                    string[] axNames = { "X", "Y", "Z", "Roll", "Pitch", "Yaw" };
+                                    for (int si = 0; si < results.Count; si++)
+                                    {
+                                        results[si].Id = si + 1;
+                                        results[si].PointIndex = si / 6;
+                                        results[si].Name = $"Nokta {si / 6 + 1} - {axNames[si % 6]}";
+                                    }
 
                                     // Sıralanmış verileri UI listesine ekle
                                     if (dispatcher != null)

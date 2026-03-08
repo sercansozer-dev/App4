@@ -13,6 +13,7 @@
     NavigationCacheMode="Required">
     <Page.Resources>
         <utils:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+        <utils:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:BoolToPlayPauseIconConverter x:Key="BoolToPlayPauseIconConverter"/>
     </Page.Resources>
     <Grid Background="#0D0D0D">
@@ -1194,23 +1195,30 @@
                                         <ItemsControl ItemsSource="{x:Bind utils:GlobalData.LastMeasurements, Mode=OneWay}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="utils:GocatorMeasurement">
-                                                    <Grid Height="36" Margin="0,0,0,2" Background="#0F0F0F" CornerRadius="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="30"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="70"/>
-                                                            <ColumnDefinition Width="50"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
-                                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="White" FontSize="11"/>
-                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Value}" Foreground="#00A4EF" FontWeight="Bold" FontSize="11"/>
-                                                            <TextBlock Text="{x:Bind Unit}" Foreground="#00A4EF" Margin="3,0,0,0" FontSize="9" VerticalAlignment="Bottom"/>
-                                                        </StackPanel>
-                                                        <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="18" Width="40">
-                                                            <TextBlock Text="{x:Bind Decision}" FontSize="9" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <StackPanel>
+                                                        <!-- NOKTA KART BAŞLIĞI (noktanın ilk elemanında görünür) -->
+                                                        <Border Background="#FF6600" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
+                                                                Visibility="{x:Bind IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <TextBlock Text="{x:Bind PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
-                                                    </Grid>
+                                                        <Grid Height="36" Margin="0,0,0,2" Background="#0F0F0F" CornerRadius="4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="30"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="70"/>
+                                                                <ColumnDefinition Width="50"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
+                                                            <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="White" FontSize="11"/>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Value}" Foreground="#00A4EF" FontWeight="Bold" FontSize="11"/>
+                                                                <TextBlock Text="{x:Bind Unit}" Foreground="#00A4EF" Margin="3,0,0,0" FontSize="9" VerticalAlignment="Bottom"/>
+                                                            </StackPanel>
+                                                            <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="18" Width="40">
+                                                                <TextBlock Text="{x:Bind Decision}" FontSize="9" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -1270,23 +1278,30 @@
                                         <ItemsControl ItemsSource="{x:Bind utils:GlobalData.TransformedMeasurements, Mode=OneWay}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="utils:GocatorMeasurement">
-                                                    <Grid Height="36" Margin="0,0,0,2" Background="#0F150F" CornerRadius="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="30"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="80"/>
-                                                            <ColumnDefinition Width="50"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
-                                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold"/>
-                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Value}" Foreground="#4CAF50" FontWeight="Bold" FontSize="11"/>
-                                                            <TextBlock Text="{x:Bind Unit}" Foreground="#4CAF50" Margin="3,0,0,0" FontSize="9" VerticalAlignment="Bottom"/>
-                                                        </StackPanel>
-                                                        <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="18" Width="40">
-                                                            <TextBlock Text="{x:Bind Decision}" FontSize="9" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <StackPanel>
+                                                        <!-- NOKTA KART BAŞLIĞI -->
+                                                        <Border Background="#2E7D32" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
+                                                                Visibility="{x:Bind IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <TextBlock Text="{x:Bind PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
-                                                    </Grid>
+                                                        <Grid Height="36" Margin="0,0,0,2" Background="#0F150F" CornerRadius="4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="30"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="80"/>
+                                                                <ColumnDefinition Width="50"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
+                                                            <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold"/>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Value}" Foreground="#4CAF50" FontWeight="Bold" FontSize="11"/>
+                                                                <TextBlock Text="{x:Bind Unit}" Foreground="#4CAF50" Margin="3,0,0,0" FontSize="9" VerticalAlignment="Bottom"/>
+                                                            </StackPanel>
+                                                            <Border Grid.Column="3" Background="{x:Bind StatusColor}" CornerRadius="4" Height="18" Width="40">
+                                                                <TextBlock Text="{x:Bind Decision}" FontSize="9" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -1352,25 +1367,32 @@
                                         <ItemsControl ItemsSource="{Binding PlcTransferRows}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid Background="{Binding BackgroundColor}" Height="36" CornerRadius="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="30"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="70"/>
-                                                            <ColumnDefinition Width="35"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5" FontSize="10"/>
-                                                        <ComboBox Grid.Column="1"
-                                                            ItemsSource="{Binding ElementName=PageRoot, Path=Robot1OutputTags}"
-                                                            SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
-                                                            Margin="4,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4"
-                                                            Foreground="White" PlaceholderText="Tag Seç..." FontSize="10"
-                                                            VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold" FontSize="10"/>
-                                                        <Button Grid.Column="3" Click="BtnDeletePlcRow_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Center">
-                                                            <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="#E74C3C"/>
-                                                        </Button>
-                                                    </Grid>
+                                                    <StackPanel>
+                                                        <!-- NOKTA KART BAŞLIĞI -->
+                                                        <Border Background="#FF6600" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
+                                                                Visibility="{Binding IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <TextBlock Text="{Binding PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                        <Grid Background="{Binding BackgroundColor}" Height="36" CornerRadius="4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="30"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="70"/>
+                                                                <ColumnDefinition Width="35"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{Binding Index}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="SemiBold" Opacity="0.5" FontSize="10"/>
+                                                            <ComboBox Grid.Column="1"
+                                                                ItemsSource="{Binding ElementName=PageRoot, Path=Robot1OutputTags}"
+                                                                SelectedItem="{Binding SelectedTag, Mode=TwoWay}"
+                                                                Margin="4,0" Background="#252526" BorderThickness="1" BorderBrush="#444" CornerRadius="4"
+                                                                Foreground="White" PlaceholderText="Tag Seç..." FontSize="10"
+                                                                VerticalAlignment="Center" HorizontalAlignment="Stretch"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding Value}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{Binding StatusColor}" FontWeight="Bold" FontSize="10"/>
+                                                            <Button Grid.Column="3" Click="BtnDeletePlcRow_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Center">
+                                                                <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="#E74C3C"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                             <ItemsControl.ItemsPanel>
@@ -1612,20 +1634,27 @@
                                     <ItemsControl ItemsSource="{x:Bind utils:GlobalData.CodesysTargetResults, Mode=OneWay}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="utils:GocatorMeasurement">
-                                                <Grid Height="36" Margin="0,0,0,2" Background="#0F0A15" CornerRadius="4">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="30"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="80"/>
-                                                        <ColumnDefinition Width="50"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
-                                                    <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="#CE93D8" FontSize="11" FontWeight="SemiBold"/>
-                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="{x:Bind Value}" Foreground="#CE93D8" FontWeight="Bold" FontSize="11"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="3" Text="{x:Bind Unit}" Foreground="#9C27B0" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                                </Grid>
+                                                <StackPanel>
+                                                    <!-- NOKTA KART BAŞLIĞI (mor tema) -->
+                                                    <Border Background="#6A1B9A" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
+                                                            Visibility="{x:Bind IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <TextBlock Text="{x:Bind PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                                    </Border>
+                                                    <Grid Height="36" Margin="0,0,0,2" Background="#0F0A15" CornerRadius="4">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="30"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="50"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{x:Bind Id}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" Opacity="0.5" FontSize="10"/>
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind Name}" VerticalAlignment="Center" Margin="8,0" Foreground="#CE93D8" FontSize="11" FontWeight="SemiBold"/>
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Value}" Foreground="#CE93D8" FontWeight="Bold" FontSize="11"/>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="3" Text="{x:Bind Unit}" Foreground="#9C27B0" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    </Grid>
+                                                </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -1923,13 +1952,15 @@
                                                         <ColumnDefinition Width="14"/>
                                                         <ColumnDefinition Width="26"/>
                                                         <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="80"/>
                                                         <ColumnDefinition Width="75"/>
                                                         <ColumnDefinition Width="75"/>
                                                         <ColumnDefinition Width="76"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="İşlem Sırası:" FontSize="10" Foreground="#888" Grid.ColumnSpan="3"/>
-                                                    <TextBlock Grid.Column="3" Text="Sniffer (ms)" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="4" Text="Sapma (mm)" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" Text="Yöntem" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="4" Text="Sniffer (ms)" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="5" Text="Sapma (mm)" FontSize="9" Foreground="#666" HorizontalAlignment="Center"/>
                                                 </Grid>
                                                 
                                                 <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
@@ -1941,6 +1972,7 @@
                                                                         <ColumnDefinition Width="14"/>
                                                                         <ColumnDefinition Width="26"/>
                                                                         <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="80"/>
                                                                         <ColumnDefinition Width="75"/>
                                                                         <ColumnDefinition Width="75"/>
                                                                         <ColumnDefinition Width="24"/>
@@ -1957,8 +1989,19 @@
                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                     </Border>
                                                                     <TextBlock Grid.Column="2" Text="{x:Bind JobName}" Foreground="White" VerticalAlignment="Center" FontSize="11" Margin="5,0" TextTrimming="CharacterEllipsis"/>
+                                                                    <!-- Ölçüm Yöntemi (SENSOR / HAND_EYE / CODESYS) -->
+                                                                    <ComboBox Grid.Column="3"
+                                                                              Loaded="DataSourceModeComboBox_Loaded"
+                                                                              SelectionChanged="DataSourceMode_Changed"
+                                                                              Height="24" FontSize="9" Padding="4,2"
+                                                                              VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                                                              Background="#333" BorderBrush="#555">
+                                                                        <x:String>SENSOR</x:String>
+                                                                        <x:String>HAND_EYE</x:String>
+                                                                        <x:String>CODESYS</x:String>
+                                                                    </ComboBox>
                                                                     <!-- Sniffer Suresi (ms) -->
-                                                                    <controls:NumberBox Grid.Column="3"
+                                                                    <controls:NumberBox Grid.Column="4"
                                                                                         Value="{x:Bind SnifferDuration, Mode=TwoWay}"
                                                                                         Minimum="0" Maximum="120000"
                                                                                         SpinButtonPlacementMode="Compact"
@@ -1966,7 +2009,7 @@
                                                                                         VerticalAlignment="Center"
                                                                                         ValueChanged="SnifferDuration_ValueChanged"/>
                                                                     <!-- Nokta Sapma Limiti (mm) -->
-                                                                    <controls:NumberBox Grid.Column="4"
+                                                                    <controls:NumberBox Grid.Column="5"
                                                                                         Value="{x:Bind DeviationLimit, Mode=TwoWay}"
                                                                                         Minimum="0" Maximum="9999"
                                                                                         SpinButtonPlacementMode="Hidden"
@@ -1974,7 +2017,7 @@
                                                                                         VerticalAlignment="Center"
                                                                                         ValueChanged="DeviationLimit_ValueChanged"/>
                                                                     <!-- Yukari Tasi Butonu -->
-                                                                    <Button Grid.Column="5"
+                                                                    <Button Grid.Column="6"
                                                                             Click="MoveJobUp"
                                                                             Tag="{x:Bind Index}"
                                                                             Background="Transparent" Padding="0" BorderThickness="0"
@@ -1983,7 +2026,7 @@
                                                                         <FontIcon Glyph="&#xE70E;" Foreground="#888" FontSize="10"/>
                                                                     </Button>
                                                                     <!-- Asagi Tasi Butonu -->
-                                                                    <Button Grid.Column="6"
+                                                                    <Button Grid.Column="7"
                                                                             Click="MoveJobDown"
                                                                             Tag="{x:Bind Index}"
                                                                             Background="Transparent" Padding="0" BorderThickness="0"
@@ -1992,7 +2035,7 @@
                                                                         <FontIcon Glyph="&#xE70D;" Foreground="#888" FontSize="10"/>
                                                                     </Button>
                                                                     <!-- Sil Butonu -->
-                                                                    <Button Grid.Column="7"
+                                                                    <Button Grid.Column="8"
                                                                             Click="RemoveJobFromSequence"
                                                                             Tag="{x:Bind JobName}"
                                                                             Background="Transparent" Padding="0" BorderThickness="0" HorizontalAlignment="Center">

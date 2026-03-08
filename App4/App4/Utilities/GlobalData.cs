@@ -1522,7 +1522,7 @@ namespace App4.Utilities
             // --- Trigger 2: Tabla Kaçıklık ---
             if (_currentTriggerVar2 != null)
             {
-                _currentTriggerVar2.PropertyChanged -= TriggerVar_PropertyChanged;
+                _currentTriggerVar2.PropertyChanged -= TriggerVar2_PropertyChanged;
                 _currentTriggerVar2 = null;
             }
 
@@ -1532,8 +1532,8 @@ namespace App4.Utilities
                 if (triggerVar2 != null)
                 {
                     _currentTriggerVar2 = triggerVar2;
-                    _currentTriggerVar2.PropertyChanged += TriggerVar_PropertyChanged;
-                    OnAutomationLog?.Invoke($"Tabla tetik devrede: {Auto_TriggerTag2} izleniyor.");
+                    _currentTriggerVar2.PropertyChanged += TriggerVar2_PropertyChanged;
+                    OnAutomationLog?.Invoke($"Tabla tetik devrede: {Auto_TriggerTag2} izleniyor (TABLA ZORUNLU idx=0).");
                 }
                 else
                 {
@@ -1817,8 +1817,13 @@ namespace App4.Utilities
                     if (jobIndex == 0)
                     {
                         // --- TABLA ÖLÇÜM (JOB 0) ---
+
+                        // 1. Tabla ölçüm tablosunu güncelle + Tabla aktarım tablosunu doldur
                         try
                         {
+                            double[] tablaVals = new double[results.Count];
+                            for (int i = 0; i < results.Count; i++) tablaVals[i] = results[i].Value;
+
                             await PlcService.Instance.RunOnUiAsync(() =>
                             {
                                 TablaLastMeasurements.Clear();
@@ -1826,17 +1831,25 @@ namespace App4.Utilities
                                 SaveTablaMeasurements();
                                 LastMeasurements.Clear();
                                 SaveMeasurements();
+
+                                // Tabla aktarım tablosunu doldur (TablaTransferRows — save otomatik)
+                                UpdatePlcTransferRowsFromValues(tablaVals, TablaTransferRows);
                             });
                         }
                         catch { }
 
-                        string[] tablaOffsets = { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z",
-                                                  "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
-                        for (int i = 0; i < Math.Min(results.Count, tablaOffsets.Length); i++)
-                            await WriteToAllRobotsAsync(tablaOffsets[i], results[i].Value.ToString("F3"));
+                        // 2. Tabla aktarım tablosundaki tag seçimlerine göre robota yaz
+                        for (int i = 0; i < Math.Min(results.Count, TablaTransferRows.Count); i++)
+                        {
+                            string tag = TablaTransferRows[i].SelectedTag;
+                            if (!string.IsNullOrEmpty(tag))
+                            {
+                                await WriteToAllRobotsAsync(tag, results[i].Value.ToString("F3"));
+                            }
+                        }
 
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
-                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı");
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı (tag tabanlı)");
                     }
                     else
                     {
@@ -1857,9 +1870,16 @@ namespace App4.Utilities
                         string[] boruOffsets = { "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z",
                                                  "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C" };
 
-                        if (DataSourceMode == "CODESYS")
+                        // Per-job ölçüm yöntemi (reçetede tanımlı, yoksa global fallback)
+                        string jobDataMode = (recipe.DataSourceModes != null && jobIndex < recipe.DataSourceModes.Count)
+                            ? recipe.DataSourceModes[jobIndex] : DataSourceMode;
+
+                        // ═══ ÇOKLU NOKTA DESTEĞİ: Her 6 GDP değeri = 1 ölçüm noktası ═══
+                        int pointCount = (results.Count + 5) / 6;
+
+                        if (jobDataMode == "CODESYS")
                         {
-                            // CODESYS matematik fonksiyonu ile hedef hesapla
+                            // CODESYS matematik fonksiyonu ile hedef hesapla (çoklu nokta döngüsü)
                             try
                             {
                                 var codesysCalc = new CodesysMathFunction
@@ -1874,17 +1894,42 @@ namespace App4.Utilities
                                 if (mappingParts.Length >= 3 && int.TryParse(mappingParts[2], out int mz)) codesysCalc.MapIndexZ = mz;
                                 if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexAngleZ = ma;
 
-                                var gocValues = new double[results.Count];
-                                for (int gi = 0; gi < results.Count; gi++)
-                                    gocValues[gi] = results[gi].Value;
-
                                 var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
-                                var target = codesysCalc.CalculateFromArray(gocValues, robotPose);
+                                var allTargetValues = new List<double>();
+                                var allTargetPoses = new List<KukaPose>();
+                                bool allSuccess = true;
 
-                                if (codesysCalc.LastCalculationSuccess)
+                                // Her nokta için CODESYS hesapla
+                                for (int pt = 0; pt < pointCount; pt++)
                                 {
-                                    double[] targetVals = { target.X, target.Y, target.Z, target.A, target.B, target.C };
-                                    for (int i = 0; i < Math.Min(targetVals.Length, boruOffsets.Length); i++)
+                                    int startIdx = pt * 6;
+                                    int count = Math.Min(6, results.Count - startIdx);
+                                    var pointValues = new double[count];
+                                    for (int gi = 0; gi < count; gi++)
+                                        pointValues[gi] = results[startIdx + gi].Value;
+
+                                    var target = codesysCalc.CalculateFromArray(pointValues, robotPose);
+
+                                    if (codesysCalc.LastCalculationSuccess)
+                                    {
+                                        allTargetPoses.Add(target);
+                                        allTargetValues.AddRange(new[] { target.X, target.Y, target.Z,
+                                                                         target.A, target.B, target.C });
+                                    }
+                                    else
+                                    {
+                                        allSuccess = false;
+                                        OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hesaplama başarısız (Nokta {pt + 1})");
+                                        break;
+                                    }
+                                }
+
+                                if (allSuccess && allTargetValues.Count > 0)
+                                {
+                                    double[] targetVals = allTargetValues.ToArray();
+
+                                    // İlk noktanın 6 değerini mevcut G_OFFSET_X..C'ye yaz (geriye uyumlu)
+                                    for (int i = 0; i < Math.Min(6, targetVals.Length); i++)
                                         await WriteToAllRobotsAsync(boruOffsets[i], targetVals[i].ToString("F3"));
 
                                     // ═══ UI TABLOLARI GÜNCELLE (HEDEF NOKTA + BORU AKTARIM) ═══
@@ -1892,93 +1937,137 @@ namespace App4.Utilities
                                     {
                                         await PlcService.Instance.RunOnUiAsync(() =>
                                         {
-                                            UpdateCodesysTargetResults(target);
+                                            UpdateCodesysTargetResultsMultiPoint(allTargetPoses);
                                             UpdatePlcTransferRowsFromValues(targetVals, PlcTransferRows);
                                         });
                                     }
                                     catch { }
 
-                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - CODESYS hedef: " +
-                                        $"X={target.X:F2} Y={target.Y:F2} Z={target.Z:F2} A={target.A:F2} B={target.B:F2} C={target.C:F2}");
+                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - CODESYS {pointCount} nokta hesaplandı");
                                 }
                                 else
                                 {
-                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hesaplama başarısız, ham değerler yazılıyor");
-                                    double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                                    // Fallback: tüm ham değerleri yaz
+                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS başarısız, tüm ham değerler yazılıyor");
+                                    double[] rawVals = new double[results.Count];
                                     for (int i = 0; i < rawVals.Length; i++)
-                                    {
                                         rawVals[i] = results[i].Value;
-                                        await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
-                                    }
+                                    for (int i = 0; i < Math.Min(rawVals.Length, boruOffsets.Length); i++)
+                                        await WriteToAllRobotsAsync(boruOffsets[i], rawVals[i].ToString("F3"));
                                     try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
                                 }
                             }
                             catch (Exception exCod)
                             {
                                 OnAutomationLog?.Invoke($"[Robot {robotNo}] CODESYS hatası: {exCod.Message}, ham değerler yazılıyor");
-                                double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                                double[] rawVals = new double[results.Count];
                                 for (int i = 0; i < rawVals.Length; i++)
-                                {
                                     rawVals[i] = results[i].Value;
-                                    _ = WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
-                                }
+                                for (int i = 0; i < Math.Min(rawVals.Length, boruOffsets.Length); i++)
+                                    _ = WriteToAllRobotsAsync(boruOffsets[i], rawVals[i].ToString("F3"));
                                 try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
                             }
                         }
-                        else if (CalibrationService.Instance.IsCalibrated && results.Count >= 3)
+                        else if (jobDataMode == "HAND_EYE" && CalibrationService.Instance.IsCalibrated && results.Count >= 3)
                         {
-                            // Hand-Eye kalibrasyon ile sensor → base donusumu
-                            double gocX = results[0].Value, gocY = results[1].Value, gocZ = results[2].Value;
-                            double gocA = results.Count > 3 ? results[3].Value : 0;
-                            double gocB = results.Count > 4 ? results[4].Value : 0;
-                            double gocC = results.Count > 5 ? results[5].Value : 0;
+                            // Hand-Eye kalibrasyon ile sensor → base dönüşümü (çoklu nokta döngüsü)
+                            var allBaseValues = new List<double>();
+                            var allBasePoses = new List<KukaPose>();
+                            bool allHandEyeSuccess = true;
 
-                            // Sensor koordinatlarinda hedef matris olustur
-                            var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
-
-                            // Robot flange → kullanıcı base donusumu uygula (Base 1)
-                            var basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget, userBaseNo: 1);
-
-                            if (basePose != null)
+                            for (int pt = 0; pt < pointCount; pt++)
                             {
-                                // UI'da dönüştürülmüş verileri göster
-                                try { await PlcService.Instance.RunOnUiAsync(() => PopulateTransformedMeasurements(basePose)); } catch { }
+                                int startIdx = pt * 6;
+                                int count = Math.Min(6, results.Count - startIdx);
+                                if (count < 3) { allHandEyeSuccess = false; break; }
 
-                                double[] baseVals = { basePose.X, basePose.Y, basePose.Z,
-                                                      basePose.A, basePose.B, basePose.C };
-                                for (int i = 0; i < 6; i++)
+                                double gocX = results[startIdx].Value;
+                                double gocY = results[startIdx + 1].Value;
+                                double gocZ = results[startIdx + 2].Value;
+                                double gocA = count > 3 ? results[startIdx + 3].Value : 0;
+                                double gocB = count > 4 ? results[startIdx + 4].Value : 0;
+                                double gocC = count > 5 ? results[startIdx + 5].Value : 0;
+
+                                var sensorTarget = new KukaPose(gocX, gocY, gocZ, gocA, gocB, gocC).ToMatrix();
+                                var basePose = await CalibrationService.Instance.LocateFromRobotAsync(robot, sensorTarget, userBaseNo: 1);
+
+                                if (basePose != null)
+                                {
+                                    allBasePoses.Add(basePose);
+                                    allBaseValues.AddRange(new[] { basePose.X, basePose.Y, basePose.Z,
+                                                                    basePose.A, basePose.B, basePose.C });
+                                }
+                                else
+                                {
+                                    allHandEyeSuccess = false;
+                                    OnAutomationLog?.Invoke($"[Robot {robotNo}] HandEye dönüşüm başarısız (Nokta {pt + 1})");
+                                    break;
+                                }
+                            }
+
+                            if (allHandEyeSuccess && allBaseValues.Count > 0)
+                            {
+                                double[] baseVals = allBaseValues.ToArray();
+
+                                // UI'da dönüştürülmüş verileri göster (çoklu nokta)
+                                try
+                                {
+                                    await PlcService.Instance.RunOnUiAsync(() =>
+                                    {
+                                        TransformedMeasurements.Clear();
+                                        string[] axNames = { "X", "Y", "Z", "A", "B", "C" };
+                                        string[] units = { "mm", "mm", "mm", "°", "°", "°" };
+                                        int id = 1;
+                                        for (int pt = 0; pt < allBasePoses.Count; pt++)
+                                        {
+                                            var bp = allBasePoses[pt];
+                                            double[] vals = { bp.X, bp.Y, bp.Z, bp.A, bp.B, bp.C };
+                                            for (int ax = 0; ax < 6; ax++)
+                                            {
+                                                TransformedMeasurements.Add(new GocatorMeasurement
+                                                {
+                                                    Id = id++, PointIndex = pt, SourceId = pt * 6 + ax,
+                                                    Name = $"Nokta {pt + 1} Base {axNames[ax]}",
+                                                    Value = Math.Round(vals[ax], 3), Unit = units[ax], Decision = "OK"
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                                catch { }
+
+                                // İlk noktanın 6 değerini G_OFFSET_X..C'ye yaz
+                                for (int i = 0; i < Math.Min(6, baseVals.Length); i++)
                                     await WriteToAllRobotsAsync(boruOffsets[i], baseVals[i].ToString("F3"));
 
                                 // ═══ BORU AKTARIM TABLOSU GÜNCELLE ═══
                                 try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(baseVals, PlcTransferRows)); } catch { }
 
-                                OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - HandEye dönüşüm (Base1): " +
-                                    $"X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
+                                OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - HandEye {pointCount} nokta dönüştürüldü");
                             }
                             else
                             {
                                 OnAutomationLog?.Invoke($"[Robot {robotNo}] UYARI: HandEye dönüşüm başarısız, ham değerler yazılıyor");
-                                double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                                double[] rawVals = new double[results.Count];
                                 for (int i = 0; i < rawVals.Length; i++)
-                                {
                                     rawVals[i] = results[i].Value;
-                                    await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
-                                }
+                                for (int i = 0; i < Math.Min(rawVals.Length, boruOffsets.Length); i++)
+                                    await WriteToAllRobotsAsync(boruOffsets[i], rawVals[i].ToString("F3"));
                                 try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
                             }
                         }
                         else
                         {
-                            // Kalibrasyon yoksa ham değerleri yaz
-                            double[] rawVals = new double[Math.Min(results.Count, boruOffsets.Length)];
+                            // SENSOR (ham veri) modu: tüm değerleri yaz
+                            double[] rawVals = new double[results.Count];
                             for (int i = 0; i < rawVals.Length; i++)
-                            {
                                 rawVals[i] = results[i].Value;
-                                await WriteToAllRobotsAsync(boruOffsets[i], results[i].Value.ToString("F3"));
-                            }
+                            // İlk 6 değeri G_OFFSET_X..C'ye yaz (geriye uyumlu)
+                            for (int i = 0; i < Math.Min(rawVals.Length, boruOffsets.Length); i++)
+                                await WriteToAllRobotsAsync(boruOffsets[i], rawVals[i].ToString("F3"));
                             try { await PlcService.Instance.RunOnUiAsync(() => UpdatePlcTransferRowsFromValues(rawVals, PlcTransferRows)); } catch { }
 
-                            OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} ham offset yazıldı (kalibrasyon yok)");
+                            OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru ölçüm OK (Job {jobIndex}) - {results.Count} ham offset yazıldı ({pointCount} nokta)");
                         }
                     }
 
@@ -2095,6 +2184,20 @@ namespace App4.Utilities
             {
                 var plcVar = sender as PlcVariable;
                 if (plcVar != null && (plcVar.Value == "1" || plcVar.Value?.ToLower() == "true")) _ = RunAutomationSequence();
+            }
+        }
+
+        /// <summary>
+        /// Tabla kaçıklık tetik handler'ı.
+        /// G_JOB_INDEX okumadan direkt idx=0 (tabla) akışını başlatır.
+        /// </summary>
+        private static void TriggerVar2_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "Value" || e.PropertyName == "CurrentValue")
+            {
+                var plcVar = sender as PlcVariable;
+                if (plcVar != null && (plcVar.Value == "1" || plcVar.Value?.ToLower() == "true"))
+                    _ = RunAutomationSequence(forceTablaIndex: true);
             }
         }
 
@@ -2528,13 +2631,38 @@ namespace App4.Utilities
         /// </summary>
         private static void UpdateCodesysTargetResults(KukaPose target)
         {
+            // Tek nokta versiyonunu çoklu nokta metoduna yönlendir (geriye uyumluluk)
+            UpdateCodesysTargetResultsMultiPoint(new List<KukaPose> { target });
+        }
+
+        /// <summary>
+        /// Çoklu nokta CODESYS hedef sonuçlarını günceller.
+        /// Her nokta için 6 değer (X,Y,Z,A,B,C) ayrı kart olarak gösterilir.
+        /// </summary>
+        private static void UpdateCodesysTargetResultsMultiPoint(List<KukaPose> targets)
+        {
             CodesysTargetResults.Clear();
-            CodesysTargetResults.Add(new GocatorMeasurement { Id = 1, Name = "Target X", Value = Math.Round(target.X, 3), Unit = "mm", Decision = "Pass" });
-            CodesysTargetResults.Add(new GocatorMeasurement { Id = 2, Name = "Target Y", Value = Math.Round(target.Y, 3), Unit = "mm", Decision = "Pass" });
-            CodesysTargetResults.Add(new GocatorMeasurement { Id = 3, Name = "Target Z", Value = Math.Round(target.Z, 3), Unit = "mm", Decision = "Pass" });
-            CodesysTargetResults.Add(new GocatorMeasurement { Id = 4, Name = "Target A", Value = Math.Round(target.A, 3), Unit = "°", Decision = "Pass" });
-            CodesysTargetResults.Add(new GocatorMeasurement { Id = 5, Name = "Target B", Value = Math.Round(target.B, 3), Unit = "°", Decision = "Pass" });
-            CodesysTargetResults.Add(new GocatorMeasurement { Id = 6, Name = "Target C", Value = Math.Round(target.C, 3), Unit = "°", Decision = "Pass" });
+            string[] axNames = { "X", "Y", "Z", "A", "B", "C" };
+            string[] units = { "mm", "mm", "mm", "°", "°", "°" };
+            int id = 1;
+            for (int pt = 0; pt < targets.Count; pt++)
+            {
+                var t = targets[pt];
+                double[] vals = { t.X, t.Y, t.Z, t.A, t.B, t.C };
+                for (int ax = 0; ax < 6; ax++)
+                {
+                    CodesysTargetResults.Add(new GocatorMeasurement
+                    {
+                        Id = id++,
+                        PointIndex = pt,
+                        SourceId = pt * 6 + ax,
+                        Name = $"Nokta {pt + 1} Target {axNames[ax]}",
+                        Value = Math.Round(vals[ax], 3),
+                        Unit = units[ax],
+                        Decision = "Pass"
+                    });
+                }
+            }
         }
 
         /// <summary>
@@ -2544,6 +2672,10 @@ namespace App4.Utilities
         /// </summary>
         private static void UpdatePlcTransferRowsFromValues(double[] values, ObservableCollection<PlcTransferItem> targetRows)
         {
+            // Doğru save fonksiyonunu belirle (Tabla vs Boru)
+            bool isTabla = (targetRows == TablaTransferRows);
+            Action saveAction = isTabla ? SaveTablaTransferRows : SaveTransferRows;
+
             // Tabloyu Genişlet (eksik satırlar varsa)
             while (targetRows.Count < values.Length)
             {
@@ -2560,19 +2692,20 @@ namespace App4.Utilities
                     StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0)),
                     BackgroundColor = color
                 };
-                newItem.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") SaveTransferRows(); };
+                newItem.PropertyChanged += (s, e) => { if (e.PropertyName == "SelectedTag") saveAction(); };
                 targetRows.Add(newItem);
             }
 
-            // Değerleri Eşle
+            // Değerleri Eşle + PointIndex ata
             for (int i = 0; i < values.Length && i < targetRows.Count; i++)
             {
                 var row = targetRows[i];
                 row.Value = values[i].ToString("F3");
+                row.PointIndex = i / 6; // Çoklu nokta: her 6 değer = 1 nokta
                 row.Status = "OK";
                 row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80)); // Yeşil
             }
-            SaveTransferRows();
+            saveAction();
         }
 
         /// <summary>
@@ -2706,7 +2839,7 @@ namespace App4.Utilities
         }
 
         // --- İŞLEM AKIŞI ---
-        public static async Task RunAutomationSequence()
+        public static async Task RunAutomationSequence(bool forceTablaIndex = false)
         {
             if (IsProcessRunning) return;
             if (OlcumInProgress) return; // HandleOlcumTetikAsync zaten calisiyor
@@ -2724,34 +2857,42 @@ namespace App4.Utilities
                 // RFID Variable Bul (PLC + Robot tüm kaynaklarda ara)
                 var rfidVar = FindPlcVarByName(Auto_RfidTag);
 
-                // Index değerini doğrudan robottan CANLI oku (cache race condition önlenir)
                 string currentRfid = rfidVar?.Value ?? "---";
                 string currentIndex = "0";
 
-                // Önce canlı robot okuması dene
-                try
+                if (forceTablaIndex)
                 {
-                    var robots = KukaRobotManager.Instance?.Robots;
-                    var connectedRobot = robots?.FirstOrDefault(r => r.IsConnected);
-                    if (connectedRobot != null && !string.IsNullOrEmpty(Auto_IndexTag))
+                    // Tabla tetik — G_JOB_INDEX okumaya gerek yok, direkt idx=0
+                    currentIndex = "0";
+                    OnAutomationLog?.Invoke($"Tabla Tetik: {currentRfid} (Index: 0 [TABLA ZORUNLU])");
+                }
+                else
+                {
+                    // Boru tetik — Index değerini doğrudan robottan CANLI oku (cache race condition önlenir)
+                    try
                     {
-                        string freshVal = await connectedRobot.ReadVariableAsync(Auto_IndexTag);
-                        if (!string.IsNullOrEmpty(freshVal))
-                            currentIndex = freshVal;
+                        var robots = KukaRobotManager.Instance?.Robots;
+                        var connectedRobot = robots?.FirstOrDefault(r => r.IsConnected);
+                        if (connectedRobot != null && !string.IsNullOrEmpty(Auto_IndexTag))
+                        {
+                            string freshVal = await connectedRobot.ReadVariableAsync(Auto_IndexTag);
+                            if (!string.IsNullOrEmpty(freshVal))
+                                currentIndex = freshVal;
+                        }
                     }
-                }
-                catch { }
+                    catch { }
 
-                // Canlı okuma başarısızsa cache'e düş
-                if (currentIndex == "0")
-                {
-                    var indexVar = _currentIndexVar ?? FindPlcVarByName(Auto_IndexTag);
-                    string cachedVal = indexVar?.Value;
-                    if (!string.IsNullOrEmpty(cachedVal) && cachedVal != "0")
-                        currentIndex = cachedVal;
-                }
+                    // Canlı okuma başarısızsa cache'e düş
+                    if (currentIndex == "0")
+                    {
+                        var indexVar = _currentIndexVar ?? FindPlcVarByName(Auto_IndexTag);
+                        string cachedVal = indexVar?.Value;
+                        if (!string.IsNullOrEmpty(cachedVal) && cachedVal != "0")
+                            currentIndex = cachedVal;
+                    }
 
-                OnAutomationLog?.Invoke($"Tetik: {currentRfid} (Index: {currentIndex} [CANLI])");
+                    OnAutomationLog?.Invoke($"Tetik: {currentRfid} (Index: {currentIndex} [CANLI])");
+                }
 
                 var recipe = KnownRfids.FirstOrDefault(r => r.Id == currentRfid);
                 if (recipe == null) throw new Exception("Tanımsız RFID");
@@ -2799,9 +2940,15 @@ namespace App4.Utilities
 
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
 
-                    // ▼▼▼ CODESYS HESAPLAMA (DataSourceMode kontrolü) ▼▼▼
+                    // ▼▼▼ CODESYS HESAPLAMA (per-job DataSourceMode kontrolü + çoklu nokta) ▼▼▼
+                    // Per-job ölçüm yöntemi (reçetede tanımlı, yoksa global fallback)
+                    string jobDataMode = (recipe.DataSourceModes != null && idx < recipe.DataSourceModes.Count)
+                        ? recipe.DataSourceModes[idx] : DataSourceMode;
+
+                    int pointCount = (measurements.Count + 5) / 6;
                     double[] codesysTargetValues = null;
-                    if (idx > 0 && DataSourceMode == "CODESYS")
+
+                    if (idx > 0 && jobDataMode == "CODESYS")
                     {
                         try
                         {
@@ -2820,25 +2967,48 @@ namespace App4.Utilities
                                 if (mappingParts.Length >= 3 && int.TryParse(mappingParts[2], out int mz)) codesysCalc.MapIndexZ = mz;
                                 if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexAngleZ = ma;
 
-                                var gocValues = new double[measurements.Count];
-                                for (int gi = 0; gi < measurements.Count; gi++)
-                                    gocValues[gi] = measurements[gi].Value;
-
                                 var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
-                                var target = codesysCalc.CalculateFromArray(gocValues, robotPose);
+                                var allTargetValues = new List<double>();
+                                var allTargetPoses = new List<KukaPose>();
+                                bool allSuccess = true;
 
-                                if (codesysCalc.LastCalculationSuccess)
+                                // Çoklu nokta: her 6 değer için ayrı CODESYS hesapla
+                                for (int pt = 0; pt < pointCount; pt++)
                                 {
-                                    codesysTargetValues = new[] { target.X, target.Y, target.Z, target.A, target.B, target.C };
+                                    int startIdx = pt * 6;
+                                    int count = Math.Min(6, measurements.Count - startIdx);
+                                    var pointValues = new double[count];
+                                    for (int gi = 0; gi < count; gi++)
+                                        pointValues[gi] = measurements[startIdx + gi].Value;
 
-                                    // ═══ HEDEF NOKTA TABLOSUNU GÜNCELLE (CodesysTargetResults) ═══
-                                    try { await PlcService.Instance.RunOnUiAsync(() => UpdateCodesysTargetResults(target)); } catch { }
+                                    var target = codesysCalc.CalculateFromArray(pointValues, robotPose);
 
-                                    OnAutomationLog?.Invoke($"CODESYS hedef: X={target.X:F2} Y={target.Y:F2} Z={target.Z:F2} A={target.A:F2} B={target.B:F2} C={target.C:F2}");
+                                    if (codesysCalc.LastCalculationSuccess)
+                                    {
+                                        allTargetPoses.Add(target);
+                                        allTargetValues.AddRange(new[] { target.X, target.Y, target.Z,
+                                                                         target.A, target.B, target.C });
+                                    }
+                                    else
+                                    {
+                                        allSuccess = false;
+                                        OnAutomationLog?.Invoke($"⚠ CODESYS hesaplama başarısız (Nokta {pt + 1}): {codesysCalc.LastError}");
+                                        break;
+                                    }
+                                }
+
+                                if (allSuccess && allTargetValues.Count > 0)
+                                {
+                                    codesysTargetValues = allTargetValues.ToArray();
+
+                                    // ═══ HEDEF NOKTA TABLOSUNU GÜNCELLE (CodesysTargetResults — çoklu nokta) ═══
+                                    try { await PlcService.Instance.RunOnUiAsync(() => UpdateCodesysTargetResultsMultiPoint(allTargetPoses)); } catch { }
+
+                                    OnAutomationLog?.Invoke($"CODESYS hedef: {pointCount} nokta hesaplandı ({codesysTargetValues.Length} değer)");
                                 }
                                 else
                                 {
-                                    OnAutomationLog?.Invoke($"⚠ CODESYS hesaplama başarısız: {codesysCalc.LastError}, ham veri kullanılıyor");
+                                    OnAutomationLog?.Invoke($"⚠ CODESYS hesaplama başarısız, ham veri kullanılıyor");
                                 }
                             }
                             else
@@ -2881,8 +3051,11 @@ namespace App4.Utilities
                         var targetRows = (idx == 0) ? TablaTransferRows : PlcTransferRows;
                         Action saveAction = (idx == 0) ? SaveTablaTransferRows : SaveTransferRows;
 
+                        // Aktif değer sayısını belirle (CODESYS çoklu nokta ise N*6, yoksa ölçüm sayısı)
+                        int valueCount = codesysTargetValues != null ? codesysTargetValues.Length : measurements.Count;
+
                         // Tabloyu Genişlet (Eğer eksik varsa)
-                        while (targetRows.Count < measurements.Count)
+                        while (targetRows.Count < valueCount)
                         {
                             int index = targetRows.Count + 1;
                             var color = (index % 2 == 1)
@@ -2901,15 +3074,16 @@ namespace App4.Utilities
                             targetRows.Add(newItem);
                         }
 
-                        // Değerleri Eşle (CODESYS hesaplanmışsa hedef değerleri, yoksa ham ölçüm)
+                        // Değerleri Eşle (CODESYS hesaplanmışsa hedef değerleri, yoksa ham ölçüm) + PointIndex ata
                         if (codesysTargetValues != null)
                         {
-                            // CODESYS hesaplanmış hedef değerleri
+                            // CODESYS hesaplanmış hedef değerleri (çoklu nokta destekli)
                             int cCount = Math.Min(codesysTargetValues.Length, targetRows.Count);
                             for (int i = 0; i < cCount; i++)
                             {
                                 var row = targetRows[i];
                                 row.Value = codesysTargetValues[i].ToString("F3");
+                                row.PointIndex = i / 6; // Çoklu nokta
                                 row.Status = "WAIT";
                                 row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0));
                                 tagsToWrite.Add(row.SelectedTag);
@@ -2923,6 +3097,7 @@ namespace App4.Utilities
                             {
                                 var row = targetRows[i];
                                 row.Value = measurements[i].Value.ToString();
+                                row.PointIndex = i / 6; // Çoklu nokta
                                 row.Status = "WAIT";
                                 row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 165, 0));
                                 tagsToWrite.Add(row.SelectedTag);
@@ -3002,7 +3177,7 @@ namespace App4.Utilities
                             OnAutomationLog?.Invoke($"Boru ölçüm OK (Job {idx}) - CODESYS hedef yazıldı: " +
                                 $"X={codesysTargetValues[0]:F2} Y={codesysTargetValues[1]:F2} Z={codesysTargetValues[2]:F2}");
                         }
-                        else if (CalibrationService.Instance.IsCalibrated && measurements.Count >= 3)
+                        else if (jobDataMode == "HAND_EYE" && CalibrationService.Instance.IsCalibrated && measurements.Count >= 3)
                         {
                             // Hand-Eye kalibrasyon ile sensor → base donusumu
                             double gocX = measurements[0].Value, gocY = measurements[1].Value, gocZ = measurements[2].Value;
@@ -3268,6 +3443,15 @@ namespace App4.Utilities
 
         [Newtonsoft.Json.JsonIgnore]
         public SolidColorBrush BackgroundColor { get; set; }
+
+        // Çoklu Nokta Desteği
+        public int PointIndex { get; set; } = 0; // 0-based nokta indexi
+
+        [Newtonsoft.Json.JsonIgnore]
+        public bool IsFirstInPoint => (Index > 0 && ((Index - 1) % 6 == 0));
+
+        [Newtonsoft.Json.JsonIgnore]
+        public string PointLabel => $"NOKTA {PointIndex + 1}";
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
