@@ -363,8 +363,15 @@ namespace App4.Utilities
                         }
                         else
                         {
-                            log?.Invoke("⚠ Ölçüm verisi bulunamadı.");
+                            log?.Invoke("⚠ Ölçüm verisi bulunamadı (DataSet boş).");
                         }
+                    }
+
+                    // Sonuç kontrolü: ölçüm verisi yoksa status=0 döndür (başarısız)
+                    if (results.Count == 0)
+                    {
+                        log?.Invoke("⚠ Hiç ölçüm noktası alınamadı — ölçüm başarısız.");
+                        return (0, results);
                     }
                     return (1, results);
                 }

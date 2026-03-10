@@ -1667,7 +1667,30 @@ namespace App4.Utilities
                 return;
             }
 
+            // ═══ YÜKSELEN KENAR (FALSE→TRUE) TESTİ ═══
             bool isTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+
+            // Boru/Tabla tetik yükselen kenar ARM mekanizması (global seviyede)
+            if (changedVar.Name == "G_BORU_OLCUM_TETIK")
+            {
+                if (!isTrue) { _boruTriggerArmed = true; return; }
+                if (!_boruTriggerArmed) return;
+                _boruTriggerArmed = false;
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] G_BORU_OLCUM_TETIK (global) → RunAutomationSequence");
+                _ = RunAutomationSequence(forceTablaIndex: false);
+                return;
+            }
+
+            if (changedVar.Name == "G_TABLA_OLCUM_TETIK")
+            {
+                if (!isTrue) { _tablaTriggerArmed = true; return; }
+                if (!_tablaTriggerArmed) return;
+                _tablaTriggerArmed = false;
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] G_TABLA_OLCUM_TETIK (global) → RunAutomationSequence(tabla)");
+                _ = RunAutomationSequence(forceTablaIndex: true);
+                return;
+            }
+
             if (!isTrue) return;
 
             switch (changedVar.Name)
@@ -2327,24 +2350,29 @@ namespace App4.Utilities
                     }
                 }
 
-                // 4. ★ Robot değişkenlerini sıfırla
+                // 4. Robot değişkenleri — GlobalData şablonu (in-memory)
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) { robotOutVar.Value = "0"; found = true; }
+                if (robotOutVar != null) robotOutVar.Value = "0";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) { robotInVar.Value = "0"; found = true; }
-                if (robotOutVar != null || robotInVar != null)
+                if (robotInVar != null) robotInVar.Value = "0";
+
+                // 4b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null)
                 {
-                    try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
+                    foreach (var robot in robots)
+                    {
+                        var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveOut != null) liveOut.CurrentValue = 0;
+                        var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveIn != null) liveIn.CurrentValue = 0;
+                    }
                 }
 
-                if (found)
-                {
-                    OnAutomationStatusChanged?.Invoke();
-                }
-                else
-                {
-                    OnAutomationLog?.Invoke($"⚠ Reset için Tag bulunamadı: {targetTag}");
-                }
+                // ★★★ 5. MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
+                try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
+
+                OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
             {
@@ -2414,27 +2442,31 @@ namespace App4.Utilities
                     }
                 }
 
-                // 4. ★ Robot değişkenlerine yaz (RobotOutputVars / RobotInputVars + tüm robotlara)
+                // 4. Robot değişkenleri — GlobalData şablonu (in-memory)
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) { robotOutVar.Value = "1"; found = true; }
+                if (robotOutVar != null) robotOutVar.Value = "1";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) { robotInVar.Value = "1"; found = true; }
+                if (robotInVar != null) robotInVar.Value = "1";
 
-                // Robot'a doğrudan TCP yazma
-                if (robotOutVar != null || robotInVar != null)
+                // 4b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null)
                 {
-                    try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
+                    foreach (var robot in robots)
+                    {
+                        var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveOut != null) liveOut.CurrentValue = 1;
+                        var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveIn != null) liveIn.CurrentValue = 1;
+                    }
                 }
 
-                if (found)
-                {
-                    OnAutomationLog?.Invoke($"✓ Ölçüm sinyali gönderildi: {targetTag} = 1");
-                    OnAutomationStatusChanged?.Invoke();
-                }
-                else
-                {
-                    OnAutomationLog?.Invoke($"⚠ Sinyal için Tag bulunamadı: {targetTag}");
-                }
+                // ★★★ 5. MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
+                // Koleksiyonda bulunmasa bile doğrudan robot TCP'sine yazılır
+                try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
+
+                OnAutomationLog?.Invoke($"✓ Ölçüm sinyali gönderildi: {targetTag} = TRUE");
+                OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
             {
@@ -2453,7 +2485,6 @@ namespace App4.Utilities
 
                 var outputVar = GeneralOutputVars.FirstOrDefault(v => v.Name == targetTag);
                 if (outputVar != null) outputVar.CurrentValue = 0;
-
                 var inputVar = GeneralInputVars.FirstOrDefault(v => v.Name == targetTag);
                 if (inputVar != null) inputVar.CurrentValue = 0;
 
@@ -2468,15 +2499,26 @@ namespace App4.Utilities
                     }
                 }
 
-                // ★ Robot değişkenlerini sıfırla
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
                 if (robotOutVar != null) robotOutVar.Value = "0";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
                 if (robotInVar != null) robotInVar.Value = "0";
-                if (robotOutVar != null || robotInVar != null)
+
+                // 4b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null)
                 {
-                    try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
+                    foreach (var robot in robots)
+                    {
+                        var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveOut != null) liveOut.CurrentValue = 0;
+                        var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveIn != null) liveIn.CurrentValue = 0;
+                    }
                 }
+
+                // ★★★ MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
+                try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
 
                 OnAutomationStatusChanged?.Invoke();
             }
@@ -2497,46 +2539,50 @@ namespace App4.Utilities
                     return;
                 }
 
-                bool found = false;
-
+                // 1. GeneralOutputVars / InputVars (in-memory)
                 var outputVar = GeneralOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (outputVar != null) { outputVar.CurrentValue = 1; found = true; }
-
+                if (outputVar != null) outputVar.CurrentValue = 1;
                 var inputVar = GeneralInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (inputVar != null) { inputVar.CurrentValue = 1; found = true; }
+                if (inputVar != null) inputVar.CurrentValue = 1;
 
+                // 2. PlcService (gerçek PLC)
                 if (PlcService.Instance != null)
                 {
                     var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == targetTag);
-                    if (plcVar != null) { await PlcService.Instance.WriteAsync(plcVar, 1); plcVar.CurrentValue = 1; found = true; }
+                    if (plcVar != null) { await PlcService.Instance.WriteAsync(plcVar, 1); plcVar.CurrentValue = 1; }
                     else
                     {
                         var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
-                        if (plcIn != null) { await PlcService.Instance.WriteAsync(plcIn, 1); plcIn.CurrentValue = 1; found = true; }
+                        if (plcIn != null) { await PlcService.Instance.WriteAsync(plcIn, 1); plcIn.CurrentValue = 1; }
                     }
                 }
 
-                // 4. ★ Robot değişkenlerine yaz (RobotOutputVars / RobotInputVars + tüm robotlara)
+                // 3. Robot değişkenleri — GlobalData şablonu (in-memory)
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) { robotOutVar.Value = "1"; found = true; }
+                if (robotOutVar != null) robotOutVar.Value = "1";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) { robotInVar.Value = "1"; found = true; }
+                if (robotInVar != null) robotInVar.Value = "1";
 
-                // Robot'a doğrudan TCP yazma
-                if (robotOutVar != null || robotInVar != null)
+                // 3b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null)
                 {
-                    try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
+                    foreach (var robot in robots)
+                    {
+                        var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveOut != null) liveOut.CurrentValue = 1;
+                        var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
+                        if (liveIn != null) liveIn.CurrentValue = 1;
+                    }
                 }
 
-                if (found)
-                {
-                    OnAutomationLog?.Invoke($"✓ Tabla sinyal gönderildi: {targetTag} = 1");
-                    OnAutomationStatusChanged?.Invoke();
-                }
-                else
-                {
-                    OnAutomationLog?.Invoke($"⚠ Tabla sinyal Tag bulunamadı: {targetTag}");
-                }
+                // ★★★ 4. MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
+                // Koleksiyonda bulunmasa bile doğrudan robot TCP'sine yazılır
+                // Robot VarProxy herhangi bir KRL değişken adını kabul eder
+                try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
+
+                OnAutomationLog?.Invoke($"✓ Tabla sinyal gönderildi: {targetTag} = TRUE");
+                OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
             {
@@ -2939,9 +2985,13 @@ namespace App4.Utilities
             OlcumInProgress = true;
             ProcessStatus = "İŞLENİYOR...";
 
-            // ▼▼▼ SİNYAL SIFIRLA (Ölçüm başlıyor) ▼▼▼
-            ResetMeasurementSignal();
-            ResetTablaMeasurementSignal();
+            // ▼▼▼ SİNYAL SIFIRLA — SADECE İLGİLİ KANAL ▼▼▼
+            // Tabla tetik → sadece tabla sinyalini sıfırla (boru TAMAM'ına dokunma)
+            // Boru tetik → sadece boru sinyalini sıfırla (tabla TAMAM'ına dokunma)
+            if (forceTablaIndex)
+                ResetTablaMeasurementSignal();
+            else
+                ResetMeasurementSignal();
             ResetAllJobStatuses();
 
 
@@ -3020,7 +3070,7 @@ namespace App4.Utilities
                 ProcessStatus = "ÖLÇÜM...";
                 var (status, measurements) = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements((s) => OnAutomationLog?.Invoke(s), null);
 
-                if (status == 1 && measurements != null)
+                if (status == 1 && measurements != null && measurements.Count > 0)
                 {
                     // Job durumunu OK olarak guncelle (idx 0-based, UpdateJobStatus 1-based)
                     UpdateJobStatus(idx + 1, "OK");
