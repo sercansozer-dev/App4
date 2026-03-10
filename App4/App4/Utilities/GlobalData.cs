@@ -483,6 +483,91 @@ namespace App4.Utilities
         public static bool BoruSignalActive { get; set; } = false;
         public static bool TablaSignalActive { get; set; } = false;
 
+        // ═══ TABLA KAÇIKLIK ALARM SİSTEMİ ═══
+        // Tabla ölçüm sonuçlarında herhangi bir eksen TablaAlarmLimit'i aşarsa alarm aktif olur.
+        // TABLA_KACIKLIK_ALARM output değişkeni GeneralOutputVars'ta oluşturulur → otomasyon sayfasında görünür.
+        // Kullanıcı bu değişkeni PLC/sistem alarm tag'ine eşleştirir.
+
+        private static double _tablaAlarmLimit = 5.0; // mm — varsayılan eşik
+        public static double TablaAlarmLimit
+        {
+            get => _tablaAlarmLimit;
+            set
+            {
+                if (Math.Abs(_tablaAlarmLimit - value) < 0.0001) return;
+                _tablaAlarmLimit = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        /// <summary>Tabla kaçıklık alarmı aktif mi (herhangi bir eksen limiti aştı)</summary>
+        public static bool TablaAlarmActive { get; private set; } = false;
+
+        /// <summary>Alarm detay mesajı (hangi eksen, ne kadar aştı)</summary>
+        public static string TablaAlarmMessage { get; private set; } = "";
+
+        /// <summary>
+        /// Tabla ölçüm sonuçlarını limit kontrolünden geçirir.
+        /// Herhangi bir eksen |değer| > TablaAlarmLimit ise alarm aktif eder.
+        /// TABLA_KACIKLIK_ALARM output değişkenini günceller (GeneralOutputVars).
+        /// </summary>
+        public static void CheckTablaAlarmLimits(List<GocatorMeasurement> measurements)
+        {
+            if (measurements == null || measurements.Count == 0)
+            {
+                ClearTablaAlarm();
+                return;
+            }
+
+            // Eksen isimleri (6 değer döngüsü: X, Y, Z, Roll, Pitch, Yaw)
+            string[] axNames = { "X", "Y", "Z", "Roll", "Pitch", "Yaw" };
+            double limit = TablaAlarmLimit;
+            var exceeded = new List<string>();
+
+            for (int i = 0; i < measurements.Count; i++)
+            {
+                double absVal = Math.Abs(measurements[i].Value);
+                if (absVal > limit)
+                {
+                    string axName = axNames[i % 6];
+                    exceeded.Add($"{axName}={measurements[i].Value:F3} (limit:{limit:F1})");
+                }
+            }
+
+            if (exceeded.Count > 0)
+            {
+                TablaAlarmActive = true;
+                TablaAlarmMessage = $"TABLA KAÇIKLIK ALARM: {string.Join(", ", exceeded)}";
+                OnAutomationLog?.Invoke($"🚨 {TablaAlarmMessage}");
+
+                // GeneralOutputVars'taki TABLA_KACIKLIK_ALARM değişkenini güncelle
+                var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_KACIKLIK_ALARM");
+                if (alarmVar != null) alarmVar.CurrentValue = true;
+
+                // Robot'a da bildir
+                _ = WriteToAllRobotsAsync("G_TABLA_KACIKLIK_ALARM", "TRUE");
+            }
+            else
+            {
+                ClearTablaAlarm();
+            }
+
+            OnAutomationStatusChanged?.Invoke();
+        }
+
+        /// <summary>Tabla kaçıklık alarmını temizle</summary>
+        public static void ClearTablaAlarm()
+        {
+            TablaAlarmActive = false;
+            TablaAlarmMessage = "";
+
+            var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_KACIKLIK_ALARM");
+            if (alarmVar != null) alarmVar.CurrentValue = false;
+
+            // Robot alarm sıfırla
+            _ = WriteToAllRobotsAsync("G_TABLA_KACIKLIK_ALARM", "FALSE");
+        }
+
         // --- ROBOT BAĞLANTI AYARLARI ---
         private static string _robotIpAddress = "127.0.0.1";
         public static string Robot_IpAddress
@@ -990,6 +1075,8 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("AKTUEL_RFID", "STRING", "Output", ""));            // Aktüel RFID Id string değeri
             GeneralOutputVars.Add(Create("SNIFFER_OLCUM_SURE", "REAL", "Output", "0"));       // Seçili index'in sniffer ölçüm süresi (ms)
             GeneralOutputVars.Add(Create("NOKTA_SAPMA_LIMIT", "REAL", "Output", "0"));       // Seçili index'in nokta sapma limiti (mm)
+            // ▼▼▼ TABLA KAÇIKLIK ALARM ▼▼▼
+            GeneralOutputVars.Add(Create("TABLA_KACIKLIK_ALARM", "BOOL", "Output", false));   // Tabla kaçıklık limiti aşıldığında TRUE olur
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)
