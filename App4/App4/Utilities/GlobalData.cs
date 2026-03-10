@@ -843,6 +843,9 @@ namespace App4.Utilities
                 TransformedMeasurements.Add(new GocatorMeasurement
                 {
                     Id = i + 1,
+                    PointIndex = 0,
+                    SourceId = i,
+                    IsFirstInPoint = (i == 0),
                     Name = names[i],
                     Value = vals[i],
                     Unit = units[i],
@@ -1575,7 +1578,7 @@ namespace App4.Utilities
         /// </summary>
         public static async Task WriteToAllRobotsAsync(string varName, string value)
         {
-            // 1. GlobalData output var güncelle
+            // 1. GlobalData output var güncelle (in-memory)
             var gVar = RobotOutputVars.FirstOrDefault(v => v.Name == varName);
             if (gVar != null) gVar.Value = value;
 
@@ -1587,17 +1590,23 @@ namespace App4.Utilities
                 try { await PlcService.Instance.WriteAsync(plcVar, value); } catch { }
             }
 
-            // 3. Tüm robotlara yaz
+            // 3. ★ Tüm robotlara PARALEL yaz (sıralı → paralel: 2 robot = 2x hız kazanımı)
             var robots = Utilities.KukaRobotManager.Instance?.Robots;
             if (robots != null)
             {
+                var writeTasks = new List<Task>();
                 foreach (var r in robots)
                 {
                     if (r.IsConnected)
                     {
-                        try { await r.WriteVariableAsync(varName, value); } catch { }
+                        writeTasks.Add(Task.Run(async () =>
+                        {
+                            try { await r.WriteVariableAsync(varName, value); } catch { }
+                        }));
                     }
                 }
+                if (writeTasks.Count > 0)
+                    await Task.WhenAll(writeTasks);
             }
         }
 
@@ -2027,6 +2036,7 @@ namespace App4.Utilities
                                                 TransformedMeasurements.Add(new GocatorMeasurement
                                                 {
                                                     Id = id++, PointIndex = pt, SourceId = pt * 6 + ax,
+                                                    IsFirstInPoint = (ax == 0),
                                                     Name = $"Nokta {pt + 1} Base {axNames[ax]}",
                                                     Value = Math.Round(vals[ax], 3), Unit = units[ax], Decision = "OK"
                                                 });
@@ -2074,10 +2084,8 @@ namespace App4.Utilities
                     // Başarı sinyali
                     await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
 
-                    // PLC çıktı sinyali
-                    if (jobIndex == 0)
-                        SetTablaMeasurementSignal();
-                    else
+                    // PLC çıktı sinyali (Boru: hemen, Tabla: TAMAM sonrası finally'de)
+                    if (jobIndex != 0)
                         SetMeasurementSignal();
                 }
                 else
@@ -2105,6 +2113,13 @@ namespace App4.Utilities
                     string tamamSignal = jobIndex == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
                     await WriteToAllRobotsAsync(tamamSignal, "TRUE");
                     OnAutomationLog?.Invoke($"[Robot {robotNo}] {tamamSignal} = TRUE gönderildi (robot FALSE'a çekecek)");
+
+                    // Tabla: Tüm aktarım tamamlandıktan SONRA PLC çıkış sinyalini 1'e çek
+                    if (jobIndex == 0)
+                    {
+                        SetTablaMeasurementSignal();
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla aktarım tamamlandı → TABLA_OFFSET_TAMAM = 1");
+                    }
                 }
                 catch { }
 
@@ -2177,18 +2192,40 @@ namespace App4.Utilities
         }
 
         // ════════════════════════════════════════════════════════════
+        // YÜKSELEN KENAR TETİK — FALSE→TRUE geçişinde çalışır.
+        // Robot tetik=TRUE yazar → ölçüm başlar.
+        // Robot tetik=FALSE yazana kadar yeni tetik kabul edilmez.
+        // ════════════════════════════════════════════════════════════
+
+        private static bool _boruTriggerArmed = true;   // FALSE geldi mi? (ilk tetik için true)
+        private static bool _tablaTriggerArmed = true;
 
         private static void TriggerVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == "Value" || e.PropertyName == "CurrentValue")
             {
                 var plcVar = sender as PlcVariable;
-                if (plcVar != null && (plcVar.Value == "1" || plcVar.Value?.ToLower() == "true")) _ = RunAutomationSequence();
+                if (plcVar == null) return;
+
+                bool isHigh = plcVar.Value == "1" || plcVar.Value?.ToLower() == "true";
+
+                if (!isHigh)
+                {
+                    // FALSE geldi → sonraki TRUE için hazır
+                    _boruTriggerArmed = true;
+                    return;
+                }
+
+                // TRUE geldi — ama armed değilse (henüz FALSE gelmemiş) → atla
+                if (!_boruTriggerArmed) return;
+                _boruTriggerArmed = false; // Tetik kabul edildi, FALSE gelene kadar kilitle
+
+                _ = RunAutomationSequence();
             }
         }
 
         /// <summary>
-        /// Tabla kaçıklık tetik handler'ı.
+        /// Tabla kaçıklık tetik handler'ı — yükselen kenar.
         /// G_JOB_INDEX okumadan direkt idx=0 (tabla) akışını başlatır.
         /// </summary>
         private static void TriggerVar2_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -2196,8 +2233,20 @@ namespace App4.Utilities
             if (e.PropertyName == "Value" || e.PropertyName == "CurrentValue")
             {
                 var plcVar = sender as PlcVariable;
-                if (plcVar != null && (plcVar.Value == "1" || plcVar.Value?.ToLower() == "true"))
-                    _ = RunAutomationSequence(forceTablaIndex: true);
+                if (plcVar == null) return;
+
+                bool isHigh = plcVar.Value == "1" || plcVar.Value?.ToLower() == "true";
+
+                if (!isHigh)
+                {
+                    _tablaTriggerArmed = true;
+                    return;
+                }
+
+                if (!_tablaTriggerArmed) return;
+                _tablaTriggerArmed = false;
+
+                _ = RunAutomationSequence(forceTablaIndex: true);
             }
         }
 
@@ -2278,9 +2327,18 @@ namespace App4.Utilities
                     }
                 }
 
+                // 4. ★ Robot değişkenlerini sıfırla
+                var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotOutVar != null) { robotOutVar.Value = "0"; found = true; }
+                var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotInVar != null) { robotInVar.Value = "0"; found = true; }
+                if (robotOutVar != null || robotInVar != null)
+                {
+                    try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
+                }
+
                 if (found)
                 {
-                    // OnAutomationLog?.Invoke($"✓ Ölçüm sinyali sıfırlandı: {targetTag} = 0");
                     OnAutomationStatusChanged?.Invoke();
                 }
                 else
@@ -2356,6 +2414,18 @@ namespace App4.Utilities
                     }
                 }
 
+                // 4. ★ Robot değişkenlerine yaz (RobotOutputVars / RobotInputVars + tüm robotlara)
+                var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotOutVar != null) { robotOutVar.Value = "1"; found = true; }
+                var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotInVar != null) { robotInVar.Value = "1"; found = true; }
+
+                // Robot'a doğrudan TCP yazma
+                if (robotOutVar != null || robotInVar != null)
+                {
+                    try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
+                }
+
                 if (found)
                 {
                     OnAutomationLog?.Invoke($"✓ Ölçüm sinyali gönderildi: {targetTag} = 1");
@@ -2398,7 +2468,16 @@ namespace App4.Utilities
                     }
                 }
 
-                OnAutomationLog?.Invoke($"✓ Tabla sinyal sıfırlandı: {targetTag} = 0");
+                // ★ Robot değişkenlerini sıfırla
+                var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotOutVar != null) robotOutVar.Value = "0";
+                var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotInVar != null) robotInVar.Value = "0";
+                if (robotOutVar != null || robotInVar != null)
+                {
+                    try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
+                }
+
                 OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
@@ -2435,6 +2514,18 @@ namespace App4.Utilities
                         var plcIn = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == targetTag);
                         if (plcIn != null) { await PlcService.Instance.WriteAsync(plcIn, 1); plcIn.CurrentValue = 1; found = true; }
                     }
+                }
+
+                // 4. ★ Robot değişkenlerine yaz (RobotOutputVars / RobotInputVars + tüm robotlara)
+                var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotOutVar != null) { robotOutVar.Value = "1"; found = true; }
+                var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
+                if (robotInVar != null) { robotInVar.Value = "1"; found = true; }
+
+                // Robot'a doğrudan TCP yazma
+                if (robotOutVar != null || robotInVar != null)
+                {
+                    try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
                 }
 
                 if (found)
@@ -2656,6 +2747,7 @@ namespace App4.Utilities
                         Id = id++,
                         PointIndex = pt,
                         SourceId = pt * 6 + ax,
+                        IsFirstInPoint = (ax == 0),
                         Name = $"Nokta {pt + 1} Target {axNames[ax]}",
                         Value = Math.Round(vals[ax], 3),
                         Unit = units[ax],
@@ -2852,6 +2944,7 @@ namespace App4.Utilities
             ResetTablaMeasurementSignal();
             ResetAllJobStatuses();
 
+
             try
             {
                 // RFID Variable Bul (PLC + Robot tüm kaynaklarda ara)
@@ -2932,10 +3025,8 @@ namespace App4.Utilities
                     // Job durumunu OK olarak guncelle (idx 0-based, UpdateJobStatus 1-based)
                     UpdateJobStatus(idx + 1, "OK");
 
-                    // ▼▼▼ SİNYAL GÖNDER (Ölçüm tamamlandı) ▼▼▼
-                    if (idx == 0)
-                        SetTablaMeasurementSignal();
-                    else
+                    // ▼▼▼ SİNYAL GÖNDER (Boru: hemen, Tabla: PLC yazma sonrası) ▼▼▼
+                    if (idx != 0)
                         SetMeasurementSignal();
 
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
@@ -3226,6 +3317,13 @@ namespace App4.Utilities
                     // TAMAM sinyali HOLD — robot islemini bitirince FALSE'a cekecek
                     string tamamSignal = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
                     await WriteToAllRobotsAsync(tamamSignal, "TRUE");
+
+                    // Tabla: PLC yazma + robot yazma tamamlandıktan SONRA tabla çıkış sinyalini 1'e çek
+                    if (idx == 0)
+                    {
+                        SetTablaMeasurementSignal();
+                        OnAutomationLog?.Invoke("Tabla aktarım tamamlandı → TABLA_OFFSET_TAMAM = 1");
+                    }
 
                     ProcessStatus = "TAMAMLANDI";
                     // Olcum bitti — index gostergesini temizle

@@ -57,27 +57,49 @@ namespace App4.Utilities
         }
 
         // 2. SEÇİLEN JOB'I AKTİF ET (LOAD)
+        // Persistent bağlantı varsa onu kullanır, yoksa yeni bağlantı kurar.
         public static async Task<bool> LoadJob(string jobName, Action<string> log)
         {
             return await Task.Run(() =>
             {
                 try
                 {
-                    IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
+                    // Persistent bağlantı varsa, sensörü durdur → job yükle → tekrar başlat
+                    // Bu şekilde her seferinde connect/disconnect overhead'i olmaz
+                    var system = ReceiveMeasurementLogic.GetPersistentSystem();
+                    if (system != null)
                     {
-                        // log?.Invoke ile null kontrolü yapıyoruz
-                        log?.Invoke($"Sensöre bağlanılıyor ({jobName} yükle)...");
-                        system.Connect();
-                        GlobalData.GocatorOnline = true;
-
-                        if (system.RunningState() == GoSystem.State.Running)
-                            system.Stop();
+                        log?.Invoke($"Job yükleniyor (persistent): {jobName}...");
+                        try
+                        {
+                            if (system.RunningState() == GoSystem.State.Running)
+                                system.Stop();
+                        }
+                        catch { }
 
                         JObject payload = new JObject { ["name"] = jobName };
                         system.Client().Call(JOB_LOAD_PATH, payload).CheckResponse(5000);
 
-                        system.Disconnect();
+                        // Job yüklendi — sensörü Start ETME (ölçüm sırasında Start edilecek)
+                        log?.Invoke($"Job yüklendi: {jobName}");
+                        return true;
+                    }
+
+                    // Persistent bağlantı yoksa eski yöntemle bağlan
+                    IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+                    using (GoSystem newSystem = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
+                    {
+                        log?.Invoke($"Sensöre bağlanılıyor ({jobName} yükle)...");
+                        newSystem.Connect();
+                        GlobalData.GocatorOnline = true;
+
+                        if (newSystem.RunningState() == GoSystem.State.Running)
+                            newSystem.Stop();
+
+                        JObject payload = new JObject { ["name"] = jobName };
+                        newSystem.Client().Call(JOB_LOAD_PATH, payload).CheckResponse(5000);
+
+                        newSystem.Disconnect();
                         return true;
                     }
                 }
@@ -160,7 +182,7 @@ namespace App4.Utilities
     }
 
     // ==========================================
-    // 2. ÖLÇÜM ALMA (MEASUREMENT)
+    // 2. ÖLÇÜM ALMA (MEASUREMENT) — Persistent Connection
     // ==========================================
     public class ReceiveMeasurementLogic
     {
@@ -168,6 +190,93 @@ namespace App4.Utilities
         private const int RECEIVE_DATA_TIMEOUT_MSEC = 5000;
         private static string SENSOR_IP => GlobalData.Gocator_IpAddress;
         private static int CONTROL_PORT => GlobalData.Gocator_Port;
+
+        // Software trigger endpoint — SDK: SCANNER_PATH + "/actions/trigger"
+        // ENGINE_ID = LMIFringeSnapshot (G3), SCANNER_ID = scanner-0
+        private const string SOFTWARE_TRIGGER_PATH = "/scan/engines/LMIFringeSnapshot/scanners/scanner-0/actions/trigger";
+
+        // ▼▼▼ PERSISTENT CONNECTION STATE ▼▼▼
+        private static GoSystem _persistentSystem;
+        private static GoGdpClient _persistentGdpClient;
+        private static readonly object _connectionLock = new object();
+        private static string _connectedIp;
+        private static int _connectedPort;
+
+        /// <summary>
+        /// Sensör bağlantısını kur (Start YAPMAZ — her ölçüm kendi Start/Stop döngüsünü yapar).
+        /// Bağlantı persistent kalır → Connect overhead'i sadece 1 kez.
+        /// </summary>
+        private static void EnsureConnected(Action<string> log)
+        {
+            // IP/Port değiştiyse eski bağlantıyı kapat
+            if (_persistentSystem != null && (_connectedIp != SENSOR_IP || _connectedPort != CONTROL_PORT))
+            {
+                log?.Invoke("Sensör adresi değişti, yeniden bağlanılıyor...");
+                DisconnectPersistent();
+            }
+
+            if (_persistentSystem != null)
+            {
+                // Bağlantı hala canlı mı kontrol et
+                try
+                {
+                    _persistentSystem.RunningState(); // Bağlantı test
+                    // GDP client kontrol
+                    if (_persistentGdpClient == null)
+                    {
+                        _persistentGdpClient = new GoGdpClient();
+                        _persistentGdpClient.Connect(_persistentSystem.Address, _persistentSystem.GdpPort());
+                    }
+                    return; // Bağlantı canlı
+                }
+                catch
+                {
+                    log?.Invoke("Sensör bağlantısı kopmuş, yeniden bağlanılıyor...");
+                    DisconnectPersistent();
+                }
+            }
+
+            // Yeni bağlantı kur
+            IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
+            _persistentSystem = new GoSystem(ipAddress, (ushort)CONTROL_PORT);
+            _persistentSystem.Connect();
+            GlobalData.GocatorOnline = true;
+            _persistentSystem.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(5000);
+
+            _persistentGdpClient = new GoGdpClient();
+            _persistentGdpClient.Connect(_persistentSystem.Address, _persistentSystem.GdpPort());
+
+            _connectedIp = SENSOR_IP;
+            _connectedPort = CONTROL_PORT;
+            log?.Invoke("Sensör bağlantısı kuruldu (persistent — Start yapılmadı).");
+        }
+
+        /// <summary>
+        /// Persistent GoSystem referansı (LoadJob vb. için)
+        /// </summary>
+        public static GoSystem GetPersistentSystem() => _persistentSystem;
+
+        /// <summary>
+        /// Persistent bağlantıyı temizle (uygulama kapanışı, hata recovery, vb.)
+        /// </summary>
+        public static void DisconnectPersistent()
+        {
+            try { _persistentGdpClient?.Dispose(); } catch { }
+            try
+            {
+                if (_persistentSystem != null)
+                {
+                    try { _persistentSystem.Stop(); } catch { }
+                    try { _persistentSystem.Disconnect(); } catch { }
+                    _persistentSystem.Dispose();
+                }
+            }
+            catch { }
+            _persistentSystem = null;
+            _persistentGdpClient = null;
+            _connectedIp = null;
+            GlobalData.GocatorOnline = false;
+        }
 
         // DÖNÜŞ TİPİNİ DEĞİŞTİRDİK: (int status, List<GocatorMeasurement> results)
         public static async Task<(int, List<GocatorMeasurement>)> ReceiveAndProcessMeasurements(Action<string> log, DispatcherQueue dispatcher)
@@ -177,108 +286,92 @@ namespace App4.Utilities
                 var results = new List<GocatorMeasurement>();
                 try
                 {
-                    IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
-                    using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
+                    lock (_connectionLock)
                     {
-                        log?.Invoke("Sensöre bağlanılıyor (Ölçüm)...");
-                            system.Connect();
-                            GlobalData.GocatorOnline = true;
-                            system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(5000);
+                        EnsureConnected(log);
 
-                        using (GoGdpClient gdpClient = new GoGdpClient())
+                        // ▼▼▼ START → SNAPSHOT TRIGGER → RECEIVE → STOP ▼▼▼
+                        // SDK ConfigureSensor sample sırası: Start() → Call(trigger) → ReceiveDataSync → Stop()
+                        if (_persistentSystem.RunningState() == GoSystem.State.Ready)
+                            _persistentSystem.Start();
+
+                        // Software trigger (snapshot) — doğru endpoint: /actions/trigger
+                        log?.Invoke("Software trigger (snapshot) gönderiliyor...");
+                        try
                         {
-                            gdpClient.Connect(system.Address, system.GdpPort());
-                            
-                            try
+                            _persistentSystem.Client().Call(SOFTWARE_TRIGGER_PATH).CheckResponse(5000);
+                        }
+                        catch (Exception exTrig)
+                        {
+                            log?.Invoke($"⚠ Trigger hatası: {exTrig.Message}");
+                        }
+
+                        log?.Invoke("Ölçüm verisi bekleniyor...");
+                        _persistentGdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
+
+                        // Ölçüm alındı — sensörü durdur
+                        try { _persistentSystem.Stop(); } catch { }
+
+                        if (_persistentGdpClient.DataSet != null && _persistentGdpClient.DataSet.Count > 0)
+                        {
+                            int counter = 1;
+                            for (int i = 0; i < _persistentGdpClient.DataSet.Count; i++)
                             {
-                                if (system.RunningState() == GoSystem.State.Ready) system.Start();
-
-                                // ▼▼▼ SINGLE SHOT TRIGGER ▼▼▼
-                                // Eğer sensör "Software/Command" tetik modundaysa bu komut çekim yapmasını sağlar.
-                                // Time modundaysa yoksayar veya ekstra tetikleyebilir (Time modu için bu kısım gereksizdir).
-                                try
+                                var msg = _persistentGdpClient.DataSet.GdpMsgAt(i);
+                                if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
                                 {
-                                    // Sensörün hazır olması için çok kısa bekle
-                                    System.Threading.Thread.Sleep(20);
-                                    // /commands/trigger endpoint'ini çağır
-                                    system.Client().Call("/commands/trigger", new JObject());
-                                }
-                                catch (Exception) { /* Trigger desteklenmiyor veya gerekmiyor */ }
-                                // ▲▲▲
-
-                                log?.Invoke("Ölçüm verisi bekleniyor...");
-                                gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
-
-                                if (gdpClient.DataSet != null && gdpClient.DataSet.Count > 0)
-                                {
-                                    int counter = 1;
-                                    for (int i = 0; i < gdpClient.DataSet.Count; i++)
+                                    int gdpIndex = mMsg.GdpId;
+                                    var newItem = new GocatorMeasurement
                                     {
-                                        var msg = gdpClient.DataSet.GdpMsgAt(i);
-                                        if (msg.Type == MessageType.Measurement && msg is GoGdpMeasurement mMsg)
-                                        {
-                                            // GdpId = sensördeki GDP output index'i (0=X,1=Y,2=Z,3=Roll,4=Pitch,5=Yaw)
-                                            int gdpIndex = mMsg.GdpId;
-                                            var newItem = new GocatorMeasurement
-                                            {
-                                                Id = counter++,
-                                                SourceId = gdpIndex,
-                                                Name = $"Measurement {gdpIndex}",
-                                                Value = Math.Round(mMsg.Value, 3),
-                                                Decision = mMsg.Decision.ToString(),
-                                            };
-                                            results.Add(newItem);
-                                        }
-                                    }
-
-                                    // SourceId'ye göre sırala (GDP ID: X=0,Y=1,Z=2,Roll=3,Pitch=4,Yaw=5)
-                                    results = results.OrderBy(m => m.SourceId).ToList();
-
-                                    // Çoklu nokta: her 6 değer = 1 nokta (PointIndex + anlamlı isim)
-                                    string[] axNames = { "X", "Y", "Z", "Roll", "Pitch", "Yaw" };
-                                    for (int si = 0; si < results.Count; si++)
-                                    {
-                                        results[si].Id = si + 1;
-                                        results[si].PointIndex = si / 6;
-                                        results[si].Name = $"Nokta {si / 6 + 1} - {axNames[si % 6]}";
-                                    }
-
-                                    // Sıralanmış verileri UI listesine ekle
-                                    if (dispatcher != null)
-                                    {
-                                        var sortedCopy = results.ToList();
-                                        dispatcher.TryEnqueue(() =>
-                                        {
-                                            GlobalData.LastMeasurements.Clear();
-                                            foreach (var item in sortedCopy)
-                                                GlobalData.LastMeasurements.Add(item);
-                                            GlobalData.SaveMeasurements();
-                                        });
-                                    }
-
-                                    log?.Invoke($"✓ {results.Count} adet ölçüm alındı (GdpId sıralı).");
-                                }
-                                else
-                                {
-                                    log?.Invoke("⚠ Ölçüm verisi bulunamadı.");
+                                        Id = counter++,
+                                        SourceId = gdpIndex,
+                                        Name = $"Measurement {gdpIndex}",
+                                        Value = Math.Round(mMsg.Value, 3),
+                                        Decision = mMsg.Decision.ToString(),
+                                    };
+                                    results.Add(newItem);
                                 }
                             }
-                            finally
+
+                            // SourceId'ye göre sırala (GDP ID: X=0,Y=1,Z=2,Roll=3,Pitch=4,Yaw=5)
+                            results = results.OrderBy(m => m.SourceId).ToList();
+
+                            // Çoklu nokta: her 6 değer = 1 nokta (PointIndex + anlamlı isim)
+                            string[] axNames = { "X", "Y", "Z", "Roll", "Pitch", "Yaw" };
+                            for (int si = 0; si < results.Count; si++)
                             {
-                                // Timeout veya hata durumunda sensörü durdurmayı garantiye al
-                                try 
-                                { 
-                                    system.Stop(); 
-                                } 
-                                catch { }
+                                results[si].Id = si + 1;
+                                results[si].PointIndex = si / 6;
+                                results[si].IsFirstInPoint = (si % 6 == 0);
+                                results[si].Name = $"Nokta {si / 6 + 1} - {axNames[si % 6]}";
                             }
+
+                            // Sıralanmış verileri UI listesine ekle
+                            if (dispatcher != null)
+                            {
+                                var sortedCopy = results.ToList();
+                                dispatcher.TryEnqueue(() =>
+                                {
+                                    GlobalData.LastMeasurements.Clear();
+                                    foreach (var item in sortedCopy)
+                                        GlobalData.LastMeasurements.Add(item);
+                                    GlobalData.SaveMeasurements();
+                                });
+                            }
+
+                            log?.Invoke($"✓ {results.Count} adet ölçüm alındı (GdpId sıralı).");
+                        }
+                        else
+                        {
+                            log?.Invoke("⚠ Ölçüm verisi bulunamadı.");
                         }
                     }
                     return (1, results);
                 }
                 catch (Exception ex)
                 {
-                    GlobalData.GocatorOnline = false;
+                    // Hata durumunda bağlantıyı sıfırla — sonraki çağrıda yeniden bağlanır
+                    DisconnectPersistent();
                     log?.Invoke($"✗ Ölçüm Hatası: {ex.Message}");
                     return (-1, null);
                 }

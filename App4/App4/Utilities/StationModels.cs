@@ -193,8 +193,12 @@ namespace App4.Utilities
             while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5000);
             // DeviationLimits eksikse tamamla (fazlaysa dokunma — silme islemi zaten paralel yapiliyor)
             while (_deviationLimits.Count < _jobSequence.Count) _deviationLimits.Add(50.0);
-            // DataSourceModes eksikse tamamla (default: "SENSOR")
-            while (_dataSourceModes.Count < _jobSequence.Count) _dataSourceModes.Add("SENSOR");
+            // DataSourceModes eksikse tamamla (idx 0=tabla→SENSOR, idx 1+=boru→CODESYS)
+            while (_dataSourceModes.Count < _jobSequence.Count)
+            {
+                int idx = _dataSourceModes.Count;
+                _dataSourceModes.Add(idx == 0 ? "SENSOR" : "CODESYS");
+            }
             for (int i = 0; i < _jobSequence.Count; i++)
             {
                 IndexedJobSequence.Add(new IndexedJobItem
@@ -352,9 +356,14 @@ namespace App4.Utilities
         [Newtonsoft.Json.JsonIgnore]
         public string PointLabel => $"NOKTA {PointIndex + 1}";
 
-        // Noktanın ilk elemanı mı? (kart başlığı gösterimi için)
+        // Noktanın ilk elemanı mı? (kart başlığı gösterimi için — stored property, x:Bind recycling uyumlu)
+        private bool _isFirstInPoint;
         [Newtonsoft.Json.JsonIgnore]
-        public bool IsFirstInPoint => (SourceId % 6 == 0);
+        public bool IsFirstInPoint
+        {
+            get => _isFirstInPoint;
+            set { _isFirstInPoint = value; OnPropertyChanged(); }
+        }
 
         // UI Rengi: Pass ise Yeşil, Fail ise Kırmızı
         public SolidColorBrush StatusColor => (Decision == "Pass" || Decision == "OK")

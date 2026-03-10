@@ -1173,7 +1173,7 @@
                                             <TextBlock Text="GOCATOR HAM VERİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                             <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="SENSOR" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
                                         </StackPanel>
-                                        <CheckBox x:Name="ChkSourceSensor" Grid.Column="1" Checked="ChkSourceSensor_Checked" IsChecked="True" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu veriyi Boru Ölçüm Aktarım tablosuna ilet"/>
+                                        <CheckBox x:Name="ChkSourceSensor" Grid.Column="1" Checked="ChkSourceSensor_Checked" IsChecked="False" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu veriyi Boru Ölçüm Aktarım tablosuna ilet"/>
                                     </Grid>
                                 </Border>
 
@@ -1198,7 +1198,7 @@
                                                     <StackPanel>
                                                         <!-- NOKTA KART BAŞLIĞI (noktanın ilk elemanında görünür) -->
                                                         <Border Background="#FF6600" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
-                                                                Visibility="{x:Bind IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                Visibility="{x:Bind IsFirstInPoint, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                                                             <TextBlock Text="{x:Bind PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
                                                         <Grid Height="36" Margin="0,0,0,2" Background="#0F0F0F" CornerRadius="4">
@@ -1281,7 +1281,7 @@
                                                     <StackPanel>
                                                         <!-- NOKTA KART BAŞLIĞI -->
                                                         <Border Background="#2E7D32" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
-                                                                Visibility="{x:Bind IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                Visibility="{x:Bind IsFirstInPoint, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                                                             <TextBlock Text="{x:Bind PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
                                                         <Grid Height="36" Margin="0,0,0,2" Background="#0F150F" CornerRadius="4">
@@ -1637,7 +1637,7 @@
                                                 <StackPanel>
                                                     <!-- NOKTA KART BAŞLIĞI (mor tema) -->
                                                     <Border Background="#6A1B9A" CornerRadius="6,6,0,0" Padding="8,3" Margin="0,8,0,0"
-                                                            Visibility="{x:Bind IsFirstInPoint, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            Visibility="{x:Bind IsFirstInPoint, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                                                         <TextBlock Text="{x:Bind PointLabel}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                                     </Border>
                                                     <Grid Height="36" Margin="0,0,0,2" Background="#0F0A15" CornerRadius="4">

@@ -599,12 +599,86 @@ namespace App4.Utilities
 
         #region Haberleşme Döngüsü
 
-        // ★ ÖNCELİKLİ DEĞİŞKEN İSİMLERİ — Tetik + Index (en hızlı okunması gereken)
-        private static readonly HashSet<string> _priorityVarNames = new(StringComparer.OrdinalIgnoreCase)
+        // ★★★ ÖNCELİKLİ DEĞİŞKEN SİSTEMİ — Ölçüm tag'leri TCP kanalını domine eder ★★★
+        //
+        // INPUT (okuma) öncelikli isimler — en hızlı okunması gereken
+        private static readonly HashSet<string> _priorityInputVarNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "G_OLCUM_TETIK", "G_JOB_INDEX", "G_SNIFFER_OLCUM_TETIK",
-            "G_ROBOT_HAZIR", "G_IS_BITTI", "G_HATA_VAR"
+            "G_ROBOT_HAZIR", "G_IS_BITTI", "G_HATA_VAR",
+            "G_BORU_OLCUM_TETIK", "G_TABLA_OLCUM_TETIK"
         };
+
+        // OUTPUT (yazma) öncelikli isimler — ölçüm sonuçları + TAMAM sinyalleri
+        private static readonly HashSet<string> _priorityOutputVarNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "G_BORU_OLCUM_TAMAM", "G_TABLA_OLCUM_TAMAM", "G_OLCUM_OK", "G_OLCUM_TAMAM",
+            "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C",
+            "G_SNIFFER_OLCUM_TAMAM"
+        };
+
+        // ★ Anahtar kelime bazlı öncelik kontrolü — isim listesinde olmasa bile
+        //   OLCUM / OFFSET / TAMAM / SAPMA / NOKTA içeren her tag otomatik öncelikli
+        private static readonly string[] _priorityKeywords = { "OLCUM", "OFFSET", "TAMAM", "SAPMA", "NOKTA" };
+
+        private static bool IsPriorityInput(string varName)
+        {
+            if (string.IsNullOrEmpty(varName)) return false;
+            if (_priorityInputVarNames.Contains(varName)) return true;
+            var upper = varName.ToUpperInvariant();
+            foreach (var kw in _priorityKeywords)
+                if (upper.Contains(kw)) return true;
+            return false;
+        }
+
+        private static bool IsPriorityOutput(string varName)
+        {
+            if (string.IsNullOrEmpty(varName)) return false;
+            if (_priorityOutputVarNames.Contains(varName)) return true;
+            var upper = varName.ToUpperInvariant();
+            foreach (var kw in _priorityKeywords)
+                if (upper.Contains(kw)) return true;
+            return false;
+        }
+
+        // ★ YAVAŞ DEĞİŞKENLER — Tork, hız, timer, harici eksenler: Her döngüde okunmasına gerek yok
+        //   Bu tag'ler sadece her SLOW_READ_INTERVAL'de bir okunur → TCP kanalı ölçüm için boşalır
+        private static readonly HashSet<string> _slowReadTags = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "$TORQUE_AXIS_ACT[1]", "$TORQUE_AXIS_ACT[2]", "$TORQUE_AXIS_ACT[3]",
+            "$TORQUE_AXIS_ACT[4]", "$TORQUE_AXIS_ACT[5]", "$TORQUE_AXIS_ACT[6]",
+            "$VEL_AXIS_ACT[1]", "$VEL_AXIS_ACT[2]", "$VEL_AXIS_ACT[3]",
+            "$VEL_AXIS_ACT[4]", "$VEL_AXIS_ACT[5]", "$VEL_AXIS_ACT[6]",
+            "$VEL_ACT", "$TIMER[1]"
+        };
+        private const int SLOW_READ_INTERVAL = 5; // Yavaş değişkenler her 5 turda 1 okunur
+        private int _loopCycleCount = 0;
+
+        // ★ Priority output flush — standart okumalar arasında çağrılır (interrupt mekanizması)
+        //   Bu sayede TAMAM sinyalleri standart okumaların bitmesini BEKLEMEZ
+        private async Task FlushPriorityOutputs(List<PlcVariable> priorityOutputs)
+        {
+            foreach (var variable in priorityOutputs)
+            {
+                if (!_isRunning || !IsConnected) break;
+                try
+                {
+                    string currentVal = variable.Value ?? "";
+                    _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
+                    if (currentVal != (lastVal ?? ""))
+                    {
+                        bool ok = await WriteVariableAsync(variable.PlcTag, currentVal);
+                        if (ok)
+                        {
+                            _lastWrittenOutputs[variable.PlcTag] = currentVal;
+                            OnLog?.Invoke($"[{Name}] ⚡ Öncelikli output yazıldı: {variable.PlcTag} = {currentVal}");
+                        }
+                    }
+                }
+                catch { }
+                await Task.Delay(2); // ★ Minimum delay — flush sırasında hız kritik
+            }
+        }
 
         private async Task CommunicationLoop()
         {
@@ -641,11 +715,18 @@ namespace App4.Utilities
                             _initialSyncDone = true;
                         }
 
-                        var userInputs = InputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
+                        _loopCycleCount++;
+                        bool isSlowCycle = (_loopCycleCount % SLOW_READ_INTERVAL == 0);
 
-                        // ★★★ 1. ÖNCELİKLİ INPUT OKUMA — TETİK + INDEX (5ms delay) ★★★
-                        // Tetik değişkenleri her döngüde EN BAŞTA okunur → gecikme ~40ms
-                        var priorityInputs = userInputs.Where(v => _priorityVarNames.Contains(v.Name)).ToList();
+                        var userInputs = InputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
+                        var userOutputs = OutputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
+                        var priorityOutputs = userOutputs.Where(v => IsPriorityOutput(v.Name)).ToList();
+
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  1. ÖNCELİKLİ INPUT OKUMA — TETİK + ÖLÇÜM (3ms delay)      ║
+                        // ║  TCP kanalı domine: ölçüm tag'leri her döngüde EN BAŞTA      ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        var priorityInputs = userInputs.Where(v => IsPriorityInput(v.Name)).ToList();
                         foreach (var variable in priorityInputs)
                         {
                             if (!_isRunning || !IsConnected) break;
@@ -659,22 +740,35 @@ namespace App4.Utilities
                                     DispatchToUi(() =>
                                     {
                                         capturedVar.Value = capturedVal;
-                                        // Çakışan standart property setter varsa onu da çağır
                                         if (tagToSetter.TryGetValue(capturedVar.PlcTag, out var setter))
                                             setter(capturedVal);
                                     });
                                 }
                             }
                             catch { }
-                            await Task.Delay(5); // ★ Minimum delay — tetik hızı için kritik
+                            await Task.Delay(3);
                         }
 
-                        // 2. Standart değişkenleri oku (pozisyon, eksen, override)
-                        //    InputVars'ta zaten OLAN tag'ları ATLA (çift okuma engellenir)
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  1b. ÖNCELİKLİ OUTPUT FLUSH — Tetik okumasının hemen ardından ║
+                        // ║  TAMAM sinyalleri standart okuma fazını BEKLEMEZ               ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        await FlushPriorityOutputs(priorityOutputs);
+
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  2. STANDART DEĞİŞKENLER — Pozisyon, eksen, safety (10ms)   ║
+                        // ║  Yavaş tag'ler (tork/hız/timer) her 5 turda 1 okunur         ║
+                        // ║  Her 5 okumadan sonra priority output flush (interrupt)       ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        int stdReadCount = 0;
                         foreach (var (tag, setter) in _standardReads)
                         {
                             if (!_isRunning || !IsConnected) break;
-                            if (inputPlcTags.Contains(tag)) continue; // ★ Çakışan → atla (zaten aşağıda okunacak)
+                            if (inputPlcTags.Contains(tag)) continue;
+
+                            // ★ Yavaş tag → sadece her N turda bir oku (tork/hız/timer)
+                            if (_slowReadTags.Contains(tag) && !isSlowCycle) continue;
+
                             try
                             {
                                 string val = await ReadVariableAsync(tag);
@@ -684,11 +778,21 @@ namespace App4.Utilities
                                 }
                             }
                             catch { }
-                            await Task.Delay(20);
+                            await Task.Delay(10); // ★ 20ms → 10ms'e düşürüldü
+
+                            // ★★ INTERRUPT: Her 5 okumada 1 priority output flush ★★
+                            // Standart okumalar sırasında TAMAM sinyali gelirse anında yaz
+                            stdReadCount++;
+                            if (stdReadCount % 5 == 0)
+                            {
+                                await FlushPriorityOutputs(priorityOutputs);
+                            }
                         }
 
-                        // 3. Normal Input değişkenlerini oku (priority hariç — onlar zaten okundu)
-                        var normalInputs = userInputs.Where(v => !_priorityVarNames.Contains(v.Name)).ToList();
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  3. NORMAL INPUT — Kullanıcı tanımlı (priority hariç, 10ms)  ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        var normalInputs = userInputs.Where(v => !IsPriorityInput(v.Name)).ToList();
                         foreach (var variable in normalInputs)
                         {
                             if (!_isRunning || !IsConnected) break;
@@ -702,20 +806,25 @@ namespace App4.Utilities
                                     DispatchToUi(() =>
                                     {
                                         capturedVar.Value = capturedVal;
-                                        // Çakışan standart property setter varsa onu da çağır
                                         if (tagToSetter.TryGetValue(capturedVar.PlcTag, out var setter))
                                             setter(capturedVal);
                                     });
                                 }
                             }
                             catch { }
-                            await Task.Delay(15);
+                            await Task.Delay(10); // ★ 15ms → 10ms'e düşürüldü
                         }
 
-                        // 4. Output değişkenlerini yaz (SADECE değişenler)
-                        //    Her OutputVar için: in-memory değer son yazılandan farklıysa robota yaz
-                        var userOutputs = OutputVars.Where(v => !string.IsNullOrEmpty(v.PlcTag)).ToList();
-                        foreach (var variable in userOutputs)
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  4. SON PRIORITY OUTPUT FLUSH — Tüm okumalar bitti           ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        await FlushPriorityOutputs(priorityOutputs);
+
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  5. NORMAL OUTPUT YAZMA (20ms delay)                         ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        var normalOutputs = userOutputs.Where(v => !IsPriorityOutput(v.Name)).ToList();
+                        foreach (var variable in normalOutputs)
                         {
                             if (!_isRunning || !IsConnected) break;
                             try
@@ -745,7 +854,13 @@ namespace App4.Utilities
                     await Task.Delay(3000);
                 }
 
-                await Task.Delay(GlobalData.Robot_ReadSpeed); // Döngü hızı (Settings'den ayarlanır)
+                // ★ Adaptif döngü gecikmesi: Ölçüm input/output tag'leri tanımlıysa daha hızlı döngü
+                int loopDelay = GlobalData.Robot_ReadSpeed;
+                bool hasPriorityTags = InputVars.Any(v => !string.IsNullOrEmpty(v.PlcTag) && IsPriorityInput(v.Name))
+                                    || OutputVars.Any(v => !string.IsNullOrEmpty(v.PlcTag) && IsPriorityOutput(v.Name));
+                if (hasPriorityTags)
+                    loopDelay = Math.Max(30, loopDelay / 2); // Minimum 30ms, normalde yarısı
+                await Task.Delay(loopDelay);
             }
         }
 
