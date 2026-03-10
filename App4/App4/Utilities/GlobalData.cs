@@ -1600,18 +1600,46 @@ namespace App4.Utilities
             if (robots != null)
             {
                 var writeTasks = new List<Task>();
-                foreach (var r in robots)
+                for (int ri = 0; ri < robots.Count; ri++)
                 {
+                    var r = robots[ri];
+                    int robotIdx = ri + 1;
                     if (r.IsConnected)
                     {
+                        // ★ Robot'ta tanımlı PlcTag varsa onu kullan (CommunicationLoop PlcTag ile okur)
+                        // Yoksa doğrudan varName kullan (KRL değişken adı olarak)
+                        string krlTag = varName;
+                        var matchVar = r.InputVars.FirstOrDefault(v => v.Name == varName)
+                                    ?? r.OutputVars.FirstOrDefault(v => v.Name == varName);
+                        if (matchVar != null && !string.IsNullOrEmpty(matchVar.PlcTag))
+                            krlTag = matchVar.PlcTag;
+
+                        string capturedTag = krlTag; // closure için kopyala
                         writeTasks.Add(Task.Run(async () =>
                         {
-                            try { await r.WriteVariableAsync(varName, value); } catch { }
+                            try
+                            {
+                                bool ok = await r.WriteVariableAsync(capturedTag, value);
+                                if (!ok)
+                                    OnAutomationLog?.Invoke($"⚠ Robot {robotIdx} yazma başarısız: {capturedTag}={value} (VarProxy hata)");
+                            }
+                            catch (Exception exW)
+                            {
+                                OnAutomationLog?.Invoke($"✗ Robot {robotIdx} yazma hatası: {capturedTag}={value} → {exW.Message}");
+                            }
                         }));
+                    }
+                    else
+                    {
+                        OnAutomationLog?.Invoke($"⚠ Robot {robotIdx} bağlı değil, yazılamadı: {varName}={value}");
                     }
                 }
                 if (writeTasks.Count > 0)
                     await Task.WhenAll(writeTasks);
+            }
+            else
+            {
+                OnAutomationLog?.Invoke($"⚠ Robot listesi boş, yazılamadı: {varName}={value}");
             }
         }
 
@@ -2356,10 +2384,11 @@ namespace App4.Utilities
                 }
 
                 // 4. Robot değişkenleri — GlobalData şablonu (in-memory)
+                // ★ KUKA VarProxy BOOL → "FALSE" string kullan (int 0 değil)
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) robotOutVar.Value = "0";
+                if (robotOutVar != null) robotOutVar.Value = "FALSE";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) robotInVar.Value = "0";
+                if (robotInVar != null) robotInVar.Value = "FALSE";
 
                 // 4b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
                 var robots = KukaRobotManager.Instance?.Robots;
@@ -2368,9 +2397,9 @@ namespace App4.Utilities
                     foreach (var robot in robots)
                     {
                         var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveOut != null) liveOut.CurrentValue = 0;
+                        if (liveOut != null) liveOut.CurrentValue = "FALSE";
                         var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveIn != null) liveIn.CurrentValue = 0;
+                        if (liveIn != null) liveIn.CurrentValue = "FALSE";
                     }
                 }
 
@@ -2449,10 +2478,11 @@ namespace App4.Utilities
                 }
 
                 // 4. Robot değişkenleri — GlobalData şablonu (in-memory)
+                // ★ KUKA VarProxy BOOL → "TRUE"/"FALSE" string kullan (int 1/0 DEĞİL!)
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) robotOutVar.Value = "1";
+                if (robotOutVar != null) robotOutVar.Value = "TRUE";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) robotInVar.Value = "1";
+                if (robotInVar != null) robotInVar.Value = "TRUE";
 
                 // 4b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
                 var robots = KukaRobotManager.Instance?.Robots;
@@ -2461,9 +2491,9 @@ namespace App4.Utilities
                     foreach (var robot in robots)
                     {
                         var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveOut != null) liveOut.CurrentValue = 1;
+                        if (liveOut != null) liveOut.CurrentValue = "TRUE";
                         var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveIn != null) liveIn.CurrentValue = 1;
+                        if (liveIn != null) liveIn.CurrentValue = "TRUE";
                     }
                 }
 
@@ -2506,10 +2536,11 @@ namespace App4.Utilities
                     }
                 }
 
+                // ★ KUKA VarProxy BOOL → "FALSE" string kullan (int 0 değil)
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) robotOutVar.Value = "0";
+                if (robotOutVar != null) robotOutVar.Value = "FALSE";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) robotInVar.Value = "0";
+                if (robotInVar != null) robotInVar.Value = "FALSE";
 
                 // 4b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
                 var robots = KukaRobotManager.Instance?.Robots;
@@ -2518,9 +2549,9 @@ namespace App4.Utilities
                     foreach (var robot in robots)
                     {
                         var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveOut != null) liveOut.CurrentValue = 0;
+                        if (liveOut != null) liveOut.CurrentValue = "FALSE";
                         var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveIn != null) liveIn.CurrentValue = 0;
+                        if (liveIn != null) liveIn.CurrentValue = "FALSE";
                     }
                 }
 
@@ -2566,10 +2597,13 @@ namespace App4.Utilities
                 }
 
                 // 3. Robot değişkenleri — GlobalData şablonu (in-memory)
+                // ★ KUKA VarProxy BOOL değişkenler "TRUE"/"FALSE" string bekler, int 1/0 DEĞİL!
+                // Comm loop variable.Value (=CurrentValue.ToString()) okur ve robota yazar.
+                // int 1 → "1" gönderir → KUKA bunu tanımaz. "TRUE" string → "TRUE" gönderir ✓
                 var robotOutVar = RobotOutputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotOutVar != null) robotOutVar.Value = "1";
+                if (robotOutVar != null) robotOutVar.Value = "TRUE";
                 var robotInVar = RobotInputVars.FirstOrDefault(v => v.Name == targetTag);
-                if (robotInVar != null) robotInVar.Value = "1";
+                if (robotInVar != null) robotInVar.Value = "TRUE";
 
                 // 3b. Robot Instance Variables (CANLI - UI watcher bu nesneye abone)
                 var robots = KukaRobotManager.Instance?.Robots;
@@ -2578,9 +2612,9 @@ namespace App4.Utilities
                     foreach (var robot in robots)
                     {
                         var liveOut = robot.OutputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveOut != null) liveOut.CurrentValue = 1;
+                        if (liveOut != null) liveOut.CurrentValue = "TRUE";
                         var liveIn = robot.InputVars.FirstOrDefault(v => v.Name == targetTag);
-                        if (liveIn != null) liveIn.CurrentValue = 1;
+                        if (liveIn != null) liveIn.CurrentValue = "TRUE";
                     }
                 }
 

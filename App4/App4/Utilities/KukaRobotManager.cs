@@ -656,6 +656,24 @@ namespace App4.Utilities
 
         // ★ Priority output flush — standart okumalar arasında çağrılır (interrupt mekanizması)
         //   Bu sayede TAMAM sinyalleri standart okumaların bitmesini BEKLEMEZ
+        /// <summary>
+        /// KUKA VarProxy BOOL değişkenler "TRUE"/"FALSE" string bekler.
+        /// int 1/0 veya "1"/"0" gönderilirse robot tanımaz.
+        /// Bu yardımcı metod, Type=="BOOL" ise değeri doğru formata çevirir.
+        /// </summary>
+        private static string NormalizeBoolValue(PlcVariable variable, string rawValue)
+        {
+            if (variable.Type?.Equals("BOOL", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                // "1", "true", "True", "TRUE" → "TRUE"
+                // "0", "false", "False", "FALSE", "" → "FALSE"
+                if (rawValue == "1" || rawValue?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+                    return "TRUE";
+                return "FALSE";
+            }
+            return rawValue;
+        }
+
         private async Task FlushPriorityOutputs(List<PlcVariable> priorityOutputs)
         {
             foreach (var variable in priorityOutputs)
@@ -663,7 +681,7 @@ namespace App4.Utilities
                 if (!_isRunning || !IsConnected) break;
                 try
                 {
-                    string currentVal = variable.Value ?? "";
+                    string currentVal = NormalizeBoolValue(variable, variable.Value ?? "");
                     _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
                     if (currentVal != (lastVal ?? ""))
                     {
@@ -829,7 +847,7 @@ namespace App4.Utilities
                             if (!_isRunning || !IsConnected) break;
                             try
                             {
-                                string currentVal = variable.Value ?? "";
+                                string currentVal = NormalizeBoolValue(variable, variable.Value ?? "");
                                 _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
 
                                 if (currentVal != (lastVal ?? ""))
