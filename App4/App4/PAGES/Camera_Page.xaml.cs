@@ -348,48 +348,44 @@ namespace App4.PAGES
         // Boru Output Value
         public string MeasurementOutputValue => GetTagValue(App4.Utilities.GlobalData.MeasurementOutputTag);
 
-        public string MeasurementOutputStatusText
+        private bool IsBoruSignalActive
         {
             get
             {
+                // 1. GlobalData bayrak (en güvenilir — tag koleksiyonda olmasa bile çalışır)
+                if (App4.Utilities.GlobalData.BoruSignalActive) return true;
+                // 2. Tag değer kontrolü (koleksiyonda bulunursa)
                 var val = MeasurementOutputValue;
-                if (val == "1" || val.ToLower() == "true") return "HAZIR (1)";
-                return "BEKLİYOR (0)";
+                return val == "1" || (val != null && val.ToLower() == "true");
             }
         }
 
-        public SolidColorBrush MeasurementOutputStatusColor
-        {
-            get
-            {
-                var val = MeasurementOutputValue;
-                if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-                return new SolidColorBrush(Microsoft.UI.Colors.Orange);
-            }
-        }
+        public string MeasurementOutputStatusText => IsBoruSignalActive ? "HAZIR (1)" : "BEKLİYOR (0)";
+
+        public SolidColorBrush MeasurementOutputStatusColor => IsBoruSignalActive
+            ? new SolidColorBrush(Microsoft.UI.Colors.LimeGreen)
+            : new SolidColorBrush(Microsoft.UI.Colors.Orange);
 
         // Tabla Output Value
         public string TablaOutputValue => GetTagValue(App4.Utilities.GlobalData.TablaOutputTag);
 
-        public string TablaOutputStatusText
+        private bool IsTablaSignalActive
         {
             get
             {
+                // 1. GlobalData bayrak (en güvenilir — tag koleksiyonda olmasa bile çalışır)
+                if (App4.Utilities.GlobalData.TablaSignalActive) return true;
+                // 2. Tag değer kontrolü (koleksiyonda bulunursa)
                 var val = TablaOutputValue;
-                if (val == "1" || val.ToLower() == "true") return "HAZIR (1)";
-                return "BEKLİYOR (0)";
+                return val == "1" || (val != null && val.ToLower() == "true");
             }
         }
 
-        public SolidColorBrush TablaOutputStatusColor
-        {
-            get
-            {
-                var val = TablaOutputValue;
-                if (val == "1" || val.ToLower() == "true") return new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
-                return new SolidColorBrush(Microsoft.UI.Colors.Orange);
-            }
-        }
+        public string TablaOutputStatusText => IsTablaSignalActive ? "HAZIR (1)" : "BEKLİYOR (0)";
+
+        public SolidColorBrush TablaOutputStatusColor => IsTablaSignalActive
+            ? new SolidColorBrush(Microsoft.UI.Colors.LimeGreen)
+            : new SolidColorBrush(Microsoft.UI.Colors.Orange);
 
         // --- WATCHER YÖNETİMİ ---
         private PlcVariable _watchedRfidVar;

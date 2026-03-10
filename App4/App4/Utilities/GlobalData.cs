@@ -478,6 +478,11 @@ namespace App4.Utilities
             }
         }
 
+        // ═══ SİNYAL DURUM BAYRAKLARI (UI için güvenilir kaynak) ═══
+        // Tag değişken koleksiyonlarında bulunamasa bile UI durumu doğru gösterir
+        public static bool BoruSignalActive { get; set; } = false;
+        public static bool TablaSignalActive { get; set; } = false;
+
         // --- ROBOT BAĞLANTI AYARLARI ---
         private static string _robotIpAddress = "127.0.0.1";
         public static string Robot_IpAddress
@@ -2372,6 +2377,7 @@ namespace App4.Utilities
                 // ★★★ 5. MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
                 try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
 
+                BoruSignalActive = false;
                 OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
@@ -2465,7 +2471,8 @@ namespace App4.Utilities
                 // Koleksiyonda bulunmasa bile doğrudan robot TCP'sine yazılır
                 try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
 
-                OnAutomationLog?.Invoke($"✓ Ölçüm sinyali gönderildi: {targetTag} = TRUE");
+                BoruSignalActive = true;
+                OnAutomationLog?.Invoke($"✓ Ölçüm sinyali gönderildi: {targetTag} = TRUE (BoruSignalActive=true)");
                 OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
@@ -2520,6 +2527,7 @@ namespace App4.Utilities
                 // ★★★ MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
                 try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
 
+                TablaSignalActive = false;
                 OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
@@ -2581,7 +2589,8 @@ namespace App4.Utilities
                 // Robot VarProxy herhangi bir KRL değişken adını kabul eder
                 try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
 
-                OnAutomationLog?.Invoke($"✓ Tabla sinyal gönderildi: {targetTag} = TRUE");
+                TablaSignalActive = true;
+                OnAutomationLog?.Invoke($"✓ Tabla sinyal gönderildi: {targetTag} = TRUE (TablaSignalActive=true)");
                 OnAutomationStatusChanged?.Invoke();
             }
             catch (Exception ex)
