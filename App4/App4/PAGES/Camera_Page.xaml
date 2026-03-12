@@ -701,7 +701,7 @@
 
                                 <!-- TABLA ÖLÇÜM ÇIKTISI -->
                                 <Border Grid.Column="4" Background="#1A2A1A" CornerRadius="8" BorderBrush="#2A5A3A" BorderThickness="1" Padding="10">
-                                    <StackPanel Spacing="6">
+                                    <StackPanel Spacing="4">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <Ellipse Width="8" Height="8" Fill="#4CAF50"/>
                                             <TextBlock Text="TABLA ÇIKTI" FontSize="9" FontWeight="Bold" Foreground="#4CAF50"/>
@@ -714,18 +714,38 @@
                                             </StackPanel>
                                         </Border>
 
+                                        <!-- Robot 1 Tag Seçimi -->
+                                        <TextBlock Text="ROBOT 1:" FontSize="7" Foreground="#4CAF50" Margin="0,2,0,0"/>
                                         <ComboBox x:Name="CmbTablaOutputTag"
                                             ItemsSource="{x:Bind Robot1OutputTags, Mode=OneWay}"
                                             SelectedItem="{x:Bind SelectedTablaOutputTag, Mode=TwoWay}"
                                             SelectionChanged="AutomationComboBox_SelectionChanged"
-                                            PlaceholderText="Tag Seçiniz..."
-                                            HorizontalAlignment="Stretch" FontSize="10" Height="32" VerticalAlignment="Center"
+                                            PlaceholderText="R1 Tag Seçiniz..."
+                                            HorizontalAlignment="Stretch" FontSize="10" Height="30" VerticalAlignment="Center"
                                             Foreground="White" Background="#0F1F0F" BorderBrush="#4CAF50" BorderThickness="1.5" CornerRadius="5">
                                             <ComboBox.Resources>
                                                 <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A1A"/>
                                                 <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
                                                 <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
                                                 <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#4CAF50"/>
+                                                <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
+                                            </ComboBox.Resources>
+                                        </ComboBox>
+
+                                        <!-- Robot 2 Tag Seçimi -->
+                                        <TextBlock Text="ROBOT 2:" FontSize="7" Foreground="#66BB6A" Margin="0,2,0,0"/>
+                                        <ComboBox x:Name="CmbTablaOutputTag2"
+                                            ItemsSource="{x:Bind Robot2OutputTags, Mode=OneWay}"
+                                            SelectedItem="{x:Bind SelectedTablaOutputTag2, Mode=TwoWay}"
+                                            SelectionChanged="AutomationComboBox_SelectionChanged"
+                                            PlaceholderText="R2 Tag Seçiniz..."
+                                            HorizontalAlignment="Stretch" FontSize="10" Height="30" VerticalAlignment="Center"
+                                            Foreground="White" Background="#0F1F0F" BorderBrush="#66BB6A" BorderThickness="1.5" CornerRadius="5">
+                                            <ComboBox.Resources>
+                                                <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1A2A1A"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#E0E0E0"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="White"/>
+                                                <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#66BB6A"/>
                                                 <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="#666"/>
                                             </ComboBox.Resources>
                                         </ComboBox>

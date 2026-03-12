@@ -339,6 +339,21 @@ namespace App4.PAGES
             }
         }
 
+        // ▼▼▼ TABLA OUTPUT TAG (Robot 2) ▼▼▼
+        public string SelectedTablaOutputTag2
+        {
+            get => App4.Utilities.GlobalData.TablaOutputTag2;
+            set
+            {
+                if (App4.Utilities.GlobalData.TablaOutputTag2 != value)
+                {
+                    App4.Utilities.GlobalData.TablaOutputTag2 = value;
+                    OnPropertyChanged();
+                    UpdateTablaOutputWatcher2();
+                }
+            }
+        }
+
         // ▼▼▼ TAG VALUE GÖSTERME (PLC'DEN OKUNAN DEĞERLER) ▼▼▼
         public string RfidTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_RfidTag);
         public string IndexTagValue => GetTagValue(App4.Utilities.GlobalData.Auto_IndexTag);
@@ -394,6 +409,7 @@ namespace App4.PAGES
         private PlcVariable _watchedTriggerVar2;
         private PlcVariable _watchedOutputVar;
         private PlcVariable _watchedTablaOutputVar;
+        private PlcVariable _watchedTablaOutputVar2;
 
         private void SetupWatchers()
         {
@@ -455,6 +471,13 @@ namespace App4.PAGES
             OnPropertyChanged(nameof(TablaOutputValue));
             OnPropertyChanged(nameof(TablaOutputStatusText));
             OnPropertyChanged(nameof(TablaOutputStatusColor));
+        }
+
+        private void UpdateTablaOutputWatcher2()
+        {
+            if (_watchedTablaOutputVar2 != null) _watchedTablaOutputVar2.PropertyChanged -= OnPlcDisplayValueChanged;
+            _watchedTablaOutputVar2 = FindPlcVariable(SelectedTablaOutputTag2);
+            if (_watchedTablaOutputVar2 != null) _watchedTablaOutputVar2.PropertyChanged += OnPlcDisplayValueChanged;
         }
 
         /// <summary>
@@ -603,6 +626,7 @@ namespace App4.PAGES
         // Robot 1'e özel tag listeleri (Tetik = Input, Çıktı = Output)
         public ObservableCollection<string> Robot1InputTags { get; set; } = new();
         public ObservableCollection<string> Robot1OutputTags { get; set; } = new();
+        public ObservableCollection<string> Robot2OutputTags { get; set; } = new();
         // Global listeye referans (Ok işareti => ile)
         public ObservableCollection<PlcTransferItem> PlcTransferRows => App4.Utilities.GlobalData.PlcTransferRows;
 
@@ -727,6 +751,7 @@ namespace App4.PAGES
             if (_watchedTriggerVar2 != null) _watchedTriggerVar2.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedOutputVar != null) _watchedOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
             if (_watchedTablaOutputVar != null) _watchedTablaOutputVar.PropertyChanged -= OnPlcDisplayValueChanged;
+            if (_watchedTablaOutputVar2 != null) _watchedTablaOutputVar2.PropertyChanged -= OnPlcDisplayValueChanged;
 
             // Visualizer timer temizle
             _liveTcpTimer?.Stop();
@@ -1009,7 +1034,25 @@ namespace App4.PAGES
                 foreach (var t in r1Outputs)
                     if (!Robot1OutputTags.Contains(t)) Robot1OutputTags.Add(t);
 
-                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count}, All: {PlcAllTags.Count}, R1In: {Robot1InputTags.Count}, R1Out: {Robot1OutputTags.Count})");
+                // Robot2OutputTags senkronizasyonu (Robot 2'nin output değişkenleri)
+                var r2Outputs = new HashSet<string>();
+                var allRobots = App4.Utilities.KukaRobotManager.Instance?.Robots;
+                if (allRobots != null && allRobots.Count > 1)
+                {
+                    foreach (var v in allRobots[1].OutputVars)
+                        if (!string.IsNullOrEmpty(v.Name)) r2Outputs.Add(v.Name);
+                }
+                else
+                {
+                    // Robot 2 yoksa Robot 1'in tag'lerini kullan (aynı şablon)
+                    r2Outputs = r1Outputs;
+                }
+                var toRemoveR2Out = Robot2OutputTags.Where(t => !r2Outputs.Contains(t)).ToList();
+                foreach (var t in toRemoveR2Out) Robot2OutputTags.Remove(t);
+                foreach (var t in r2Outputs)
+                    if (!Robot2OutputTags.Contains(t)) Robot2OutputTags.Add(t);
+
+                AddLog($"✓ PLC Tag listeleri senkronize edildi. (In: {PlcInputTags.Count}, Out: {PlcOutputTags.Count}, All: {PlcAllTags.Count}, R1In: {Robot1InputTags.Count}, R1Out: {Robot1OutputTags.Count}, R2Out: {Robot2OutputTags.Count})");
             }
             catch (Exception ex)
             {
@@ -1041,10 +1084,15 @@ namespace App4.PAGES
                 if (!string.IsNullOrEmpty(output) && Robot1OutputTags.Contains(output))
                     CmbMeasurementOutputTag.SelectedItem = output;
 
-                // Tabla Output ComboBox güncelle
+                // Tabla Output ComboBox güncelle (Robot 1)
                 string tablaOutput = App4.Utilities.GlobalData.TablaOutputTag;
                 if (!string.IsNullOrEmpty(tablaOutput) && Robot1OutputTags.Contains(tablaOutput))
                     CmbTablaOutputTag.SelectedItem = tablaOutput;
+
+                // Tabla Output ComboBox güncelle (Robot 2)
+                string tablaOutput2 = App4.Utilities.GlobalData.TablaOutputTag2;
+                if (!string.IsNullOrEmpty(tablaOutput2) && Robot2OutputTags.Contains(tablaOutput2))
+                    CmbTablaOutputTag2.SelectedItem = tablaOutput2;
 
                 // Trigger2 ComboBox güncelle
                 string trigger2 = App4.Utilities.GlobalData.Auto_TriggerTag2;
@@ -2135,6 +2183,16 @@ namespace App4.PAGES
                 {
                     App4.Utilities.GlobalData.MeasurementOutputTag = selectedTag;
                     AddLog($"✓ Measurement Output Tag kaydedildi: {selectedTag}");
+                }
+                else if (cmb.Name == "CmbTablaOutputTag")
+                {
+                    App4.Utilities.GlobalData.TablaOutputTag = selectedTag;
+                    AddLog($"✓ Tabla Output Tag (R1) kaydedildi: {selectedTag}");
+                }
+                else if (cmb.Name == "CmbTablaOutputTag2")
+                {
+                    App4.Utilities.GlobalData.TablaOutputTag2 = selectedTag;
+                    AddLog($"✓ Tabla Output Tag (R2) kaydedildi: {selectedTag}");
                 }
 
                 // Kaydetme işlemi GlobalData setter'da yapılıyor

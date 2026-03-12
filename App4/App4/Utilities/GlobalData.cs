@@ -465,7 +465,7 @@ namespace App4.Utilities
             }
         }
 
-        // --- TABLA ÖLÇÜM ÇIKTI TAG ---
+        // --- TABLA ÖLÇÜM ÇIKTI TAG (Robot 1) ---
         private static string _tablaOutputTag;
         public static string TablaOutputTag
         {
@@ -474,6 +474,19 @@ namespace App4.Utilities
             {
                 if (_tablaOutputTag == value) return;
                 _tablaOutputTag = value;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- TABLA ÖLÇÜM ÇIKTI TAG (Robot 2) ---
+        private static string _tablaOutputTag2;
+        public static string TablaOutputTag2
+        {
+            get => _tablaOutputTag2;
+            set
+            {
+                if (_tablaOutputTag2 == value) return;
+                _tablaOutputTag2 = value;
                 SaveAutomationSettings();
             }
         }
@@ -1398,6 +1411,11 @@ namespace App4.Utilities
                 var val = settings["TablaOutputTag"] as string;
                 if (!string.IsNullOrEmpty(val)) _tablaOutputTag = val;
             }
+            if (settings.ContainsKey("TablaOutputTag2"))
+            {
+                var val = settings["TablaOutputTag2"] as string;
+                if (!string.IsNullOrEmpty(val)) _tablaOutputTag2 = val;
+            }
 
             // Robot Ayarları
             if (settings.ContainsKey("Robot_IpAddress"))
@@ -1451,6 +1469,12 @@ namespace App4.Utilities
                 try { _savedToolRelativeOffsets = settings["ToolRelativeOffsets"] as string ?? ""; } catch { }
             }
 
+            // Tabla Kaçıklık Alarm Limiti
+            if (settings.ContainsKey("TablaAlarmLimit"))
+            {
+                try { _tablaAlarmLimit = Convert.ToDouble(settings["TablaAlarmLimit"]); } catch { }
+            }
+
             // Veri kaynağı seçimi
             if (settings.ContainsKey("DataSourceMode"))
             {
@@ -1488,6 +1512,8 @@ namespace App4.Utilities
             settings["Auto_TriggerTag2"] = Auto_TriggerTag2 ?? "";
             settings["MeasurementOutputTag"] = MeasurementOutputTag ?? "";
             settings["TablaOutputTag"] = TablaOutputTag ?? "";
+            settings["TablaOutputTag2"] = TablaOutputTag2 ?? "";
+            settings["TablaAlarmLimit"] = TablaAlarmLimit;
 
             settings["Robot_IpAddress"] = Robot_IpAddress;
             settings["Robot_Port"] = Robot_Port;
@@ -1771,10 +1797,40 @@ namespace App4.Utilities
                         }
                     };
                 }
+
+                // ═══ OUTPUT SİNYAL YAŞAM DÖNGÜSÜ İZLEME ═══
+                // TAMAM/HAZIR sinyallerinin TRUE↔FALSE geçişlerini logla
+                // Robot bu sinyalleri aldıktan sonra FALSE'a çektiğinde burada görünür
+                foreach (var v in robot.OutputVars)
+                {
+                    string vName = v.Name;
+                    if (string.IsNullOrEmpty(vName)) continue;
+                    // Sadece TAMAM/HAZIR sinyallerini izle (gereksiz log kirliliği önlenir)
+                    if (!vName.Contains("TAMAM") && !vName.Contains("HAZIR")) continue;
+
+                    string prevValue = v.Value ?? "";
+                    v.PropertyChanged += (s, e) =>
+                    {
+                        if (e.PropertyName != nameof(PlcVariable.Value)) return;
+                        string newVal = v.Value ?? "";
+                        if (newVal == prevValue) return;
+
+                        bool wasTrue = prevValue == "TRUE" || prevValue == "1";
+                        bool isTrue = newVal == "TRUE" || newVal == "1" || newVal.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        bool isFalse = newVal == "FALSE" || newVal == "0" || newVal.Equals("false", StringComparison.OrdinalIgnoreCase);
+
+                        if (wasTrue && isFalse)
+                            OnAutomationLog?.Invoke($"[Robot {robotNo}] {vName}: TRUE → FALSE (robot sinyali aldı, sonraki ölçüme hazır)");
+                        else if (!wasTrue && isTrue)
+                            OnAutomationLog?.Invoke($"[Robot {robotNo}] {vName}: → TRUE (ölçüm tamamlandı, sinyal gönderildi)");
+
+                        prevValue = newVal;
+                    };
+                }
             }
 
             _robotSignalMonitoringActive = true;
-            OnAutomationLog?.Invoke("Robot sinyal izleme başlatıldı (Global - sayfa bağımsız).");
+            OnAutomationLog?.Invoke("Robot sinyal izleme başlatıldı (Global - sayfa bağımsız, Output lifecycle aktif).");
         }
 
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
@@ -2645,6 +2701,13 @@ namespace App4.Utilities
                 // ★★★ MUTLAKA TÜM ROBOTLARA TCP İLE YAZ ★★★
                 try { await WriteToAllRobotsAsync(targetTag, "FALSE"); } catch { }
 
+                // ★★★ ROBOT 2 İÇİN AYRI TAG SIFIRLAMA ★★★
+                string targetTag2 = TablaOutputTag2;
+                if (!string.IsNullOrEmpty(targetTag2) && targetTag2 != targetTag)
+                {
+                    try { await WriteToAllRobotsAsync(targetTag2, "FALSE"); } catch { }
+                }
+
                 TablaSignalActive = false;
                 OnAutomationStatusChanged?.Invoke();
             }
@@ -2709,6 +2772,14 @@ namespace App4.Utilities
                 // Koleksiyonda bulunmasa bile doğrudan robot TCP'sine yazılır
                 // Robot VarProxy herhangi bir KRL değişken adını kabul eder
                 try { await WriteToAllRobotsAsync(targetTag, "TRUE"); } catch { }
+
+                // ★★★ 4b. ROBOT 2 İÇİN AYRI TAG YAZMA ★★★
+                string targetTag2 = TablaOutputTag2;
+                if (!string.IsNullOrEmpty(targetTag2) && targetTag2 != targetTag)
+                {
+                    try { await WriteToAllRobotsAsync(targetTag2, "TRUE"); } catch { }
+                    OnAutomationLog?.Invoke($"✓ Tabla sinyal (R2): {targetTag2} = TRUE");
+                }
 
                 TablaSignalActive = true;
                 OnAutomationLog?.Invoke($"✓ Tabla sinyal gönderildi: {targetTag} = TRUE (TablaSignalActive=true)");
@@ -3309,6 +3380,9 @@ namespace App4.Utilities
                             SaveTablaMeasurements();
                             LastMeasurements.Clear();
                             SaveMeasurements();
+
+                            // ═══ TABLA KAÇIKLIK ALARM KONTROLÜ ═══
+                            CheckTablaAlarmLimits(measurements);
                         }
                         else
                         {
