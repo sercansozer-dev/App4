@@ -295,8 +295,7 @@
 							</StackPanel>
 						</Border>
 
-						<ScrollViewer Grid.Row="1" MaxHeight="600" VerticalScrollBarVisibility="Auto">
-							<StackPanel Padding="15,10" Spacing="12">
+						<StackPanel Grid.Row="1" Padding="15,10" Spacing="12">
 
 								<!-- ═══ AKTÜEL SİNYALLER (CANLI) ═══ -->
 								<Grid ColumnSpacing="10">
@@ -543,8 +542,188 @@
 									</Grid>
 								</StackPanel>
 
+						</StackPanel>
+					</Grid>
+				</Border>
+
+				<!-- ═══ ROBOT SAFETY SİNYALLERİ GÖZLEM TABLOSU ═══ -->
+				<Border Background="#1E1E20" CornerRadius="8" Padding="0" Margin="0,8,0,0">
+					<Grid>
+						<Grid.RowDefinitions>
+							<RowDefinition Height="40"/>
+							<RowDefinition Height="Auto"/>
+						</Grid.RowDefinitions>
+
+						<!-- Başlık -->
+						<Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+							<StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+								<TextBlock Text="🛡️" FontSize="14"/>
+								<TextBlock Text="ROBOT SAFETY SİNYALLERİ (VarProxy - Salt Okunur)" FontSize="11" FontWeight="SemiBold" Foreground="#E91E63"/>
 							</StackPanel>
-						</ScrollViewer>
+						</Border>
+
+						<!-- Tablo İçeriği -->
+						<StackPanel Grid.Row="1" Padding="15,10,15,15" Spacing="8">
+
+							<!-- Tablo Başlıkları -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="SİNYAL ADI" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="KUKA TAG" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="2" Text="ROBOT 1" FontSize="9" FontWeight="Bold" Foreground="#0078D4" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="3" Text="ROBOT 2" FontSize="9" FontWeight="Bold" Foreground="#FF9800" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								<TextBlock Grid.Column="4" Text="AÇIKLAMA" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+							</Grid>
+
+							<Border Height="1" Background="#333"/>
+
+							<!-- $DRIVES_ON -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="Sürücüler" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$DRIVES_ON" FontSize="10" Foreground="#4CAF50" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1DrivesOn" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2DrivesOn" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="Motor sürücüleri aktif durumu" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+							<!-- $STOPMESS (E-STOP) -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="E-STOP" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$STOPMESS" FontSize="10" Foreground="#F44336" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1EmergencyStop" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2EmergencyStop" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="Acil stop sinyali" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+							<!-- $PERI_RDY -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="Peripheral" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$PERI_RDY" FontSize="10" Foreground="#4CAF50" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1PeripheralReady" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2PeripheralReady" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="Peripheral cihaz hazır durumu" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+							<!-- $USER_SAF -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="User Safety" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$USER_SAF" FontSize="10" Foreground="#FF9800" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1UserSafety" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2UserSafety" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="Kullanıcı güvenlik sinyali" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+							<!-- $ALARM_STOP -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="Alarm Stop" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$ALARM_STOP" FontSize="10" Foreground="#F44336" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1AlarmStop" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2AlarmStop" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="Alarm stop tetikleyicisi" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+							<!-- $ROB_RDY -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="Robot Ready" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$ROB_RDY" FontSize="10" Foreground="#4CAF50" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1RobotReady" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2RobotReady" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="Robot hazır durumu" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+							<!-- Çalışma Modu -->
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="140"/>
+									<ColumnDefinition Width="120"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="80"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="Çalışma Modu" FontSize="10" Foreground="#CCC" FontFamily="Consolas"/>
+								<TextBlock Grid.Column="1" Text="$MODE_OP" FontSize="10" Foreground="#2196F3" FontFamily="Consolas"/>
+								<Border Grid.Column="2" x:Name="SafeR1Mode" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<Border Grid.Column="3" x:Name="SafeR2Mode" Background="#333" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+									<TextBlock Text="---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+								</Border>
+								<TextBlock Grid.Column="4" Text="T1 / T2 / AUT / EXT" FontSize="9" Foreground="#666" FontFamily="Consolas"/>
+							</Grid>
+
+						</StackPanel>
 					</Grid>
 				</Border>
 

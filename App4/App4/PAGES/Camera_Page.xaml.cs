@@ -402,6 +402,27 @@ namespace App4.PAGES
             ? new SolidColorBrush(Microsoft.UI.Colors.LimeGreen)
             : new SolidColorBrush(Microsoft.UI.Colors.Orange);
 
+        // --- TABLA DEĞER LİMİTİ ---
+        public double TablaValueLimit
+        {
+            get => App4.Utilities.GlobalData.TablaAlarmLimit;
+            set
+            {
+                if (Math.Abs(App4.Utilities.GlobalData.TablaAlarmLimit - value) > 0.0001)
+                {
+                    App4.Utilities.GlobalData.TablaAlarmLimit = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private void NbTablaValueLimit_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (double.IsNaN(args.NewValue)) return;
+            TablaValueLimit = args.NewValue;
+            AddLog($"Tabla değer limiti güncellendi: {args.NewValue:F1} mm");
+        }
+
         // --- WATCHER YÖNETİMİ ---
         private PlcVariable _watchedRfidVar;
         private PlcVariable _watchedIndexVar;

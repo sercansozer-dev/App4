@@ -369,6 +369,9 @@ namespace App4.Pages
 
             // Referans tablosundaki canlı sinyalleri güncelle
             UpdateRefLiveSignals();
+
+            // Safety sinyalleri tablosunu güncelle
+            UpdateSafetySignalsTable();
         }
 
         // ═══ REFERANS TABLOSU CANLI SİNYAL GÜNCELLEMESİ ═══
@@ -427,6 +430,75 @@ namespace App4.Pages
                     SetRefText(RefR2HataVar, r2HataVar, hataColor2);
                     SetRefText(RefR2HataKodu, r2HataKodu, hataColor2);
                     SetRefDot(RefR2StatusDot, dotColor2);
+                }
+            }
+            catch { }
+        }
+
+        // ═══ SAFETY SİNYALLERİ TABLO GÜNCELLEMESİ ═══
+        private void UpdateSafetySignalsTable()
+        {
+            try
+            {
+                var robots = KukaRobotManager.Instance.Robots;
+
+                if (robots.Count > 0)
+                {
+                    var r1 = robots[0];
+                    SetSafetyCell(SafeR1DrivesOn, r1.DrivesOn, "ON", "OFF");
+                    SetSafetyCell(SafeR1EmergencyStop, r1.EmergencyStop, "AKTİF", "PASİF", true);
+                    SetSafetyCell(SafeR1PeripheralReady, r1.PeripheralReady, "Hazır", "Bekle");
+                    SetSafetyCell(SafeR1UserSafety, r1.UserSafety, "OK", "Uyarı");
+                    SetSafetyCell(SafeR1AlarmStop, r1.AlarmStop, "AKTİF", "OK", true);
+                    SetSafetyCell(SafeR1RobotReady, r1.RobotReady, "Hazır", "Değil");
+                    SetSafetyCellText(SafeR1Mode, r1.OperationModeText, "#2196F3");
+                }
+
+                if (robots.Count > 1)
+                {
+                    var r2 = robots[1];
+                    SetSafetyCell(SafeR2DrivesOn, r2.DrivesOn, "ON", "OFF");
+                    SetSafetyCell(SafeR2EmergencyStop, r2.EmergencyStop, "AKTİF", "PASİF", true);
+                    SetSafetyCell(SafeR2PeripheralReady, r2.PeripheralReady, "Hazır", "Bekle");
+                    SetSafetyCell(SafeR2UserSafety, r2.UserSafety, "OK", "Uyarı");
+                    SetSafetyCell(SafeR2AlarmStop, r2.AlarmStop, "AKTİF", "OK", true);
+                    SetSafetyCell(SafeR2RobotReady, r2.RobotReady, "Hazır", "Değil");
+                    SetSafetyCellText(SafeR2Mode, r2.OperationModeText, "#2196F3");
+                }
+            }
+            catch { }
+        }
+
+        private void SetSafetyCell(Border cell, bool value, string trueText, string falseText, bool invertColor = false)
+        {
+            if (cell == null) return;
+            bool isGood = invertColor ? !value : value;
+            string bgColor = isGood ? "#1B3A1B" : "#3A1B1B";
+            string fgColor = isGood ? "#4CAF50" : "#F44336";
+            string text = value ? trueText : falseText;
+
+            try
+            {
+                cell.Background = new SolidColorBrush(ParseColor(bgColor));
+                if (cell.Child is TextBlock tb)
+                {
+                    tb.Text = text;
+                    tb.Foreground = new SolidColorBrush(ParseColor(fgColor));
+                }
+            }
+            catch { }
+        }
+
+        private void SetSafetyCellText(Border cell, string text, string color)
+        {
+            if (cell == null) return;
+            try
+            {
+                cell.Background = new SolidColorBrush(ParseColor("#1B2A3A"));
+                if (cell.Child is TextBlock tb)
+                {
+                    tb.Text = text ?? "---";
+                    tb.Foreground = new SolidColorBrush(ParseColor(color));
                 }
             }
             catch { }

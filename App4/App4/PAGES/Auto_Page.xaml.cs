@@ -22,6 +22,8 @@ namespace App4
         public ObservableCollection<StationViewModel> Stations => GlobalData.Stations;
 
         public ObservableCollection<App4.Utilities.SystemCheckItem> SystemCheckList => GlobalData.SystemCheckList;
+        public ObservableCollection<App4.Utilities.SafetyCheckItem> SafetyAlarmList => GlobalData.SafetyAlarmList;
+        public ObservableCollection<App4.Utilities.SafetyCheckItem> SafetyWarningList => GlobalData.SafetyWarningList;
         public ObservableCollection<PlcVariable> GeneralInputVars => GlobalData.GeneralInputVars;
         public ObservableCollection<PlcVariable> GeneralOutputVars => GlobalData.GeneralOutputVars;
         public ObservableCollection<PlcVariable> Station1Vars => GlobalData.Station1Vars;
@@ -35,6 +37,102 @@ namespace App4
         public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableModels { get; set; } = new();
+
+        // --- SAFETY ALARM ÇIKIŞ TAG SEÇİMİ ---
+        public string SafetyAlarmR1OutputTag
+        {
+            get => GlobalData.SafetyAlarmR1OutputTag;
+            set { if (GlobalData.SafetyAlarmR1OutputTag != value) { GlobalData.SafetyAlarmR1OutputTag = value; } }
+        }
+
+        public string SafetyAlarmR2OutputTag
+        {
+            get => GlobalData.SafetyAlarmR2OutputTag;
+            set { if (GlobalData.SafetyAlarmR2OutputTag != value) { GlobalData.SafetyAlarmR2OutputTag = value; } }
+        }
+
+        private void ComboSafetyAlarmOutput_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cmb && cmb.SelectedItem is string selectedTag)
+            {
+                if (cmb.Name == "ComboSafetyAlarmR1Output")
+                    GlobalData.SafetyAlarmR1OutputTag = selectedTag;
+                else if (cmb.Name == "ComboSafetyAlarmR2Output")
+                    GlobalData.SafetyAlarmR2OutputTag = selectedTag;
+            }
+        }
+
+        // Alarm tetiklendiğinde seçili tag'lere TRUE, temizlendiğinde FALSE yazar
+        private bool _lastSafetyAlarmState = false;
+        private async void WriteSafetyAlarmOutputs(bool alarmActive)
+        {
+            if (_lastSafetyAlarmState == alarmActive) return;
+            _lastSafetyAlarmState = alarmActive;
+
+            string value = alarmActive ? "TRUE" : "FALSE";
+            string r1Tag = GlobalData.SafetyAlarmR1OutputTag;
+            string r2Tag = GlobalData.SafetyAlarmR2OutputTag;
+
+            if (!string.IsNullOrEmpty(r1Tag))
+            {
+                try { await WriteToRobotTagAsync(r1Tag, value); } catch { }
+            }
+            if (!string.IsNullOrEmpty(r2Tag))
+            {
+                try { await WriteToRobotTagAsync(r2Tag, value); } catch { }
+            }
+
+            if (alarmActive)
+                AddLog($"⚠ SAFETY ALARM ÇIKIŞ: {r1Tag} + {r2Tag} = TRUE", "Red");
+            else
+                AddLog($"✓ SAFETY ALARM TEMİZ: {r1Tag} + {r2Tag} = FALSE", "Green");
+        }
+
+        /// <summary>
+        /// R1:/R2: prefix'li veya prefix'siz tag'e değer yazar.
+        /// "R1:G_XXX" → Robot 1'e G_XXX yazar, "R2:G_YYY" → Robot 2'ye G_YYY yazar.
+        /// Prefix yoksa WriteToAllRobotsAsync ile tüm robotlara yazar.
+        /// </summary>
+        private async Task WriteToRobotTagAsync(string tagName, string value)
+        {
+            if (string.IsNullOrEmpty(tagName)) return;
+
+            // R1:/R2: prefix parse
+            if (tagName.Length > 3 && tagName[0] == 'R' && tagName[2] == ':')
+            {
+                if (int.TryParse(tagName.Substring(1, 1), out int robotNo) && robotNo >= 1)
+                {
+                    string varName = tagName.Substring(3); // "R1:G_XXX" → "G_XXX"
+                    var robots = KukaRobotManager.Instance?.Robots;
+                    if (robots != null && robotNo <= robots.Count)
+                    {
+                        var robot = robots[robotNo - 1];
+                        if (robot.IsConnected)
+                        {
+                            // Robot output var güncelle
+                            var outVar = robot.OutputVars.FirstOrDefault(v => v.Name == varName);
+                            if (outVar != null) outVar.CurrentValue = value;
+
+                            // KRL tag bul ve yaz
+                            string krlTag = varName;
+                            var matchVar = robot.OutputVars.FirstOrDefault(v => v.Name == varName)
+                                        ?? robot.InputVars.FirstOrDefault(v => v.Name == varName);
+                            if (matchVar != null && !string.IsNullOrEmpty(matchVar.PlcTag))
+                                krlTag = matchVar.PlcTag;
+
+                            await robot.WriteVariableAsync(krlTag, value);
+                        }
+                    }
+                    return;
+                }
+            }
+
+            // Prefix yoksa tüm robotlara yaz
+            await GlobalData.WriteToAllRobotsAsync(tagName, value);
+        }
+
+        // --- SAFETY SİNYAL GÜNCELLEME TIMER'I ---
+        private DispatcherTimer _safetySignalTimer;
 
         // --- ARIZA MÜHÜRLEME (LATCHING) DEĞİŞKENLERİ ---
         private bool _isLatchedFault = false;
@@ -56,6 +154,9 @@ namespace App4
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
+            // Safety timer durdur
+            _safetySignalTimer?.Stop();
+
             foreach (var s in Stations)
             {
                 s.PropertyChanged -= Station_PropertyChanged;
@@ -215,6 +316,22 @@ namespace App4
 
             // 7. Robot Durum İzleme Panelini Bağla
             InitializeRobotStatusMonitoring();
+
+            // 8. Safety Çalışma Koşulları Panelini Bağla
+            InitializeSafetyConditionsPanel();
+
+            // 9. Safety Sinyal Timer — Robot VarProxy sinyallerini periyodik güncelle
+            if (_safetySignalTimer == null)
+            {
+                _safetySignalTimer = new DispatcherTimer();
+                _safetySignalTimer.Interval = TimeSpan.FromSeconds(1);
+                _safetySignalTimer.Tick += (s, args) =>
+                {
+                    UpdateSafetySignalLeds();
+                    UpdateLineStatusVisuals();
+                };
+            }
+            _safetySignalTimer.Start();
         }
 
         private void InitializeRobotSliderPositions()
@@ -1275,7 +1392,31 @@ namespace App4
                             if (!string.IsNullOrEmpty(v.Name))
                                 AvailableOutputPlcTags.Add($"R{i + 1}:{v.Name}");
                     }
+
+                    // KUKA VarProxy Safety Tag'leri — doğrudan robot property'lerinden okunur
+                    if (robots.Count > 0)
+                    {
+                        AvailableInputPlcTags.Add("$STOPMESS");
+                        AvailableInputPlcTags.Add("$DRIVES_ON");
+                        AvailableInputPlcTags.Add("$USER_SAF");
+                        AvailableInputPlcTags.Add("$PERI_RDY");
+                        AvailableInputPlcTags.Add("$ALARM_STOP");
+                        AvailableInputPlcTags.Add("$ROB_RDY");
+                    }
                 }
+            }
+            catch { }
+
+            // Safety Alarm çıkış tag seçimlerini geri yükle
+            try
+            {
+                string r1Tag = GlobalData.SafetyAlarmR1OutputTag;
+                if (!string.IsNullOrEmpty(r1Tag) && AvailableOutputPlcTags.Contains(r1Tag))
+                    ComboSafetyAlarmR1Output.SelectedItem = r1Tag;
+
+                string r2Tag = GlobalData.SafetyAlarmR2OutputTag;
+                if (!string.IsNullOrEmpty(r2Tag) && AvailableOutputPlcTags.Contains(r2Tag))
+                    ComboSafetyAlarmR2Output.SelectedItem = r2Tag;
             }
             catch { }
         }
@@ -1463,9 +1604,18 @@ namespace App4
         // GENİŞLETİLDİ: GeneralInputVars + PlcService + Robot InputVars değişkenlerinde arar
         private bool IsConditionMet(string varName, bool expectedTrue)
         {
+            // ══════ ROBOT VARPROXY SAFETY TAG KONTROLÜ ══════
+            // $STOPMESS, $DRIVES_ON vb. tag'ler doğrudan robot property'lerinden okunur
+            // Tüm bağlı robotlar için kontrol eder (herhangi birinde koşul sağlanmıyorsa false döner)
+            var robotSafetyValue = GetRobotSafetyValue(varName);
+            if (robotSafetyValue.HasValue)
+            {
+                return expectedTrue ? robotSafetyValue.Value : !robotSafetyValue.Value;
+            }
+
+            // ══════ ROBOT INPUT VARS (R1:xxx, R2:xxx prefix) ══════
             PlcVariable variable = null;
 
-            // 0. Robot prefix kontrolü (R1:xxx, R2:xxx)
             if (varName.StartsWith("R") && varName.Contains(":"))
             {
                 var parts = varName.Split(':', 2);
@@ -1507,11 +1657,84 @@ namespace App4
             return expectedTrue ? isTrue : !isTrue;
         }
 
+        /// <summary>
+        /// KUKA VarProxy safety tag'lerini doğrudan robot property'lerinden okur.
+        /// Tüm bağlı robotlar için kontrol eder.
+        /// $STOPMESS → EmergencyStop (ters mantık: TRUE=kötü)
+        /// $DRIVES_ON → DrivesOn
+        /// $USER_SAF → UserSafety
+        /// $PERI_RDY → PeripheralReady
+        /// $ALARM_STOP → AlarmStop (TRUE=iyi, FALSE=alarm)
+        /// $ROB_RDY → RobotReady
+        /// </summary>
+        private bool? GetRobotSafetyValue(string tagName)
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null || robots.Count == 0) return null;
+
+            // Tag adı eşleştirme (büyük/küçük harf duyarsız)
+            string tag = tagName.Trim().ToUpper();
+
+            Func<KukaRobotInstance, bool> getter = tag switch
+            {
+                "$STOPMESS" => r => !r.EmergencyStop,      // TRUE=stop aktif → koşul SAĞLANMAMIŞ
+                "$DRIVES_ON" => r => r.DrivesOn,
+                "$USER_SAF" => r => r.UserSafety,
+                "$PERI_RDY" => r => r.PeripheralReady,
+                "$ALARM_STOP" => r => r.AlarmStop,          // TRUE=OK, FALSE=alarm
+                "$ROB_RDY" => r => r.RobotReady,
+                _ => null
+            };
+
+            if (getter == null) return null;
+
+            // Tüm bağlı robotlarda kontrol — herhangi birinde koşul sağlanmıyorsa false
+            foreach (var robot in robots)
+            {
+                if (!robot.IsConnected) continue;
+                if (!getter(robot)) return false;
+            }
+
+            return true;
+        }
+
+        // --- SAFETY KOŞUL KONTROLÜ (Sadece ALARM grubu → sistemi durdurur) ---
+        private string CheckSafetyConditions()
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null) return null;
+
+            // Sabit ALARM sinyalleri: Sadece $ALARM_STOP
+            for (int i = 0; i < robots.Count; i++)
+            {
+                var r = robots[i];
+                if (!r.IsConnected) continue;
+                string prefix = $"R{i + 1}";
+
+                if (!r.AlarmStop) return $"{prefix} ACİL STOP PASİF";
+            }
+
+            // Kullanıcı tanımlı ALARM koşulları
+            foreach (var check in GlobalData.SafetyAlarmList)
+            {
+                if (!IsConditionMet(check.TagName, true))
+                {
+                    return check.ErrorMessage;
+                }
+            }
+
+            return null; // Tüm ALARM koşulları OK
+        }
+
         // --- CANLI DURUM VE ÖN KOŞUL KONTROLÜ ---
         private void UpdateLineStatusVisuals()
         {
             bool isRunning = IsConditionMet("LINE_RUNNING", true);
             string physicalErrorMessage = null;
+            string safetyErrorMessage = null;
+
+            // 0. SAFETY KOŞUL KONTROLÜ (Sabit robot sinyalleri + kullanıcı tanımlı)
+            safetyErrorMessage = CheckSafetyConditions();
 
             // 1. FİZİKSEL DURUM KONTROLÜ (SystemCheckList + İstasyonlar)
             foreach (var check in GlobalData.SystemCheckList)
@@ -1537,6 +1760,37 @@ namespace App4
                     physicalErrorMessage = "İSTASYON ARIZASI (İSTASYONLARI KONTROL EDİN)";
                 }
             }
+
+            // 1d. SAFETY KOŞUL HATASI → fiziksel hataya yansıt
+            if (string.IsNullOrEmpty(physicalErrorMessage) && safetyErrorMessage != null)
+            {
+                physicalErrorMessage = safetyErrorMessage;
+            }
+
+            // --- SAFETY SİNYAL LED GÜNCELLEMESİ ---
+            UpdateSafetySignalLeds();
+
+            // --- SAFETY OK GÖSTERGE GÜNCELLEMESİ ---
+            if (safetyErrorMessage == null)
+            {
+                CheckSafetyBorder.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 37, 37, 40));
+                CheckSafetyIcon.Glyph = "\uE7BA";
+                CheckSafetyIcon.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 102, 102, 102));
+                CheckSafetyText.Text = "OK";
+                CheckSafetyText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 102, 102, 102));
+            }
+            else
+            {
+                CheckSafetyBorder.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkRed);
+                CheckSafetyIcon.Glyph = "\uE7BA";
+                CheckSafetyIcon.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                CheckSafetyText.Text = "HATA";
+                CheckSafetyText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+            }
+
+            // ═══ SAFETY ALARM ÇIKIŞ SİNYALİ ═══
+            // Herhangi bir alarm koşulu tetiklendiğinde seçili tag'lere TRUE yaz
+            WriteSafetyAlarmOutputs(safetyErrorMessage != null);
 
             // 2. ARIZA MÜHÜRLEME (LATCHING) VE OTOMATİK DURDURMA MANTIĞI
             if (physicalErrorMessage != null)
@@ -2088,6 +2342,86 @@ namespace App4
             }
         }
 
+        // ═══ SAFETY ALARM EKLEME / SİLME ═══
+        private void BtnAddSafetyAlarm_Click(object sender, RoutedEventArgs e)
+        {
+            if (ComboSafetyAlarmTag.SelectedItem is not string selectedTag)
+            {
+                AddLog("HATA: Lütfen listeden bir PLC Input seçiniz.", "Orange");
+                return;
+            }
+            if (string.IsNullOrEmpty(TxtSafetyAlarmMsg.Text))
+            {
+                AddLog("HATA: Lütfen bir alarm mesajı yazınız.", "Orange");
+                return;
+            }
+            try
+            {
+                GlobalData.SafetyAlarmList.Add(new App4.Utilities.SafetyCheckItem
+                {
+                    TagName = selectedTag,
+                    ErrorMessage = TxtSafetyAlarmMsg.Text.ToUpper()
+                });
+                GlobalData.SaveSafetyAlarms();
+                TxtSafetyAlarmMsg.Text = "";
+                UpdateLineStatusVisuals();
+                AddLog($"Safety Alarm Eklendi: {selectedTag}", "Green");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Ekleme Hatası: {ex.Message}", "Red");
+            }
+        }
+
+        private void BtnDeleteSafetyAlarm_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.DataContext is App4.Utilities.SafetyCheckItem item)
+            {
+                GlobalData.SafetyAlarmList.Remove(item);
+                GlobalData.SaveSafetyAlarms();
+                UpdateLineStatusVisuals();
+            }
+        }
+
+        // ═══ SAFETY UYARI EKLEME / SİLME ═══
+        private void BtnAddSafetyWarning_Click(object sender, RoutedEventArgs e)
+        {
+            if (ComboSafetyWarningTag.SelectedItem is not string selectedTag)
+            {
+                AddLog("HATA: Lütfen listeden bir PLC Input seçiniz.", "Orange");
+                return;
+            }
+            if (string.IsNullOrEmpty(TxtSafetyWarningMsg.Text))
+            {
+                AddLog("HATA: Lütfen bir uyarı mesajı yazınız.", "Orange");
+                return;
+            }
+            try
+            {
+                GlobalData.SafetyWarningList.Add(new App4.Utilities.SafetyCheckItem
+                {
+                    TagName = selectedTag,
+                    ErrorMessage = TxtSafetyWarningMsg.Text.ToUpper()
+                });
+                GlobalData.SaveSafetyWarnings();
+                TxtSafetyWarningMsg.Text = "";
+                AddLog($"Safety Uyarı Eklendi: {selectedTag}", "Green");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"Ekleme Hatası: {ex.Message}", "Red");
+            }
+        }
+
+        private void BtnDeleteSafetyWarning_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.DataContext is App4.Utilities.SafetyCheckItem item)
+            {
+                GlobalData.SafetyWarningList.Remove(item);
+                GlobalData.SaveSafetyWarnings();
+            }
+        }
+
         // ═══════════════════════════════════════════════════════════════
         // ROBOT DURUM İZLEME PANELİ
         // ═══════════════════════════════════════════════════════════════
@@ -2305,6 +2639,16 @@ namespace App4
                 // Mesaj metni
                 string mesajText = DecodeDurumMesaj(durumMesaj, robotNo);
 
+                // İstasyon + Aktif Nokta bilgisi ekle
+                int hedefIst = int.TryParse(GetVar("G_HEDEF_ISTASYON"), out var hi) ? hi : 0;
+                string istNoktaInfo = "";
+                if (hedefIst > 0)
+                    istNoktaInfo += $"İST-{hedefIst}";
+                if (aktifNokta > 0)
+                    istNoktaInfo += (istNoktaInfo.Length > 0 ? " | " : "") + $"Nokta: {aktifNokta}/{toplamNokta}";
+                if (!string.IsNullOrEmpty(istNoktaInfo))
+                    mesajText = $"[{istNoktaInfo}] {mesajText}";
+
                 // Hata metni
                 string hataText = "Yok";
                 string hataColor = "#4CAF50";
@@ -2387,7 +2731,12 @@ namespace App4
                 case 4: return "Oto mod - Start bekleniyor";
                 case 8: return "Manuel mod";
                 case 70: return "Hazır istasyon bekleniyor";
-                case 71: return "Sonraki istasyona geçiliyor";
+                case 71: return "İstasyon 1 seçildi - çalışılıyor";
+                case 72: return "İstasyon 2 seçildi - çalışılıyor";
+                case 73: return "İstasyon 3 seçildi - çalışılıyor";
+                case 74: return "Sonraki → İstasyon 1'e geçiliyor";
+                case 75: return "Sonraki → İstasyon 2'ye geçiliyor";
+                case 76: return "Sonraki → İstasyon 3'e geçiliyor";
                 case 99: return "HATA - Bilinmeyen klima tipi";
             }
 
@@ -2572,6 +2921,73 @@ namespace App4
             return Windows.UI.Color.FromArgb(255, 136, 136, 136);
         }
 
+
+        // ═══ SAFETY ÇALIŞMA KOŞULLARI PANELİ ═══
+        private void InitializeSafetyConditionsPanel()
+        {
+            var robots = KukaRobotManager.Instance.Robots;
+
+            foreach (var robot in robots)
+            {
+                robot.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName is nameof(KukaRobotInstance.DrivesOn)
+                        or nameof(KukaRobotInstance.AlarmStop)
+                        or nameof(KukaRobotInstance.EmergencyStop)
+                        or nameof(KukaRobotInstance.UserSafety)
+                        or nameof(KukaRobotInstance.PeripheralReady))
+                    {
+                        this.DispatcherQueue.TryEnqueue(() => UpdateSafetySignalLeds());
+                    }
+                };
+            }
+
+            UpdateSafetySignalLeds();
+        }
+
+        /// <summary>
+        /// Safety sinyal LED'lerini robotların anlık durumuna göre günceller.
+        /// Hem PropertyChanged hem UpdateLineStatusVisuals'dan çağrılır.
+        /// </summary>
+        private void UpdateSafetySignalLeds()
+        {
+            try
+            {
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots == null) return;
+
+                if (robots.Count > 0)
+                {
+                    var r1 = robots[0];
+                    UpdateSafetyRow(SafeAutoR1DrivesLed, SafeAutoR1DrivesText, r1.DrivesOn, "ON", "OFF", false);
+                    UpdateSafetyRow(SafeAutoR1EstopLed, SafeAutoR1EstopText, r1.AlarmStop, "AKTİF", "PASİF", false);
+                    UpdateSafetyRow(SafeAutoR1UserSafLed, SafeAutoR1UserSafText, r1.UserSafety, "OK", "Uyarı", false);
+                    UpdateSafetyRow(SafeAutoR1PeriLed, SafeAutoR1PeriText, r1.PeripheralReady, "Hazır", "Bekle", false);
+                }
+                if (robots.Count > 1)
+                {
+                    var r2 = robots[1];
+                    UpdateSafetyRow(SafeAutoR2DrivesLed, SafeAutoR2DrivesText, r2.DrivesOn, "ON", "OFF", false);
+                    UpdateSafetyRow(SafeAutoR2EstopLed, SafeAutoR2EstopText, r2.AlarmStop, "AKTİF", "PASİF", false);
+                    UpdateSafetyRow(SafeAutoR2UserSafLed, SafeAutoR2UserSafText, r2.UserSafety, "OK", "Uyarı", false);
+                    UpdateSafetyRow(SafeAutoR2PeriLed, SafeAutoR2PeriText, r2.PeripheralReady, "Hazır", "Bekle", false);
+                }
+            }
+            catch { }
+        }
+
+        private void UpdateSafetyRow(Microsoft.UI.Xaml.Shapes.Ellipse led, TextBlock text, bool value, string trueText, string falseText, bool invertColor)
+        {
+            if (led == null || text == null) return;
+            bool isGood = invertColor ? !value : value;
+            var color = isGood
+                ? Windows.UI.Color.FromArgb(255, 76, 175, 80)   // yeşil
+                : Windows.UI.Color.FromArgb(255, 244, 67, 54);  // kırmızı
+
+            led.Fill = new SolidColorBrush(color);
+            text.Text = value ? trueText : falseText;
+            text.Foreground = new SolidColorBrush(color);
+        }
 
     }
 }

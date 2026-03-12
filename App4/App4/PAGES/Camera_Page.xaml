@@ -1776,10 +1776,26 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="10,0" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                                    <FontIcon Glyph="&#xE975;" Foreground="#4CAF50" FontSize="16"/>
-                                    <TextBlock Text="TABLA PLC AKTARIM" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                </StackPanel>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                        <FontIcon Glyph="&#xE975;" Foreground="#4CAF50" FontSize="16"/>
+                                        <TextBlock Text="TABLA PLC AKTARIM" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
+                                        <TextBlock Text="LİMİT:" FontSize="10" Foreground="#AAA" VerticalAlignment="Center" FontWeight="Bold"/>
+                                        <NumberBox x:Name="NbTablaValueLimit"
+                                            Value="{x:Bind TablaValueLimit, Mode=TwoWay}"
+                                            Minimum="0.1" Maximum="999" SpinButtonPlacementMode="Compact"
+                                            Width="110" Height="30" FontSize="11"
+                                            PlaceholderText="mm"
+                                            ValueChanged="NbTablaValueLimit_ValueChanged"/>
+                                        <TextBlock Text="mm" FontSize="9" Foreground="#888" VerticalAlignment="Center"/>
+                                        <Border x:Name="TablaLimitAlarmIndicator" Background="#333" CornerRadius="4" Padding="6,2" VerticalAlignment="Center"
+                                                Visibility="{x:Bind utils:GlobalData.TablaAlarmActive, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="ALARM!" FontSize="9" FontWeight="Bold" Foreground="#FF4444"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
                             </Border>
 
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10">

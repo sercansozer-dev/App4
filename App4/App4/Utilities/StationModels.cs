@@ -561,6 +561,13 @@ namespace App4.Utilities
         // Helper property for display binding
         public string DisplayText => $"{TagName} -> {ErrorMessage}";
     }
+    public class SafetyCheckItem
+    {
+        public string TagName { get; set; }
+        public string ErrorMessage { get; set; }
+        public string DisplayText => $"{TagName} -> {ErrorMessage}";
+    }
+
     // --- EXTENDED STATION VIEW MODEL ---
     public class ExtendedStationViewModel : StationViewModel
     {

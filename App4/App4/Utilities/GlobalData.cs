@@ -34,6 +34,8 @@ namespace App4.Utilities
         private static readonly string _systemChecksFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "System_Checks.json");
         private static readonly string _transformedMeasurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Transformed_Measurements.json");
         private static readonly string _robotSliderMappingFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Slider_Mapping.json");
+        private static readonly string _safetyAlarmsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Safety_Alarms.json");
+        private static readonly string _safetyWarningsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Safety_Warnings.json");
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
@@ -43,6 +45,8 @@ namespace App4.Utilities
 
         public static ObservableCollection<StationViewModel> Stations { get; private set; } = new();
         public static ObservableCollection<SystemCheckItem> SystemCheckList { get; private set; } = new();
+        public static ObservableCollection<SafetyCheckItem> SafetyAlarmList { get; private set; } = new();
+        public static ObservableCollection<SafetyCheckItem> SafetyWarningList { get; private set; } = new();
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> PlcTransferRows { get; private set; } = new();
 
@@ -496,10 +500,10 @@ namespace App4.Utilities
         public static bool BoruSignalActive { get; set; } = false;
         public static bool TablaSignalActive { get; set; } = false;
 
-        // ═══ TABLA KAÇIKLIK ALARM SİSTEMİ ═══
+        // ═══ TABLA LİMİT ALARM SİSTEMİ ═══
         // Tabla ölçüm sonuçlarında herhangi bir eksen TablaAlarmLimit'i aşarsa alarm aktif olur.
-        // TABLA_KACIKLIK_ALARM output değişkeni GeneralOutputVars'ta oluşturulur → otomasyon sayfasında görünür.
-        // Kullanıcı bu değişkeni PLC/sistem alarm tag'ine eşleştirir.
+        // TABLA_LIMIT_ALARM output değişkeni GeneralOutputVars'ta oluşturulur → otomasyon sayfasında görünür.
+        // Kullanıcı bu değişkeni PLC/sistem alarm tag'ine eşleştirir. Robot'a G_TABLA_LIMIT_ALARM yazılır.
 
         private static double _tablaAlarmLimit = 5.0; // mm — varsayılan eşik
         public static double TablaAlarmLimit
@@ -522,13 +526,13 @@ namespace App4.Utilities
         /// <summary>
         /// Tabla ölçüm sonuçlarını limit kontrolünden geçirir.
         /// Herhangi bir eksen |değer| > TablaAlarmLimit ise alarm aktif eder.
-        /// TABLA_KACIKLIK_ALARM output değişkenini günceller (GeneralOutputVars).
+        /// TABLA_LIMIT_ALARM output değişkenini günceller (GeneralOutputVars).
         /// </summary>
         public static void CheckTablaAlarmLimits(List<GocatorMeasurement> measurements)
         {
             if (measurements == null || measurements.Count == 0)
             {
-                ClearTablaAlarm();
+                ClearTablaLimitAlarm();
                 return;
             }
 
@@ -553,32 +557,79 @@ namespace App4.Utilities
                 TablaAlarmMessage = $"TABLA KAÇIKLIK ALARM: {string.Join(", ", exceeded)}";
                 OnAutomationLog?.Invoke($"🚨 {TablaAlarmMessage}");
 
-                // GeneralOutputVars'taki TABLA_KACIKLIK_ALARM değişkenini güncelle
-                var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_KACIKLIK_ALARM");
+                // GeneralOutputVars'taki TABLA_LIMIT_ALARM değişkenini güncelle
+                var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_LIMIT_ALARM");
                 if (alarmVar != null) alarmVar.CurrentValue = true;
 
                 // Robot'a da bildir
-                _ = WriteToAllRobotsAsync("G_TABLA_KACIKLIK_ALARM", "TRUE");
+                _ = WriteToAllRobotsAsync("G_TABLA_LIMIT_ALARM", "TRUE");
             }
             else
             {
-                ClearTablaAlarm();
+                ClearTablaLimitAlarm();
             }
 
             OnAutomationStatusChanged?.Invoke();
         }
 
-        /// <summary>Tabla kaçıklık alarmını temizle</summary>
-        public static void ClearTablaAlarm()
+        /// <summary>
+        /// Tabla aktarım tablosundaki değerleri limit kontrolünden geçirir.
+        /// Herhangi bir değer |value| > TablaAlarmLimit ise TABLA_LIMIT_ALARM aktif olur.
+        /// </summary>
+        public static void CheckTablaTransferLimits(ObservableCollection<PlcTransferItem> transferRows, List<object> values)
+        {
+            if (values == null || values.Count == 0)
+            {
+                ClearTablaLimitAlarm();
+                return;
+            }
+
+            double limit = TablaAlarmLimit;
+            var exceeded = new List<string>();
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (!double.TryParse(values[i]?.ToString(), out double val)) continue;
+                double absVal = Math.Abs(val);
+                if (absVal > limit)
+                {
+                    string tag = (i < transferRows.Count && !string.IsNullOrEmpty(transferRows[i].SelectedTag))
+                        ? transferRows[i].SelectedTag
+                        : $"Satır {i + 1}";
+                    exceeded.Add($"{tag}={val:F3} (limit:{limit:F1})");
+                }
+            }
+
+            if (exceeded.Count > 0)
+            {
+                TablaAlarmActive = true;
+                TablaAlarmMessage = $"TABLA DEĞER LİMİT AŞIMI: {string.Join(", ", exceeded)}";
+                OnAutomationLog?.Invoke($"🚨 {TablaAlarmMessage}");
+
+                // TABLA_LIMIT_ALARM güncelle
+                var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_LIMIT_ALARM");
+                if (alarmVar != null) alarmVar.CurrentValue = true;
+
+                _ = WriteToAllRobotsAsync("G_TABLA_LIMIT_ALARM", "TRUE");
+            }
+            else
+            {
+                ClearTablaLimitAlarm();
+            }
+
+            OnAutomationStatusChanged?.Invoke();
+        }
+
+        /// <summary>Tabla limit alarmını temizle</summary>
+        public static void ClearTablaLimitAlarm()
         {
             TablaAlarmActive = false;
             TablaAlarmMessage = "";
 
-            var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_KACIKLIK_ALARM");
+            var alarmVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "TABLA_LIMIT_ALARM");
             if (alarmVar != null) alarmVar.CurrentValue = false;
 
-            // Robot alarm sıfırla
-            _ = WriteToAllRobotsAsync("G_TABLA_KACIKLIK_ALARM", "FALSE");
+            _ = WriteToAllRobotsAsync("G_TABLA_LIMIT_ALARM", "FALSE");
         }
 
         // --- ROBOT BAĞLANTI AYARLARI ---
@@ -751,6 +802,22 @@ namespace App4.Utilities
             }
         }
 
+        // ═══ SAFETY ALARM ÇIKIŞ TAG'LERİ ═══
+        // Alarm tablosundaki herhangi bir sinyal tetiklendiğinde bu tag'lere TRUE yazılır.
+        private static string _safetyAlarmR1OutputTag = "";
+        public static string SafetyAlarmR1OutputTag
+        {
+            get => _safetyAlarmR1OutputTag;
+            set { if (_safetyAlarmR1OutputTag != value) { _safetyAlarmR1OutputTag = value ?? ""; SaveAutomationSettings(); } }
+        }
+
+        private static string _safetyAlarmR2OutputTag = "";
+        public static string SafetyAlarmR2OutputTag
+        {
+            get => _safetyAlarmR2OutputTag;
+            set { if (_safetyAlarmR2OutputTag != value) { _safetyAlarmR2OutputTag = value ?? ""; SaveAutomationSettings(); } }
+        }
+
         private static int _robotConnectedCount;
         public static int RobotConnectedCount
         {
@@ -796,6 +863,8 @@ namespace App4.Utilities
             // NOT: LoadPlcVariableTagsFromFile() artık InitializeVariables() içinde çağrılıyor.
             // İkinci kez çağrılırsa dosyadan RB1/RB2 gibi kaldırılmış değişkenleri geri yükler.
             LoadSystemChecks();
+            LoadSafetyAlarms();
+            LoadSafetyWarnings();
             LoadMeasurements();
             LoadTransformedMeasurements();
             LoadTransferRows();
@@ -916,6 +985,12 @@ namespace App4.Utilities
         // --- METOTLAR ---
         public static void SaveSystemChecks() { try { string json = System.Text.Json.JsonSerializer.Serialize(SystemCheckList, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_systemChecksFilePath, json); } catch { } }
         private static void LoadSystemChecks() { try { if (File.Exists(_systemChecksFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<SystemCheckItem>>(File.ReadAllText(_systemChecksFilePath)); if (list != null) foreach (var item in list) SystemCheckList.Add(item); } } catch { } }
+
+        public static void SaveSafetyAlarms() { try { string json = System.Text.Json.JsonSerializer.Serialize(SafetyAlarmList, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_safetyAlarmsFilePath, json); } catch { } }
+        private static void LoadSafetyAlarms() { try { if (File.Exists(_safetyAlarmsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<SafetyCheckItem>>(File.ReadAllText(_safetyAlarmsFilePath)); if (list != null) foreach (var item in list) SafetyAlarmList.Add(item); } } catch { } }
+
+        public static void SaveSafetyWarnings() { try { string json = System.Text.Json.JsonSerializer.Serialize(SafetyWarningList, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_safetyWarningsFilePath, json); } catch { } }
+        private static void LoadSafetyWarnings() { try { if (File.Exists(_safetyWarningsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<SafetyCheckItem>>(File.ReadAllText(_safetyWarningsFilePath)); if (list != null) foreach (var item in list) SafetyWarningList.Add(item); } } catch { } }
 
         public static void SaveMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_measurementsFilePath, json); } catch { } }
         private static void LoadMeasurements() { try { if (File.Exists(_measurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath)); if (list != null) { LastMeasurements.Clear(); foreach (var item in list) LastMeasurements.Add(item); } } } catch { } }
@@ -1063,6 +1138,12 @@ namespace App4.Utilities
             // Böylece PLC bağlanmadan önce istasyonlar "alarm yok" durumunda başlar
             void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); c.Add(Create($"ST{id}_YENI_URUN", "BOOL", "Input", false)); c.Add(Create($"ST{id}_ISLEM_BITTI", "BOOL", "Input", false)); }
             void AddOutputs(ObservableCollection<PlcVariable> c, int id) { c.Add(new PlcVariable { Name = $"ST{id}_RFID_MODE", Value = "0", Description = "RFID Mod", PlcTag = $"DB10.W{(id - 1) * 20}.0" }); c.Add(new PlcVariable { Name = $"ST{id}_RFID_TARGET", Value = "", Type="STRING", Description = "Hedef RFID", PlcTag = $"DB10.S{(id - 1) * 20}.4" }); c.Add(new PlcVariable { Name = $"ST{id}_ID_MATCHED", Value = "0", Description = "ID Eşleşti", PlcTag = $"DB10.W{(id - 1) * 20}.20" }); c.Add(new PlcVariable { Name = $"ST{id}_PROCESS_RESULT", Value = "0", Description = "Sonuç", PlcTag = $"DB10.W{(id - 1) * 20}.22" }); c.Add(new PlcVariable { Name = $"ST{id}_CONVEYOR_PERM", Value = "0", Description = "Konveyör", PlcTag = $"DB10.W{(id - 1) * 20}.24" }); c.Add(new PlcVariable { Name = $"ST{id}_MODE_CMD", Value = "1", Description = "Mod Cmd", PlcTag = $"DB10.W{(id - 1) * 20}.26" }); }
+            // ═══════════════════════════════════════════════════════════════════════════
+            // GeneralInputVars / GeneralOutputVars: PLC ↔ PC (Robot DEĞİL)
+            // Bu koleksiyonlar SADECE PLC/genel sistem sinyalleri içerir.
+            // Robot sinyalleri (G_ prefix) burada OLMAMALIDIR.
+            // Otomasyon sayfasındaki "Genel Değişkenler" tablosunda görünür.
+            // ═══════════════════════════════════════════════════════════════════════════
             GeneralInputVars.Add(Create("SLIDER_POS_ACT", "WORD", "Input", "0"));
             GeneralInputVars.Add(Create("ROBOT_SPEED", "WORD", "Input", "100"));
             GeneralInputVars.Add(Create("GOCATOR_STATUS", "STRING", "Input", "READY"));
@@ -1088,8 +1169,8 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("AKTUEL_RFID", "STRING", "Output", ""));            // Aktüel RFID Id string değeri
             GeneralOutputVars.Add(Create("SNIFFER_OLCUM_SURE", "REAL", "Output", "0"));       // Seçili index'in sniffer ölçüm süresi (ms)
             GeneralOutputVars.Add(Create("NOKTA_SAPMA_LIMIT", "REAL", "Output", "0"));       // Seçili index'in nokta sapma limiti (mm)
-            // ▼▼▼ TABLA KAÇIKLIK ALARM ▼▼▼
-            GeneralOutputVars.Add(Create("TABLA_KACIKLIK_ALARM", "BOOL", "Output", false));   // Tabla kaçıklık limiti aşıldığında TRUE olur
+            // ▼▼▼ TABLA LİMİT ALARM ▼▼▼
+            GeneralOutputVars.Add(Create("TABLA_LIMIT_ALARM", "BOOL", "Output", false));   // Tabla kaçıklık/değer limiti aşıldığında TRUE → G_TABLA_LIMIT_ALARM
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)
@@ -1118,14 +1199,37 @@ namespace App4.Utilities
             // (Bu değişkenler artık sadece PlcService.EnsureRobotBridgeVariables'da yönetiliyor)
             var robotVarsToRemove = GeneralOutputVars.Where(v => v.Name.StartsWith("RB1_") || v.Name.StartsWith("RB2_")).ToList();
             foreach (var rv in robotVarsToRemove) GeneralOutputVars.Remove(rv);
+
+            // ▼▼▼ Temizlik: Kaldırılan R1/R2_ROBOT_SAFETY değişkenlerini GeneralInputVars'tan da temizle ▼▼▼
+            var safetyVarsToRemove = GeneralInputVars.Where(v => v.Name == "R1_ROBOT_SAFETY" || v.Name == "R2_ROBOT_SAFETY").ToList();
+            foreach (var sv in safetyVarsToRemove) GeneralInputVars.Remove(sv);
+
+            // ▼▼▼ Temizlik: Eski TABLA_KACIKLIK_ALARM ve TABLA_DEGER_LIMIT_ASIMI kaldırıldı → tek TABLA_LIMIT_ALARM ▼▼▼
+            var oldTablaVars = GeneralOutputVars.Where(v => v.Name == "TABLA_KACIKLIK_ALARM" || v.Name == "TABLA_DEGER_LIMIT_ASIMI").ToList();
+            foreach (var tv in oldTablaVars) GeneralOutputVars.Remove(tv);
             
-            // ═══════════════════════════════════════════════════════════════
-            // ROBOT → PLC DEĞİŞKENLERİ (Input - Robottan gelen sinyaller)
+            // ═══════════════════════════════════════════════════════════════════════════
+            // RobotInputVars: Robot → PC (Robot'tan OKUNAN değerler)
             // $CONFIG.dat USER GLOBALS ile birebir eşleşir
-            // ═══════════════════════════════════════════════════════════════
+            // ─────────────────────────────────────────────────────────────────────────
+            // SİNYAL YÖN HARİTASI:
+            //   • Salt Input (Robot→PC): G_ROBOT_DURUM, G_IS_BITTI, G_HATA_*, G_AKTIF_NOKTA,
+            //     G_TOPLAM_NOKTA, G_NOK_*, G_JOB_INDEX, G_OLCUM_TETIK, G_DURUM_MESAJ,
+            //     G_R1/R2_HOME, G_SNIFFER_OLCUM_*, G_AKTIF_CIZGI, G_TOPLAM_CIZGI,
+            //     G_SLIDER_TAMAM, G_SLIDER_HOME, G_SLIDER_AKTUEL_POZ
+            //
+            //   • Handshake (hem Input hem Output'ta — PC yazar, robot sıfırlar, PC okur):
+            //     G_BORU_OLCUM_TAMAM, G_TABLA_OLCUM_TAMAM, G_OLCUM_OK,
+            //     G_RESET, G_SLIDER_HAREKET, G_TABLA_OFFSET_HAZIR
+            //
+            //   • Geri-okuma kopyaları (PC'nin yazdığı değerin Input'ta izlenmesi):
+            //     G_OFFSET_X/Y/Z/A/B/C, G_TABLA_OFFSET_X/Y/Z/A/B/C,
+            //     G_KLIMA_TIP, G_KLIMA_ADET, G_SNIFFER_READY, G_SNIFFER_DEGER
+            //     NOT: Bu kopyalar kaldırılabilir ama mevcut tag eşleşmeleri bozulabilir.
+            // ═══════════════════════════════════════════════════════════════════════════
             if (RobotInputVars.Count == 0)
             {
-                // --- ROBOT GENEL DURUM ---
+                // --- ROBOT GENEL DURUM (Salt Input: Robot→PC) ---
                 RobotInputVars.Add(Create("G_ROBOT_DURUM", "INT", "Input", 0));          // R1: 0=Bosta 1=Calisiyor 2=Hata 10-12=Gocator 50-51=Tabla | R2: 5=Timeout 10-11=TablaOffset 20-22=Sniffer 30-31=Slider
                 RobotInputVars.Add(Create("G_IS_BITTI", "BOOL", "Input", false));         // Is tamamlandi bayragi
                 RobotInputVars.Add(Create("G_HATA_VAR", "BOOL", "Input", false));         // Hata var bayragi
@@ -1138,7 +1242,7 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_NOK_SAYISI", "INT", "Input", 0));            // Basarisiz nokta sayisi
                 RobotInputVars.Add(Create("G_NOK_NOKTA", "INT", "Input", 0));             // Son NOK olan nokta numarasi
                 RobotInputVars.Add(Create("G_NOK_BILDIRIM", "BOOL", "Input", false));     // NOK bildirimi bayragi
-                // --- GOCATOR BORU KAYNAK OFFSET ---
+                // --- GOCATOR BORU KAYNAK OFFSET (Geri-okuma: PC yazar Output'tan, burada izlenir) ---
                 RobotInputVars.Add(Create("G_OFFSET_X", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_OFFSET_Y", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_OFFSET_Z", "REAL", "Input", 0.0));
@@ -1146,12 +1250,12 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_OFFSET_B", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_OFFSET_C", "REAL", "Input", 0.0));
                 // --- GOCATOR OLCUM SISTEMI (TEKLI JOB INDEX) ---
-                RobotInputVars.Add(Create("G_JOB_INDEX", "INT", "Input", 0));             // Gocator job (0=tabla, 1..N=boru noktasi)
-                RobotInputVars.Add(Create("G_OLCUM_TETIK", "BOOL", "Input", false));      // Robot -> PC : Olcum baslat
-                RobotInputVars.Add(Create("G_BORU_OLCUM_TAMAM", "BOOL", "Input", false));  // PC -> Robot : Boru olcum tamamlandi
-                RobotInputVars.Add(Create("G_TABLA_OLCUM_TAMAM", "BOOL", "Input", false)); // PC -> Robot : Tabla olcum tamamlandi
-                RobotInputVars.Add(Create("G_OLCUM_OK", "BOOL", "Input", false));         // PC -> Robot : Sonuc OK/NOK
-                // --- GOCATOR TABLA OFFSET ---
+                RobotInputVars.Add(Create("G_JOB_INDEX", "INT", "Input", 0));             // Salt Input: Gocator job (0=tabla, 1..N=boru noktasi)
+                RobotInputVars.Add(Create("G_OLCUM_TETIK", "BOOL", "Input", false));      // Salt Input: Robot -> PC : Olcum baslat
+                RobotInputVars.Add(Create("G_BORU_OLCUM_TAMAM", "BOOL", "Input", false));  // ⇄ Handshake: PC TRUE yazar, robot FALSE'a çeker
+                RobotInputVars.Add(Create("G_TABLA_OLCUM_TAMAM", "BOOL", "Input", false)); // ⇄ Handshake: PC TRUE yazar, robot FALSE'a çeker
+                RobotInputVars.Add(Create("G_OLCUM_OK", "BOOL", "Input", false));         // ⇄ Handshake: PC sonuc yazar, robot okur
+                // --- GOCATOR TABLA OFFSET (Geri-okuma: PC yazar Output'tan, burada izlenir) ---
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_Y", "REAL", "Input", 0.0));
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_Z", "REAL", "Input", 0.0));
@@ -1160,32 +1264,39 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_C", "REAL", "Input", 0.0));
                 // --- DURUM MESAJI ---
                 RobotInputVars.Add(Create("G_DURUM_MESAJ", "INT", "Input", 0));           // Durum mesaj kodu (INT)
-                // --- RESET ---
-                RobotInputVars.Add(Create("G_RESET", "BOOL", "Input", false));            // Reset komutu bayragi
+                // --- RESET (⇄ Bidirectional: Her iki taraf tetikleyebilir) ---
+                RobotInputVars.Add(Create("G_RESET", "BOOL", "Input", false));            // ⇄ Bidirectional: Reset komutu bayragi
                 // --- SISTEM KONTROL (Her iki robot) ---
                 RobotInputVars.Add(Create("G_R1_HOME", "BOOL", "Input", false));           // Robot 1 home pozisyonunda
                 RobotInputVars.Add(Create("G_R2_HOME", "BOOL", "Input", false));           // Robot 2 home pozisyonunda
                 // --- INFICON SNIFFER OLCUM (Her iki robot) ---
                 RobotInputVars.Add(Create("G_SNIFFER_OLCUM_TETIK", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum baslat/durdur (R1 + R2)
                 RobotInputVars.Add(Create("G_SNIFFER_OLCUM_BITTI", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum tamamlandi (R1 + R2)
-                RobotInputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Input", 0.0));      // Sniffer olcum degeri (geri okuma)
-                RobotInputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Input", false));    // PC -> Robot : INFICON cihazi hazir (geri okuma)
+                RobotInputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Input", 0.0));      // Salt Input: Sniffer olcum degeri
+                RobotInputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Input", false));    // Geri-okuma: PC Output'tan yazar, burada izlenir
                 RobotInputVars.Add(Create("G_AKTIF_CIZGI", "INT", "Input", 0));           // Robot 2 aktif sniffer cizgi no
                 RobotInputVars.Add(Create("G_TOPLAM_CIZGI", "INT", "Input", 0));          // Robot 2 toplam cizgi sayisi
                 RobotInputVars.Add(Create("G_NOK_CIZGI", "INT", "Input", 0));             // Robot 2 son NOK cizgi no
                 // --- ROBOT 2 SLIDER (KL100) DURUM ---
-                RobotInputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Input", false));    // Slider hareket ediyor
+                RobotInputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Input", false));    // ⇄ Bidirectional: Slider hareket durumu
                 RobotInputVars.Add(Create("G_SLIDER_TAMAM", "BOOL", "Input", false));      // Slider hedefe ulasti
                 RobotInputVars.Add(Create("G_SLIDER_HOME", "BOOL", "Input", false));       // Slider home pozisyonunda
                 RobotInputVars.Add(Create("G_SLIDER_AKTUEL_POZ", "REAL", "Input", 0.0));   // Slider aktuel pozisyon (mm)
                 // --- ROBOT 2 TABLA OFFSET DURUMU ---
-                RobotInputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Input", false)); // Robot 1'den tabla offset alindi mi
+                RobotInputVars.Add(Create("G_TABLA_OFFSET_HAZIR", "BOOL", "Input", false)); // ⇄ Handshake: PC TRUE yazar, robot okur ve sıfırlar
             }
 
-            // ═══════════════════════════════════════════════════════════════
-            // PLC → ROBOT DEĞİŞKENLERİ (Output - Robota gönderilecek sinyaller)
+            // ═══════════════════════════════════════════════════════════════════════════
+            // RobotOutputVars: PC → Robot (Robot'a YAZILAN değerler)
             // PC uygulamasi bu degiskenlere yazar, robot okur
-            // ═══════════════════════════════════════════════════════════════
+            // WriteToAllRobotsAsync() ile 3 katmana yazılır:
+            //   1) GlobalData.RobotOutputVars (in-memory şablon)
+            //   2) PlcService.OutputVariables (PLC köprüsü)
+            //   3) KukaVarProxy TCP (doğrudan robot kontrolcüsü)
+            // ─────────────────────────────────────────────────────────────────────────
+            // Handshake sinyalleri (TAMAM, OK, RESET, SLIDER_HAREKET, TABLA_OFFSET_HAZIR)
+            // hem burada hem RobotInputVars'ta bulunur — Robot'un sıfırlamasını izlemek için.
+            // ═══════════════════════════════════════════════════════════════════════════
             if (RobotOutputVars.Count == 0)
             {
                 // --- KONTROL ---
@@ -1222,7 +1333,7 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Output", false));  // INFICON cihazi hazir (PC -> Robot)
                 RobotOutputVars.Add(Create("G_SNIFFER_TAMAM", "BOOL", "Output", false));  // Sniffer olcum tamamlandi
                 RobotOutputVars.Add(Create("G_SNIFFER_OK", "BOOL", "Output", false));     // Sniffer sonuc OK/NOK
-                RobotOutputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Output", 0.0));    // Sniffer olcum degeri
+                RobotOutputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Output", 0.0));    // Geri-yazma: Input'tan okunan değer robotlara dağıtılır
                 // --- ROBOT 2 SLIDER KONTROL (PC -> Robot 2) ---
                 RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
                 RobotOutputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Output", false)); // Slider hareket komutu (PC -> Robot 2)
@@ -1442,6 +1553,9 @@ namespace App4.Utilities
             if (settings.ContainsKey("KL100_R1Home")) _kl100Robot1HomeSignal = settings["KL100_R1Home"] as string;
             if (settings.ContainsKey("KL100_R2Home")) _kl100Robot2HomeSignal = settings["KL100_R2Home"] as string;
 
+            // Safety Alarm çıkış tag'leri
+            if (settings.ContainsKey("SafetyAlarmR1OutputTag")) _safetyAlarmR1OutputTag = settings["SafetyAlarmR1OutputTag"] as string ?? "";
+            if (settings.ContainsKey("SafetyAlarmR2OutputTag")) _safetyAlarmR2OutputTag = settings["SafetyAlarmR2OutputTag"] as string ?? "";
 
             // PLC Ayarları
             if (settings.ContainsKey("Plc_IpAddress"))
@@ -1535,9 +1649,13 @@ namespace App4.Utilities
             settings["CodesysOffsetZ"] = CodesysOffsetZ;
             settings["CodesysGocMappings"] = CodesysGocMappings ?? "0,1,2,3";
 
-            // KL100 Slider R1/R2 Home sinyal se\u00e7imleri
+            // KL100 Slider R1/R2 Home sinyal seçimleri
             settings["KL100_R1Home"] = KL100_Robot1HomeSignal ?? "";
             settings["KL100_R2Home"] = KL100_Robot2HomeSignal ?? "";
+
+            // Safety Alarm çıkış tag'leri
+            settings["SafetyAlarmR1OutputTag"] = SafetyAlarmR1OutputTag ?? "";
+            settings["SafetyAlarmR2OutputTag"] = SafetyAlarmR2OutputTag ?? "";
 
             StartAutomationListener(); 
         }
@@ -3450,6 +3568,13 @@ namespace App4.Utilities
                             }
                         }
                         saveAction();
+
+                        // ═══ TABLA AKTARIM DEĞER LİMİT KONTROLÜ ═══
+                        // Aktarım tablosundaki değerlerin herhangi biri limiti aşarsa alarm ver
+                        if (idx == 0)
+                        {
+                            CheckTablaTransferLimits(targetRows, valuesToWrite);
+                        }
                     });
 
                     // 2. PLC'ye Yaz (Background Thread)
