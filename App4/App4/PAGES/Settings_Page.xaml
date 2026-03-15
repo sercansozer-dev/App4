@@ -356,6 +356,66 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- ═══ SAFETY SİNYALLERİ ═══ -->
+                        <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
+                            <StackPanel Spacing="6">
+                                <TextBlock Foreground="#F44336" FontSize="9" FontWeight="SemiBold" Text="🛡 Safety Sinyalleri — Robot alarm durumları (3ms aralık)"/>
+                                <Grid Margin="4,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="210"/>
+                                        <ColumnDefinition Width="55"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tag Adı" Foreground="#F44336" FontSize="8" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Delay" Foreground="#F44336" FontSize="8" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Açıklama" Foreground="#F44336" FontSize="8" FontWeight="SemiBold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="$DRIVES_ON" Foreground="#FF8A80" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="3ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Sürücüler açık/kapalı" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="$ALARM_STOP" Foreground="#FF8A80" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="3ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Alarm stop durumu" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="$STOPMESS" Foreground="#FF8A80" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="3ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Acil durum stop mesajı" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="$USER_SAF" Foreground="#FF8A80" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="3ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Kullanıcı güvenlik durumu" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="$PERI_RDY" Foreground="#FF8A80" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="3ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="2" Text="Çevre birim hazır" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="$ROB_RDY" Foreground="#FF8A80" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="1" Text="3ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="2" Text="Robot hazır durumu" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="G_TABLA_LIMIT_ALARM" Foreground="#FFB74D" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="1" Text="0ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="2" Text="Tabla kaçıklık alarm çıkışı (output flush)" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="SafetyAlarm R1/R2 Output" Foreground="#FFB74D" FontSize="9"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="1" Text="0ms" Foreground="#F44336" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="2" Text="Otomasyon safety alarm çıkış tag'leri (output flush)" Foreground="#888" FontSize="8"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
                         <!-- ═══ STANDART DEĞİŞKENLER ═══ -->
                         <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
                             <StackPanel Spacing="6">
@@ -445,7 +505,7 @@
                                 <TextBlock Foreground="#888" FontSize="8" TextWrapping="Wrap"
                                            Text="Öncelikli tag tanımlıyken loop hızı otomatik 2x artar (min 30ms). Normal output: 20ms delay, Normal input: 10ms delay."/>
                                 <TextBlock Foreground="#00A4EF" FontSize="8" TextWrapping="Wrap"
-                                           Text="Keyword otomatik önceliklendirme: OLCUM, OFFSET, TAMAM, SAPMA, NOKTA içeren her yeni tag otomatik öncelikli kabul edilir."/>
+                                           Text="Keyword otomatik önceliklendirme: OLCUM, OFFSET, TAMAM, SAPMA, NOKTA, ALARM içeren her yeni tag otomatik öncelikli kabul edilir."/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

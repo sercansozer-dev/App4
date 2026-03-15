@@ -609,17 +609,18 @@ namespace App4.Utilities
             "G_BORU_OLCUM_TETIK", "G_TABLA_OLCUM_TETIK"
         };
 
-        // OUTPUT (yazma) öncelikli isimler — ölçüm sonuçları + TAMAM sinyalleri
+        // OUTPUT (yazma) öncelikli isimler — ölçüm sonuçları + TAMAM sinyalleri + safety alarm
         private static readonly HashSet<string> _priorityOutputVarNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "G_BORU_OLCUM_TAMAM", "G_TABLA_OLCUM_TAMAM", "G_OLCUM_OK", "G_OLCUM_TAMAM",
             "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C",
-            "G_SNIFFER_OLCUM_TAMAM"
+            "G_SNIFFER_OLCUM_TAMAM",
+            "G_TABLA_LIMIT_ALARM"  // Safety: Tabla kaçıklık alarm sinyali
         };
 
         // ★ Anahtar kelime bazlı öncelik kontrolü — isim listesinde olmasa bile
         //   OLCUM / OFFSET / TAMAM / SAPMA / NOKTA içeren her tag otomatik öncelikli
-        private static readonly string[] _priorityKeywords = { "OLCUM", "OFFSET", "TAMAM", "SAPMA", "NOKTA" };
+        private static readonly string[] _priorityKeywords = { "OLCUM", "OFFSET", "TAMAM", "SAPMA", "NOKTA", "ALARM" };
 
         private static bool IsPriorityInput(string varName)
         {
@@ -640,6 +641,13 @@ namespace App4.Utilities
                 if (upper.Contains(kw)) return true;
             return false;
         }
+
+        // ★ ÖNCELİKLİ STANDART TAG'LER — Safety sinyalleri: Robot alarm durumları hızlı okunmalı
+        //   Standart okuma döngüsünde bu tag'ler EN BAŞTA ve 3ms aralıkla okunur (10ms yerine)
+        private static readonly HashSet<string> _priorityStandardTags = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "$DRIVES_ON", "$STOPMESS", "$PERI_RDY", "$ROB_RDY", "$USER_SAF", "$ALARM_STOP"
+        };
 
         // ★ YAVAŞ DEĞİŞKENLER — Tork, hız, timer, harici eksenler: Her döngüde okunmasına gerek yok
         //   Bu tag'ler sadece her SLOW_READ_INTERVAL'de bir okunur → TCP kanalı ölçüm için boşalır
@@ -774,7 +782,32 @@ namespace App4.Utilities
                         await FlushPriorityOutputs(priorityOutputs);
 
                         // ╔══════════════════════════════════════════════════════════════╗
-                        // ║  2. STANDART DEĞİŞKENLER — Pozisyon, eksen, safety (10ms)   ║
+                        // ║  2a. SAFETY TAG'LERİ — Alarm sinyalleri hızlı okunmalı (3ms) ║
+                        // ║  $DRIVES_ON, $ALARM_STOP, $USER_SAF, $PERI_RDY, $ROB_RDY     ║
+                        // ╚══════════════════════════════════════════════════════════════╝
+                        foreach (var (tag, setter) in _standardReads)
+                        {
+                            if (!_isRunning || !IsConnected) break;
+                            if (!_priorityStandardTags.Contains(tag)) continue;
+                            if (inputPlcTags.Contains(tag)) continue;
+
+                            try
+                            {
+                                string val = await ReadVariableAsync(tag);
+                                if (!string.IsNullOrEmpty(val))
+                                {
+                                    DispatchToUi(() => setter(val));
+                                }
+                            }
+                            catch { }
+                            await Task.Delay(3); // ★ Safety sinyalleri 3ms — alarm hızı
+                        }
+
+                        // Priority output flush — safety okuma sonrası
+                        await FlushPriorityOutputs(priorityOutputs);
+
+                        // ╔══════════════════════════════════════════════════════════════╗
+                        // ║  2b. DİĞER STANDART DEĞİŞKENLER — Pozisyon, eksen (10ms)    ║
                         // ║  Yavaş tag'ler (tork/hız/timer) her 5 turda 1 okunur         ║
                         // ║  Her 5 okumadan sonra priority output flush (interrupt)       ║
                         // ╚══════════════════════════════════════════════════════════════╝
@@ -783,6 +816,7 @@ namespace App4.Utilities
                         {
                             if (!_isRunning || !IsConnected) break;
                             if (inputPlcTags.Contains(tag)) continue;
+                            if (_priorityStandardTags.Contains(tag)) continue; // ★ Zaten 2a'da okundu
 
                             // ★ Yavaş tag → sadece her N turda bir oku (tork/hız/timer)
                             if (_slowReadTags.Contains(tag) && !isSlowCycle) continue;
@@ -796,10 +830,9 @@ namespace App4.Utilities
                                 }
                             }
                             catch { }
-                            await Task.Delay(10); // ★ 20ms → 10ms'e düşürüldü
+                            await Task.Delay(10);
 
                             // ★★ INTERRUPT: Her 5 okumada 1 priority output flush ★★
-                            // Standart okumalar sırasında TAMAM sinyali gelirse anında yaz
                             stdReadCount++;
                             if (stdReadCount % 5 == 0)
                             {
