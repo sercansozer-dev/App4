@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="App4.PAGES.Inficon_Page"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    mc:Ignorable="d"
+    Loaded="Page_Loaded"
+    Unloaded="Page_Unloaded">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#1C1C1C">
+        <StackPanel Padding="20" Spacing="12">
+
+            <!-- ═══ BAŞLIK ═══ -->
+            <Border Background="#252528" CornerRadius="8" Padding="15,10">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE9CE;" Foreground="#4CAF50" FontSize="20"/>
+                        <TextBlock Text="HELYUM KAÇAK DURUMU — INFICON P3000XL" FontSize="16" FontWeight="Bold" Foreground="#EEE"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" VerticalAlignment="Center">
+                        <Border x:Name="PnlPlcStatus" Background="#333" CornerRadius="4" Padding="8,4">
+                            <TextBlock x:Name="TxtPlcStatus" Text="PLC: ---" FontSize="10" Foreground="#888" FontFamily="Consolas"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ═══ 2 SNİFFER PANELİ (YAN YANA) ═══ -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ═══ SNİFFER 1 (ROBOT 1) ═══ -->
+                <Border Grid.Column="0" Background="#1E1E20" CornerRadius="8" Padding="0">
+                    <Grid RowSpacing="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="40"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Baslik -->
+                        <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE99A;" FontFamily="Segoe MDL2 Assets" Foreground="#2196F3" FontSize="14"/>
+                                    <TextBlock Text="SNİFFER 1 — ROBOT 1" FontSize="12" FontWeight="Bold" Foreground="#2196F3"/>
+                                </StackPanel>
+                                <Border x:Name="Snf1StatusBorder" Background="#333" CornerRadius="4" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtSnf1Status" Text="---" FontSize="10" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Durum LED'leri -->
+                        <Grid Grid.Row="1" Padding="15,10" RowSpacing="6" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0" x:Name="Led1Ready" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="READY: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="1" x:Name="Led1Stable" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="STABLE: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="0" x:Name="Led1Leak" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="LEAK: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" x:Name="Led1Error" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="ERROR: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" x:Name="Led1Enable" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="ENABLE: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Degerler -->
+                        <StackPanel Grid.Row="2" Padding="15,0,15,10" Spacing="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Leak Rate:" FontSize="11" Foreground="#AAA" FontFamily="Consolas"/>
+                                <TextBlock x:Name="Txt1LeakRate" Grid.Column="1" Text="---" FontSize="13" FontWeight="Bold" Foreground="#4CAF50" FontFamily="Consolas" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="PE:" FontSize="11" Foreground="#AAA" FontFamily="Consolas"/>
+                                <TextBlock x:Name="Txt1PE" Grid.Column="1" Text="---" FontSize="13" Foreground="#CCC" FontFamily="Consolas" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Flow:" FontSize="11" Foreground="#AAA" FontFamily="Consolas"/>
+                                <TextBlock x:Name="Txt1Flow" Grid.Column="1" Text="---" FontSize="13" Foreground="#CCC" FontFamily="Consolas" HorizontalAlignment="Right"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Komut Butonlari -->
+                        <StackPanel Grid.Row="3" Padding="15,0,15,15" Spacing="6">
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" x:Name="Btn1Start" Content="START" Click="Btn1Start_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#1B3A1B" Foreground="#4CAF50"/>
+                                <Button Grid.Column="1" x:Name="Btn1Zero" Content="ZERO" Click="Btn1Zero_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#1B2A3A" Foreground="#2196F3"/>
+                                <Button Grid.Column="2" x:Name="Btn1Cal" Content="CAL" Click="Btn1Cal_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#3A2A1B" Foreground="#FF9800"/>
+                                <Button Grid.Column="3" x:Name="Btn1Reset" Content="RESET" Click="Btn1Reset_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#3A1B1B" Foreground="#F44336"/>
+                            </Grid>
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" x:Name="Btn1Standby" Content="STANDBY" Click="Btn1Standby_Click" FontSize="10" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                                <Button Grid.Column="1" x:Name="Btn1ErrClr" Content="ERR CLR" Click="Btn1ErrClr_Click" FontSize="10" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                                <Button Grid.Column="2" x:Name="Btn1CalAbort" Content="CAL ABORT" Click="Btn1CalAbort_Click" FontSize="10" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                                <ToggleButton Grid.Column="3" x:Name="Btn1Enable" Content="ENABLE" Click="Btn1Enable_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ═══ SNİFFER 2 (ROBOT 2) ═══ -->
+                <Border Grid.Column="1" Background="#1E1E20" CornerRadius="8" Padding="0">
+                    <Grid RowSpacing="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="40"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE99A;" FontFamily="Segoe MDL2 Assets" Foreground="#FF9800" FontSize="14"/>
+                                    <TextBlock Text="SNİFFER 2 — ROBOT 2" FontSize="12" FontWeight="Bold" Foreground="#FF9800"/>
+                                </StackPanel>
+                                <Border x:Name="Snf2StatusBorder" Background="#333" CornerRadius="4" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtSnf2Status" Text="---" FontSize="10" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="1" Padding="15,10" RowSpacing="6" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Grid.Column="0" x:Name="Led2Ready" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="READY: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="1" x:Name="Led2Stable" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="STABLE: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="0" x:Name="Led2Leak" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="LEAK: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" x:Name="Led2Error" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="ERROR: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" x:Name="Led2Enable" Background="#2A2A2A" CornerRadius="4" Padding="8,5">
+                                <TextBlock Text="ENABLE: ---" FontSize="10" Foreground="#888" FontFamily="Consolas" HorizontalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <StackPanel Grid.Row="2" Padding="15,0,15,10" Spacing="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Leak Rate:" FontSize="11" Foreground="#AAA" FontFamily="Consolas"/>
+                                <TextBlock x:Name="Txt2LeakRate" Grid.Column="1" Text="---" FontSize="13" FontWeight="Bold" Foreground="#4CAF50" FontFamily="Consolas" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="PE:" FontSize="11" Foreground="#AAA" FontFamily="Consolas"/>
+                                <TextBlock x:Name="Txt2PE" Grid.Column="1" Text="---" FontSize="13" Foreground="#CCC" FontFamily="Consolas" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Flow:" FontSize="11" Foreground="#AAA" FontFamily="Consolas"/>
+                                <TextBlock x:Name="Txt2Flow" Grid.Column="1" Text="---" FontSize="13" Foreground="#CCC" FontFamily="Consolas" HorizontalAlignment="Right"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="3" Padding="15,0,15,15" Spacing="6">
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="START" Click="Btn2Start_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#1B3A1B" Foreground="#4CAF50"/>
+                                <Button Grid.Column="1" Content="ZERO" Click="Btn2Zero_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#1B2A3A" Foreground="#2196F3"/>
+                                <Button Grid.Column="2" Content="CAL" Click="Btn2Cal_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#3A2A1B" Foreground="#FF9800"/>
+                                <Button Grid.Column="3" Content="RESET" Click="Btn2Reset_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#3A1B1B" Foreground="#F44336"/>
+                            </Grid>
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="STANDBY" Click="Btn2Standby_Click" FontSize="10" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                                <Button Grid.Column="1" Content="ERR CLR" Click="Btn2ErrClr_Click" FontSize="10" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                                <Button Grid.Column="2" Content="CAL ABORT" Click="Btn2CalAbort_Click" FontSize="10" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                                <ToggleButton Grid.Column="3" x:Name="Btn2Enable" Content="ENABLE" Click="Btn2Enable_Click" FontSize="10" FontWeight="Bold" HorizontalAlignment="Stretch" Background="#2A2A2A" Foreground="#AAA"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ═══ CANLI TREND GRAFİK ═══ -->
+            <Border Background="#1E1E20" CornerRadius="8" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="250"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE9D2;" Foreground="#4CAF50" FontSize="14"/>
+                            <TextBlock Text="CANLI TREND — LEAK RATE" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
+                        </StackPanel>
+                    </Border>
+                    <controls:WebView2 Grid.Row="1" x:Name="TrendWebView" DefaultBackgroundColor="#1C1C1C"/>
+                </Grid>
+            </Border>
+
+            <!-- ═══ KAÇAK LOG TABLOSU ═══ -->
+            <Border Background="#1E1E20" CornerRadius="8" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE9D9;" Foreground="#E91E63" FontSize="14"/>
+                                <TextBlock Text="KAÇAK TEST LOG" FontSize="11" FontWeight="Bold" Foreground="#DDD"/>
+                                <TextBlock x:Name="TxtLogCount" Text="(0 kayıt)" FontSize="10" Foreground="#888"/>
+                            </StackPanel>
+                            <Button x:Name="BtnClearLogs" Content="Temizle" Click="BtnClearLogs_Click" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#3A1B1B" Foreground="#F44336"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Tablo Baslik -->
+                    <Grid Grid.Row="1" Padding="15,6" Background="#222">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="80"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="TARİH/SAAT" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                        <TextBlock Grid.Column="1" Text="ROBOT" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                        <TextBlock Grid.Column="2" Text="BORU/RFID" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                        <TextBlock Grid.Column="3" Text="SONUÇ" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                        <TextBlock Grid.Column="4" Text="LEAK RATE" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                        <TextBlock Grid.Column="5" Text="FLOW" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                        <TextBlock Grid.Column="6" Text="PE" FontSize="9" FontWeight="Bold" Foreground="#888" FontFamily="Consolas"/>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="2" MaxHeight="250" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="LogTablePanel" Padding="15,0,15,10" Spacing="2"/>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

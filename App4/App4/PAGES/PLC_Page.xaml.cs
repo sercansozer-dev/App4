@@ -24,15 +24,21 @@ namespace App4.PAGES
         // Log tutmak için StringBuilder
         private StringBuilder _logBuilder = new StringBuilder();
 
+        // Inficon tag eşleştirme satırları için değişken isimleri
+        private static readonly string[] _inficon1Inputs = { "INFICON1_READY", "INFICON1_STABLE", "INFICON1_LEAK", "INFICON1_ERROR", "INFICON1_LEAKRATE", "INFICON1_PE", "INFICON1_FLOW" };
+        private static readonly string[] _inficon1Outputs = { "INFICON1_START", "INFICON1_CAL", "INFICON1_CAL_ABORT", "INFICON1_ZERO", "INFICON1_ERRCLEAR", "INFICON1_STANDBY", "INFICON1_RESET", "INFICON1_ENABLE" };
+        private static readonly string[] _inficon2Inputs = { "INFICON2_READY", "INFICON2_STABLE", "INFICON2_LEAK", "INFICON2_ERROR", "INFICON2_LEAKRATE", "INFICON2_PE", "INFICON2_FLOW" };
+        private static readonly string[] _inficon2Outputs = { "INFICON2_START", "INFICON2_CAL", "INFICON2_CAL_ABORT", "INFICON2_ZERO", "INFICON2_ERRCLEAR", "INFICON2_STANDBY", "INFICON2_RESET", "INFICON2_ENABLE" };
+
         public PLC_Page()
         {
             this.InitializeComponent();
 
-            // İstatistik ve IO haritası (Görsel veriler - Demodur)
-            // Kald\u0131r\u0131lan paneller: Test \u0130statistikleri, Robot Kontrol, I/O Mapping, Sistem Sa\u011fl\u0131k
-
             // Mevcut bağlantı durumunu kontrol et ve butonu güncelle
             UpdateConnectionStatus(PlcService.Instance.IsConnected);
+
+            // Inficon tag eşleştirme tablolarını doldur
+            PopulateInficonTagRows();
         }
 
         // ════════════════════════════════════════════════════════════
@@ -247,6 +253,126 @@ namespace App4.PAGES
             }
         }
 
+
+        // ════════════════════════════════════════════════════════════
+        // 5. INFICON TAG EŞLEŞTİRME TABLOSU
+        // ════════════════════════════════════════════════════════════
+
+        private void PopulateInficonTagRows()
+        {
+            FillInficonRows(Snf1InputRows, _inficon1Inputs, isInput: true);
+            FillInficonRows(Snf1OutputRows, _inficon1Outputs, isInput: false);
+            FillInficonRows(Snf2InputRows, _inficon2Inputs, isInput: true);
+            FillInficonRows(Snf2OutputRows, _inficon2Outputs, isInput: false);
+        }
+
+        private void FillInficonRows(StackPanel panel, string[] varNames, bool isInput)
+        {
+            // Inficon değişkenleri GlobalData'daki GeneralInputVars / GeneralOutputVars içinde tanımlı
+            var sourceCollection = isInput
+                ? GlobalData.GeneralInputVars
+                : GlobalData.GeneralOutputVars;
+
+            foreach (var name in varNames)
+            {
+                PlcVariable plcVar = null;
+                foreach (var v in sourceCollection) { if (v.Name == name) { plcVar = v; break; } }
+                if (plcVar == null) continue;
+
+                var row = new Grid
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(255, 26, 26, 28)),
+                    Padding = new Thickness(4, 3, 4, 3),
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = new GridLength(140) },
+                        new ColumnDefinition { Width = new GridLength(55) },
+                        new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                        new ColumnDefinition { Width = new GridLength(80) }
+                    }
+                };
+
+                // Değişken adı
+                var tbName = new TextBlock
+                {
+                    Text = plcVar.Name,
+                    FontSize = 9,
+                    Foreground = new SolidColorBrush(Colors.White),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(4, 0, 0, 0)
+                };
+                Grid.SetColumn(tbName, 0);
+                row.Children.Add(tbName);
+
+                // Tip
+                var tbType = new TextBlock
+                {
+                    Text = plcVar.Type,
+                    FontSize = 9,
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 164, 239)),
+                    HorizontalTextAlignment = Microsoft.UI.Xaml.TextAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(tbType, 1);
+                row.Children.Add(tbType);
+
+                // PLC Adresi (düzenlenebilir TextBox)
+                var tbPlcTag = new TextBox
+                {
+                    Text = plcVar.PlcTag ?? "",
+                    PlaceholderText = "Ör: W520.0",
+                    FontSize = 9,
+                    Height = 24,
+                    Padding = new Thickness(4, 0, 4, 0),
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(255, 51, 51, 51)),
+                    Background = new SolidColorBrush(Color.FromArgb(255, 37, 37, 38)),
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 164, 239)),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    CornerRadius = new CornerRadius(2),
+                    Tag = plcVar // referans olarak sakla
+                };
+                tbPlcTag.LostFocus += InficonPlcTag_LostFocus;
+                tbPlcTag.KeyDown += InficonPlcTag_KeyDown;
+                Grid.SetColumn(tbPlcTag, 2);
+                row.Children.Add(tbPlcTag);
+
+                // Güncel değer
+                var tbVal = new TextBlock
+                {
+                    Text = plcVar.Value ?? "---",
+                    FontSize = 9,
+                    FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 76, 175, 80)),
+                    HorizontalTextAlignment = Microsoft.UI.Xaml.TextAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(tbVal, 3);
+                row.Children.Add(tbVal);
+
+                panel.Children.Add(row);
+            }
+        }
+
+        private void InficonPlcTag_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tb && tb.Tag is PlcVariable plcVar)
+            {
+                plcVar.PlcTag = tb.Text?.Trim();
+                GlobalData.SavePlcVariableTagsToFile(); // GlobalData değişkenlerini kaydet
+            }
+        }
+
+        private void InficonPlcTag_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key == VirtualKey.Enter && sender is TextBox tb && tb.Tag is PlcVariable plcVar)
+            {
+                plcVar.PlcTag = tb.Text?.Trim();
+                GlobalData.SavePlcVariableTagsToFile(); // GlobalData değişkenlerini kaydet
+                this.Focus(FocusState.Programmatic);
+            }
+        }
 
         private TextBlock CreateTextCell(string text, int col, Color color)
         {

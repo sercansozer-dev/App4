@@ -36,6 +36,7 @@ namespace App4.Utilities
         private static readonly string _robotSliderMappingFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Slider_Mapping.json");
         private static readonly string _safetyAlarmsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Safety_Alarms.json");
         private static readonly string _safetyWarningsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Safety_Warnings.json");
+        private static readonly string _inficonLogsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Inficon_Leak_Logs.json");
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
@@ -47,6 +48,7 @@ namespace App4.Utilities
         public static ObservableCollection<SystemCheckItem> SystemCheckList { get; private set; } = new();
         public static ObservableCollection<SafetyCheckItem> SafetyAlarmList { get; private set; } = new();
         public static ObservableCollection<SafetyCheckItem> SafetyWarningList { get; private set; } = new();
+        public static ObservableCollection<App4.Models.InficonLeakLogEntry> InficonLeakLogs { get; private set; } = new();
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> PlcTransferRows { get; private set; } = new();
 
@@ -870,6 +872,7 @@ namespace App4.Utilities
             LoadTransferRows();
             LoadTablaMeasurements();
             LoadTablaTransferRows();
+            LoadInficonLogs();
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
 
@@ -991,6 +994,10 @@ namespace App4.Utilities
 
         public static void SaveSafetyWarnings() { try { string json = System.Text.Json.JsonSerializer.Serialize(SafetyWarningList, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_safetyWarningsFilePath, json); } catch { } }
         private static void LoadSafetyWarnings() { try { if (File.Exists(_safetyWarningsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<SafetyCheckItem>>(File.ReadAllText(_safetyWarningsFilePath)); if (list != null) foreach (var item in list) SafetyWarningList.Add(item); } } catch { } }
+
+        // --- INFICON KAÇAK LOG KAYIT ---
+        public static void SaveInficonLogs() { try { string json = System.Text.Json.JsonSerializer.Serialize(InficonLeakLogs, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_inficonLogsFilePath, json); } catch { } }
+        public static void LoadInficonLogs() { try { if (File.Exists(_inficonLogsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<App4.Models.InficonLeakLogEntry>>(File.ReadAllText(_inficonLogsFilePath)); if (list != null) { InficonLeakLogs.Clear(); foreach (var item in list) InficonLeakLogs.Add(item); } } } catch { } }
 
         public static void SaveMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_measurementsFilePath, json); } catch { } }
         private static void LoadMeasurements() { try { if (File.Exists(_measurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath)); if (list != null) { LastMeasurements.Clear(); foreach (var item in list) LastMeasurements.Add(item); } } } catch { } }
@@ -1194,6 +1201,42 @@ namespace App4.Utilities
                 }
                 catch { }
             }
+
+            // ▼▼▼ INFICON P3000XL SNIFFER DEĞİŞKENLERİ (PLC ↔ Sniffer) ▼▼▼
+            // Inficon 1 (Robot 1) — INPUT (PLC'den okunan)
+            GeneralInputVars.Add(Create("INFICON1_READY", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON1_STABLE", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON1_LEAK", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON1_ERROR", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON1_LEAKRATE", "REAL", "Input", "0.0"));
+            GeneralInputVars.Add(Create("INFICON1_PE", "REAL", "Input", "0.0"));
+            GeneralInputVars.Add(Create("INFICON1_FLOW", "REAL", "Input", "0.0"));
+            // Inficon 1 (Robot 1) — OUTPUT (PLC'ye yazılan)
+            GeneralOutputVars.Add(Create("INFICON1_START", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_CAL", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_CAL_ABORT", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_ZERO", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_ERRCLEAR", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_STANDBY", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_RESET", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON1_ENABLE", "BOOL", "Output", false));
+            // Inficon 2 (Robot 2) — INPUT (PLC'den okunan)
+            GeneralInputVars.Add(Create("INFICON2_READY", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON2_STABLE", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON2_LEAK", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON2_ERROR", "BOOL", "Input", false));
+            GeneralInputVars.Add(Create("INFICON2_LEAKRATE", "REAL", "Input", "0.0"));
+            GeneralInputVars.Add(Create("INFICON2_PE", "REAL", "Input", "0.0"));
+            GeneralInputVars.Add(Create("INFICON2_FLOW", "REAL", "Input", "0.0"));
+            // Inficon 2 (Robot 2) — OUTPUT (PLC'ye yazılan)
+            GeneralOutputVars.Add(Create("INFICON2_START", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_CAL", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_CAL_ABORT", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_ZERO", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_ERRCLEAR", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_STANDBY", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_RESET", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("INFICON2_ENABLE", "BOOL", "Output", false));
 
             // ▼▼▼ Temizlik: Eski dosyada kalmış RB1/RB2 robot değişkenlerini GeneralOutputVars'tan kaldır ▼▼▼
             // (Bu değişkenler artık sadece PlcService.EnsureRobotBridgeVariables'da yönetiliyor)

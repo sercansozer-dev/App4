@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1C1C1C; overflow: hidden; font-family: Consolas, monospace; }
+    #chartContainer { width: 100%; height: 100vh; padding: 8px; }
+    canvas { width: 100% !important; height: 100% !important; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="chartContainer">
+    <canvas id="trendChart"></canvas>
+</div>
+<script>
+const MAX_POINTS = 60;
+const labels = [];
+const data1 = [];
+const data2 = [];
+
+for (let i = 0; i < MAX_POINTS; i++) {
+    labels.push('');
+    data1.push(null);
+    data2.push(null);
+}
+
+const ctx = document.getElementById('trendChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Sniffer 1 (Robot 1)',
+                data: data1,
+                borderColor: '#2196F3',
+                backgroundColor: 'rgba(33,150,243,0.1)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: 'Sniffer 2 (Robot 2)',
+                data: data2,
+                borderColor: '#FF9800',
+                backgroundColor: 'rgba(255,152,0,0.1)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: { color: '#AAA', font: { size: 11, family: 'Consolas' } }
+            }
+        },
+        scales: {
+            x: {
+                display: true,
+                ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 10 },
+                grid: { color: '#333' }
+            },
+            y: {
+                type: 'logarithmic',
+                display: true,
+                ticks: {
+                    color: '#888',
+                    font: { size: 10, family: 'Consolas' },
+                    callback: function(value) {
+                        if (value === 0) return '0';
+                        const exp = Math.floor(Math.log10(value));
+                        const mantissa = value / Math.pow(10, exp);
+                        if (mantissa === 1) return '1E' + exp;
+                        return '';
+                    }
+                },
+                grid: { color: '#2A2A2A' },
+                min: 1e-9,
+                max: 1e-2
+            }
+        }
+    }
+});
+
+function addDataPoint(time, val1, val2) {
+    labels.push(time);
+    labels.shift();
+    data1.push(val1 > 0 ? val1 : null);
+    data1.shift();
+    data2.push(val2 > 0 ? val2 : null);
+    data2.shift();
+    chart.update('none');
+}
+
+// C# tarafindan WebView2 uzerinden mesaj ile cagirilir
+window.chrome.webview.addEventListener('message', function(event) {
+    try {
+        const d = JSON.parse(event.data);
+        addDataPoint(d.time, d.lr1, d.lr2);
+    } catch(e) {}
+});
+</script>
+</body>
+</html>
