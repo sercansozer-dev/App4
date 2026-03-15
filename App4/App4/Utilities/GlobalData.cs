@@ -1759,34 +1759,34 @@ namespace App4.Utilities
                 try { _codesysGocMappings = settings["CodesysGocMappings"] as string ?? "0,1,2,3"; } catch { }
             }
 
-            // Haberleşme zamanlama ayarları
+            // Haberleşme zamanlama ayarları (clamp ile güvenli yükleme)
             if (settings.ContainsKey("Plc_ReadInterval"))
             {
-                try { _plcReadInterval = Convert.ToInt32(settings["Plc_ReadInterval"]); } catch { }
+                try { _plcReadInterval = Math.Max(20, Math.Min(500, Convert.ToInt32(settings["Plc_ReadInterval"]))); } catch { }
             }
             if (settings.ContainsKey("TriggerMonitor_Interval"))
             {
-                try { _triggerMonitorInterval = Convert.ToInt32(settings["TriggerMonitor_Interval"]); } catch { }
+                try { _triggerMonitorInterval = Math.Max(200, Math.Min(2000, Convert.ToInt32(settings["TriggerMonitor_Interval"]))); } catch { }
             }
             if (settings.ContainsKey("Robot_TcpTimeout"))
             {
-                try { _robotTcpTimeout = Convert.ToInt32(settings["Robot_TcpTimeout"]); } catch { }
+                try { _robotTcpTimeout = Math.Max(1000, Math.Min(30000, Convert.ToInt32(settings["Robot_TcpTimeout"]))); } catch { }
             }
             if (settings.ContainsKey("Gocator_RestTimeout"))
             {
-                try { _gocatorRestTimeout = Convert.ToInt32(settings["Gocator_RestTimeout"]); } catch { }
+                try { _gocatorRestTimeout = Math.Max(5000, Math.Min(120000, Convert.ToInt32(settings["Gocator_RestTimeout"]))); } catch { }
             }
             if (settings.ContainsKey("Inficon_RefreshInterval"))
             {
-                try { _inficonRefreshInterval = Convert.ToInt32(settings["Inficon_RefreshInterval"]); } catch { }
+                try { _inficonRefreshInterval = Math.Max(100, Math.Min(1000, Convert.ToInt32(settings["Inficon_RefreshInterval"]))); } catch { }
             }
             if (settings.ContainsKey("Inficon_TrendInterval"))
             {
-                try { _inficonTrendInterval = Convert.ToInt32(settings["Inficon_TrendInterval"]); } catch { }
+                try { _inficonTrendInterval = Math.Max(500, Math.Min(5000, Convert.ToInt32(settings["Inficon_TrendInterval"]))); } catch { }
             }
             if (settings.ContainsKey("Safety_CheckInterval"))
             {
-                try { _safetyCheckInterval = Convert.ToInt32(settings["Safety_CheckInterval"]); } catch { }
+                try { _safetyCheckInterval = Math.Max(500, Math.Min(5000, Convert.ToInt32(settings["Safety_CheckInterval"]))); } catch { }
             }
 
             // Debug log

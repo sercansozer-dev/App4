@@ -322,7 +322,7 @@ namespace App4.Utilities
         {
             int offset = 0;
             int remaining = length;
-            var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5 saniye timeout
+            var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(GlobalData.Robot_TcpTimeout)); // Ayarlanabilir timeout
             
             try
             {

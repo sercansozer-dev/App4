@@ -141,21 +141,13 @@ namespace App4
                 if (int.TryParse(TxtRobotPort.Text.Trim(), out int robotPort))
                     GlobalData.Robot_Port = robotPort;
 
-                // Robot haberleşme hızı
+                // Robot haberleşme hızı (slider'lar zaten anlık kaydediyor,
+                // burada sadece TextBox değerlerini teyit edip tek save yapıyoruz)
                 GlobalData.Robot_ReadSpeed = (int)SliderRobotReadSpeed.Value;
-
-                // Haberleşme zamanlama ayarları
-                GlobalData.Plc_ReadInterval = (int)SliderPlcReadInterval.Value;
-                GlobalData.TriggerMonitor_Interval = (int)SliderTriggerMonitor.Value;
-                GlobalData.Robot_TcpTimeout = (int)SliderRobotTcpTimeout.Value;
-                GlobalData.Gocator_RestTimeout = (int)SliderGocatorTimeout.Value;
-                GlobalData.Inficon_RefreshInterval = (int)SliderInficonRefresh.Value;
-                GlobalData.Inficon_TrendInterval = (int)SliderInficonTrend.Value;
-                GlobalData.Safety_CheckInterval = (int)SliderSafetyCheck.Value;
 
                 GlobalData.SaveAutomationSettings();
 
-                TxtSaveStatus.Text = "✅ Ayarlar kaydedildi. Değişiklikler bir sonraki bağlantıda geçerli olacak.";
+                TxtSaveStatus.Text = "✅ Ayarlar kaydedildi. Zamanlama değişiklikleri uygulama yeniden başlatıldığında geçerli olacak.";
                 TxtSaveStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
             }
             catch (Exception ex)
