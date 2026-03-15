@@ -38,6 +38,9 @@ namespace App4
         public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
         public ObservableCollection<string> AvailableModels { get; set; } = new();
 
+        // R2'nin son hedef istasyonu (R1 de aynı istasyonda, hedefIst=0 olunca son istasyonda kalsın)
+        private int _r2LastHedefIst = 0;
+
         // --- SAFETY ALARM ÇIKIŞ TAG SEÇİMİ ---
         public string SafetyAlarmR1OutputTag
         {
@@ -2692,6 +2695,54 @@ namespace App4
                     (robotDurum == 1 || robotDurum >= 10) ? "#FF9800" :
                     robot.IsConnected ? "#333" : "#222";
 
+                // İstasyon kartına robot bilgisi aktar
+                string stationDurum = durumText;
+                string stationMesaj = mesajText;
+
+                var durumBrush = StationViewModel.HexToBrush(durumColor);
+                var dotBrush = StationViewModel.HexToBrush(dotColor);
+                var defaultDurumBrush = StationViewModel.HexToBrush("#888888");
+                var defaultDotBrush = StationViewModel.HexToBrush("#555555");
+
+                // R2 hedef istasyonu belirliyor, R1 de aynı istasyonda çalışıyor
+                // R1 için hedefIst yoksa R2'nin son bilinen hedefini kullan
+                int aktifIst;
+                if (robotNo == 2)
+                {
+                    aktifIst = (hedefIst >= 1 && hedefIst <= 3) ? hedefIst : _r2LastHedefIst;
+                    if (aktifIst != _r2LastHedefIst && _r2LastHedefIst >= 1 && _r2LastHedefIst <= 3)
+                    {
+                        // Eski istasyondaki her iki robot bilgisini temizle
+                        var oldSt = Stations[_r2LastHedefIst - 1];
+                        oldSt.R1DurumText = ""; oldSt.R1MesajText = "";
+                        oldSt.R1DurumColor = defaultDurumBrush; oldSt.R1StatusDotColor = defaultDotBrush;
+                        oldSt.R2DurumText = ""; oldSt.R2MesajText = "";
+                        oldSt.R2DurumColor = defaultDurumBrush; oldSt.R2StatusDotColor = defaultDotBrush;
+                    }
+                    if (aktifIst >= 1 && aktifIst <= 3)
+                    {
+                        var st = Stations[aktifIst - 1];
+                        st.R2DurumText = stationDurum;
+                        st.R2MesajText = stationMesaj;
+                        st.R2DurumColor = durumBrush;
+                        st.R2StatusDotColor = dotBrush;
+                        _r2LastHedefIst = aktifIst;
+                    }
+                }
+                else
+                {
+                    // R1 — R2'nin hedefini kullan
+                    aktifIst = _r2LastHedefIst;
+                    if (aktifIst >= 1 && aktifIst <= 3)
+                    {
+                        var st = Stations[aktifIst - 1];
+                        st.R1DurumText = stationDurum;
+                        st.R1MesajText = stationMesaj;
+                        st.R1DurumColor = durumBrush;
+                        st.R1StatusDotColor = dotBrush;
+                    }
+                }
+
                 // UI Guncelle
                 if (robotNo == 1)
                 {
@@ -2753,6 +2804,7 @@ namespace App4
                     case 52: return "Tabla ölçüm OK";
                     case 60: return "Robot 2 hatada, bekleniyor";
                     case 61: return "Robot 2 hatası nedeniyle durdu";
+                    case 65: return "Robot 2 iş bitişi bekleniyor";
                 }
             }
 

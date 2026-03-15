@@ -120,68 +120,91 @@
                                     <Grid>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{x:Bind Stations[0].Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            <TextBlock Text="{x:Bind Stations[0].Description}" FontSize="10" Foreground="#888888"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{x:Bind Stations[0].Description}" FontSize="10" Foreground="#888888"/>
+                                                <FontIcon Glyph="{x:Bind Stations[0].StateGlyph, Mode=OneWay}" FontSize="10" Foreground="{x:Bind Stations[0].StateColor, Mode=OneWay}"/>
+                                                <TextBlock Text="{x:Bind Stations[0].StateText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[0].StateColor, Mode=OneWay}"/>
+                                            </StackPanel>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
                                             <Ellipse Width="12" Height="12" Fill="{x:Bind Stations[0].ModeColor, Mode=OneWay}"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
-                                <Grid Grid.Row="1" Background="#151515">
-                                    <Grid Margin="10">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="1" Background="#151515" Spacing="6" Padding="10">
+                                    <!-- Model View -->
+                                    <Border CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" MinHeight="180">
+                                         <WebView2 x:Name="Viewer_Station1" DefaultBackgroundColor="Transparent"/>
+                                    </Border>
 
-                                        <!-- Model View -->
-                                        <Border Grid.Row="0" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
-                                             <WebView2 x:Name="Viewer_Station1" DefaultBackgroundColor="Transparent"/>
-                                        </Border>
+                                    <!-- Alarm -->
+                                    <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[0].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
+                                        <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
+                                        <TextBlock Text="{x:Bind Stations[0].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
+                                    </StackPanel>
 
-                                        <!-- Status & RFID -->
-                                        <Grid Grid.Row="1">
+                                    <!-- Robot 1 -->
+                                    <Border Background="#101015" CornerRadius="6" Padding="10,6" BorderBrush="#333" BorderThickness="1">
+                                        <Grid ColumnSpacing="8">
                                             <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0">
-                                                <FontIcon Glyph="{x:Bind Stations[0].StateGlyph, Mode=OneWay}" FontSize="36" Foreground="{x:Bind Stations[0].StateColor, Mode=OneWay}" Margin="0,0,0,5"/>
-                                                <TextBlock Text="{x:Bind Stations[0].StateText, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="{x:Bind Stations[0].StateColor, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[0].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                                    <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
-                                                    <TextBlock Text="{x:Bind Stations[0].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
-                                                </StackPanel>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[0].R1StatusDotColor, Mode=OneWay}"/>
+                                                <TextBlock Text="R1" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
                                             </StackPanel>
-
-                                            <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/>
-                                                        <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <ComboBox ItemsSource="{Binding Stations[0].RfidOpModes}" SelectedItem="{Binding Stations[0].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    <StackPanel Visibility="{Binding Stations[0].IsSpecificRfidVisible}">
-                                                        <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
-                                                        <ComboBox ItemsSource="{Binding Stations[0].RefRfids}" SelectedValue="{Binding Stations[0].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0">
-                                                            <TextBlock Text="Okunan:" FontSize="8" Foreground="#888"/>
-                                                            <TextBlock Text="{x:Bind Stations[0].CurrentRfid, Mode=OneWay}" FontSize="11" Foreground="{x:Bind Stations[0].RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                        <FontIcon Grid.Column="1" Glyph="{x:Bind Stations[0].RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind Stations[0].RfidMatchColor, Mode=OneWay}" FontSize="14" VerticalAlignment="Center" Margin="2,0"/>
-                                                    </Grid>
-                                                </StackPanel>
-                                            </Border>
+                                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind Stations[0].R1DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[0].R1DurumColor, Mode=OneWay}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{x:Bind Stations[0].R1MesajText, Mode=OneWay}" FontSize="9" Foreground="#666" TextWrapping="Wrap"/>
+                                            </StackPanel>
                                         </Grid>
-                                    </Grid>
-                                </Grid>
+                                    </Border>
+
+                                    <!-- Robot 2 -->
+                                    <Border Background="#101015" CornerRadius="6" Padding="10,6" BorderBrush="#333" BorderThickness="1">
+                                        <Grid ColumnSpacing="8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[0].R2StatusDotColor, Mode=OneWay}"/>
+                                                <TextBlock Text="R2" FontSize="11" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind Stations[0].R2DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[0].R2DurumColor, Mode=OneWay}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{x:Bind Stations[0].R2MesajText, Mode=OneWay}" FontSize="9" Foreground="#666" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- RFID KONTROL -->
+                                    <Border Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
+                                        <StackPanel Spacing="5">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/>
+                                                <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
+                                            </StackPanel>
+                                            <ComboBox ItemsSource="{Binding Stations[0].RfidOpModes}" SelectedItem="{Binding Stations[0].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
+                                            <StackPanel Visibility="{Binding Stations[0].IsSpecificRfidVisible}">
+                                                <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
+                                                <ComboBox ItemsSource="{Binding Stations[0].RefRfids}" SelectedValue="{Binding Stations[0].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
+                                            </StackPanel>
+                                            <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="Okunan:" FontSize="8" Foreground="#888"/>
+                                                    <TextBlock Text="{x:Bind Stations[0].CurrentRfid, Mode=OneWay}" FontSize="11" Foreground="{x:Bind Stations[0].RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <FontIcon Grid.Column="1" Glyph="{x:Bind Stations[0].RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind Stations[0].RfidMatchColor, Mode=OneWay}" FontSize="14" VerticalAlignment="Center" Margin="2,0"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
                                 <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
                                     <Grid VerticalAlignment="Center">
                                         <StackPanel Spacing="2">
@@ -211,7 +234,11 @@
                                     <Grid>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{x:Bind Stations[1].Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            <TextBlock Text="{x:Bind Stations[1].Description}" FontSize="10" Foreground="#888888"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{x:Bind Stations[1].Description}" FontSize="10" Foreground="#888888"/>
+                                                <FontIcon Glyph="{x:Bind Stations[1].StateGlyph, Mode=OneWay}" FontSize="10" Foreground="{x:Bind Stations[1].StateColor, Mode=OneWay}"/>
+                                                <TextBlock Text="{x:Bind Stations[1].StateText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[1].StateColor, Mode=OneWay}"/>
+                                            </StackPanel>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
                                             <Ellipse Width="12" Height="12" Fill="{x:Bind Stations[1].ModeColor, Mode=OneWay}"/>
@@ -235,13 +262,43 @@
                                                 <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0">
-                                                <FontIcon Glyph="{x:Bind Stations[1].StateGlyph, Mode=OneWay}" FontSize="36" Foreground="{x:Bind Stations[1].StateColor, Mode=OneWay}" Margin="0,0,0,5"/>
-                                                <TextBlock Text="{x:Bind Stations[1].StateText, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="{x:Bind Stations[1].StateColor, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[1].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0" Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[1].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[1].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
+                                                <Border Visibility="{x:Bind Stations[1].R1Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
+                                                    <Grid ColumnSpacing="8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[1].R1StatusDotColor, Mode=OneWay}"/>
+                                                            <TextBlock Text="R1" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Stations[1].R1DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[1].R1DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{x:Bind Stations[1].R1MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Visibility="{x:Bind Stations[1].R2Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
+                                                    <Grid ColumnSpacing="8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[1].R2StatusDotColor, Mode=OneWay}"/>
+                                                            <TextBlock Text="R2" FontSize="11" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Stations[1].R2DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[1].R2DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{x:Bind Stations[1].R2MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
                                             </StackPanel>
 
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
@@ -300,7 +357,11 @@
                                     <Grid>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{x:Bind Stations[2].Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
-                                            <TextBlock Text="{x:Bind Stations[2].Description}" FontSize="10" Foreground="#888888"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{x:Bind Stations[2].Description}" FontSize="10" Foreground="#888888"/>
+                                                <FontIcon Glyph="{x:Bind Stations[2].StateGlyph, Mode=OneWay}" FontSize="10" Foreground="{x:Bind Stations[2].StateColor, Mode=OneWay}"/>
+                                                <TextBlock Text="{x:Bind Stations[2].StateText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[2].StateColor, Mode=OneWay}"/>
+                                            </StackPanel>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
                                             <Ellipse Width="12" Height="12" Fill="{x:Bind Stations[2].ModeColor, Mode=OneWay}"/>
@@ -324,13 +385,43 @@
                                                 <ColumnDefinition Width="1.2*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,5,0">
-                                                <FontIcon Glyph="{x:Bind Stations[2].StateGlyph, Mode=OneWay}" FontSize="36" Foreground="{x:Bind Stations[2].StateColor, Mode=OneWay}" Margin="0,0,0,5"/>
-                                                <TextBlock Text="{x:Bind Stations[2].StateText, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="{x:Bind Stations[2].StateColor, Mode=OneWay}" TextAlignment="Center" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[2].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0" Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[2].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[2].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
+                                                <Border Visibility="{x:Bind Stations[2].R1Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
+                                                    <Grid ColumnSpacing="8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[2].R1StatusDotColor, Mode=OneWay}"/>
+                                                            <TextBlock Text="R1" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Stations[2].R1DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[2].R1DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{x:Bind Stations[2].R1MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                                <Border Visibility="{x:Bind Stations[2].R2Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
+                                                    <Grid ColumnSpacing="8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[2].R2StatusDotColor, Mode=OneWay}"/>
+                                                            <TextBlock Text="R2" FontSize="11" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Stations[2].R2DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[2].R2DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{x:Bind Stations[2].R2MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
                                             </StackPanel>
 
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">

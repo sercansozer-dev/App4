@@ -423,6 +423,70 @@ namespace App4.Utilities
             set { _isRobotHome = value; UpdateVisuals(); }
         }
 
+        public static SolidColorBrush HexToBrush(string hex)
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3) hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
+            byte r = Convert.ToByte(hex.Substring(0, 2), 16);
+            byte g = Convert.ToByte(hex.Substring(2, 2), 16);
+            byte b = Convert.ToByte(hex.Substring(4, 2), 16);
+            return new SolidColorBrush(Color.FromArgb(255, r, g, b));
+        }
+
+        // ═══ Robot 1 durum bilgileri ═══
+        private string _r1DurumText = "";
+        public string R1DurumText
+        {
+            get => _r1DurumText;
+            set { if (_r1DurumText != value) { _r1DurumText = value; OnPropertyChanged(); OnPropertyChanged(nameof(R1Visibility)); } }
+        }
+        private string _r1MesajText = "";
+        public string R1MesajText
+        {
+            get => _r1MesajText;
+            set { if (_r1MesajText != value) { _r1MesajText = value; OnPropertyChanged(); } }
+        }
+        private SolidColorBrush _r1DurumColor = HexToBrush("#888888");
+        public SolidColorBrush R1DurumColor
+        {
+            get => _r1DurumColor;
+            set { _r1DurumColor = value; OnPropertyChanged(); }
+        }
+        private SolidColorBrush _r1StatusDotColor = HexToBrush("#555555");
+        public SolidColorBrush R1StatusDotColor
+        {
+            get => _r1StatusDotColor;
+            set { _r1StatusDotColor = value; OnPropertyChanged(); }
+        }
+        public Visibility R1Visibility => !string.IsNullOrEmpty(R1DurumText) ? Visibility.Visible : Visibility.Collapsed;
+
+        // ═══ Robot 2 durum bilgileri ═══
+        private string _r2DurumText = "";
+        public string R2DurumText
+        {
+            get => _r2DurumText;
+            set { if (_r2DurumText != value) { _r2DurumText = value; OnPropertyChanged(); OnPropertyChanged(nameof(R2Visibility)); } }
+        }
+        private string _r2MesajText = "";
+        public string R2MesajText
+        {
+            get => _r2MesajText;
+            set { if (_r2MesajText != value) { _r2MesajText = value; OnPropertyChanged(); } }
+        }
+        private SolidColorBrush _r2DurumColor = HexToBrush("#888888");
+        public SolidColorBrush R2DurumColor
+        {
+            get => _r2DurumColor;
+            set { _r2DurumColor = value; OnPropertyChanged(); }
+        }
+        private SolidColorBrush _r2StatusDotColor = HexToBrush("#555555");
+        public SolidColorBrush R2StatusDotColor
+        {
+            get => _r2StatusDotColor;
+            set { _r2StatusDotColor = value; OnPropertyChanged(); }
+        }
+        public Visibility R2Visibility => !string.IsNullOrEmpty(R2DurumText) ? Visibility.Visible : Visibility.Collapsed;
+
         // Görsel Özellikler
         public string ModeText => Mode.ToString().ToUpper();
         public SolidColorBrush ModeColor { get; private set; }
