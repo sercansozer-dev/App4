@@ -207,19 +207,22 @@
                         </Grid>
 
                         <Rectangle Height="1" Fill="#333" Margin="0,5,0,0"/>
-                        <TextBlock Text="Robot Öncelik Sistemi (TCP Kanal Yönetimi)" FontSize="11" Foreground="#FF9800" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                        <TextBlock Text="Robot Tag Önceliklendirme Tablosu" FontSize="11" Foreground="#FF9800" FontWeight="SemiBold" Margin="0,5,0,0"/>
 
-                        <!-- ÖNCELİKLİ INPUT TAG'LERİ TABLOSU -->
+                        <!-- ═══ ÖNCELİKLİ INPUT TAG'LERİ TABLOSU ═══ -->
                         <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
                             <StackPanel Spacing="6">
-                                <TextBlock Foreground="#FF5252" FontSize="9" FontWeight="SemiBold" Text="⚡ 1. Öncelikli Input Okuma — Her döngüde EN BAŞTA (3ms aralık)"/>
+                                <TextBlock Foreground="#FF5252" FontSize="9" FontWeight="SemiBold" Text="⚡ Öncelikli Input Okuma — Her döngüde EN BAŞTA (3ms aralık)"/>
                                 <Grid Margin="4,0,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200"/>
-                                        <ColumnDefinition Width="65"/>
+                                        <ColumnDefinition Width="210"/>
+                                        <ColumnDefinition Width="55"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -234,54 +237,70 @@
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Tag Adı" Foreground="#FF9800" FontSize="8" FontWeight="SemiBold"/>
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="Delay" Foreground="#FF9800" FontSize="8" FontWeight="SemiBold"/>
                                     <TextBlock Grid.Row="0" Grid.Column="2" Text="Açıklama" Foreground="#FF9800" FontSize="8" FontWeight="SemiBold"/>
-                                    <!-- Tag listesi -->
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G_OLCUM_TETIK" Foreground="#FF5252" FontSize="9"/>
+
+                                    <!-- Tetik sinyalleri — En kritik -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G_OLCUM_TETIK" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Ölçüm başlatma tetik sinyali" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Gocator ölçüm başlatma tetik" Foreground="#FF8A80" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="G_BORU_OLCUM_TETIK" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="G_BORU_OLCUM_TETIK" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Boru ölçüm tetik" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Boru ölçüm tetik (Gocator)" Foreground="#FF8A80" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="G_TABLA_OLCUM_TETIK" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="G_TABLA_OLCUM_TETIK" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Tabla ölçüm tetik" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Tabla ölçüm tetik (Gocator)" Foreground="#FF8A80" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="G_SNIFFER_OLCUM_TETIK" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="G_SNIFFER_OLCUM_TETIK" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
                                     <TextBlock Grid.Row="4" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Helyum sniffer tetik" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Helyum sniffer ölçüm tetik" Foreground="#FF8A80" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="G_JOB_INDEX" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="G_JOB_INDEX" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
                                     <TextBlock Grid.Row="5" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="5" Grid.Column="2" Text="İş parçası index numarası" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="2" Text="Gocator job index (0=tabla, 1..N=boru)" Foreground="#FF8A80" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="G_ROBOT_HAZIR" Foreground="#FF5252" FontSize="9"/>
+                                    <!-- Geri okuma (handshake) -->
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="G_BORU_OLCUM_TAMAM_RD" Foreground="#FF5252" FontSize="9"/>
                                     <TextBlock Grid.Row="6" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="6" Grid.Column="2" Text="Robot hazır durumu" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="2" Text="Boru TAMAM geri okuma (handshake)" Foreground="#888" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="G_IS_BITTI" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="G_TABLA_OLCUM_TAMAM_RD" Foreground="#FF5252" FontSize="9"/>
                                     <TextBlock Grid.Row="7" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="7" Grid.Column="2" Text="İş tamamlanma sinyali" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="2" Text="Tabla TAMAM geri okuma (handshake)" Foreground="#888" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="G_HATA_VAR" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="G_OLCUM_OK_RD" Foreground="#FF5252" FontSize="9"/>
                                     <TextBlock Grid.Row="8" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="8" Grid.Column="2" Text="Robot hata durumu" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="2" Text="Ölçüm OK/NOK geri okuma" Foreground="#888" FontSize="8"/>
+
+                                    <!-- Durum sinyalleri -->
+                                    <TextBlock Grid.Row="9" Grid.Column="0" Text="G_ROBOT_HAZIR" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="9" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="9" Grid.Column="2" Text="Robot hazır durumu" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="10" Grid.Column="0" Text="G_IS_BITTI" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="10" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="10" Grid.Column="2" Text="İş tamamlanma sinyali" Foreground="#888" FontSize="8"/>
+
+                                    <TextBlock Grid.Row="11" Grid.Column="0" Text="G_HATA_VAR" Foreground="#FF5252" FontSize="9"/>
+                                    <TextBlock Grid.Row="11" Grid.Column="1" Text="3ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="11" Grid.Column="2" Text="Robot hata durumu" Foreground="#888" FontSize="8"/>
                                 </Grid>
+                                <TextBlock Foreground="#555" FontSize="8" Margin="4,2,0,0"
+                                           Text="+ Keyword otomatik: OLCUM, OFFSET, TAMAM, SAPMA, NOKTA içeren her yeni tag otomatik öncelikli"/>
                             </StackPanel>
                         </Border>
 
-                        <!-- ÖNCELİKLİ OUTPUT TAG'LERİ TABLOSU -->
+                        <!-- ═══ ÖNCELİKLİ OUTPUT TAG'LERİ TABLOSU ═══ -->
                         <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
                             <StackPanel Spacing="6">
-                                <TextBlock Foreground="#FF9800" FontSize="9" FontWeight="SemiBold" Text="⚡ 1b. Öncelikli Output Flush — Interrupt mekanizması (anında yazma)"/>
+                                <TextBlock Foreground="#FF9800" FontSize="9" FontWeight="SemiBold" Text="⚡ Öncelikli Output Flush — Interrupt mekanizması (anında yazma)"/>
                                 <Grid Margin="4,0,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200"/>
-                                        <ColumnDefinition Width="65"/>
+                                        <ColumnDefinition Width="210"/>
+                                        <ColumnDefinition Width="55"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -298,55 +317,53 @@
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="Yazma" Foreground="#FF9800" FontSize="8" FontWeight="SemiBold"/>
                                     <TextBlock Grid.Row="0" Grid.Column="2" Text="Açıklama" Foreground="#FF9800" FontSize="8" FontWeight="SemiBold"/>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G_BORU_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Boru ölçüm tamamlandı" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="G_BORU_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Boru ölçüm tamamlandı → Robot devam eder" Foreground="#FFB74D" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="G_TABLA_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Tabla ölçüm tamamlandı" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="G_TABLA_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Tabla ölçüm tamamlandı → Robot devam eder" Foreground="#FFB74D" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="G_OLCUM_OK" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Ölçüm başarılı sonucu" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="G_OLCUM_OK" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Ölçüm OK/NOK sonucu → Robot karar verir" Foreground="#FFB74D" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="G_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Ölçüm tamamlandı genel" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="G_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="2" Text="Ölçüm genel tamamlandı sinyali" Foreground="#FFB74D" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="G_SNIFFER_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="5" Grid.Column="2" Text="Helyum sniffer ölçüm bitti" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="G_SNIFFER_OLCUM_TAMAM" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="2" Text="Helyum sniffer ölçüm bitti" Foreground="#FFB74D" FontSize="8"/>
 
                                     <TextBlock Grid.Row="6" Grid.Column="0" Text="G_OFFSET_X" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="6" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="6" Grid.Column="2" Text="X ekseni offset değeri" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="2" Text="Gocator → X ekseni sapma değeri" Foreground="#888" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="G_OFFSET_Y" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="7" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="7" Grid.Column="2" Text="Y ekseni offset değeri" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="G_OFFSET_Y / Z" Foreground="#FF9800" FontSize="9"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="2" Text="Gocator → Y, Z ekseni sapma değerleri" Foreground="#888" FontSize="8"/>
 
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="G_OFFSET_Z" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="8" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="8" Grid.Column="2" Text="Z ekseni offset değeri" Foreground="#888" FontSize="8"/>
-
-                                    <TextBlock Grid.Row="9" Grid.Column="0" Text="G_OFFSET_A / B / C" Foreground="#FF9800" FontSize="9"/>
-                                    <TextBlock Grid.Row="9" Grid.Column="1" Text="Anında" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="9" Grid.Column="2" Text="Açısal offset değerleri" Foreground="#888" FontSize="8"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="G_OFFSET_A / B / C" Foreground="#FF9800" FontSize="9"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="1" Text="0ms" Foreground="#FF5252" FontSize="9" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="2" Text="Gocator → açısal sapma değerleri" Foreground="#888" FontSize="8"/>
                                 </Grid>
-                                <TextBlock Foreground="#888" FontSize="8" TextWrapping="Wrap" Margin="4,2,0,0"
-                                           Text="Her 5 standart okumadan sonra + döngü başı/sonu = interrupt flush"/>
+                                <TextBlock Foreground="#888" FontSize="8" TextWrapping="Wrap" Margin="4,4,0,0"
+                                           Text="Flush noktaları: Döngü başı (tetik okuma sonrası) + Her 5 standart okumadan sonra + Döngü sonu"/>
+                                <TextBlock Foreground="#FF5252" FontSize="8" TextWrapping="Wrap" Margin="4,0,0,0" FontWeight="SemiBold"
+                                           Text="Kayıpsız yazma: Değer değişince beklemeden anında robot'a iletilir."/>
                             </StackPanel>
                         </Border>
 
-                        <!-- STANDART VE YAVAŞ DEĞİŞKENLER TABLOSU -->
+                        <!-- ═══ STANDART DEĞİŞKENLER ═══ -->
                         <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
                             <StackPanel Spacing="6">
-                                <TextBlock Foreground="#4CAF50" FontSize="9" FontWeight="SemiBold" Text="2. Standart Değişkenler (10ms aralık)"/>
+                                <TextBlock Foreground="#4CAF50" FontSize="9" FontWeight="SemiBold" Text="Standart Değişkenler (10ms aralık)"/>
                                 <Grid Margin="4,0,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200"/>
-                                        <ColumnDefinition Width="65"/>
+                                        <ColumnDefinition Width="210"/>
+                                        <ColumnDefinition Width="55"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
@@ -379,14 +396,14 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- YAVAŞ DEĞİŞKENLER -->
+                        <!-- ═══ YAVAŞ DEĞİŞKENLER ═══ -->
                         <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
                             <StackPanel Spacing="6">
-                                <TextBlock Foreground="#555" FontSize="9" FontWeight="SemiBold" Text="🐌 3. Yavaş Değişkenler — Her 5 döngüde 1 okunur"/>
+                                <TextBlock Foreground="#555" FontSize="9" FontWeight="SemiBold" Text="🐌 Yavaş Değişkenler — Her 5 döngüde 1 okunur"/>
                                 <Grid Margin="4,0,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200"/>
-                                        <ColumnDefinition Width="65"/>
+                                        <ColumnDefinition Width="210"/>
+                                        <ColumnDefinition Width="55"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
@@ -402,31 +419,33 @@
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="$TORQUE_AXIS_ACT[1-6]" Foreground="#888" FontSize="9"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="~500ms" Foreground="#888" FontSize="9"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Eksen tork değerleri (%)" Foreground="#666" FontSize="8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="6 eksen tork değerleri (%)" Foreground="#666" FontSize="8"/>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="$VEL_AXIS_ACT[1-6]" Foreground="#888" FontSize="9"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="~500ms" Foreground="#888" FontSize="9"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Eksen hız değerleri" Foreground="#666" FontSize="8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="6 eksen hız değerleri" Foreground="#666" FontSize="8"/>
 
                                     <TextBlock Grid.Row="3" Grid.Column="0" Text="$VEL_ACT" Foreground="#888" FontSize="9"/>
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="~500ms" Foreground="#888" FontSize="9"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="TCP hızı" Foreground="#666" FontSize="8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="2" Text="TCP hızı (mm/s)" Foreground="#666" FontSize="8"/>
 
                                     <TextBlock Grid.Row="4" Grid.Column="0" Text="$TIMER[1]" Foreground="#888" FontSize="9"/>
                                     <TextBlock Grid.Row="4" Grid.Column="1" Text="~500ms" Foreground="#888" FontSize="9"/>
                                     <TextBlock Grid.Row="4" Grid.Column="2" Text="KUKA dahili timer" Foreground="#666" FontSize="8"/>
                                 </Grid>
+                                <TextBlock Foreground="#555" FontSize="8" Margin="4,2,0,0"
+                                           Text="Tork/hız verileri yavaş okunarak TCP kanalı ölçüm sinyalleri için boşaltılır."/>
                             </StackPanel>
                         </Border>
 
-                        <!-- ADAPTİF DÖNGÜ BİLGİSİ -->
+                        <!-- ═══ ADAPTİF DÖNGÜ BİLGİSİ ═══ -->
                         <Border Background="#1A1A1C" CornerRadius="4" Padding="10,6">
                             <StackPanel Spacing="3">
                                 <TextBlock Foreground="#00A4EF" FontSize="9" FontWeight="SemiBold" Text="🔄 Adaptif Döngü Hızı"/>
                                 <TextBlock Foreground="#888" FontSize="8" TextWrapping="Wrap"
-                                           Text="Öncelikli tag tanımlıyken: Loop hızı 2x artar (min 30ms). Keyword otomatik önceliklendirme: OLCUM, OFFSET, TAMAM, SAPMA, NOKTA içeren her tag otomatik öncelikli kabul edilir."/>
-                                <TextBlock Foreground="#888" FontSize="8" TextWrapping="Wrap"
-                                           Text="Normal output yazma: 20ms delay | Normal input okuma: 10ms delay"/>
+                                           Text="Öncelikli tag tanımlıyken loop hızı otomatik 2x artar (min 30ms). Normal output: 20ms delay, Normal input: 10ms delay."/>
+                                <TextBlock Foreground="#00A4EF" FontSize="8" TextWrapping="Wrap"
+                                           Text="Keyword otomatik önceliklendirme: OLCUM, OFFSET, TAMAM, SAPMA, NOKTA içeren her yeni tag otomatik öncelikli kabul edilir."/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
