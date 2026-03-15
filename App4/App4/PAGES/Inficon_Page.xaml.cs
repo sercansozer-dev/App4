@@ -46,13 +46,13 @@ namespace App4.PAGES
             }
             catch { _webViewReady = false; }
 
-            // PLC okuma timer (200ms)
-            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            // PLC okuma timer (GlobalData'dan, default 200ms)
+            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(GlobalData.Inficon_RefreshInterval) };
             _refreshTimer.Tick += RefreshTimer_Tick;
             _refreshTimer.Start();
 
-            // Trend timer (1000ms)
-            _trendTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+            // Trend timer (GlobalData'dan, default 1000ms)
+            _trendTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(GlobalData.Inficon_TrendInterval) };
             _trendTimer.Tick += TrendTimer_Tick;
             _trendTimer.Start();
         }

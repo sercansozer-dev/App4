@@ -327,7 +327,7 @@ namespace App4
             if (_safetySignalTimer == null)
             {
                 _safetySignalTimer = new DispatcherTimer();
-                _safetySignalTimer.Interval = TimeSpan.FromSeconds(1);
+                _safetySignalTimer.Interval = TimeSpan.FromMilliseconds(GlobalData.Safety_CheckInterval);
                 _safetySignalTimer.Tick += (s, args) =>
                 {
                     UpdateSafetySignalLeds();

@@ -31,6 +31,28 @@ namespace App4
             SliderRobotReadSpeed.Value = GlobalData.Robot_ReadSpeed;
             TxtRobotReadSpeedValue.Text = $"{GlobalData.Robot_ReadSpeed} ms";
 
+            // Haberleşme zamanlama ayarları
+            SliderPlcReadInterval.Value = GlobalData.Plc_ReadInterval;
+            TxtPlcReadInterval.Text = $"{GlobalData.Plc_ReadInterval} ms";
+
+            SliderTriggerMonitor.Value = GlobalData.TriggerMonitor_Interval;
+            TxtTriggerMonitor.Text = $"{GlobalData.TriggerMonitor_Interval} ms";
+
+            SliderRobotTcpTimeout.Value = GlobalData.Robot_TcpTimeout;
+            TxtRobotTcpTimeout.Text = $"{GlobalData.Robot_TcpTimeout} ms";
+
+            SliderGocatorTimeout.Value = GlobalData.Gocator_RestTimeout;
+            TxtGocatorTimeout.Text = $"{GlobalData.Gocator_RestTimeout} ms";
+
+            SliderInficonRefresh.Value = GlobalData.Inficon_RefreshInterval;
+            TxtInficonRefresh.Text = $"{GlobalData.Inficon_RefreshInterval} ms";
+
+            SliderInficonTrend.Value = GlobalData.Inficon_TrendInterval;
+            TxtInficonTrend.Text = $"{GlobalData.Inficon_TrendInterval} ms";
+
+            SliderSafetyCheck.Value = GlobalData.Safety_CheckInterval;
+            TxtSafetyCheck.Text = $"{GlobalData.Safety_CheckInterval} ms";
+
             // Artık slider değişiklikleri kaydedilebilir
             _isPageLoaded = true;
         }
@@ -39,11 +61,64 @@ namespace App4
         {
             if (TxtRobotReadSpeedValue != null)
                 TxtRobotReadSpeedValue.Text = $"{(int)e.NewValue} ms";
-
-            // Sayfa yüklenmeden önce (InitializeComponent sırasında) XAML'deki
-            // varsayılan Value="100" tetiklenir — kaydedilmiş değeri ezmemek için guard
             if (_isPageLoaded)
                 GlobalData.Robot_ReadSpeed = (int)e.NewValue;
+        }
+
+        private void SliderPlcReadInterval_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtPlcReadInterval != null)
+                TxtPlcReadInterval.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.Plc_ReadInterval = (int)e.NewValue;
+        }
+
+        private void SliderTriggerMonitor_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtTriggerMonitor != null)
+                TxtTriggerMonitor.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.TriggerMonitor_Interval = (int)e.NewValue;
+        }
+
+        private void SliderRobotTcpTimeout_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtRobotTcpTimeout != null)
+                TxtRobotTcpTimeout.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.Robot_TcpTimeout = (int)e.NewValue;
+        }
+
+        private void SliderGocatorTimeout_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtGocatorTimeout != null)
+                TxtGocatorTimeout.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.Gocator_RestTimeout = (int)e.NewValue;
+        }
+
+        private void SliderInficonRefresh_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtInficonRefresh != null)
+                TxtInficonRefresh.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.Inficon_RefreshInterval = (int)e.NewValue;
+        }
+
+        private void SliderInficonTrend_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtInficonTrend != null)
+                TxtInficonTrend.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.Inficon_TrendInterval = (int)e.NewValue;
+        }
+
+        private void SliderSafetyCheck_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (TxtSafetyCheck != null)
+                TxtSafetyCheck.Text = $"{(int)e.NewValue} ms";
+            if (_isPageLoaded)
+                GlobalData.Safety_CheckInterval = (int)e.NewValue;
         }
 
         private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
@@ -69,6 +144,15 @@ namespace App4
                 // Robot haberleşme hızı
                 GlobalData.Robot_ReadSpeed = (int)SliderRobotReadSpeed.Value;
 
+                // Haberleşme zamanlama ayarları
+                GlobalData.Plc_ReadInterval = (int)SliderPlcReadInterval.Value;
+                GlobalData.TriggerMonitor_Interval = (int)SliderTriggerMonitor.Value;
+                GlobalData.Robot_TcpTimeout = (int)SliderRobotTcpTimeout.Value;
+                GlobalData.Gocator_RestTimeout = (int)SliderGocatorTimeout.Value;
+                GlobalData.Inficon_RefreshInterval = (int)SliderInficonRefresh.Value;
+                GlobalData.Inficon_TrendInterval = (int)SliderInficonTrend.Value;
+                GlobalData.Safety_CheckInterval = (int)SliderSafetyCheck.Value;
+
                 GlobalData.SaveAutomationSettings();
 
                 TxtSaveStatus.Text = "✅ Ayarlar kaydedildi. Değişiklikler bir sonraki bağlantıda geçerli olacak.";
@@ -89,6 +173,15 @@ namespace App4
             TxtGocatorPort.Text = "3600";
             TxtRobotPort.Text = "7000";
             SliderRobotReadSpeed.Value = 100;
+
+            // Zamanlama ayarları default
+            SliderPlcReadInterval.Value = 50;
+            SliderTriggerMonitor.Value = 500;
+            SliderRobotTcpTimeout.Value = 5000;
+            SliderGocatorTimeout.Value = 30000;
+            SliderInficonRefresh.Value = 200;
+            SliderInficonTrend.Value = 1000;
+            SliderSafetyCheck.Value = 1000;
 
             TxtSaveStatus.Text = "Varsayılan değerler yüklendi. Kaydetmek için 'Ayarları Kaydet' butonuna basın.";
             TxtSaveStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);

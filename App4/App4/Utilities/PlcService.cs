@@ -312,8 +312,8 @@ namespace App4.Utilities
                     // eski değerleriyle robota aktarılmaz.
                     await InitializeOutputsAsync();
 
-                    // Okuma hızı 50ms yapıldı (Limiter ile güvenli hız)
-                    _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, 50);
+                    // Okuma hızı GlobalData'dan alınır (default 50ms, Limiter ile güvenli hız)
+                    _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, GlobalData.Plc_ReadInterval);
                     return true;
                 }
             }

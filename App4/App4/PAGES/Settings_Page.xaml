@@ -69,6 +69,34 @@
                                 <ComboBoxItem Content="Modbus TCP"/>
                             </ComboBox>
                         </Grid>
+
+                        <Rectangle Height="1" Fill="#333" Margin="0,5,0,0"/>
+                        <TextBlock Text="Zamanlama" FontSize="11" Foreground="#4CAF50" FontWeight="SemiBold" Margin="0,5,0,0"/>
+
+                        <Grid ColumnSpacing="10" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="PLC Okuma Hızı" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="0" Grid.Column="1" x:Name="SliderPlcReadInterval" Minimum="20" Maximum="500" StepFrequency="10" SnapsTo="StepValues" Value="50"
+                                    ValueChanged="SliderPlcReadInterval_ValueChanged"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" x:Name="TxtPlcReadInterval" Text="50 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="Tüm PLC değişken okuma" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Tetik İzleme Hızı" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="1" Grid.Column="1" x:Name="SliderTriggerMonitor" Minimum="200" Maximum="2000" StepFrequency="50" SnapsTo="StepValues" Value="500"
+                                    ValueChanged="SliderTriggerMonitor_ValueChanged"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtTriggerMonitor" Text="500 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="Otomasyon trigger izleme" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
 
@@ -96,13 +124,50 @@
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Varsayılan Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtRobotPort" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Okuma Hızı (ms)" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                <Slider x:Name="SliderRobotReadSpeed" Minimum="50" Maximum="500" StepFrequency="10" SnapsTo="StepValues" Value="100" Width="190"
-                                        ValueChanged="SliderRobotReadSpeed_ValueChanged"/>
-                                <TextBlock x:Name="TxtRobotReadSpeedValue" Text="100 ms" Foreground="#4CAF50" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" MinWidth="50"/>
-                            </StackPanel>
                         </Grid>
+
+                        <Rectangle Height="1" Fill="#333" Margin="0,5,0,0"/>
+                        <TextBlock Text="Zamanlama" FontSize="11" Foreground="#0078D4" FontWeight="SemiBold" Margin="0,5,0,0"/>
+
+                        <Grid ColumnSpacing="10" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Okuma Hızı" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="0" Grid.Column="1" x:Name="SliderRobotReadSpeed" Minimum="50" Maximum="500" StepFrequency="10" SnapsTo="StepValues" Value="100"
+                                    ValueChanged="SliderRobotReadSpeed_ValueChanged"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" x:Name="TxtRobotReadSpeedValue" Text="100 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="KUKA TCP loop hızı" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="TCP Timeout" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="1" Grid.Column="1" x:Name="SliderRobotTcpTimeout" Minimum="1000" Maximum="30000" StepFrequency="500" SnapsTo="StepValues" Value="5000"
+                                    ValueChanged="SliderRobotTcpTimeout_ValueChanged"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtRobotTcpTimeout" Text="5000 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="Bağlantı zaman aşımı" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="#333" Margin="0,5,0,0"/>
+                        <TextBlock Text="Öncelik Sistemi" FontSize="11" Foreground="#FF9800" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                        <Border Background="#1A1A1C" CornerRadius="4" Padding="10,8">
+                            <StackPanel Spacing="4">
+                                <TextBlock Foreground="#888" FontSize="9" TextWrapping="Wrap"
+                                           Text="Yüksek: G_OLCUM_TETIK, G_ROBOT_HAZIR, G_IS_BITTI, G_HATA_VAR (3ms aralık)"/>
+                                <TextBlock Foreground="#888" FontSize="9" TextWrapping="Wrap"
+                                           Text="Otomatik: OLCUM/TETIK/TAMAM/SAPMA/NOKTA keyword → öncelikli"/>
+                                <TextBlock Foreground="#888" FontSize="9" TextWrapping="Wrap"
+                                           Text="Adaptif: Öncelikli tag varken loop hızı 2x artar (min 30ms)"/>
+                                <TextBlock Foreground="#555" FontSize="9" TextWrapping="Wrap"
+                                           Text="Yavaş: $TORQUE_AXIS, $VEL_AXIS → her 5 döngüde 1 okunur"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -132,6 +197,71 @@
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Control Port" Foreground="#888" FontSize="12" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtGocatorPort" PlaceholderText="3600" Background="#252528" BorderBrush="#333" Foreground="White" CornerRadius="4"/>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="#333" Margin="0,5,0,0"/>
+                        <TextBlock Text="Zamanlama" FontSize="11" Foreground="#9C27B0" FontWeight="SemiBold" Margin="0,5,0,0"/>
+
+                        <Grid ColumnSpacing="10" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="REST API Timeout" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" x:Name="SliderGocatorTimeout" Minimum="5000" Maximum="120000" StepFrequency="1000" SnapsTo="StepValues" Value="30000"
+                                    ValueChanged="SliderGocatorTimeout_ValueChanged"/>
+                            <TextBlock Grid.Column="2" x:Name="TxtGocatorTimeout" Text="30000 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="3" Text="Gocator API zaman aşımı" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Inficon Sniffer Ayarları -->
+                <Border Background="#1E1E20" CornerRadius="8" Padding="20">
+                    <StackPanel Spacing="15">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Background="#00BCD4" CornerRadius="6" Width="36" Height="36">
+                                <FontIcon Glyph="&#xE9CE;" Foreground="White" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Inficon Sniffer Ayarları" FontSize="14" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#333"/>
+
+                        <TextBlock Text="Zamanlama" FontSize="11" Foreground="#00BCD4" FontWeight="SemiBold"/>
+
+                        <Grid ColumnSpacing="10" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Panel Güncelleme" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="0" Grid.Column="1" x:Name="SliderInficonRefresh" Minimum="100" Maximum="1000" StepFrequency="50" SnapsTo="StepValues" Value="200"
+                                    ValueChanged="SliderInficonRefresh_ValueChanged"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" x:Name="TxtInficonRefresh" Text="200 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="LED/değer okuma hızı" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Trend Grafik" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="1" Grid.Column="1" x:Name="SliderInficonTrend" Minimum="500" Maximum="5000" StepFrequency="100" SnapsTo="StepValues" Value="1000"
+                                    ValueChanged="SliderInficonTrend_ValueChanged"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtInficonTrend" Text="1000 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="1" Grid.Column="3" Text="Chart.js güncelleme" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Güvenlik Kontrol" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Grid.Row="2" Grid.Column="1" x:Name="SliderSafetyCheck" Minimum="500" Maximum="5000" StepFrequency="100" SnapsTo="StepValues" Value="1000"
+                                    ValueChanged="SliderSafetyCheck_ValueChanged"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" x:Name="TxtSafetyCheck" Text="1000 ms" Foreground="#4CAF50" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="Safety alarm kontrolü" Foreground="#555" FontSize="9" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
                 </Border>

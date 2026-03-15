@@ -723,6 +723,108 @@ namespace App4.Utilities
             }
         }
 
+        // ═══════════════════════════════════════════════════════
+        // HABERLEŞME ZAMANLAMA AYARLARI (ms)
+        // ═══════════════════════════════════════════════════════
+
+        // --- PLC Okuma Döngüsü (ms) ---
+        private static int _plcReadInterval = 50;
+        public static int Plc_ReadInterval
+        {
+            get => _plcReadInterval;
+            set
+            {
+                int clamped = Math.Max(20, Math.Min(500, value));
+                if (_plcReadInterval == clamped) return;
+                _plcReadInterval = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- PLC Tetik İzleme Hızı (ms) ---
+        private static int _triggerMonitorInterval = 500;
+        public static int TriggerMonitor_Interval
+        {
+            get => _triggerMonitorInterval;
+            set
+            {
+                int clamped = Math.Max(200, Math.Min(2000, value));
+                if (_triggerMonitorInterval == clamped) return;
+                _triggerMonitorInterval = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- Robot TCP Timeout (ms) ---
+        private static int _robotTcpTimeout = 5000;
+        public static int Robot_TcpTimeout
+        {
+            get => _robotTcpTimeout;
+            set
+            {
+                int clamped = Math.Max(1000, Math.Min(30000, value));
+                if (_robotTcpTimeout == clamped) return;
+                _robotTcpTimeout = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- Gocator REST API Timeout (ms) ---
+        private static int _gocatorRestTimeout = 30000;
+        public static int Gocator_RestTimeout
+        {
+            get => _gocatorRestTimeout;
+            set
+            {
+                int clamped = Math.Max(5000, Math.Min(120000, value));
+                if (_gocatorRestTimeout == clamped) return;
+                _gocatorRestTimeout = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- Inficon Panel Güncelleme Hızı (ms) ---
+        private static int _inficonRefreshInterval = 200;
+        public static int Inficon_RefreshInterval
+        {
+            get => _inficonRefreshInterval;
+            set
+            {
+                int clamped = Math.Max(100, Math.Min(1000, value));
+                if (_inficonRefreshInterval == clamped) return;
+                _inficonRefreshInterval = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- Inficon Trend Grafik Güncelleme (ms) ---
+        private static int _inficonTrendInterval = 1000;
+        public static int Inficon_TrendInterval
+        {
+            get => _inficonTrendInterval;
+            set
+            {
+                int clamped = Math.Max(500, Math.Min(5000, value));
+                if (_inficonTrendInterval == clamped) return;
+                _inficonTrendInterval = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
+        // --- Güvenlik Sinyal Kontrol Hızı (ms) ---
+        private static int _safetyCheckInterval = 1000;
+        public static int Safety_CheckInterval
+        {
+            get => _safetyCheckInterval;
+            set
+            {
+                int clamped = Math.Max(500, Math.Min(5000, value));
+                if (_safetyCheckInterval == clamped) return;
+                _safetyCheckInterval = clamped;
+                SaveAutomationSettings();
+            }
+        }
+
         // EVENTLER VE DURUM
         public static event Action<string> OnAutomationLog;
         public static event Action OnAutomationStatusChanged;
@@ -1657,6 +1759,36 @@ namespace App4.Utilities
                 try { _codesysGocMappings = settings["CodesysGocMappings"] as string ?? "0,1,2,3"; } catch { }
             }
 
+            // Haberleşme zamanlama ayarları
+            if (settings.ContainsKey("Plc_ReadInterval"))
+            {
+                try { _plcReadInterval = Convert.ToInt32(settings["Plc_ReadInterval"]); } catch { }
+            }
+            if (settings.ContainsKey("TriggerMonitor_Interval"))
+            {
+                try { _triggerMonitorInterval = Convert.ToInt32(settings["TriggerMonitor_Interval"]); } catch { }
+            }
+            if (settings.ContainsKey("Robot_TcpTimeout"))
+            {
+                try { _robotTcpTimeout = Convert.ToInt32(settings["Robot_TcpTimeout"]); } catch { }
+            }
+            if (settings.ContainsKey("Gocator_RestTimeout"))
+            {
+                try { _gocatorRestTimeout = Convert.ToInt32(settings["Gocator_RestTimeout"]); } catch { }
+            }
+            if (settings.ContainsKey("Inficon_RefreshInterval"))
+            {
+                try { _inficonRefreshInterval = Convert.ToInt32(settings["Inficon_RefreshInterval"]); } catch { }
+            }
+            if (settings.ContainsKey("Inficon_TrendInterval"))
+            {
+                try { _inficonTrendInterval = Convert.ToInt32(settings["Inficon_TrendInterval"]); } catch { }
+            }
+            if (settings.ContainsKey("Safety_CheckInterval"))
+            {
+                try { _safetyCheckInterval = Convert.ToInt32(settings["Safety_CheckInterval"]); } catch { }
+            }
+
             // Debug log
             System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}, ReadSpeed={_robotReadSpeed}ms");
         }
@@ -1682,6 +1814,15 @@ namespace App4.Utilities
             settings["Gocator_IpAddress"] = Gocator_IpAddress;
             settings["Gocator_Port"] = Gocator_Port;
             settings["ToolRelativeOffsets"] = SavedToolRelativeOffsets ?? "";
+
+            // Haberleşme zamanlama ayarları
+            settings["Plc_ReadInterval"] = Plc_ReadInterval;
+            settings["TriggerMonitor_Interval"] = TriggerMonitor_Interval;
+            settings["Robot_TcpTimeout"] = Robot_TcpTimeout;
+            settings["Gocator_RestTimeout"] = Gocator_RestTimeout;
+            settings["Inficon_RefreshInterval"] = Inficon_RefreshInterval;
+            settings["Inficon_TrendInterval"] = Inficon_TrendInterval;
+            settings["Safety_CheckInterval"] = Safety_CheckInterval;
 
             // Veri kaynağı seçimi
             settings["DataSourceMode"] = DataSourceMode;

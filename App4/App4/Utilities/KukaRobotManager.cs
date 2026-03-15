@@ -577,7 +577,7 @@ namespace App4.Utilities
             try
             {
                 OnLog?.Invoke($"[{Name}] Bağlanılıyor {IpAddress}:{Port}...");
-                _client = new TcpClient { SendTimeout = 5000, ReceiveTimeout = 5000 };
+                _client = new TcpClient { SendTimeout = GlobalData.Robot_TcpTimeout, ReceiveTimeout = GlobalData.Robot_TcpTimeout };
                 await _client.ConnectAsync(IpAddress, Port);
                 _stream = _client.GetStream();
                 IsConnected = true;

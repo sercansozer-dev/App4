@@ -9,6 +9,7 @@
  * Redistributions of files must retain the above copyright notice.
  */
 
+using App4.Utilities;
 using GoPxLSdk;
 using Newtonsoft.Json.Linq;
 using System;
@@ -59,7 +60,7 @@ namespace GoPxLSdkSamplesCommon {
 
         // Command Timeouts
         // Alignment delays REST responses, and G3 alignment takes a few seconds, so an increased timeout is needed.
-        public const int REST_COMMAND_TIMEOUT_MSEC = 30000;
+        public static int REST_COMMAND_TIMEOUT_MSEC => GlobalData.Gocator_RestTimeout;
 
         // Verifies that the device is not remote controlled.
         public static int VerifyConnection(GoSystem system)

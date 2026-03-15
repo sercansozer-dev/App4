@@ -334,7 +334,7 @@ namespace App4
         private void InitializeTriggerMonitor()
         {
             _triggerMonitorTimer = new DispatcherTimer();
-            _triggerMonitorTimer.Interval = TimeSpan.FromMilliseconds(500);
+            _triggerMonitorTimer.Interval = TimeSpan.FromMilliseconds(GlobalData.TriggerMonitor_Interval);
             _triggerMonitorTimer.Tick += (s, e) =>
             {
                 // --- Trigger Monitor ---
