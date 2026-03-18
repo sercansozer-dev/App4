@@ -1836,7 +1836,7 @@ namespace App4.PAGES
             try
             {
                 // 1. Kaynak ve Hedef Yolları Belirle
-                string sourcePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4");
+                string sourcePath = Utilities.GlobalData.ConfigBaseDir;
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string zipFileName = $"App4_Yedek_{DateTime.Now:yyyyMMdd_HHmm}.zip";
                 string destinationZip = Path.Combine(desktopPath, zipFileName);
@@ -2110,7 +2110,7 @@ namespace App4.PAGES
         }
 
         // --- JOB ÖNBELLEK (CACHE) DOSYA YOLU ---
-        private readonly string _jobCacheFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Gocator_Jobs_Cache.json");
+        private readonly string _jobCacheFilePath = Path.Combine(Utilities.GlobalData.ConfigBaseDir, "Gocator_Jobs_Cache.json");
 
         // 1. ÖNBELLEĞİ YÜKLE (UYGULAMA AÇILINCA)
         private void LoadCachedJobs()

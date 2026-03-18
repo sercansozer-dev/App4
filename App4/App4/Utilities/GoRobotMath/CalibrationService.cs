@@ -96,8 +96,7 @@ namespace App4.Utilities.GoRobotMath
 
         // JSON kayit dosya yolu
         private static readonly string _calibrationFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "HandEyeCalibration.json");
+            GlobalData.ConfigBaseDir, "HandEyeCalibration.json");
 
         #endregion
 

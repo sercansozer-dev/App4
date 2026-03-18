@@ -36,8 +36,7 @@ namespace App4
         private string currentUserRole = "Operatör";
         // Mevcut değişkenlerin altına ekleyin
         private readonly string _stationStateFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "Station_States.json");
+            Utilities.GlobalData.ConfigBaseDir, "Station_States.json");
         // Bu değişken simülasyonun sadece 1 kere çalışmasını garanti eder
         private bool _hasRunStartup = false;
 
