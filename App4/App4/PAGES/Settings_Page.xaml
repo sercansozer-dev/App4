@@ -653,6 +653,7 @@
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="Yapılandırma Yedekleme" FontSize="14" FontWeight="SemiBold" Foreground="White"/>
                                 <TextBlock Text="Tüm ayarları yedekle ve başka bilgisayara aktar" FontSize="11" Foreground="#888"/>
+                                <TextBlock Text="Config: C:\Simbiosis\SimbiosisLeakTestApp\Config\" FontSize="8" Foreground="#444" FontFamily="Consolas"/>
                             </StackPanel>
                         </StackPanel>
                         <Rectangle Height="1" Fill="#333"/>

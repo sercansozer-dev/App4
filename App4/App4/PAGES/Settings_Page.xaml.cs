@@ -188,7 +188,7 @@ namespace App4
                 TxtConfigStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
 
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string fileName = $"App4_Config_{DateTime.Now:yyyyMMdd_HHmm}.zip";
+                string fileName = $"SimbiosisLeakTestApp_Config_{DateTime.Now:yyyyMMdd_HHmm}.zip";
                 string fullPath = Path.Combine(desktopPath, fileName);
 
                 string result = await ConfigBackupManager.ExportConfigAsync(fullPath);
@@ -222,7 +222,7 @@ namespace App4
                 var picker = new FileOpenPicker();
                 picker.FileTypeFilter.Add(".zip");
 
-                var window = (Application.Current as App)?.MainWindow;
+                var window = (Application.Current as App)?.MainWindow ?? App.m_window;
                 if (window != null)
                 {
                     var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);

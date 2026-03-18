@@ -4118,10 +4118,8 @@ namespace App4.Utilities
                     string settingsJson = System.Text.Json.JsonSerializer.Serialize(settingsDict, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                     File.WriteAllText(Path.Combine(tempDir, "_LocalSettings.json"), settingsJson);
 
-                    // 3. PLC Service ayarlarını kopyala
-                    string plcVarsPath = Path.Combine(_appDataFolder, "PlcService_Variables.json");
-                    if (File.Exists(plcVarsPath))
-                        File.Copy(plcVarsPath, Path.Combine(tempDir, "PlcService_Variables.json"), true);
+                    // 3. PLC Config dosyasını kopyala (zaten _appDataFolder içinde JSON olarak kopyalandı)
+                    // PLC_Config.json yukarıdaki GetFiles("*.json") ile zaten dahil ediliyor
 
                     // ZIP oluştur
                     if (File.Exists(destinationPath)) File.Delete(destinationPath);
