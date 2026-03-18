@@ -738,21 +738,32 @@ namespace App4.Utilities
             }
             catch { }
 
+            // Mevcut listeye ekle (aynı isimde olanları atla)
+            var existingList = direction == "Input" ? existingData.Inputs : existingData.Outputs;
+            if (existingList == null) existingList = new List<PlcVariable>();
+            var existingNames = new HashSet<string>(existingList.Select(v => v.Name));
+            foreach (var v in sorted)
+            {
+                if (!existingNames.Contains(v.Name))
+                    existingList.Add(v);
+            }
+
             if (direction == "Input")
-                existingData.Inputs = sorted;
+                existingData.Inputs = existingList;
             else
-                existingData.Outputs = sorted;
+                existingData.Outputs = existingList;
 
             // Dosyaya kaydet
             var options = new JsonSerializerOptions { WriteIndented = true };
             File.WriteAllText(_configFilePath, JsonSerializer.Serialize(existingData, options));
 
-            // UI koleksiyonunu da güncelle (sayfa yeniden başlatmaya gerek kalmasın)
+            // UI koleksiyonunu da güncelle
+            var finalList = direction == "Input" ? existingData.Inputs : existingData.Outputs;
             _dispatcherQueue?.TryEnqueue(() =>
             {
                 var target = direction == "Input" ? InputVariables : OutputVariables;
                 target.Clear();
-                foreach (var v in sorted) target.Add(v);
+                foreach (var v in finalList) target.Add(v);
                 _readListDirty = true;
             });
 
