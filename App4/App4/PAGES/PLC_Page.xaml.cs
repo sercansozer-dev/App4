@@ -200,6 +200,43 @@ namespace App4.PAGES
             LogTextBlock.Text = "";
         }
 
+        private async void BtnImportCsv_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FolderPicker();
+                picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop;
+                picker.FileTypeFilter.Add("*");
+
+                // WinUI 3 picker initialization
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(((App)Microsoft.UI.Xaml.Application.Current).MainWindow);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+                var folder = await picker.PickSingleFolderAsync();
+                if (folder == null) return;
+
+                TxtImportStatus.Text = "Import ediliyor...";
+                BtnImportCsv.IsEnabled = false;
+
+                await Task.Run(() =>
+                {
+                    var result = PlcService.Instance.ImportFromCsvFolder(folder.Path);
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        TxtImportStatus.Text = $"{result.inputs} input, {result.outputs} output yuklendi";
+                        AddLog($"[CSV_IMPORT] {folder.Path} klasorundan {result.inputs} input + {result.outputs} output degisken yuklendi");
+                        BtnImportCsv.IsEnabled = true;
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                TxtImportStatus.Text = $"Hata: {ex.Message}";
+                BtnImportCsv.IsEnabled = true;
+                AddLog($"[CSV_IMPORT] HATA: {ex.Message}");
+            }
+        }
+
         private void AddLog(string message)
         {
             _logBuilder.AppendLine($"[{DateTime.Now:HH:mm:ss}] {message}");

@@ -1346,24 +1346,15 @@ namespace App4.Utilities
         private bool _bridgeProcessing = false;
         private bool _bridgeRunning = false;
 
-        private readonly string _robotPlcMappingsPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "RobotPlcMappings.json");
-        private readonly string _robotRobotMappingsPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "RobotRobotMappings.json");
+        private readonly string _robotPlcMappingsPath = Path.Combine(GlobalData.ConfigBaseDir, "RobotPlcMappings.json");
+        private readonly string _robotRobotMappingsPath = Path.Combine(GlobalData.ConfigBaseDir, "RobotRobotMappings.json");
 
         public event Action<string> OnLog;
         public DispatcherQueue UiDispatcher { get; set; }
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly string _configPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "KukaRobots.json");
-
-        private readonly string _handshakeConfigPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "App4", "HandshakeConfig.json");
+        private readonly string _configPath = Path.Combine(GlobalData.ConfigBaseDir, "KukaRobots.json");
+        private readonly string _handshakeConfigPath = Path.Combine(GlobalData.ConfigBaseDir, "HandshakeConfig.json");
 
         private bool _isInitialized = false;
 
@@ -1487,7 +1478,7 @@ namespace App4.Utilities
         }
 
         // Persist robot-specific Input/Output variable definitions to disk
-        private readonly string _robotVarsPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Variables.json");
+        private readonly string _robotVarsPath = System.IO.Path.Combine(GlobalData.ConfigBaseDir, "Robot_Variables.json");
 
         public void SaveRobotVariables()
         {

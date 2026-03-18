@@ -26,6 +26,9 @@ namespace App4
         public ObservableCollection<App4.Utilities.SafetyCheckItem> SafetyWarningList => GlobalData.SafetyWarningList;
         public ObservableCollection<PlcVariable> GeneralInputVars => GlobalData.GeneralInputVars;
         public ObservableCollection<PlcVariable> GeneralOutputVars => GlobalData.GeneralOutputVars;
+        // INFICON değişkenleri Inficon_Page'de gösterilecek — Auto_Page'den filtrele
+        public ObservableCollection<PlcVariable> FilteredGeneralInputVars { get; set; } = new();
+        public ObservableCollection<PlcVariable> FilteredGeneralOutputVars { get; set; } = new();
         public ObservableCollection<PlcVariable> Station1Vars => GlobalData.Station1Vars;
         public ObservableCollection<PlcVariable> Station2Vars => GlobalData.Station2Vars;
         public ObservableCollection<PlcVariable> Station3Vars => GlobalData.Station3Vars;
@@ -145,6 +148,12 @@ namespace App4
         {
             this.InitializeComponent();
             this.DataContext = this;
+
+            // INFICON değişkenlerini filtrele (Inficon_Page'de gösterilecek)
+            foreach (var v in GlobalData.GeneralInputVars.Where(v => !v.Name.StartsWith("INFICON")))
+                FilteredGeneralInputVars.Add(v);
+            foreach (var v in GlobalData.GeneralOutputVars.Where(v => !v.Name.StartsWith("INFICON")))
+                FilteredGeneralOutputVars.Add(v);
 
             // Tag listelerini ve modelleri doldur
             InitializeAvailablePlcTags();

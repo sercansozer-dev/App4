@@ -166,11 +166,17 @@
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                            <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
-                            <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                            <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
-                        </StackPanel>
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                                <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
+                                <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="8">
+                                <Button x:Name="BtnImportCsv" Content="CSV'den PLC Degisken Yukle" Background="#E91E63" Foreground="White" CornerRadius="4" Height="28" FontWeight="Bold" FontSize="9" Padding="12,0" Click="BtnImportCsv_Click"/>
+                                <TextBlock x:Name="TxtImportStatus" Text="" FontSize="9" Foreground="#888" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
                     <Grid Grid.Row="1" Background="#0D0D0D" Padding="8">

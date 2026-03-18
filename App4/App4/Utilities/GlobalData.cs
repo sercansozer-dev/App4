@@ -26,17 +26,18 @@ namespace App4.Utilities
     public static class GlobalData
     {
         // --- DOSYA YOLLARI ---
-        private static readonly string _rfidFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_RFID_List.json");
-        private static readonly string _stationStateFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Station_States.json");
-        private static readonly string _autoPageVariablesFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Auto_Page_Variables.json");
-        private static readonly string _measurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_Measurements.json");
-        private static readonly string _transferRowsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Camera_PlcTransfer.json");
-        private static readonly string _systemChecksFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "System_Checks.json");
-        private static readonly string _transformedMeasurementsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Transformed_Measurements.json");
-        private static readonly string _robotSliderMappingFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Robot_Slider_Mapping.json");
-        private static readonly string _safetyAlarmsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Safety_Alarms.json");
-        private static readonly string _safetyWarningsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Safety_Warnings.json");
-        private static readonly string _inficonLogsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Inficon_Leak_Logs.json");
+        public static readonly string ConfigBaseDir = @"C:\Simbiosis\SimbiosisLeakTestApp\Config";
+        private static readonly string _rfidFilePath = Path.Combine(ConfigBaseDir, "Saved_RFID_List.json");
+        private static readonly string _stationStateFilePath = Path.Combine(ConfigBaseDir, "Station_States.json");
+        private static readonly string _autoPageVariablesFilePath = Path.Combine(ConfigBaseDir, "Auto_Page_Variables.json");
+        private static readonly string _measurementsFilePath = Path.Combine(ConfigBaseDir, "Saved_Measurements.json");
+        private static readonly string _transferRowsFilePath = Path.Combine(ConfigBaseDir, "Camera_PlcTransfer.json");
+        private static readonly string _systemChecksFilePath = Path.Combine(ConfigBaseDir, "System_Checks.json");
+        private static readonly string _transformedMeasurementsFilePath = Path.Combine(ConfigBaseDir, "Transformed_Measurements.json");
+        private static readonly string _robotSliderMappingFilePath = Path.Combine(ConfigBaseDir, "Robot_Slider_Mapping.json");
+        private static readonly string _safetyAlarmsFilePath = Path.Combine(ConfigBaseDir, "Safety_Alarms.json");
+        private static readonly string _safetyWarningsFilePath = Path.Combine(ConfigBaseDir, "Safety_Warnings.json");
+        private static readonly string _inficonLogsFilePath = Path.Combine(ConfigBaseDir, "Inficon_Leak_Logs.json");
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
@@ -49,6 +50,9 @@ namespace App4.Utilities
         public static ObservableCollection<SafetyCheckItem> SafetyAlarmList { get; private set; } = new();
         public static ObservableCollection<SafetyCheckItem> SafetyWarningList { get; private set; } = new();
         public static ObservableCollection<App4.Models.InficonLeakLogEntry> InficonLeakLogs { get; private set; } = new();
+        // Sniffer aktif nokta bazlı kaçak sonuçları (Inficon_Page tabloları)
+        public static ObservableCollection<App4.Models.SnifferPointResult> Robot1SnifferPoints { get; set; } = new();
+        public static ObservableCollection<App4.Models.SnifferPointResult> Robot2SnifferPoints { get; set; } = new();
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> PlcTransferRows { get; private set; } = new();
 
@@ -294,8 +298,7 @@ namespace App4.Utilities
             set { if (_kl100Station3Pos != value) { _kl100Station3Pos = value; SaveKL100StationPositions(); } }
         }
 
-        private static readonly string _kl100PosFilePath = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "KL100_StationPositions.json");
+        private static readonly string _kl100PosFilePath = System.IO.Path.Combine(ConfigBaseDir, "KL100_StationPositions.json");
 
         public static void SaveKL100StationPositions()
         {
@@ -1105,10 +1108,8 @@ namespace App4.Utilities
         private static void LoadMeasurements() { try { if (File.Exists(_measurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath)); if (list != null) { LastMeasurements.Clear(); foreach (var item in list) LastMeasurements.Add(item); } } } catch { } }
 
         // --- TABLA KAÇIKLIK ÖLÇÜM KAYIT ---
-        private static readonly string _tablaMeasurementsFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Saved_Tabla_Measurements.json");
-        private static readonly string _tablaTransferFilePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4", "Tabla_Transfer_Rows.json");
+        private static readonly string _tablaMeasurementsFilePath = Path.Combine(ConfigBaseDir, "Saved_Tabla_Measurements.json");
+        private static readonly string _tablaTransferFilePath = Path.Combine(ConfigBaseDir, "Tabla_Transfer_Rows.json");
 
         public static void SaveTablaMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(TablaLastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_tablaMeasurementsFilePath, json); } catch { } }
         private static void LoadTablaMeasurements() { try { if (File.Exists(_tablaMeasurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_tablaMeasurementsFilePath)); if (list != null) { TablaLastMeasurements.Clear(); foreach (var item in list) TablaLastMeasurements.Add(item); } } } catch { } }
@@ -2630,6 +2631,128 @@ namespace App4.Utilities
         }
 
         // =====================================================
+        // SNIFFER LEAK MONİTÖR — Sürekli PLC izleme (otomasyon aktifken)
+        // INFICON_LEAK edge detection → aktif noktaya NOK/OK yaz
+        // =====================================================
+        private static bool _prevInficon1Leak = false;
+        private static bool _prevInficon2Leak = false;
+        private static System.Threading.Timer _snifferMonitorTimer;
+
+        public static void StartSnifferMonitor()
+        {
+            _prevInficon1Leak = false;
+            _prevInficon2Leak = false;
+            _snifferMonitorTimer?.Dispose();
+            _snifferMonitorTimer = new System.Threading.Timer(_ => CheckSnifferLeaks(), null, 0, 200);
+            OnAutomationLog?.Invoke("[Sniffer] Kaçak monitörü başlatıldı (200ms döngü)");
+        }
+
+        public static void StopSnifferMonitor()
+        {
+            _snifferMonitorTimer?.Dispose();
+            _snifferMonitorTimer = null;
+            OnAutomationLog?.Invoke("[Sniffer] Kaçak monitörü durduruldu");
+        }
+
+        private static void CheckSnifferLeaks()
+        {
+            if (!IsProcessRunning) return;
+            try
+            {
+                CheckSnifferLeakForRobot(1, ref _prevInficon1Leak);
+                CheckSnifferLeakForRobot(2, ref _prevInficon2Leak);
+            }
+            catch { }
+        }
+
+        private static void CheckSnifferLeakForRobot(int robotNo, ref bool prevLeak)
+        {
+            var leakVar = GeneralInputVars.FirstOrDefault(v => v.Name == $"INFICON{robotNo}_LEAK");
+            if (leakVar == null) return;
+
+            string val = leakVar.Value ?? leakVar.CurrentValue?.ToString() ?? "0";
+            bool currentLeak = (val == "1" || val.Equals("true", StringComparison.OrdinalIgnoreCase));
+
+            if (currentLeak && !prevLeak)
+            {
+                // Yükselen kenar: LEAK başladı → NOK
+                int aktifNokta = GetSnifferAktifNokta(robotNo);
+                double leakRate = GetSnifferLeakRate(robotNo);
+                if (aktifNokta > 0)
+                {
+                    var collection = robotNo == 1 ? Robot1SnifferPoints : Robot2SnifferPoints;
+                    UpdateSnifferPoint(collection, robotNo, aktifNokta, "NOK", leakRate);
+                }
+            }
+            else if (!currentLeak && prevLeak)
+            {
+                // Düşen kenar: LEAK temizlendi → OK
+                int aktifNokta = GetSnifferAktifNokta(robotNo);
+                double leakRate = GetSnifferLeakRate(robotNo);
+                if (aktifNokta > 0)
+                {
+                    var collection = robotNo == 1 ? Robot1SnifferPoints : Robot2SnifferPoints;
+                    UpdateSnifferPoint(collection, robotNo, aktifNokta, "OK", leakRate);
+                }
+            }
+            prevLeak = currentLeak;
+        }
+
+        private static int GetSnifferAktifNokta(int robotNo)
+        {
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots == null || robots.Count < robotNo) return 0;
+            var robot = robots[robotNo - 1];
+            string varName = robotNo == 1 ? "G_AKTIF_NOKTA" : "G_AKTIF_CIZGI";
+            var v = robot.InputVars.FirstOrDefault(x => x.Name == varName);
+            if (v != null && int.TryParse(v.Value, out int nokta)) return nokta;
+            return 0;
+        }
+
+        private static double GetSnifferLeakRate(int robotNo)
+        {
+            var v = GeneralInputVars.FirstOrDefault(x => x.Name == $"INFICON{robotNo}_LEAKRATE");
+            if (v != null && double.TryParse(v.Value ?? v.CurrentValue?.ToString(),
+                System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double rate)) return rate;
+            return 0.0;
+        }
+
+        public static void UpdateSnifferPoint(ObservableCollection<App4.Models.SnifferPointResult> collection,
+            int robotNo, int pointIndex, string result, double leakRate)
+        {
+            ((App)Microsoft.UI.Xaml.Application.Current).MainWindow.DispatcherQueue.TryEnqueue(() =>
+            {
+                var existing = collection.FirstOrDefault(p => p.PointIndex == pointIndex);
+                if (existing != null)
+                {
+                    existing.Result = result;
+                    existing.LeakRate = leakRate;
+                    existing.Timestamp = DateTime.Now;
+                }
+                else
+                {
+                    collection.Add(new App4.Models.SnifferPointResult
+                    {
+                        PointIndex = pointIndex,
+                        Result = result,
+                        LeakRate = leakRate,
+                        Timestamp = DateTime.Now
+                    });
+                }
+            });
+            OnAutomationLog?.Invoke($"[Sniffer] Robot{robotNo} Nokta {pointIndex}: {result} (LeakRate={leakRate:E2})");
+        }
+
+        public static void ClearSnifferPoints()
+        {
+            ((App)Microsoft.UI.Xaml.Application.Current).MainWindow.DispatcherQueue.TryEnqueue(() =>
+            {
+                Robot1SnifferPoints.Clear();
+                Robot2SnifferPoints.Clear();
+            });
+        }
+
+        // =====================================================
         // INFICON SNIFFER ÖLÇÜM (GLOBAL)
         // Robot G_SNIFFER_OLCUM_TETIK=TRUE → INFICON ölçüm → G_SNIFFER_OK + G_SNIFFER_TAMAM
         // =====================================================
@@ -2662,13 +2785,20 @@ namespace App4.Utilities
                     await Task.Delay((int)Math.Min(snifferSure, 30000));
                 }
 
-                // INFICON ölçüm
-                bool olcumOK = true;
+                // INFICON ölçüm — PLC'den LEAK sinyali oku
+                var leakVar = GeneralInputVars.FirstOrDefault(v => v.Name == $"INFICON{robotNo}_LEAK");
+                bool isLeak = false;
+                if (leakVar != null)
+                {
+                    string val = leakVar.Value ?? leakVar.CurrentValue?.ToString() ?? "0";
+                    isLeak = (val == "1" || val.Equals("true", StringComparison.OrdinalIgnoreCase));
+                }
+                bool olcumOK = !isLeak;
                 double olcumDeger = 0.0;
-                // *** INFICON SDK ENTEGRASYON NOKTASI ***
-                // var inficonResult = await InficonService.Instance.MeasureAsync();
-                // olcumOK = inficonResult.IsPass;
-                // olcumDeger = inficonResult.LeakRate;
+                var leakRateVar = GeneralInputVars.FirstOrDefault(v => v.Name == $"INFICON{robotNo}_LEAKRATE");
+                if (leakRateVar != null)
+                    double.TryParse(leakRateVar.Value ?? leakRateVar.CurrentValue?.ToString(),
+                        System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out olcumDeger);
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON sonuç: {(olcumOK ? "OK" : "NOK")} (Değer={olcumDeger:F4})");
 
@@ -3488,6 +3618,10 @@ namespace App4.Utilities
             OlcumInProgress = true;
             ProcessStatus = "İŞLENİYOR...";
 
+            // Sniffer kaçak monitörünü başlat + önceki sonuçları temizle
+            ClearSnifferPoints();
+            StartSnifferMonitor();
+
             // ▼▼▼ SİNYAL SIFIRLA — SADECE İLGİLİ KANAL ▼▼▼
             // Tabla tetik → sadece tabla sinyalini sıfırla (boru TAMAM'ına dokunma)
             // Boru tetik → sadece boru sinyalini sıfırla (tabla TAMAM'ına dokunma)
@@ -3926,6 +4060,7 @@ namespace App4.Utilities
             }
             finally
             {
+                StopSnifferMonitor();
                 IsProcessRunning = false;
                 OlcumInProgress = false;
                 await Task.Delay(2000);
@@ -3939,8 +4074,7 @@ namespace App4.Utilities
     // ═══════════════════════════════════════════════════════════════════════════
     public static class ConfigBackupManager
     {
-        private static readonly string _appDataFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "App4");
+        private static readonly string _appDataFolder = GlobalData.ConfigBaseDir;
 
         /// <summary>
         /// Tüm ayar dosyalarını tek bir ZIP dosyasına yedekler.

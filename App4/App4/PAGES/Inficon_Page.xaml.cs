@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Web.WebView2.Core;
 using System;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,9 +25,25 @@ namespace App4.PAGES
         private bool _prev1Leak;
         private bool _prev2Leak;
 
+        // INFICON PLC değişkenleri (GeneralInputVars/OutputVars'tan INFICON filtresi)
+        public ObservableCollection<PlcVariable> InficonInputVars { get; set; } = new();
+        public ObservableCollection<PlcVariable> InficonOutputVars { get; set; } = new();
+        public ObservableCollection<string> AvailableInputPlcTags { get; set; } = new();
+        public ObservableCollection<string> AvailableOutputPlcTags { get; set; } = new();
+
         public Inficon_Page()
         {
             this.InitializeComponent();
+
+            // INFICON değişkenlerini filtrele
+            foreach (var v in GlobalData.GeneralInputVars.Where(v => v.Name.StartsWith("INFICON")))
+                InficonInputVars.Add(v);
+            foreach (var v in GlobalData.GeneralOutputVars.Where(v => v.Name.StartsWith("INFICON")))
+                InficonOutputVars.Add(v);
+
+            // PLC tag listelerini doldur
+            InitializeAvailablePlcTags();
+
             RefreshLogTable();
         }
 
@@ -55,6 +72,15 @@ namespace App4.PAGES
             _trendTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(GlobalData.Inficon_TrendInterval) };
             _trendTimer.Tick += TrendTimer_Tick;
             _trendTimer.Start();
+
+            // INFICON PLC değişkenlerini bağla
+            BindInficonVars();
+
+            // Sniffer nokta tabloları — CollectionChanged ile otomatik güncelle
+            GlobalData.Robot1SnifferPoints.CollectionChanged += (s, args) => DispatcherQueue.TryEnqueue(() => RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount));
+            GlobalData.Robot2SnifferPoints.CollectionChanged += (s, args) => DispatcherQueue.TryEnqueue(() => RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount));
+            RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount);
+            RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount);
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
@@ -87,6 +113,10 @@ namespace App4.PAGES
                 // Leak edge detection — yeni log kaydı
                 CheckLeakEdge(1, ref _prev1Leak);
                 CheckLeakEdge(2, ref _prev2Leak);
+
+                // Sniffer nokta tabloları — property değişimlerini de yansıt
+                RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount);
+                RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount);
             }
             catch { }
         }
@@ -246,6 +276,61 @@ namespace App4.PAGES
             catch { }
         }
 
+        // ═══ SNİFFER NOKTA TABLOSU GÜNCELLE ═══
+        private void RefreshSnifferTable(StackPanel panel,
+            System.Collections.ObjectModel.ObservableCollection<SnifferPointResult> points,
+            TextBlock countText)
+        {
+            try
+            {
+                panel.Children.Clear();
+                countText.Text = $"({points.Count})";
+
+                foreach (var pt in points.OrderBy(p => p.PointIndex))
+                {
+                    var row = new Grid { Padding = new Thickness(0, 2, 0, 2) };
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+
+                    // Nokta numarası
+                    AddCell(row, 0, pt.PointIndex.ToString(), "#CCC");
+
+                    // Sonuç (renkli daire + text)
+                    var resultPanel = new StackPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+                    var dot = new Border
+                    {
+                        Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
+                        Background = pt.ResultColor,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    var resultTxt = new TextBlock
+                    {
+                        Text = pt.Result,
+                        FontSize = 10,
+                        FontFamily = new FontFamily("Consolas"),
+                        FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                        Foreground = pt.ResultColor,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    resultPanel.Children.Add(dot);
+                    resultPanel.Children.Add(resultTxt);
+                    Grid.SetColumn(resultPanel, 1);
+                    row.Children.Add(resultPanel);
+
+                    // Leak Rate
+                    AddCell(row, 2, pt.LeakRate > 0 ? pt.LeakRate.ToString("E2") : "---", pt.Result == "NOK" ? "#F44336" : "#CCC");
+
+                    // Zaman
+                    AddCell(row, 3, pt.Timestamp?.ToString("HH:mm:ss") ?? "---", "#888");
+
+                    panel.Children.Add(row);
+                }
+            }
+            catch { }
+        }
+
         private static void AddCell(Grid row, int col, string text, string color)
         {
             var tb = new TextBlock
@@ -363,6 +448,96 @@ namespace App4.PAGES
                     byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber),
                     byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber));
             return Windows.UI.Color.FromArgb(255, 128, 128, 128);
+        }
+
+        // ═══ INFICON PLC DEĞİŞKEN TABLOSU ═══
+        private void InitializeAvailablePlcTags()
+        {
+            try
+            {
+                AvailableInputPlcTags.Clear();
+                AvailableOutputPlcTags.Clear();
+                foreach (var v in PlcService.Instance.InputVariables)
+                    AvailableInputPlcTags.Add(v.Name?.Trim());
+                foreach (var v in PlcService.Instance.OutputVariables)
+                    AvailableOutputPlcTags.Add(v.Name?.Trim());
+            }
+            catch { }
+        }
+
+        private void ConnectInficonToPlcVariable(PlcVariable localVar)
+        {
+            if (string.IsNullOrEmpty(localVar.PlcTag)) return;
+            var sourceVar = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag)
+                         ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag)
+                         as PlcVariable;
+            if (sourceVar != null)
+            {
+                localVar.Value = sourceVar.CurrentValue?.ToString();
+                sourceVar.PropertyChanged += (s, e) =>
+                {
+                    if (e.PropertyName == "CurrentValue")
+                        this.DispatcherQueue.TryEnqueue(() => localVar.Value = sourceVar.CurrentValue?.ToString());
+                };
+            }
+        }
+
+        private void ConnectInficonToPlcVariable2(PlcVariable localVar)
+        {
+            if (string.IsNullOrEmpty(localVar.PlcTag2)) return;
+            var target2 = PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag2)
+                       ?? PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == localVar.PlcTag2)
+                       as PlcVariable;
+            if (target2 != null)
+            {
+                localVar.PropertyChanged += (s, e) =>
+                {
+                    if ((e.PropertyName == "CurrentValue" || e.PropertyName == "Value") && target2.CurrentValue?.ToString() != localVar.CurrentValue?.ToString())
+                    {
+                        try { target2.CurrentValue = localVar.CurrentValue; } catch { }
+                    }
+                };
+            }
+        }
+
+        private void BindInficonVars()
+        {
+            foreach (var v in InficonInputVars) ConnectInficonToPlcVariable(v);
+            foreach (var v in InficonOutputVars)
+            {
+                ConnectInficonToPlcVariable(v);
+                ConnectInficonToPlcVariable2(v);
+            }
+        }
+
+        private void InficonPlcTagComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is PlcVariable v)
+            {
+                string newTag = cb.SelectedItem as string;
+                if (string.IsNullOrEmpty(newTag) && !string.IsNullOrEmpty(v.PlcTag)) return;
+                if (v.PlcTag != newTag)
+                {
+                    v.PlcTag = newTag;
+                    GlobalData.SavePlcVariableTagsToFile();
+                    ConnectInficonToPlcVariable(v);
+                }
+            }
+        }
+
+        private void InficonPlcTag2ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is PlcVariable v)
+            {
+                string newTag2 = cb.SelectedItem as string;
+                if (string.IsNullOrEmpty(newTag2) && !string.IsNullOrEmpty(v.PlcTag2)) return;
+                if (v.PlcTag2 != newTag2)
+                {
+                    v.PlcTag2 = newTag2;
+                    GlobalData.SavePlcVariableTagsToFile();
+                    ConnectInficonToPlcVariable2(v);
+                }
+            }
         }
     }
 }

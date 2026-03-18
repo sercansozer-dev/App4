@@ -100,9 +100,7 @@ namespace App4.Utilities
 
         private TrendDataService()
         {
-            _dataFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "App4", "TrendData");
+            _dataFolder = Path.Combine(GlobalData.ConfigBaseDir, "TrendData");
 
             if (!Directory.Exists(_dataFolder))
                 Directory.CreateDirectory(_dataFolder);

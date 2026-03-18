@@ -158,8 +158,7 @@ namespace App4.Utilities
         public Action<Action> UiRunner { get; private set; }
 
         private readonly string _configFilePath = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "App4", "PLC_Config.json");
+    GlobalData.ConfigBaseDir, "PLC_Config.json");
 
 
 
@@ -589,6 +588,131 @@ namespace App4.Utilities
             {
                 System.Diagnostics.Debug.WriteLine("Kaydetme Hatası: " + ex.Message);
             }
+        }
+
+        // ═══ CSV'DEN PLC DEĞİŞKEN IMPORT ═══
+        private static readonly HashSet<string> _standardTypes = new(StringComparer.OrdinalIgnoreCase)
+            { "BOOL", "INT", "WORD", "REAL", "LREAL", "DINT", "DWORD", "FLOAT" };
+
+        private static readonly HashSet<string> _outputKeywords = new(StringComparer.OrdinalIgnoreCase)
+            { "start", "cal", "cal_abort", "zero", "errClear", "stanby", "reset", "enable",
+              "manStart", "manStop", "autoStart", "autoStop", "alarmReset", "lightOn",
+              "manSetSpeed", "TASK_SAVE", "MODE_CMD", "RFIDMOD", "CONVEYOR_PERM",
+              "JOB_TRIGGER", "SLIDER_SERVO_GO", "SLIDER_MOTOR_ON", "FIRST_ROBOT_GO", "SECOND_ROBOT_GO",
+              "ROBOT_POS_GO", "MEASUREMENT_OK" };
+
+        public (int inputs, int outputs) ImportFromCsvFolder(string folderPath)
+        {
+            var newInputs = new List<PlcVariable>();
+            var newOutputs = new List<PlcVariable>();
+
+            var csvFiles = Directory.GetFiles(folderPath, "*.csv");
+            foreach (var csvFile in csvFiles)
+            {
+                string fileName = Path.GetFileNameWithoutExtension(csvFile).ToLowerInvariant();
+                // M+Global ve SdCard atla (karmaşık tipler)
+                if (fileName.Contains("m+global") || fileName.Contains("sdcard")) continue;
+
+                try
+                {
+                    // UTF-16LE encoding (Mitsubishi GX Works CSV export)
+                    string content = File.ReadAllText(csvFile, System.Text.Encoding.Unicode);
+                    var lines = content.Split('\n');
+
+                    // İlk 2 satır başlık (proje adı + sütun başlıkları)
+                    for (int i = 2; i < lines.Length; i++)
+                    {
+                        var line = lines[i].Trim();
+                        if (string.IsNullOrEmpty(line)) continue;
+
+                        var cols = line.Split('\t');
+                        if (cols.Length < 3) continue;
+
+                        string labelName = cols[1].Trim('"', ' ');
+                        string dataType = cols[2].Trim('"', ' ');
+                        string address = cols.Length > 5 ? cols[5].Trim('"', ' ') : "";
+
+                        if (string.IsNullOrEmpty(labelName)) continue;
+
+                        // STRING[32] → STRING olarak normalize et
+                        string normalizedType = dataType;
+                        if (dataType.StartsWith("STRING", StringComparison.OrdinalIgnoreCase))
+                            normalizedType = "STRING";
+
+                        // Sadece standart tipler
+                        if (!_standardTypes.Contains(normalizedType) && normalizedType != "STRING")
+                            continue;
+
+                        // LREAL → REAL olarak map et (PlcService LREAL desteklemiyor)
+                        if (normalizedType.Equals("LREAL", StringComparison.OrdinalIgnoreCase))
+                            normalizedType = "REAL";
+
+                        // Input/Output ayrımı
+                        bool isOutput = false;
+                        if (labelName.Contains("SBS_OUT_", StringComparison.OrdinalIgnoreCase))
+                            isOutput = true;
+                        else
+                        {
+                            foreach (var kw in _outputKeywords)
+                            {
+                                if (labelName.Contains(kw, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    isOutput = true;
+                                    break;
+                                }
+                            }
+                        }
+                        // Alarm'lar ve Lamp'lar → Input
+                        if (labelName.StartsWith("HMI_Alarm", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_Lamp_", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_Fault", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_Running", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_Selector", StringComparison.OrdinalIgnoreCase))
+                            isOutput = false;
+
+                        // Inficon status sinyalleri → Input
+                        if (labelName.Contains("_ready", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_stable", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_leak", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_error", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_leakrate", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_pe", StringComparison.OrdinalIgnoreCase) ||
+                            labelName.Contains("_flow", StringComparison.OrdinalIgnoreCase))
+                            isOutput = false;
+
+                        var plcVar = new PlcVariable
+                        {
+                            Name = labelName,
+                            Type = normalizedType.ToUpperInvariant(),
+                            Direction = isOutput ? "Output" : "Input",
+                            Description = string.IsNullOrEmpty(address) ? "" : $"PLC: {address}",
+                            CurrentValue = null
+                        };
+
+                        if (isOutput)
+                            newOutputs.Add(plcVar);
+                        else
+                            newInputs.Add(plcVar);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CSV_IMPORT] {csvFile} hata: {ex.Message}");
+                }
+            }
+
+            // Mevcut değişkenleri temizle ve yenilerini ekle
+            InputVariables.Clear();
+            foreach (var v in newInputs.OrderBy(v => v.Name)) InputVariables.Add(v);
+
+            OutputVariables.Clear();
+            foreach (var v in newOutputs.OrderBy(v => v.Name)) OutputVariables.Add(v);
+
+            // Kaydet
+            SaveVariables();
+
+            System.Diagnostics.Debug.WriteLine($"[CSV_IMPORT] {newInputs.Count} input, {newOutputs.Count} output değişken yüklendi");
+            return (newInputs.Count, newOutputs.Count);
         }
 
         // Varsayılanlar (Eğer dosya yoksa bunlar gelir)
