@@ -641,7 +641,12 @@ namespace App4.Utilities
 
                         string labelName = cols[1].Trim('"', ' ');
                         string dataType = cols[2].Trim('"', ' ');
-                        string address = cols.Length > 5 ? cols[5].Trim('"', ' ') : "";
+                        string assignDevice = cols.Length > 5 ? cols[5].Trim('"', ' ') : "";
+                        // "Detailed Setting" gibi açıklayıcı metinleri filtrele
+                        if (assignDevice.Contains("Setting", StringComparison.OrdinalIgnoreCase) ||
+                            assignDevice.Contains("Detail", StringComparison.OrdinalIgnoreCase))
+                            assignDevice = "";
+                        string address = assignDevice;
 
                         if (string.IsNullOrEmpty(labelName)) continue;
 
