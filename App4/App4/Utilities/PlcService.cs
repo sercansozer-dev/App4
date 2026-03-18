@@ -696,17 +696,9 @@ namespace App4.Utilities
             else
                 existingData.Outputs = sorted;
 
-            // Dosyaya kaydet
+            // Dosyaya kaydet — UI'a dokunma, uygulama yeniden baslatildiginda LoadVariables() yukler
             var options = new JsonSerializerOptions { WriteIndented = true };
             File.WriteAllText(_configFilePath, JsonSerializer.Serialize(existingData, options));
-
-            // UI thread'de koleksiyonu güncelle
-            _dispatcherQueue?.TryEnqueue(() =>
-            {
-                var target = direction == "Input" ? InputVariables : OutputVariables;
-                target.Clear();
-                foreach (var v in sorted) target.Add(v);
-            });
 
             System.Diagnostics.Debug.WriteLine($"[CSV_IMPORT] {sorted.Count} degisken {direction} olarak yuklendi");
             return sorted.Count;
