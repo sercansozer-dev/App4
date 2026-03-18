@@ -167,10 +167,13 @@
 
                     <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="12,0" BorderThickness="0,0,0,2" BorderBrush="#00A4EF">
                         <Grid>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                                <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
-                                <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE71E;" Foreground="#00A4EF" FontSize="16"/>
+                                    <TextBlock Text="PLC DEĞİŞKENLERİ KONTROL" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Mitsubishi PLC - Veri Gönder / Force Et" FontSize="10" Foreground="#888888"/>
+                                </StackPanel>
+                                <TextBlock Text="Config: C:\Simbiosis\SimbiosisLeakTestApp\Config\PLC_Config.json" FontSize="8" Foreground="#444" FontFamily="Consolas" Margin="28,0,0,0"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="8">
                                 <Button x:Name="BtnImportCsv" Content="CSV'den PLC Degisken Yukle" Background="#E91E63" Foreground="White" CornerRadius="4" Height="28" FontWeight="Bold" FontSize="9" Padding="12,0" Click="BtnImportCsv_Click"/>

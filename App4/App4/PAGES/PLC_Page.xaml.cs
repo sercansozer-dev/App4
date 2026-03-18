@@ -204,37 +204,69 @@ namespace App4.PAGES
         {
             try
             {
-                var picker = new Windows.Storage.Pickers.FolderPicker();
+                // CSV dosya seçici — bir CSV seç, aynı klasördeki tüm CSV'ler import edilir
+                var picker = new Windows.Storage.Pickers.FileOpenPicker();
                 picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop;
-                picker.FileTypeFilter.Add("*");
+                picker.FileTypeFilter.Add(".csv");
 
                 // WinUI 3 picker initialization
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(((App)Microsoft.UI.Xaml.Application.Current).MainWindow);
+                var window = ((App)Microsoft.UI.Xaml.Application.Current).MainWindow ?? App.m_window;
+                if (window == null)
+                {
+                    await ShowErrorDialog("Pencere referansi bulunamadi. Uygulamayi yeniden baslatin.");
+                    return;
+                }
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
                 WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
 
-                var folder = await picker.PickSingleFolderAsync();
-                if (folder == null) return;
+                var file = await picker.PickSingleFileAsync();
+                if (file == null) return;
+
+                // Seçilen CSV'nin klasörünü al — tüm CSV'ler oradan import edilecek
+                string folderPath = System.IO.Path.GetDirectoryName(file.Path);
+                if (string.IsNullOrEmpty(folderPath))
+                {
+                    await ShowErrorDialog("Klasor yolu alinamadi. Dosya yolunu kontrol edin.");
+                    return;
+                }
 
                 TxtImportStatus.Text = "Import ediliyor...";
                 BtnImportCsv.IsEnabled = false;
 
                 await Task.Run(() =>
                 {
-                    var result = PlcService.Instance.ImportFromCsvFolder(folder.Path);
+                    var result = PlcService.Instance.ImportFromCsvFolder(folderPath);
                     DispatcherQueue.TryEnqueue(() =>
                     {
                         TxtImportStatus.Text = $"{result.inputs} input, {result.outputs} output yuklendi";
-                        AddLog($"[CSV_IMPORT] {folder.Path} klasorundan {result.inputs} input + {result.outputs} output degisken yuklendi");
+                        AddLog($"[CSV_IMPORT] {folderPath} klasorundan {result.inputs} input + {result.outputs} output degisken yuklendi");
                         BtnImportCsv.IsEnabled = true;
                     });
                 });
             }
             catch (Exception ex)
             {
-                TxtImportStatus.Text = $"Hata: {ex.Message}";
                 BtnImportCsv.IsEnabled = true;
+                TxtImportStatus.Text = "HATA";
                 AddLog($"[CSV_IMPORT] HATA: {ex.Message}");
+                await ShowErrorDialog($"CSV Import Hatasi:\n{ex.Message}");
             }
+        }
+
+        private async Task ShowErrorDialog(string message)
+        {
+            try
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "Hata",
+                    Content = message,
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.XamlRoot
+                };
+                await dialog.ShowAsync();
+            }
+            catch { }
         }
 
         private void AddLog(string message)

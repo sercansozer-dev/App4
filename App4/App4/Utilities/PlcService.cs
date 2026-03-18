@@ -177,8 +177,9 @@ namespace App4.Utilities
             // Değişiklikleri İzle
             StartMonitoring();
 
-            // Robot köprü için gerekli PLC değişkenlerini garanti et
-            EnsureRobotBridgeVariables();
+            // NOT: EnsureRobotBridgeVariables() artık çağrılmıyor.
+            // PLC değişkenleri CSV import ile yüklenir (PLC sayfası → "CSV'den Yükle" butonu).
+            // Eski hardcoded değişken listesi fabrika entegrasyonunda kullanılmayacak.
         }
 
         /// <summary>
@@ -718,10 +719,8 @@ namespace App4.Utilities
         // Varsayılanlar (Eğer dosya yoksa bunlar gelir)
         private void LoadDefaultVariables()
         {
-            InputVariables.Add(new PlcVariable { Name = "D0 - Okunan Değer", Type = "WORD", Direction = "Input", CurrentValue = null });
-            InputVariables.Add(new PlcVariable { Name = "W600 - Link Reg", Type = "WORD", Direction = "Input", CurrentValue = null }); // Senin W600
-
-            OutputVariables.Add(new PlcVariable { Name = "D0 - Yazılan Değer", Type = "WORD", Direction = "Output", CurrentValue = null });
+            // Config dosyası yoksa boş başla — PLC sayfasından "CSV'den Yükle" ile doldurulacak
+            System.Diagnostics.Debug.WriteLine("[PLC] PLC_Config.json bulunamadi. CSV import ile degisken yukleyin.");
         }
 
         public async Task RunOnUiAsync(Action action)

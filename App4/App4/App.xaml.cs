@@ -47,6 +47,7 @@ namespace App4
 
             App4.Utilities.GlobalData.Initialize();
             m_window = new MainWindow();
+            MainWindow = m_window;
 
             // ═══ UYGULAMA KAPANIRKEN PLC TAG EŞLEŞTİRMELERİNİ KAYDET ═══
             m_window.Closed += (s, e) =>

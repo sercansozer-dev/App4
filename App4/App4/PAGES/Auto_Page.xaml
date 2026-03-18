@@ -1028,10 +1028,10 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0" Background="#252526" Padding="15,8" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                <Grid>
-                                    <TextBlock Text="GENEL ROBOT &amp; HAT VARIABLES" FontSize="12" FontWeight="Bold" Foreground="#DDD" VerticalAlignment="Center"/>
-                                    <!-- HAT MODU kontrolü KONTROL panelinden yapılıyor -->
-                                </Grid>
+                                <StackPanel Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="GENEL ROBOT &amp; HAT VARIABLES" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
+                                    <TextBlock Text="Config: C:\Simbiosis\SimbiosisLeakTestApp\Config\Auto_Page_Variables.json" FontSize="8" Foreground="#444" FontFamily="Consolas"/>
+                                </StackPanel>
                             </Border>
 
                             <Grid Grid.Row="1" Padding="10">
@@ -1531,9 +1531,12 @@
                                             <StackPanel Spacing="0">
                                                 <!-- ALARM Başlık -->
                                                 <Border Background="#3A1515" Padding="10,6" BorderBrush="#333" BorderThickness="0,0,0,1">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <FontIcon Glyph="&#xE7BA;" Foreground="#F44336" FontSize="10"/>
-                                                        <TextBlock Text="ALARM (Sistemi Durdurur)" FontSize="9" FontWeight="Bold" Foreground="#F44336"/>
+                                                    <StackPanel Spacing="2">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <FontIcon Glyph="&#xE7BA;" Foreground="#F44336" FontSize="10"/>
+                                                            <TextBlock Text="ALARM (Sistemi Durdurur)" FontSize="9" FontWeight="Bold" Foreground="#F44336"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="Config: ...\Config\Safety_Alarms.json" FontSize="7" Foreground="#444" FontFamily="Consolas" Margin="16,0,0,0"/>
                                                     </StackPanel>
                                                 </Border>
 
@@ -1644,9 +1647,12 @@
                                             <StackPanel Spacing="0">
                                                 <!-- UYARI Başlık -->
                                                 <Border Background="#3A2E15" Padding="10,6" BorderBrush="#333" BorderThickness="0,0,0,1">
-                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                        <FontIcon Glyph="&#xE7BA;" Foreground="#FF9800" FontSize="10"/>
-                                                        <TextBlock Text="UYARI (Bilgi Amaçlı)" FontSize="9" FontWeight="Bold" Foreground="#FF9800"/>
+                                                    <StackPanel Spacing="2">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <FontIcon Glyph="&#xE7BA;" Foreground="#FF9800" FontSize="10"/>
+                                                            <TextBlock Text="UYARI (Bilgi Amaçlı)" FontSize="9" FontWeight="Bold" Foreground="#FF9800"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="Config: ...\Config\Safety_Warnings.json" FontSize="7" Foreground="#444" FontFamily="Consolas" Margin="16,0,0,0"/>
                                                     </StackPanel>
                                                 </Border>
 

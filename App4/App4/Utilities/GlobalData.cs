@@ -2717,10 +2717,20 @@ namespace App4.Utilities
             return 0.0;
         }
 
+        private static void RunOnUiThread(Microsoft.UI.Dispatching.DispatcherQueueHandler action)
+        {
+            var window = ((App)Microsoft.UI.Xaml.Application.Current)?.MainWindow ?? App.m_window;
+            var dispatcher = window?.DispatcherQueue;
+            if (dispatcher != null)
+                dispatcher.TryEnqueue(action);
+            else
+                action(); // fallback: dogrudan calistir
+        }
+
         public static void UpdateSnifferPoint(ObservableCollection<App4.Models.SnifferPointResult> collection,
             int robotNo, int pointIndex, string result, double leakRate)
         {
-            ((App)Microsoft.UI.Xaml.Application.Current).MainWindow.DispatcherQueue.TryEnqueue(() =>
+            RunOnUiThread(() =>
             {
                 var existing = collection.FirstOrDefault(p => p.PointIndex == pointIndex);
                 if (existing != null)
@@ -2745,7 +2755,7 @@ namespace App4.Utilities
 
         public static void ClearSnifferPoints()
         {
-            ((App)Microsoft.UI.Xaml.Application.Current).MainWindow.DispatcherQueue.TryEnqueue(() =>
+            RunOnUiThread(() =>
             {
                 Robot1SnifferPoints.Clear();
                 Robot2SnifferPoints.Clear();
