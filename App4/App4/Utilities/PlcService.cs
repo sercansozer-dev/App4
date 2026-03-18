@@ -722,7 +722,8 @@ namespace App4.Utilities
                 }
             }
 
-            var sorted = newVars.OrderBy(v => v.SourceFile).ThenBy(v => v.Name).ToList();
+            // CSV dosya sırasını koru (önce dosya sırası, sonra CSV satır sırası)
+            var sorted = newVars;
 
             // Mevcut config'i oku, sadece ilgili yönü güncelle
             PlcConfigData existingData = new PlcConfigData { Inputs = new(), Outputs = new() };
