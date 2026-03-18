@@ -545,37 +545,54 @@ namespace App4.Utilities
             }
         }
 
-        // --- ÖRNEK DEĞİŞKENLER (SENİN İÇİN ÇEŞİTLENDİRDİM) ---
+        public string LastLoadError { get; private set; }
+
         public void LoadVariables()
         {
+            LastLoadError = null;
             try
             {
-                if (File.Exists(_configFilePath))
+                if (!File.Exists(_configFilePath))
                 {
-                    string json = File.ReadAllText(_configFilePath);
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    var data = JsonSerializer.Deserialize<PlcConfigData>(json, options);
-
-                    if (data != null)
-                    {
-                        InputVariables.Clear();
-                        foreach (var item in data.Inputs) InputVariables.Add(item);
-
-                        OutputVariables.Clear();
-                        foreach (var item in data.Outputs) OutputVariables.Add(item);
-
-                        System.Diagnostics.Debug.WriteLine("PLC Ayarları yüklendi.");
-                        return;
-                    }
+                    LastLoadError = $"Config dosyasi bulunamadi: {_configFilePath}";
+                    System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] {LastLoadError}");
+                    return;
                 }
+
+                string json = File.ReadAllText(_configFilePath);
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    LastLoadError = "Config dosyasi bos.";
+                    System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] {LastLoadError}");
+                    return;
+                }
+
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var data = JsonSerializer.Deserialize<PlcConfigData>(json, options);
+
+                if (data == null)
+                {
+                    LastLoadError = "Config dosyasi parse edilemedi.";
+                    System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] {LastLoadError}");
+                    return;
+                }
+
+                InputVariables.Clear();
+                if (data.Inputs != null)
+                    foreach (var item in data.Inputs) InputVariables.Add(item);
+
+                OutputVariables.Clear();
+                if (data.Outputs != null)
+                    foreach (var item in data.Outputs) OutputVariables.Add(item);
+
+                _readListDirty = true;
+                System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] Basarili: {InputVariables.Count} input, {OutputVariables.Count} output yuklendi ({_configFilePath})");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Yükleme Hatası: " + ex.Message);
+                LastLoadError = $"Yukleme hatasi: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] {LastLoadError}");
             }
-
-            // Eğer dosya yoksa veya hata varsa varsayılanları yükle
-            LoadDefaultVariables();
         }
 
         public void SaveVariables()
@@ -617,14 +634,27 @@ namespace App4.Utilities
               "ROBOT_POS_GO", "MEASUREMENT_OK" };
 
         /// <summary>
-        /// CSV klasöründeki tüm CSV dosyalarını parse edip belirtilen yöne (Input/Output) ekler.
+        /// Seçilen CSV dosyalarını parse edip belirtilen yöne (Input/Output) ekler.
         /// Mevcut yöndeki değişkenleri siler, diğer yöndekilere dokunmaz.
+        /// </summary>
+        public int ImportCsvFilesToDirection(List<string> csvFilePaths, string direction)
+        {
+            return ImportCsvToDirectionInternal(csvFilePaths, direction);
+        }
+
+        /// <summary>
+        /// CSV klasöründeki tüm CSV dosyalarını parse edip belirtilen yöne (Input/Output) ekler.
         /// </summary>
         public int ImportCsvToDirection(string folderPath, string direction)
         {
+            var csvFiles = Directory.GetFiles(folderPath, "*.csv").ToList();
+            return ImportCsvToDirectionInternal(csvFiles, direction);
+        }
+
+        private int ImportCsvToDirectionInternal(List<string> csvFiles, string direction)
+        {
             var newVars = new List<PlcVariable>();
 
-            var csvFiles = Directory.GetFiles(folderPath, "*.csv");
             foreach (var csvFile in csvFiles)
             {
                 string fileName = Path.GetFileNameWithoutExtension(csvFile).ToLowerInvariant();

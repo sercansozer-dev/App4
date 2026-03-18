@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.System; // VirtualKey (Enter tuşu) için
@@ -36,6 +37,10 @@ namespace App4.PAGES
 
             // Mevcut bağlantı durumunu kontrol et ve butonu güncelle
             UpdateConnectionStatus(PlcService.Instance.IsConnected);
+
+            // Config yükleme hatası varsa göster
+            if (!string.IsNullOrEmpty(PlcService.Instance.LastLoadError))
+                AddLog($"[UYARI] {PlcService.Instance.LastLoadError}");
 
             // Inficon tag eşleştirme tablolarını doldur
             PopulateInficonTagRows();
@@ -266,27 +271,22 @@ namespace App4.PAGES
                 WinRT.Interop.InitializeWithWindow.Initialize(picker,
                     WinRT.Interop.WindowNative.GetWindowHandle(window));
 
-                var file = await picker.PickSingleFileAsync();
-                if (file == null) return;
+                var files = await picker.PickMultipleFilesAsync();
+                if (files == null || files.Count == 0) return;
 
-                string folderPath = System.IO.Path.GetDirectoryName(file.Path);
-                if (string.IsNullOrEmpty(folderPath))
-                {
-                    await ShowErrorDialog("Klasor yolu alinamadi.");
-                    return;
-                }
-
-                TxtImportStatus.Text = $"{direction} import ediliyor...";
+                TxtImportStatus.Text = $"{files.Count} CSV {direction} import ediliyor...";
                 BtnImportInput.IsEnabled = false;
                 BtnImportOutput.IsEnabled = false;
 
-                int importCount = await Task.Run(() => PlcService.Instance.ImportCsvToDirection(folderPath, direction));
+                var filePaths = files.Select(f => f.Path).ToList();
+                int importCount = await Task.Run(() => PlcService.Instance.ImportCsvFilesToDirection(filePaths, direction));
 
                 // Import sonrası JSON'dan tekrar yükle — UI anında güncellenir
                 PlcService.Instance.LoadVariables();
 
-                TxtImportStatus.Text = $"{importCount} {direction} degisken yuklendi";
-                AddLog($"[CSV_IMPORT] {folderPath} → {importCount} {direction} degisken yuklendi");
+                string fileNames = string.Join(", ", files.Select(f => f.Name));
+                TxtImportStatus.Text = $"{importCount} {direction} degisken yuklendi ({fileNames})";
+                AddLog($"[CSV_IMPORT] {fileNames} → {importCount} {direction} degisken yuklendi");
                 BtnImportInput.IsEnabled = true;
                 BtnImportOutput.IsEnabled = true;
             }
