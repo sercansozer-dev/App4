@@ -143,42 +143,6 @@
                                         <TextBlock Text="{x:Bind Stations[0].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                     </StackPanel>
 
-                                    <!-- Robot 1 -->
-                                    <Border Background="#101015" CornerRadius="6" Padding="10,6" BorderBrush="#333" BorderThickness="1">
-                                        <Grid ColumnSpacing="8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[0].R1StatusDotColor, Mode=OneWay}"/>
-                                                <TextBlock Text="R1" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{x:Bind Stations[0].R1DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[0].R1DurumColor, Mode=OneWay}" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{x:Bind Stations[0].R1MesajText, Mode=OneWay}" FontSize="9" Foreground="#666" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- Robot 2 -->
-                                    <Border Background="#101015" CornerRadius="6" Padding="10,6" BorderBrush="#333" BorderThickness="1">
-                                        <Grid ColumnSpacing="8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                                <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[0].R2StatusDotColor, Mode=OneWay}"/>
-                                                <TextBlock Text="R2" FontSize="11" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{x:Bind Stations[0].R2DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[0].R2DurumColor, Mode=OneWay}" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{x:Bind Stations[0].R2MesajText, Mode=OneWay}" FontSize="9" Foreground="#666" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
                                     <!-- RFID KONTROL -->
                                     <Border Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
                                         <StackPanel Spacing="5">
@@ -267,38 +231,7 @@
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[1].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
-                                                <Border Visibility="{x:Bind Stations[1].R1Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
-                                                    <Grid ColumnSpacing="8">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[1].R1StatusDotColor, Mode=OneWay}"/>
-                                                            <TextBlock Text="R1" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Stations[1].R1DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[1].R1DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{x:Bind Stations[1].R1MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Border>
-                                                <Border Visibility="{x:Bind Stations[1].R2Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
-                                                    <Grid ColumnSpacing="8">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[1].R2StatusDotColor, Mode=OneWay}"/>
-                                                            <TextBlock Text="R2" FontSize="11" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Stations[1].R2DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[1].R2DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{x:Bind Stations[1].R2MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Border>
+                                                <!-- R1/R2 robot göstergeleri kaldırıldı -->
                                             </StackPanel>
 
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
@@ -390,38 +323,7 @@
                                                     <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
                                                     <TextBlock Text="{x:Bind Stations[2].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
                                                 </StackPanel>
-                                                <Border Visibility="{x:Bind Stations[2].R1Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
-                                                    <Grid ColumnSpacing="8">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[2].R1StatusDotColor, Mode=OneWay}"/>
-                                                            <TextBlock Text="R1" FontSize="11" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Stations[2].R1DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[2].R1DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{x:Bind Stations[2].R1MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Border>
-                                                <Border Visibility="{x:Bind Stations[2].R2Visibility, Mode=OneWay}" Background="#101015" CornerRadius="6" Padding="8,6" BorderBrush="#333" BorderThickness="1">
-                                                    <Grid ColumnSpacing="8">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                                                            <Ellipse Width="10" Height="10" Fill="{x:Bind Stations[2].R2StatusDotColor, Mode=OneWay}"/>
-                                                            <TextBlock Text="R2" FontSize="11" FontWeight="Bold" Foreground="#0078D4" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Stations[2].R2DurumText, Mode=OneWay}" FontSize="10" FontWeight="SemiBold" Foreground="{x:Bind Stations[2].R2DurumColor, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{x:Bind Stations[2].R2MesajText, Mode=OneWay}" FontSize="8" Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Border>
+                                                <!-- R1/R2 robot göstergeleri kaldırıldı -->
                                             </StackPanel>
 
                                             <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
@@ -1403,35 +1305,35 @@
                                 </Grid>
 
                                 <!-- Sütun Başlıkları -->
-                                <Grid Grid.Row="2" Background="#2A2A2E" Padding="10,4" ColumnSpacing="5">
+                                <Grid Grid.Row="2" Background="#2A2A2E" Padding="10,4" ColumnSpacing="10">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="40"/>
-                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="35"/>
+                                        <ColumnDefinition Width="130"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="35"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="IDX" FontSize="9" FontWeight="Bold" Foreground="#666" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     <TextBlock Grid.Column="1" Text="KLİMA ID" FontSize="9" FontWeight="Bold" Foreground="#666" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="2" Text="AÇIKLAMA" FontSize="9" FontWeight="Bold" Foreground="#666" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="3" Text="" Width="35"/>
+                                    <TextBlock Grid.Column="3" Text=""/>
                                 </Grid>
 
                                 <ListView Grid.Row="3" ItemsSource="{x:Bind KnownRfids}" SelectionMode="None">
                                     <ListView.ItemTemplate>
                                         <DataTemplate x:DataType="utils:RfidDef">
-                                            <Grid Padding="10,5" BorderBrush="#333" BorderThickness="0,0,0,1">
+                                            <Grid Padding="10,5" BorderBrush="#333" BorderThickness="0,0,0,1" ColumnSpacing="10">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="40"/>
-                                                    <ColumnDefinition Width="80"/>
+                                                    <ColumnDefinition Width="35"/>
+                                                    <ColumnDefinition Width="130"/>
                                                     <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="35"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Border Grid.Column="0" Background="#333" CornerRadius="4" Width="28" Height="22" HorizontalAlignment="Center">
                                                     <TextBlock Text="{x:Bind IndexDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="#FF9800" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
-                                                <TextBlock Grid.Column="1" Text="{x:Bind Id}" FontWeight="Bold" Foreground="#0078D4" FontSize="12" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{x:Bind Id}" FontWeight="Bold" Foreground="#0078D4" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                 <TextBlock Grid.Column="2" Text="{x:Bind Description}" Foreground="#BBB" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                <Button Grid.Column="3" Click="BtnDeleteRfid_Click" Background="Transparent" BorderThickness="0" Padding="5" Margin="5,0,0,0" ToolTipService.ToolTip="Listeden Sil">
+                                                <Button Grid.Column="3" Click="BtnDeleteRfid_Click" Background="Transparent" BorderThickness="0" Padding="5" ToolTipService.ToolTip="Listeden Sil">
                                                     <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#E74C3C"/>
                                                 </Button>
                                             </Grid>
