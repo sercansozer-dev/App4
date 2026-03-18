@@ -45,6 +45,46 @@ namespace App4.PAGES
         // 1. VERİ EKLEME, SİLME VE KAYDETME İŞLEMLERİ (KRİTİK BÖLÜM)
         // ════════════════════════════════════════════════════════════
 
+        // Tüm Input'ları Sil (uyarılı)
+        private async void ClearAllInputs_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Tüm Input Değişkenleri Sil",
+                Content = $"{InputVariables.Count} adet input değişkeni silinecek. Bu işlem geri alınamaz!",
+                PrimaryButtonText = "Evet, Hepsini Sil",
+                CloseButtonText = "İptal",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                InputVariables.Clear();
+                PlcService.Instance.SaveVariables();
+                AddLog("[INPUT] Tüm input değişkenleri silindi.");
+            }
+        }
+
+        // Tüm Output'ları Sil (uyarılı)
+        private async void ClearAllOutputs_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Tüm Output Değişkenleri Sil",
+                Content = $"{OutputVariables.Count} adet output değişkeni silinecek. Bu işlem geri alınamaz!",
+                PrimaryButtonText = "Evet, Hepsini Sil",
+                CloseButtonText = "İptal",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                OutputVariables.Clear();
+                PlcService.Instance.SaveVariables();
+                AddLog("[OUTPUT] Tüm output değişkenleri silindi.");
+            }
+        }
+
         // Yeni Input Ekle
         private void AddInputVariableBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -167,6 +207,9 @@ namespace App4.PAGES
 
                 AddLog($"[INFO] Bağlanılıyor: {ip}:{portStr}...");
 
+                // UiRunner olmadan değerler tabloya yansımaz
+                PlcService.Instance.Initialize(action => DispatcherQueue.TryEnqueue(() => action()));
+
                 bool success = await PlcService.Instance.ConnectAsync(ip, int.Parse(portStr));
 
                 if (success) AddLog("[SUCCESS] PLC'ye başarıyla bağlanıldı!");
@@ -237,17 +280,15 @@ namespace App4.PAGES
                 BtnImportInput.IsEnabled = false;
                 BtnImportOutput.IsEnabled = false;
 
-                await Task.Run(() =>
-                {
-                    int count = PlcService.Instance.ImportCsvToDirection(folderPath, direction);
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        TxtImportStatus.Text = $"{count} {direction} degisken yuklendi";
-                        AddLog($"[CSV_IMPORT] {folderPath} → {count} {direction} degisken yuklendi");
-                        BtnImportInput.IsEnabled = true;
-                        BtnImportOutput.IsEnabled = true;
-                    });
-                });
+                int importCount = await Task.Run(() => PlcService.Instance.ImportCsvToDirection(folderPath, direction));
+
+                // Import sonrası JSON'dan tekrar yükle — UI anında güncellenir
+                PlcService.Instance.LoadVariables();
+
+                TxtImportStatus.Text = $"{importCount} {direction} degisken yuklendi";
+                AddLog($"[CSV_IMPORT] {folderPath} → {importCount} {direction} degisken yuklendi");
+                BtnImportInput.IsEnabled = true;
+                BtnImportOutput.IsEnabled = true;
             }
             catch (Exception ex)
             {

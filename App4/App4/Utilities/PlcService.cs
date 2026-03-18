@@ -46,7 +46,9 @@ namespace App4.Utilities
             {
                 if (_cachedAddress == null)
                 {
+                    // Öncelik: PlcTag > Description (PLC adresi) > Name
                     if (!string.IsNullOrEmpty(PlcTag)) _cachedAddress = PlcTag;
+                    else if (!string.IsNullOrEmpty(Description)) _cachedAddress = Description;
                     else _cachedAddress = Name?.Split('-')[0].Trim();
                 }
                 return _cachedAddress;
@@ -70,7 +72,15 @@ namespace App4.Utilities
             set { if (_direction != value) { _direction = value; OnPropertyChanged(); } }
         }
 
-        public string Description { get; set; }
+        // CSV import kaynak dosya adı (gruplandırma için)
+        public string SourceFile { get; set; }
+
+        private string _description;
+        public string Description
+        {
+            get => _description;
+            set { _description = value; _cachedAddress = null; OnPropertyChanged(); }
+        }
         public bool IsEditable { get; set; } = true;
 
         [JsonIgnore]
@@ -536,7 +546,7 @@ namespace App4.Utilities
         }
 
         // --- ÖRNEK DEĞİŞKENLER (SENİN İÇİN ÇEŞİTLENDİRDİM) ---
-        private void LoadVariables()
+        public void LoadVariables()
         {
             try
             {
@@ -670,7 +680,8 @@ namespace App4.Utilities
                             Name = labelName,
                             Type = normalizedType.ToUpperInvariant(),
                             Direction = direction,
-                            Description = string.IsNullOrEmpty(address) ? "" : $"PLC: {address}",
+                            Description = address ?? "",
+                            SourceFile = Path.GetFileName(csvFile),
                             CurrentValue = null
                         });
                     }
@@ -681,7 +692,7 @@ namespace App4.Utilities
                 }
             }
 
-            var sorted = newVars.OrderBy(v => v.Name).ToList();
+            var sorted = newVars.OrderBy(v => v.SourceFile).ThenBy(v => v.Name).ToList();
 
             // Mevcut config'i oku, sadece ilgili yönü güncelle
             PlcConfigData existingData = new PlcConfigData { Inputs = new(), Outputs = new() };
@@ -701,9 +712,18 @@ namespace App4.Utilities
             else
                 existingData.Outputs = sorted;
 
-            // Dosyaya kaydet — UI'a dokunma, uygulama yeniden baslatildiginda LoadVariables() yukler
+            // Dosyaya kaydet
             var options = new JsonSerializerOptions { WriteIndented = true };
             File.WriteAllText(_configFilePath, JsonSerializer.Serialize(existingData, options));
+
+            // UI koleksiyonunu da güncelle (sayfa yeniden başlatmaya gerek kalmasın)
+            _dispatcherQueue?.TryEnqueue(() =>
+            {
+                var target = direction == "Input" ? InputVariables : OutputVariables;
+                target.Clear();
+                foreach (var v in sorted) target.Add(v);
+                _readListDirty = true;
+            });
 
             System.Diagnostics.Debug.WriteLine($"[CSV_IMPORT] {sorted.Count} degisken {direction} olarak yuklendi");
             return sorted.Count;

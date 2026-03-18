@@ -1192,7 +1192,7 @@ namespace App4.Pages
         /// </summary>
         private void MergeDefaultBridgeMappings()
         {
-            PlcService.Instance.EnsureRobotBridgeVariables();
+            // EnsureRobotBridgeVariables() kaldırıldı — PLC değişkenleri CSV import ile yönetiliyor
 
             // Mevcut e\u015fle\u015fmelerin anahtar seti (RobotName | Robot de\u011fi\u015fken ad\u0131)
             var existingKeys = new HashSet<string>(

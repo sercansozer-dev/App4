@@ -14,83 +14,87 @@
         <DataTemplate x:Key="PlcInputVariableTemplate" x:DataType="utils:PlcVariable">
             <Grid Margin="0,2" Background="#1A1A1C" Padding="5" CornerRadius="4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="90"/>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="35"/>
                 </Grid.ColumnDefinitions>
 
-                <FontIcon Grid.Column="0" Glyph="&#xE9D2;" FontSize="10" Foreground="#555" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBox Text="{x:Bind Name, Mode=TwoWay}"
+                             PlaceholderText="Değişken Adı"
+                             LostFocus="Variable_Edited_LostFocus"
+                             KeyDown="Variable_TextBox_KeyDown"
+                             BorderThickness="0" Background="Transparent" Foreground="White" FontSize="10"/>
+                    <TextBlock Text="{x:Bind SourceFile}" FontSize="7" Foreground="#555" Margin="4,-2,0,0"/>
+                </StackPanel>
 
                 <TextBox Grid.Column="1"
-                         Text="{x:Bind Name, Mode=TwoWay}"
-                         PlaceholderText="Değişken Adı"
+                         Text="{x:Bind Description, Mode=TwoWay}"
+                         PlaceholderText="Adres..."
                          LostFocus="Variable_Edited_LostFocus"
                          KeyDown="Variable_TextBox_KeyDown"
-                         BorderThickness="0" Background="Transparent" Foreground="White" FontSize="10" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                         BorderThickness="0" Background="Transparent" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
 
-                <TextBlock Grid.Column="2"
-                         Text="{x:Bind Description}"
-                         Foreground="#888" FontSize="9" FontFamily="Consolas" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-
-                <TextBox Grid.Column="3"
+                <TextBox Grid.Column="2"
                          Text="{x:Bind Type, Mode=TwoWay}"
                          LostFocus="Variable_Edited_LostFocus"
                          KeyDown="Variable_TextBox_KeyDown"
                          BorderThickness="0" Background="Transparent" Foreground="#00A4EF" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
 
-                <TextBox Grid.Column="4"
-                         Text="{x:Bind Value, Mode=TwoWay}"
-                         IsReadOnly="True"
-                         BorderThickness="0" Background="Transparent" Foreground="#4CAF50" FontWeight="Bold" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="3"
+                         Text="{x:Bind Value, Mode=OneWay}"
+                         Foreground="#4CAF50" FontWeight="Bold" FontSize="11" FontFamily="Consolas"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                <Button Grid.Column="5" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                <Button Grid.Column="4" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
                         Click="DeleteVariable_Click"
-                        Background="Transparent" Foreground="#FF5252" BorderThickness="0" Padding="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        Background="Transparent" Foreground="#FF5252" BorderThickness="0" Padding="0" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </DataTemplate>
 
         <DataTemplate x:Key="PlcOutputVariableTemplate" x:DataType="utils:PlcVariable">
             <Grid Margin="0,2" Background="#1A1A1C" Padding="5" CornerRadius="4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="90"/>
-                    <ColumnDefinition Width="80"/>
                     <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="35"/>
                 </Grid.ColumnDefinitions>
 
-                <FontIcon Grid.Column="0" Glyph="&#xE7E8;" FontSize="10" Foreground="#FF9800" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBox Text="{x:Bind Name, Mode=TwoWay}"
+                             LostFocus="Variable_Edited_LostFocus"
+                             KeyDown="Variable_TextBox_KeyDown"
+                             BorderThickness="0" Background="Transparent" Foreground="White" FontSize="10"/>
+                    <TextBlock Text="{x:Bind SourceFile}" FontSize="7" Foreground="#555" Margin="4,-2,0,0"/>
+                </StackPanel>
 
                 <TextBox Grid.Column="1"
-                 Text="{x:Bind Name, Mode=TwoWay}"
+                 Text="{x:Bind Description, Mode=TwoWay}"
+                 PlaceholderText="Adres..."
                  LostFocus="Variable_Edited_LostFocus"
                  KeyDown="Variable_TextBox_KeyDown"
-                 BorderThickness="0" Background="Transparent" Foreground="White" FontSize="10" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                 BorderThickness="0" Background="Transparent" Foreground="#FF9800" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
 
-                <TextBlock Grid.Column="2"
-                 Text="{x:Bind Description}"
-                 Foreground="#888" FontSize="9" FontFamily="Consolas" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-
-                <TextBox Grid.Column="3"
+                <TextBox Grid.Column="2"
                  Text="{x:Bind Type, Mode=TwoWay}"
                  LostFocus="Variable_Edited_LostFocus"
                  KeyDown="Variable_TextBox_KeyDown"
-                 BorderThickness="1" BorderBrush="#333" Background="#252526" Foreground="#888" FontSize="10" Height="24" Margin="2,0"/>
+                 BorderThickness="0" Background="Transparent" Foreground="#00A4EF" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
 
-                <TextBox Grid.Column="4"
+                <TextBox Grid.Column="3"
                  Text="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  KeyDown="ValueTextBox_KeyDown"
                  PlaceholderText="Değer..."
                  BorderThickness="1" BorderBrush="#333" Background="#252526" Foreground="#4CAF50"
-                 FontWeight="Bold" FontSize="10" HorizontalContentAlignment="Center" VerticalAlignment="Center" CornerRadius="2"/>
+                 FontWeight="Bold" FontSize="11" FontFamily="Consolas" HorizontalContentAlignment="Center" VerticalAlignment="Center" CornerRadius="2"/>
 
-                <Button Grid.Column="5" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                <Button Grid.Column="4" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
                 Click="DeleteVariable_Click"
-                Background="Transparent" Foreground="#FF5252" BorderThickness="0" Padding="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                Background="Transparent" Foreground="#FF5252" BorderThickness="0" Padding="0" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -214,26 +218,27 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="📥 INPUT VARİABLELERİ (PLC'DEN OKU)" FontSize="10" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Content="➕" Background="#4CAF50" Foreground="White" CornerRadius="3" Height="20" Width="25" Padding="0" FontSize="10" Click="AddInputVariableBtn_Click" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                            <Button Content="🗑 Tümünü Sil" Background="#3A1B1B" Foreground="#F44336" CornerRadius="3" Height="20" Padding="6,0" FontSize="9" Click="ClearAllInputs_Click" VerticalAlignment="Center"/>
+                                            <Button Content="➕" Background="#4CAF50" Foreground="White" CornerRadius="3" Height="20" Width="25" Padding="0" FontSize="10" Click="AddInputVariableBtn_Click" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
 
                                 <Border Grid.Row="1" Background="#1A1A1C" Padding="4,3" BorderThickness="0,0,0,1" BorderBrush="#333333">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="30"/>
                                             <ColumnDefinition Width="1*"/>
-                                            <ColumnDefinition Width="90"/>
-                                            <ColumnDefinition Width="80"/>
-                                            <ColumnDefinition Width="80"/>
-                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="35"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="#" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="İsim" FontSize="7" Foreground="#555555" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="Adres" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="3" Text="Tip" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="4" Text="Değer" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="5" Text="Sil" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="0" Text="İsim" FontSize="8" Foreground="#555555" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Adres" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="Tip" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="Değer" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="Sil" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
 
@@ -260,30 +265,31 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="📤 OUTPUT VARİABLELERİ (PLC'YE YAZ)" FontSize="10" FontWeight="Bold" Foreground="#FF9800" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1" Content="➕" Background="#FF9800" Foreground="White" CornerRadius="3" Height="20" Width="25" Padding="0" FontSize="10" Click="AddOutputVariableBtn_Click" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                            <Button Content="🗑 Tümünü Sil" Background="#3A1B1B" Foreground="#F44336" CornerRadius="3" Height="20" Padding="6,0" FontSize="9" Click="ClearAllOutputs_Click" VerticalAlignment="Center"/>
+                                            <Button Content="➕" Background="#FF9800" Foreground="White" CornerRadius="3" Height="20" Width="25" Padding="0" FontSize="10" Click="AddOutputVariableBtn_Click" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
 
                                 <Border Grid.Row="1" Background="#1A1A1C" Padding="4,3" BorderThickness="0,0,0,1" BorderBrush="#333333">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="30"/>
                                             <ColumnDefinition Width="1*"/>
-                                            <ColumnDefinition Width="90"/>
-                                            <ColumnDefinition Width="80"/>
                                             <ColumnDefinition Width="100"/>
-                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="35"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="#" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="İsim" FontSize="7" Foreground="#555555" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="Adres" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="3" Text="Tip" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="4" Text="Değer" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="5" Text="Sil" FontSize="7" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="0" Text="İsim" FontSize="8" Foreground="#555555" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Adres" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="Tip" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="Değer" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text="Sil" FontSize="8" Foreground="#555555" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
 
-                                <ListView Grid.Row="2" 
+                                <ListView Grid.Row="2"
                                           ItemsSource="{x:Bind OutputVariables}"
                                           ItemTemplate="{StaticResource PlcOutputVariableTemplate}"
                                           SelectionMode="None"

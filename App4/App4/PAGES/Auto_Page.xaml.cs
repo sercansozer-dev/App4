@@ -236,9 +236,8 @@ namespace App4
                 }
             }
 
-            // 2.5. PlcService'de AKTUEL_RFID ve diğer köprü değişkenlerini oluştur
-            // (ConnectToPlcVariable'ın bu değişkenleri bulabilmesi için BindVars'tan ÖNCE çağrılmalı)
-            try { PlcService.Instance.EnsureRobotBridgeVariables(); } catch { }
+            // 2.5. Robot köprü değişkenleri artık CSV import ile yönetiliyor
+            // EnsureRobotBridgeVariables() kaldırıldı — PLC sayfasından CSV ile yükle
 
             // Listeleri bağla
             BindVars(GeneralInputVars); BindVars(GeneralOutputVars);
