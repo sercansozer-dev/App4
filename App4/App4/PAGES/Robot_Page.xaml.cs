@@ -756,16 +756,9 @@ namespace App4.Pages
 
         private void Variable_Edited_LostFocus(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                if (sender is TextBox tb && tb.DataContext is PlcVariable v)
-                {
-                    // Binding updates should already have modified the PlcVariable instance.
-                    // Persist robot variable definitions to disk so they survive restart.
-                    try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { }
-                }
-            }
-            catch { }
+            // x:Bind TwoWay binding zaten PlcVariable instance'ını güncelledi.
+            // Her LostFocus'ta robot değişkenlerini diske kaydet.
+            try { KukaRobotManager.Instance.SaveRobotVariables(); } catch { }
         }
 
         private async void ValueTextBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
