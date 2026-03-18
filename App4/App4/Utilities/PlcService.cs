@@ -597,7 +597,7 @@ namespace App4.Utilities
 
         // ═══ CSV'DEN PLC DEĞİŞKEN IMPORT ═══
         private static readonly HashSet<string> _standardTypes = new(StringComparer.OrdinalIgnoreCase)
-            { "BOOL", "INT", "WORD", "REAL", "LREAL", "DINT", "DWORD", "FLOAT" };
+            { "BOOL", "BIT", "INT", "WORD", "REAL", "LREAL", "DINT", "DWORD", "FLOAT" };
 
         private static readonly HashSet<string> _outputKeywords = new(StringComparer.OrdinalIgnoreCase)
             { "start", "cal", "cal_abort", "zero", "errClear", "stanby", "reset", "enable",
@@ -652,8 +652,11 @@ namespace App4.Utilities
                         if (!_standardTypes.Contains(normalizedType) && normalizedType != "STRING")
                             continue;
 
+                        // Tip normalizasyonu
                         if (normalizedType.Equals("LREAL", StringComparison.OrdinalIgnoreCase))
                             normalizedType = "REAL";
+                        if (normalizedType.Equals("BIT", StringComparison.OrdinalIgnoreCase))
+                            normalizedType = "BOOL";
 
                         if (newVars.Any(v => v.Name == labelName)) continue;
 
