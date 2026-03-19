@@ -271,6 +271,12 @@ namespace App4.Utilities
                                 byte t3 = content[tailStart + 2];
                                 
                                 bool isSuccess = (t1 == 0x00 && t2 == 0x01 && t3 == 0x01);
+
+                                // Debug: Tail kontrolü başarısız olursa logla
+                                if (!isSuccess && type == 0)
+                                {
+                                    OnLog?.Invoke($"⚠️ [{varName}] Tail={t1:X2}-{t2:X2}-{t3:X2} Value='{value}' (başarısız sayıldı)");
+                                }
                                 
                                 if (isSuccess)
                                 {
@@ -303,11 +309,13 @@ namespace App4.Utilities
                         }
                     }
                     
+                    if (type == 0) // Okuma başarısız — neden logla
+                        OnLog?.Invoke($"⚠️ [{varName}] Okuma null döndü — ContentLen={respContentLen} Read={read}");
                     return null; // Error
                 }
                 catch (Exception ex)
                 {
-                    OnLog?.Invoke($"❌ Protokol Hatası: {ex.Message}");
+                    OnLog?.Invoke($"❌ Protokol Hatası [{varName}]: {ex.Message}");
                     Disconnect();
                     return null;
                 }

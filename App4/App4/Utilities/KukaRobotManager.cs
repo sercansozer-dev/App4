@@ -753,12 +753,17 @@ namespace App4.Utilities
                         // ║  TCP kanalı domine: ölçüm tag'leri her döngüde EN BAŞTA      ║
                         // ╚══════════════════════════════════════════════════════════════╝
                         var priorityInputs = userInputs.Where(v => IsPriorityInput(v.Name)).ToList();
+                        bool doLog = (_loopCycleCount <= 5 || _loopCycleCount % 100 == 0);
+                        if (doLog)
+                            System.Diagnostics.Debug.WriteLine($"[{Name}] ★ Cycle#{_loopCycleCount} Oncelikli:{priorityInputs.Count} Normal:{userInputs.Count - priorityInputs.Count} Toplam:{userInputs.Count}");
                         foreach (var variable in priorityInputs)
                         {
                             if (!_isRunning || !IsConnected) break;
                             try
                             {
                                 string val = await ReadVariableAsync(variable.PlcTag);
+                                if (doLog)
+                                    System.Diagnostics.Debug.WriteLine($"[{Name}]   PRI-READ {variable.PlcTag} -> val='{val}' cur='{variable.Value}' empty={string.IsNullOrEmpty(val)}");
                                 if (!string.IsNullOrEmpty(val) && variable.Value != val)
                                 {
                                     var capturedVar = variable;
@@ -771,7 +776,11 @@ namespace App4.Utilities
                                     });
                                 }
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                if (doLog)
+                                    System.Diagnostics.Debug.WriteLine($"[{Name}]   PRI-HATA {variable.PlcTag}: {ex.Message}");
+                            }
                             await Task.Delay(3);
                         }
 
