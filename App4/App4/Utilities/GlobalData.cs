@@ -38,6 +38,7 @@ namespace App4.Utilities
         private static readonly string _safetyAlarmsFilePath = Path.Combine(ConfigBaseDir, "Safety_Alarms.json");
         private static readonly string _safetyWarningsFilePath = Path.Combine(ConfigBaseDir, "Safety_Warnings.json");
         private static readonly string _inficonLogsFilePath = Path.Combine(ConfigBaseDir, "Inficon_Leak_Logs.json");
+        private static readonly string _casingTypesFilePath = Path.Combine(ConfigBaseDir, "Casing_Types.json");
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
@@ -54,6 +55,7 @@ namespace App4.Utilities
         public static ObservableCollection<App4.Models.SnifferPointResult> Robot1SnifferPoints { get; set; } = new();
         public static ObservableCollection<App4.Models.SnifferPointResult> Robot2SnifferPoints { get; set; } = new();
         public static ObservableCollection<GocatorMeasurement> LastMeasurements { get; private set; } = new();
+        public static ObservableCollection<CasingType> CasingTypes { get; private set; } = new();
         public static ObservableCollection<PlcTransferItem> PlcTransferRows { get; private set; } = new();
 
         // DÖNÜŞTÜRÜLMÜŞ ÖLÇÜM (Hand-Eye kalibrasyon sonrası base koordinatları)
@@ -220,6 +222,44 @@ namespace App4.Utilities
                         }
                     }
                     System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelKlimaIndex = {_aktuelKlimaIndex} (robotlara yazıldı)");
+
+                    // AKTUEL_CASE_ID: RFID'nin CasingIndex degerini oku ve yaz
+                    int caseId = 0;
+                    if (_aktuelKlimaIndex > 0 && _aktuelKlimaIndex <= KnownRfids.Count)
+                    {
+                        var rfid = KnownRfids[_aktuelKlimaIndex - 1];
+                        caseId = rfid.CasingIndex;
+                    }
+
+                    // GeneralOutputVars guncelle
+                    var caseVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_CASE_ID");
+                    if (caseVar != null)
+                    {
+                        string caseStr = caseId.ToString();
+                        if (caseVar.Value != caseStr) caseVar.Value = caseStr;
+                    }
+
+                    // PLC'ye yaz
+                    var plcCaseVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == "AKTUEL_CASE_ID");
+                    if (plcCaseVar != null)
+                    {
+                        if (plcCaseVar.CurrentValue?.ToString() != caseId.ToString())
+                            plcCaseVar.CurrentValue = caseId;
+                    }
+
+                    // Robotlara G_CASE_ID yaz
+                    string caseIdStr = caseId.ToString();
+                    if (robots != null)
+                    {
+                        foreach (var robot in robots)
+                        {
+                            if (robot.IsConnected)
+                            {
+                                _ = robot.WriteVariableAsync("G_CASE_ID", caseIdStr);
+                            }
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelCaseId = {caseId} (robotlara yazıldı)");
                 }
             }
         }
@@ -964,6 +1004,7 @@ namespace App4.Utilities
         {
             if (_isInitialized) return;
             LoadRfids();
+            LoadCasingTypes();
             InitializeStations();
             LoadStationStates();
             InitializeVariables();
@@ -1232,6 +1273,35 @@ namespace App4.Utilities
 
         public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, JsonConvert.SerializeObject(KnownRfids, Formatting.Indented)); } catch { } }
 
+        // --- CASING TİPLERİ ---
+        public static void LoadCasingTypes()
+        {
+            try
+            {
+                if (File.Exists(_casingTypesFilePath))
+                {
+                    var list = JsonConvert.DeserializeObject<List<CasingType>>(File.ReadAllText(_casingTypesFilePath));
+                    if (list != null) { CasingTypes.Clear(); foreach (var c in list) CasingTypes.Add(c); }
+                }
+                else
+                {
+                    // Varsayilan 4 kasa tipi
+                    CasingTypes.Clear();
+                    CasingTypes.Add(new CasingType { Index = 1, Name = "ALPHA" });
+                    CasingTypes.Add(new CasingType { Index = 2, Name = "SF2" });
+                    CasingTypes.Add(new CasingType { Index = 3, Name = "BML-H New PCB" });
+                    CasingTypes.Add(new CasingType { Index = 4, Name = "BMS" });
+                    SaveCasingTypes();
+                }
+            }
+            catch { }
+        }
+
+        public static void SaveCasingTypes()
+        {
+            try { File.WriteAllText(_casingTypesFilePath, JsonConvert.SerializeObject(CasingTypes.ToList(), Formatting.Indented)); } catch { }
+        }
+
         private static void InitializeStations()
         {
             Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
@@ -1276,11 +1346,13 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
             // ▼▼▼ AKTÜEL KLİMA INDEX VE RFID ▼▼▼
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
+            GeneralOutputVars.Add(Create("AKTUEL_CASE_ID", "INT", "Output", "0"));           // Aktüel kasa tipi indexi (1=ALPHA, 2=SF2, 3=BML-H, 4=BMS)
             GeneralOutputVars.Add(Create("AKTUEL_RFID", "STRING", "Output", ""));            // Aktüel RFID Id string değeri
             GeneralOutputVars.Add(Create("SNIFFER_OLCUM_SURE", "REAL", "Output", "0"));       // Seçili index'in sniffer ölçüm süresi (ms)
             GeneralOutputVars.Add(Create("NOKTA_SAPMA_LIMIT", "REAL", "Output", "0"));       // Seçili index'in nokta sapma limiti (mm)
             // ▼▼▼ TABLA LİMİT ALARM ▼▼▼
             GeneralOutputVars.Add(Create("TABLA_LIMIT_ALARM", "BOOL", "Output", false));   // Tabla kaçıklık/değer limiti aşıldığında TRUE → G_TABLA_LIMIT_ALARM
+            GeneralOutputVars.Add(Create("SAFETY_OK", "BOOL", "Output", false));               // Safety tablosu sonucu: tum alarmlar temizse TRUE
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)
@@ -1383,7 +1455,7 @@ namespace App4.Utilities
                 // --- KLIMA SECIMI ---
                 RobotInputVars.Add(Create("G_KLIMA_TIP", "INT", "Input", 0));             // 0=Secilmedi 1..N=Klima tipi
                 RobotInputVars.Add(Create("G_KLIMA_ADET", "INT", "Input", 0));            // Toplam klima tipi sayisi
-                RobotInputVars.Add(Create("G_AKTIF_NOKTA", "INT", "Input", 0));           // Suanki olcum noktasi (1..7)
+                RobotInputVars.Add(Create("G_AKTIF_NOKTA_ADI", "STRING", "Input", ""));    // Aktif kaynak nokta adı (B1-Brazing vb.)
                 RobotInputVars.Add(Create("G_TOPLAM_NOKTA", "INT", "Input", 0));          // Toplam olcum noktasi
                 RobotInputVars.Add(Create("G_NOK_SAYISI", "INT", "Input", 0));            // Basarisiz nokta sayisi
                 RobotInputVars.Add(Create("G_NOK_NOKTA", "INT", "Input", 0));             // Son NOK olan nokta numarasi
@@ -1420,7 +1492,7 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_SNIFFER_OLCUM_BITTI", "BOOL", "Input", false)); // Robot -> PC : Sniffer olcum tamamlandi (R1 + R2)
                 RobotInputVars.Add(Create("G_SNIFFER_DEGER", "REAL", "Input", 0.0));      // Salt Input: Sniffer olcum degeri
                 RobotInputVars.Add(Create("G_SNIFFER_READY", "BOOL", "Input", false));    // Geri-okuma: PC Output'tan yazar, burada izlenir
-                RobotInputVars.Add(Create("G_AKTIF_CIZGI", "INT", "Input", 0));           // Robot 2 aktif sniffer cizgi no
+                // G_AKTIF_CIZGI kaldırıldı — G_AKTIF_NOKTA_ADI string ile değiştirildi
                 RobotInputVars.Add(Create("G_TOPLAM_CIZGI", "INT", "Input", 0));          // Robot 2 toplam cizgi sayisi
                 RobotInputVars.Add(Create("G_NOK_CIZGI", "INT", "Input", 0));             // Robot 2 son NOK cizgi no
                 // --- ROBOT 2 SLIDER (KL100) DURUM ---
@@ -2676,37 +2748,35 @@ namespace App4.Utilities
             if (currentLeak && !prevLeak)
             {
                 // Yükselen kenar: LEAK başladı → NOK
-                int aktifNokta = GetSnifferAktifNokta(robotNo);
+                string noktaAdi = GetSnifferAktifNoktaAdi(robotNo);
                 double leakRate = GetSnifferLeakRate(robotNo);
-                if (aktifNokta > 0)
+                if (!string.IsNullOrEmpty(noktaAdi))
                 {
                     var collection = robotNo == 1 ? Robot1SnifferPoints : Robot2SnifferPoints;
-                    UpdateSnifferPoint(collection, robotNo, aktifNokta, "NOK", leakRate);
+                    UpdateSnifferPoint(collection, robotNo, noktaAdi, "NOK", leakRate);
                 }
             }
             else if (!currentLeak && prevLeak)
             {
                 // Düşen kenar: LEAK temizlendi → OK
-                int aktifNokta = GetSnifferAktifNokta(robotNo);
+                string noktaAdi = GetSnifferAktifNoktaAdi(robotNo);
                 double leakRate = GetSnifferLeakRate(robotNo);
-                if (aktifNokta > 0)
+                if (!string.IsNullOrEmpty(noktaAdi))
                 {
                     var collection = robotNo == 1 ? Robot1SnifferPoints : Robot2SnifferPoints;
-                    UpdateSnifferPoint(collection, robotNo, aktifNokta, "OK", leakRate);
+                    UpdateSnifferPoint(collection, robotNo, noktaAdi, "OK", leakRate);
                 }
             }
             prevLeak = currentLeak;
         }
 
-        private static int GetSnifferAktifNokta(int robotNo)
+        private static string GetSnifferAktifNoktaAdi(int robotNo)
         {
             var robots = KukaRobotManager.Instance?.Robots;
-            if (robots == null || robots.Count < robotNo) return 0;
+            if (robots == null || robots.Count < robotNo) return "";
             var robot = robots[robotNo - 1];
-            string varName = robotNo == 1 ? "G_AKTIF_NOKTA" : "G_AKTIF_CIZGI";
-            var v = robot.InputVars.FirstOrDefault(x => x.Name == varName);
-            if (v != null && int.TryParse(v.Value, out int nokta)) return nokta;
-            return 0;
+            var v = robot.InputVars.FirstOrDefault(x => x.Name == "G_AKTIF_NOKTA_ADI");
+            return v?.Value?.Trim('"', ' ') ?? "";
         }
 
         private static double GetSnifferLeakRate(int robotNo)
@@ -2728,11 +2798,11 @@ namespace App4.Utilities
         }
 
         public static void UpdateSnifferPoint(ObservableCollection<App4.Models.SnifferPointResult> collection,
-            int robotNo, int pointIndex, string result, double leakRate)
+            int robotNo, string pointName, string result, double leakRate)
         {
             RunOnUiThread(() =>
             {
-                var existing = collection.FirstOrDefault(p => p.PointIndex == pointIndex);
+                var existing = collection.FirstOrDefault(p => p.PointName == pointName);
                 if (existing != null)
                 {
                     existing.Result = result;
@@ -2743,14 +2813,14 @@ namespace App4.Utilities
                 {
                     collection.Add(new App4.Models.SnifferPointResult
                     {
-                        PointIndex = pointIndex,
+                        PointName = pointName,
                         Result = result,
                         LeakRate = leakRate,
                         Timestamp = DateTime.Now
                     });
                 }
             });
-            OnAutomationLog?.Invoke($"[Sniffer] Robot{robotNo} Nokta {pointIndex}: {result} (LeakRate={leakRate:E2})");
+            OnAutomationLog?.Invoke($"[Sniffer] Robot{robotNo} {pointName}: {result} (LeakRate={leakRate:E2})");
         }
 
         public static void ClearSnifferPoints()
@@ -2771,17 +2841,8 @@ namespace App4.Utilities
             _snifferOlcumProcessing = true;
             try
             {
-                string aktifInfo = "";
-                if (robotNo == 1)
-                {
-                    var noktaVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_NOKTA");
-                    aktifInfo = noktaVar != null ? $"Nokta={noktaVar.Value}" : "";
-                }
-                else
-                {
-                    var cizgiVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_CIZGI");
-                    aktifInfo = cizgiVar != null ? $"Çizgi={cizgiVar.Value}" : "";
-                }
+                var noktaAdiVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_NOKTA_ADI");
+                string aktifInfo = noktaAdiVar?.Value?.Trim('"', ' ') ?? "";
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON sniffer ölçüm isteği alındı ({aktifInfo})");
 

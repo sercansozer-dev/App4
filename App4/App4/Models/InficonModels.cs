@@ -65,7 +65,7 @@ namespace App4.Models
     /// </summary>
     public class SnifferPointResult : INotifyPropertyChanged
     {
-        public int PointIndex { get; set; }         // Aktif nokta numarası (1-based)
+        public string PointName { get; set; } = "";   // Aktif nokta adı (B1-Brazing, U3-UBend vb.)
 
         private string _result = "---";             // "OK", "NOK", "---"
         public string Result

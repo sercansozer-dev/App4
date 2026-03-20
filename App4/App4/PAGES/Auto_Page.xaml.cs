@@ -69,10 +69,10 @@ namespace App4
         }
 
         // Alarm tetiklendiğinde seçili tag'lere TRUE, temizlendiğinde FALSE yazar
-        private bool _lastSafetyAlarmState = false;
+        private bool? _lastSafetyAlarmState = null; // null = henuz yazilmadi, ilk cagri mutlaka calisir
         private async void WriteSafetyAlarmOutputs(bool alarmActive)
         {
-            if (_lastSafetyAlarmState == alarmActive) return;
+            if (_lastSafetyAlarmState.HasValue && _lastSafetyAlarmState.Value == alarmActive) return;
             _lastSafetyAlarmState = alarmActive;
 
             string value = alarmActive ? "TRUE" : "FALSE";
@@ -88,10 +88,20 @@ namespace App4
                 try { await WriteToRobotTagAsync(r2Tag, value); } catch { }
             }
 
+            // SAFETY_OK output degiskeni — kullanici tablodan robot tag eslestirmesi yapar
+            // CMD_LINE_START gibi diger output degiskenleriyle ayni mantikta calisir
+            string safetyOkValue = alarmActive ? "FALSE" : "TRUE";
+            var safetyOkVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "SAFETY_OK");
+            if (safetyOkVar != null)
+            {
+                safetyOkVar.CurrentValue = safetyOkValue;
+                safetyOkVar.Value = safetyOkValue;
+            }
+
             if (alarmActive)
-                AddLog($"⚠ SAFETY ALARM ÇIKIŞ: {r1Tag} + {r2Tag} = TRUE", "Red");
+                AddLog($"⚠ SAFETY ALARM: SAFETY_OK = FALSE", "Red");
             else
-                AddLog($"✓ SAFETY ALARM TEMİZ: {r1Tag} + {r2Tag} = FALSE", "Green");
+                AddLog($"✓ SAFETY OK: SAFETY_OK = TRUE", "Green");
         }
 
         /// <summary>
@@ -312,6 +322,9 @@ namespace App4
              // 4. Viewerları Başlat
             _ = InitializeStationViewers();
 
+            // 4.5 Kasa Tipleri Panelini Doldur
+            RefreshCasingTypesPanel();
+
             // 5. RFID Model Değişikliklerini Dinle
             foreach (var rfid in KnownRfids)
             {
@@ -340,6 +353,7 @@ namespace App4
                 {
                     UpdateSafetySignalLeds();
                     UpdateLineStatusVisuals();
+                    UpdateActivePoints();
                 };
             }
             _safetySignalTimer.Start();
@@ -2043,11 +2057,87 @@ namespace App4
         private void SetBtn(string n, bool v) { var var = GeneralOutputVars.FirstOrDefault(x => x.Name == n); if (var != null) var.CurrentValue = v; }
         private void SetIn(string n, bool v) { var var = GeneralInputVars.FirstOrDefault(x => x.Name == n); if (var != null) var.CurrentValue = v; }
 
+        // ═══ KASA TİPLERİ YÖNETİMİ ═══
+        private void RefreshCasingTypesPanel()
+        {
+            CasingTypesPanel.Children.Clear();
+            foreach (var ct in GlobalData.CasingTypes)
+            {
+                var badge = new Border
+                {
+                    Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 30, 60, 30)),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(8, 4, 8, 4)
+                };
+                var sp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                var idxText = new TextBlock { Text = ct.Index.ToString(), FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+                var nameText = new TextBlock { Text = ct.Name, Foreground = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+                var delBtn = new Button { Content = "X", FontSize = 9, Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red), Padding = new Thickness(4, 0, 4, 0), MinWidth = 20, MinHeight = 20, Tag = ct };
+                delBtn.Click += BtnDeleteCasing_Click;
+                sp.Children.Add(idxText);
+                sp.Children.Add(nameText);
+                sp.Children.Add(delBtn);
+                badge.Child = sp;
+                CasingTypesPanel.Children.Add(badge);
+            }
+        }
+
+        private void BtnAddCasing_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(TxtNewCasingName.Text)) return;
+            int nextIdx = GlobalData.CasingTypes.Count > 0 ? GlobalData.CasingTypes.Max(c => c.Index) + 1 : 1;
+            GlobalData.CasingTypes.Add(new CasingType { Index = nextIdx, Name = TxtNewCasingName.Text.Trim() });
+            GlobalData.SaveCasingTypes();
+            TxtNewCasingName.Text = "";
+            RefreshCasingTypesPanel();
+        }
+
+        private void BtnDeleteCasing_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.Tag is CasingType ct)
+            {
+                GlobalData.CasingTypes.Remove(ct);
+                GlobalData.SaveCasingTypes();
+                RefreshCasingTypesPanel();
+            }
+        }
+
+        private void CasingLabel_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBlock tb && tb.DataContext is App4.Utilities.RfidDef rfid)
+            {
+                var ct = GlobalData.CasingTypes.FirstOrDefault(c => c.Index == rfid.CasingIndex);
+                tb.Text = ct != null ? $"{ct.Index}-{ct.Name}" : "-";
+                // Tiklayinca casing sec
+                var parent = tb.Parent as Border;
+                if (parent != null)
+                {
+                    parent.Tapped += (s, args) =>
+                    {
+                        // Sirali casing degistir
+                        var types = GlobalData.CasingTypes.ToList();
+                        int currentIdx = types.FindIndex(c => c.Index == rfid.CasingIndex);
+                        int nextIdx = (currentIdx + 1) % (types.Count + 1); // +1 = atanmamis (0)
+                        if (nextIdx < types.Count)
+                        {
+                            rfid.CasingIndex = types[nextIdx].Index;
+                            tb.Text = $"{types[nextIdx].Index}-{types[nextIdx].Name}";
+                        }
+                        else
+                        {
+                            rfid.CasingIndex = 0;
+                            tb.Text = "-";
+                        }
+                        GlobalData.SaveRfids();
+                    };
+                }
+            }
+        }
+
         private void BtnAddRfid_Click(object sender, RoutedEventArgs e)
         {
             if (!string.IsNullOrEmpty(TxtNewRfidId.Text))
             {
-                // DÜZELTME: 'new' eklendi ve tam adres yazıldı
                 KnownRfids.Add(new App4.Utilities.RfidDef
                 {
                     Id = TxtNewRfidId.Text,
@@ -2060,7 +2150,6 @@ namespace App4
         }
         private void BtnDeleteRfid_Click(object sender, RoutedEventArgs e)
         {
-            // DÜZELTME: 'is RfidDef' yerine 'is App4.Utilities.RfidDef' yazıldı
             if (sender is Button b && b.DataContext is App4.Utilities.RfidDef item)
             {
                 KnownRfids.Remove(item);
@@ -3009,6 +3098,42 @@ namespace App4
         /// Safety sinyal LED'lerini robotların anlık durumuna göre günceller.
         /// Hem PropertyChanged hem UpdateLineStatusVisuals'dan çağrılır.
         /// </summary>
+        // ═══ AKTİF NOKTA BİLGİSİ — Robot G_AKTIF_NOKTA_ADI → İstasyon kartları ═══
+        private void UpdateActivePoints()
+        {
+            try
+            {
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots == null || robots.Count == 0) return;
+
+                // Robot 1 aktif nokta
+                string r1Point = "";
+                if (robots.Count >= 1)
+                {
+                    var v = robots[0].InputVars.FirstOrDefault(x => x.Name == "G_AKTIF_NOKTA_ADI");
+                    r1Point = v?.Value ?? "";
+                    if (r1Point == "-") r1Point = "";
+                }
+
+                // Robot 2 aktif nokta
+                string r2Point = "";
+                if (robots.Count >= 2)
+                {
+                    var v = robots[1].InputVars.FirstOrDefault(x => x.Name == "G_AKTIF_NOKTA_ADI");
+                    r2Point = v?.Value ?? "";
+                    if (r2Point == "-") r2Point = "";
+                }
+
+                // Tüm istasyonlara yaz
+                foreach (var station in Stations)
+                {
+                    station.R1ActivePoint = r1Point;
+                    station.R2ActivePoint = r2Point;
+                }
+            }
+            catch { }
+        }
+
         private void UpdateSafetySignalLeds()
         {
             try

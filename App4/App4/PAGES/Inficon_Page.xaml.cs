@@ -286,16 +286,16 @@ namespace App4.PAGES
                 panel.Children.Clear();
                 countText.Text = $"({points.Count})";
 
-                foreach (var pt in points.OrderBy(p => p.PointIndex))
+                foreach (var pt in points.OrderBy(p => p.PointName))
                 {
                     var row = new Grid { Padding = new Thickness(0, 2, 0, 2) };
-                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
                     row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
                     row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                     row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
 
-                    // Nokta numarası
-                    AddCell(row, 0, pt.PointIndex.ToString(), "#CCC");
+                    // Nokta adı
+                    AddCell(row, 0, pt.PointName, "#CCC");
 
                     // Sonuç (renkli daire + text)
                     var resultPanel = new StackPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };

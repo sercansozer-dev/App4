@@ -110,11 +110,26 @@ namespace App4.Utilities
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
+    // --- KASA TİPİ ---
+    public class CasingType : INotifyPropertyChanged
+    {
+        private int _index;
+        public int Index { get => _index; set { if (_index != value) { _index = value; OnPropertyChanged(); } } }
+
+        private string _name = "";
+        public string Name { get => _name; set { if (_name != value) { _name = value; OnPropertyChanged(); } } }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     // --- TEMEL SINIFLAR ---
     public class RfidDef : INotifyPropertyChanged
     {
         public string Id { get; set; }
         public string Description { get; set; }
+        public int CasingIndex { get; set; } = 0; // 0=atanmamis, 1=ALPHA, 2=SF2, 3=BML-H, 4=BMS
 
         private string _modelFileName;
         public string ModelFileName 
@@ -459,6 +474,23 @@ namespace App4.Utilities
             set { _r1StatusDotColor = value; OnPropertyChanged(); }
         }
         public Visibility R1Visibility => !string.IsNullOrEmpty(R1DurumText) ? Visibility.Visible : Visibility.Collapsed;
+
+        // ═══ Aktif Nokta Bilgisi (Robot 1 + Robot 2) ═══
+        private string _r1ActivePoint = "";
+        public string R1ActivePoint
+        {
+            get => _r1ActivePoint;
+            set { if (_r1ActivePoint != value) { _r1ActivePoint = value; OnPropertyChanged(); OnPropertyChanged(nameof(R1ActivePointVisibility)); } }
+        }
+        public Visibility R1ActivePointVisibility => !string.IsNullOrEmpty(R1ActivePoint) ? Visibility.Visible : Visibility.Collapsed;
+
+        private string _r2ActivePoint = "";
+        public string R2ActivePoint
+        {
+            get => _r2ActivePoint;
+            set { if (_r2ActivePoint != value) { _r2ActivePoint = value; OnPropertyChanged(); OnPropertyChanged(nameof(R2ActivePointVisibility)); } }
+        }
+        public Visibility R2ActivePointVisibility => !string.IsNullOrEmpty(R2ActivePoint) ? Visibility.Visible : Visibility.Collapsed;
 
         // ═══ Robot 2 durum bilgileri ═══
         private string _r2DurumText = "";
