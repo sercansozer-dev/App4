@@ -674,7 +674,9 @@ namespace App4.PAGES
             new CodesysMappingItem { InputName = "Gocator_Raw_X", Description = "Gocator Ham X", GocatorIndex = 0 },
             new CodesysMappingItem { InputName = "Gocator_Raw_Y", Description = "Gocator Ham Y", GocatorIndex = 1 },
             new CodesysMappingItem { InputName = "Gocator_Raw_Z", Description = "Gocator Ham Z", GocatorIndex = 2 },
-            new CodesysMappingItem { InputName = "Gocator_Raw_AngleZ", Description = "Gocator Açı Z", GocatorIndex = 3 }
+            new CodesysMappingItem { InputName = "Gocator_Yaw", Description = "Gocator Yaw (Z dönüşü)", GocatorIndex = 3 },
+            new CodesysMappingItem { InputName = "Gocator_Roll", Description = "Gocator Roll (X dönüşü)", GocatorIndex = 4 },
+            new CodesysMappingItem { InputName = "Gocator_Pitch", Description = "Gocator Pitch (Y dönüşü)", GocatorIndex = 5 }
         };
 
         // CODESYS hesaplama sonuçları
@@ -682,6 +684,9 @@ namespace App4.PAGES
 
         // CODESYS matematik fonksiyonu instance (ayrı .cs dosyasında tanımlı)
         private readonly CodesysMathFunction _codesysMath = new CodesysMathFunction();
+
+        // Tabla referans kartları (Case bazlı)
+        public ObservableCollection<App4.Utilities.TablaReferenceCard> TablaReferenceCards { get; } = new();
 
         // 3D Spatial Visualizer
         private bool _isVisualizerWebViewInitialized = false;
@@ -1660,7 +1665,7 @@ namespace App4.PAGES
                 GlobalData.CodesysOffsetX = _codesysOffsetX;
                 GlobalData.CodesysOffsetY = _codesysOffsetY;
                 GlobalData.CodesysOffsetZ = _codesysOffsetZ;
-                GlobalData.CodesysGocMappings = $"{CodesysMappings[0].GocatorIndex},{CodesysMappings[1].GocatorIndex},{CodesysMappings[2].GocatorIndex},{CodesysMappings[3].GocatorIndex}";
+                GlobalData.CodesysGocMappings = $"{CodesysMappings[0].GocatorIndex},{CodesysMappings[1].GocatorIndex},{CodesysMappings[2].GocatorIndex},{CodesysMappings[3].GocatorIndex},{(CodesysMappings.Count > 4 ? CodesysMappings[4].GocatorIndex : 4)},{(CodesysMappings.Count > 5 ? CodesysMappings[5].GocatorIndex : 5)}";
 
                 AddLog($"✓ CODESYS ayarları kaydedildi — Ofset: X={_codesysOffsetX} Y={_codesysOffsetY} Z={_codesysOffsetZ} | Eşleştirme: {GlobalData.CodesysGocMappings}");
             }
@@ -1687,6 +1692,8 @@ namespace App4.PAGES
             CodesysMappings[1].GocatorIndex = 1;
             CodesysMappings[2].GocatorIndex = 2;
             CodesysMappings[3].GocatorIndex = 3;
+            if (CodesysMappings.Count > 4) CodesysMappings[4].GocatorIndex = 4;
+            if (CodesysMappings.Count > 5) CodesysMappings[5].GocatorIndex = 5;
 
             if (NbCodesysMapX != null) NbCodesysMapX.Value = 0;
             if (NbCodesysMapY != null) NbCodesysMapY.Value = 1;
@@ -1733,6 +1740,119 @@ namespace App4.PAGES
             _codesysMath.MapIndexYaw = CodesysMappings[3].GocatorIndex;
             if (CodesysMappings.Count > 4) _codesysMath.MapIndexRoll = CodesysMappings[4].GocatorIndex;
             if (CodesysMappings.Count > 5) _codesysMath.MapIndexPitch = CodesysMappings[5].GocatorIndex;
+        }
+
+        // --- TABLA REFERANS KART SİSTEMİ ---
+
+        private void InitTablaReferenceCards()
+        {
+            TablaReferenceCards.Clear();
+            foreach (var ct in App4.Utilities.GlobalData.CasingTypes)
+            {
+                var card = new App4.Utilities.TablaReferenceCard
+                {
+                    CasingIndex = ct.Index,
+                    CaseName = $"{ct.Index}-{ct.Name}"
+                };
+                var refData = App4.Utilities.GlobalData.GetTablaReference(ct.Index);
+                card.UpdateFrom(refData);
+                TablaReferenceCards.Add(card);
+            }
+        }
+
+        private async void BtnTablaRefAl_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn != null) btn.IsEnabled = false;
+            try
+            {
+                // Aktüel case ID'yi bul
+                int caseId = 0;
+                int klimaIdx = App4.Utilities.GlobalData.AktuelKlimaIndex;
+                if (klimaIdx > 0 && klimaIdx <= App4.Utilities.GlobalData.KnownRfids.Count)
+                {
+                    caseId = App4.Utilities.GlobalData.KnownRfids[klimaIdx - 1].CasingIndex;
+                }
+                if (caseId == 0)
+                {
+                    AddLog("⚠ Tabla referans alınamadı: Aktüel klima veya kasa tipi tanımlı değil.");
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                AddLog($"► Tabla referans alınıyor (Case {caseId})...");
+
+                // 1. Job 0 yükle
+                string rfidValue = App4.Utilities.GlobalData.AktuelRfid;
+                var rfidDef = App4.Utilities.GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidValue);
+                if (rfidDef?.JobSequence != null && rfidDef.JobSequence.Count > 0)
+                {
+                    string job0 = rfidDef.JobSequence[0];
+                    AddLog($"► Job 0 yükleniyor: {job0}");
+                    await App4.Utilities.GocatorJobLogic.LoadJob(job0, AddLog);
+                }
+
+                // 2. Ölçüm al
+                var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
+                if (result.Item1 != 1 || result.Item2 == null || result.Item2.Count == 0)
+                {
+                    AddLog("⚠ Tabla referans ölçümü başarısız.");
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                // Senkron güncelle
+                App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
+                foreach (var item in result.Item2)
+                    App4.Utilities.GlobalData.TablaLastMeasurements.Add(item);
+
+                // 3. CODESYS'ten geçir
+                _codesysMath.OffsetX = _codesysOffsetX;
+                _codesysMath.OffsetY = _codesysOffsetY;
+                _codesysMath.OffsetZ = _codesysOffsetZ;
+
+                var gocValues = new double[result.Item2.Count];
+                for (int i = 0; i < result.Item2.Count; i++)
+                    gocValues[i] = result.Item2[i].Value;
+
+                var robot = _calibSelectedRobot ?? App4.Utilities.KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                if (robot == null || !robot.IsConnected)
+                {
+                    AddLog("⚠ Robot bağlı değil — CODESYS hesaplama yapılamıyor.");
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                var robotPose = new App4.Utilities.GoRobotMath.KukaPose(
+                    robot.PosX, robot.PosY, robot.PosZ,
+                    robot.PosA, robot.PosB, robot.PosC);
+
+                var targetPose = _codesysMath.CalculateFromArray(gocValues, robotPose);
+
+                if (!_codesysMath.LastCalculationSuccess)
+                {
+                    AddLog($"⚠ CODESYS hesaplama hatası: {_codesysMath.LastError}");
+                    if (btn != null) btn.IsEnabled = true;
+                    return;
+                }
+
+                // 4. Referans olarak kaydet
+                App4.Utilities.GlobalData.SetTablaReference(caseId,
+                    targetPose.X, targetPose.Y, targetPose.Z,
+                    targetPose.A, targetPose.B, targetPose.C);
+
+                // 5. UI kartını güncelle
+                var card = TablaReferenceCards.FirstOrDefault(c => c.CasingIndex == caseId);
+                if (card != null)
+                    card.UpdateFrom(App4.Utilities.GlobalData.GetTablaReference(caseId));
+
+                AddLog($"✓ Tabla referans kaydedildi (Case {caseId}): X={targetPose.X:F3} Y={targetPose.Y:F3} Z={targetPose.Z:F3} A={targetPose.A:F3} B={targetPose.B:F3} C={targetPose.C:F3}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Tabla referans hatası: {ex.Message}");
+            }
+            if (btn != null) btn.IsEnabled = true;
         }
 
         // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır, 3 seçenek) ---
@@ -2773,6 +2893,9 @@ namespace App4.PAGES
 
             // 3.5. CODESYS ayarlarını NumberBox'lara yükle (Loaded sonrası — XAML default'ları override)
             LoadCodesysSettings();
+
+            // 3.6. Tabla referans kartlarını oluştur
+            InitTablaReferenceCards();
 
             // 4. Watcher'ları kur
             SetupWatchers();

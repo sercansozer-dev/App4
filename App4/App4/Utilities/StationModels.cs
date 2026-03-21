@@ -820,6 +820,79 @@ namespace App4.Utilities
         public SolidColorBrush ManualBtnFg => Mode == StationMode.Manual ? new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)) : new SolidColorBrush(Color.FromArgb(255, 128, 128, 128));
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // TABLA REFERANS NOKTA MODELİ (Case bazlı)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Tabla kaçıklık referans noktası — CODESYS dönüşüm sonrası Base koordinatında.
+    /// Her CasingType için ayrı referans saklanır.
+    /// </summary>
+    public class TablaReference
+    {
+        public int CasingIndex { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
+        public double A { get; set; }
+        public double B { get; set; }
+        public double C { get; set; }
+        public string DateTaken { get; set; } = "";
+        public bool HasReference { get; set; }
+    }
+
+    /// <summary>
+    /// Tabla referans kart UI modeli — Camera_Page'de kart olarak gösterilir.
+    /// </summary>
+    public class TablaReferenceCard : System.ComponentModel.INotifyPropertyChanged
+    {
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        private void OnProp(string n) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(n));
+
+        public int CasingIndex { get; set; }
+        public string CaseName { get; set; } = "";
+
+        private string _refX = "---", _refY = "---", _refZ = "---";
+        private string _refA = "---", _refB = "---", _refC = "---";
+        private string _dateText = "---";
+
+        public string RefX { get => _refX; set { _refX = value; OnProp(nameof(RefX)); } }
+        public string RefY { get => _refY; set { _refY = value; OnProp(nameof(RefY)); } }
+        public string RefZ { get => _refZ; set { _refZ = value; OnProp(nameof(RefZ)); } }
+        public string RefA { get => _refA; set { _refA = value; OnProp(nameof(RefA)); } }
+        public string RefB { get => _refB; set { _refB = value; OnProp(nameof(RefB)); } }
+        public string RefC { get => _refC; set { _refC = value; OnProp(nameof(RefC)); } }
+        public string DateText { get => _dateText; set { _dateText = value; OnProp(nameof(DateText)); } }
+
+        public Microsoft.UI.Xaml.Media.SolidColorBrush BorderColor =>
+            new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                _refX == "---"
+                    ? Microsoft.UI.Colors.Gray
+                    : Windows.UI.Color.FromArgb(255, 206, 147, 216)); // #CE93D8
+
+        public void UpdateFrom(TablaReference r)
+        {
+            if (r == null || !r.HasReference) { Clear(); return; }
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            RefX = r.X.ToString("F3", ci) + " mm";
+            RefY = r.Y.ToString("F3", ci) + " mm";
+            RefZ = r.Z.ToString("F3", ci) + " mm";
+            RefA = r.A.ToString("F3", ci) + " °";
+            RefB = r.B.ToString("F3", ci) + " °";
+            RefC = r.C.ToString("F3", ci) + " °";
+            DateText = r.DateTaken;
+            OnProp(nameof(BorderColor));
+        }
+
+        public void Clear()
+        {
+            RefX = "---"; RefY = "---"; RefZ = "---";
+            RefA = "---"; RefB = "---"; RefC = "---";
+            DateText = "---";
+            OnProp(nameof(BorderColor));
+        }
+    }
+
     public class CountToVisibilityConverter : Microsoft.UI.Xaml.Data.IValueConverter
     {
         public object Convert(object value, System.Type targetType, object parameter, string language)

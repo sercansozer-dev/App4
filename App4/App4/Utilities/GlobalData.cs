@@ -1104,6 +1104,7 @@ namespace App4.Utilities
             LoadTransferRows();
             LoadTablaMeasurements();
             LoadTablaTransferRows();
+            LoadTablaReferences();
             LoadInficonLogs();
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
@@ -1238,6 +1239,55 @@ namespace App4.Utilities
         // --- TABLA KAÇIKLIK ÖLÇÜM KAYIT ---
         private static readonly string _tablaMeasurementsFilePath = Path.Combine(ConfigBaseDir, "Saved_Tabla_Measurements.json");
         private static readonly string _tablaTransferFilePath = Path.Combine(ConfigBaseDir, "Tabla_Transfer_Rows.json");
+
+        // --- TABLA REFERANS NOKTALARI (Case bazlı) ---
+        private static readonly string _tablaReferencesFilePath = Path.Combine(ConfigBaseDir, "Tabla_References.json");
+        public static Dictionary<int, TablaReference> TablaReferencePoints { get; private set; } = new();
+
+        public static void SaveTablaReferences()
+        {
+            try
+            {
+                string json = System.Text.Json.JsonSerializer.Serialize(TablaReferencePoints.Values.ToList(), new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_tablaReferencesFilePath, json);
+            }
+            catch { }
+        }
+
+        public static void LoadTablaReferences()
+        {
+            try
+            {
+                if (File.Exists(_tablaReferencesFilePath))
+                {
+                    var list = System.Text.Json.JsonSerializer.Deserialize<List<TablaReference>>(File.ReadAllText(_tablaReferencesFilePath));
+                    if (list != null)
+                    {
+                        TablaReferencePoints.Clear();
+                        foreach (var r in list)
+                            TablaReferencePoints[r.CasingIndex] = r;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        public static TablaReference GetTablaReference(int casingIndex)
+        {
+            return TablaReferencePoints.TryGetValue(casingIndex, out var r) ? r : null;
+        }
+
+        public static void SetTablaReference(int casingIndex, double x, double y, double z, double a, double b, double c)
+        {
+            TablaReferencePoints[casingIndex] = new TablaReference
+            {
+                CasingIndex = casingIndex,
+                X = x, Y = y, Z = z, A = a, B = b, C = c,
+                HasReference = true,
+                DateTaken = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
+            };
+            SaveTablaReferences();
+        }
 
         public static void SaveTablaMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(TablaLastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_tablaMeasurementsFilePath, json); } catch { } }
         private static void LoadTablaMeasurements() { try { if (File.Exists(_tablaMeasurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_tablaMeasurementsFilePath)); if (list != null) { TablaLastMeasurements.Clear(); foreach (var item in list) TablaLastMeasurements.Add(item); } } } catch { } }
