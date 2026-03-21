@@ -855,6 +855,7 @@ namespace App4.Utilities
         private string _refX = "---", _refY = "---", _refZ = "---";
         private string _refA = "---", _refB = "---", _refC = "---";
         private string _dateText = "---";
+        private bool _isActive;
 
         public string RefX { get => _refX; set { _refX = value; OnProp(nameof(RefX)); } }
         public string RefY { get => _refY; set { _refY = value; OnProp(nameof(RefY)); } }
@@ -864,11 +865,37 @@ namespace App4.Utilities
         public string RefC { get => _refC; set { _refC = value; OnProp(nameof(RefC)); } }
         public string DateText { get => _dateText; set { _dateText = value; OnProp(nameof(DateText)); } }
 
+        public bool IsActive
+        {
+            get => _isActive;
+            set { _isActive = value; OnProp(nameof(IsActive)); OnProp(nameof(BorderColor)); OnProp(nameof(CardBackground)); OnProp(nameof(TitleColor)); OnProp(nameof(ValueColor)); OnProp(nameof(AngleColor)); }
+        }
+
+        // Aktif: yeşil border, pasif: koyu gri
         public Microsoft.UI.Xaml.Media.SolidColorBrush BorderColor =>
             new Microsoft.UI.Xaml.Media.SolidColorBrush(
-                _refX == "---"
-                    ? Microsoft.UI.Colors.Gray
-                    : Windows.UI.Color.FromArgb(255, 206, 147, 216)); // #CE93D8
+                _isActive ? Windows.UI.Color.FromArgb(255, 76, 175, 80)   // #4CAF50
+                          : Windows.UI.Color.FromArgb(255, 60, 60, 60));  // #3C3C3C
+
+        public Microsoft.UI.Xaml.Media.SolidColorBrush CardBackground =>
+            new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                _isActive ? Windows.UI.Color.FromArgb(255, 26, 42, 26)    // #1A2A1A
+                          : Windows.UI.Color.FromArgb(255, 30, 30, 30));  // #1E1E1E
+
+        public Microsoft.UI.Xaml.Media.SolidColorBrush TitleColor =>
+            new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                _isActive ? Windows.UI.Color.FromArgb(255, 129, 199, 132) // #81C784
+                          : Windows.UI.Color.FromArgb(255, 120, 120, 120)); // #787878
+
+        public Microsoft.UI.Xaml.Media.SolidColorBrush ValueColor =>
+            new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                _isActive ? Windows.UI.Color.FromArgb(255, 200, 230, 201) // #C8E6C9
+                          : Windows.UI.Color.FromArgb(255, 100, 100, 100)); // #646464
+
+        public Microsoft.UI.Xaml.Media.SolidColorBrush AngleColor =>
+            new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                _isActive ? Windows.UI.Color.FromArgb(255, 255, 224, 178) // #FFE0B2
+                          : Windows.UI.Color.FromArgb(255, 90, 90, 90));  // #5A5A5A
 
         public void UpdateFrom(TablaReference r)
         {

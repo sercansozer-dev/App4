@@ -1747,12 +1747,19 @@ namespace App4.PAGES
         private void InitTablaReferenceCards()
         {
             TablaReferenceCards.Clear();
+
+            int activeCaseId = 0;
+            int klimaIdx = App4.Utilities.GlobalData.AktuelKlimaIndex;
+            if (klimaIdx > 0 && klimaIdx <= App4.Utilities.GlobalData.KnownRfids.Count)
+                activeCaseId = App4.Utilities.GlobalData.KnownRfids[klimaIdx - 1].CasingIndex;
+
             foreach (var ct in App4.Utilities.GlobalData.CasingTypes)
             {
                 var card = new App4.Utilities.TablaReferenceCard
                 {
                     CasingIndex = ct.Index,
-                    CaseName = $"{ct.Index}-{ct.Name}"
+                    CaseName = $"{ct.Index}-{ct.Name}",
+                    IsActive = (ct.Index == activeCaseId)
                 };
                 var refData = App4.Utilities.GlobalData.GetTablaReference(ct.Index);
                 card.UpdateFrom(refData);
@@ -1760,99 +1767,92 @@ namespace App4.PAGES
             }
         }
 
-        private async void BtnTablaRefAl_Click(object sender, RoutedEventArgs e)
+        private void BtnTablaRefAl_Click(object sender, RoutedEventArgs e)
         {
-            var btn = sender as Button;
-            if (btn != null) btn.IsEnabled = false;
             try
             {
                 // Aktüel case ID'yi bul
                 int caseId = 0;
                 int klimaIdx = App4.Utilities.GlobalData.AktuelKlimaIndex;
                 if (klimaIdx > 0 && klimaIdx <= App4.Utilities.GlobalData.KnownRfids.Count)
-                {
                     caseId = App4.Utilities.GlobalData.KnownRfids[klimaIdx - 1].CasingIndex;
-                }
+
                 if (caseId == 0)
                 {
-                    AddLog("⚠ Tabla referans alınamadı: Aktüel klima veya kasa tipi tanımlı değil.");
-                    if (btn != null) btn.IsEnabled = true;
+                    AddLog("⚠ Referans alınamadı: Aktüel klima veya kasa tipi tanımlı değil.");
                     return;
                 }
 
-                AddLog($"► Tabla referans alınıyor (Case {caseId})...");
-
-                // 1. Job 0 yükle
-                string rfidValue = App4.Utilities.GlobalData.AktuelRfid;
-                var rfidDef = App4.Utilities.GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidValue);
-                if (rfidDef?.JobSequence != null && rfidDef.JobSequence.Count > 0)
+                // Mevcut CODESYS tabla sonucunu kullan (son tabla ölçümünün CODESYS çıktısı)
+                var lastTarget = _codesysMath.LastTargetPose;
+                if (lastTarget == null || !_codesysMath.LastCalculationSuccess)
                 {
-                    string job0 = rfidDef.JobSequence[0];
-                    AddLog($"► Job 0 yükleniyor: {job0}");
-                    await App4.Utilities.GocatorJobLogic.LoadJob(job0, AddLog);
-                }
-
-                // 2. Ölçüm al
-                var result = await App4.Utilities.ReceiveMeasurementLogic.ReceiveAndProcessMeasurements(AddLog, this.DispatcherQueue);
-                if (result.Item1 != 1 || result.Item2 == null || result.Item2.Count == 0)
-                {
-                    AddLog("⚠ Tabla referans ölçümü başarısız.");
-                    if (btn != null) btn.IsEnabled = true;
+                    AddLog("⚠ Referans alınamadı: Önce tabla ölçümü alıp CODESYS'ten geçirin.");
                     return;
                 }
 
-                // Senkron güncelle
-                App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
-                foreach (var item in result.Item2)
-                    App4.Utilities.GlobalData.TablaLastMeasurements.Add(item);
-
-                // 3. CODESYS'ten geçir
-                _codesysMath.OffsetX = _codesysOffsetX;
-                _codesysMath.OffsetY = _codesysOffsetY;
-                _codesysMath.OffsetZ = _codesysOffsetZ;
-
-                var gocValues = new double[result.Item2.Count];
-                for (int i = 0; i < result.Item2.Count; i++)
-                    gocValues[i] = result.Item2[i].Value;
-
-                var robot = _calibSelectedRobot ?? App4.Utilities.KukaRobotManager.Instance?.Robots?.FirstOrDefault();
-                if (robot == null || !robot.IsConnected)
-                {
-                    AddLog("⚠ Robot bağlı değil — CODESYS hesaplama yapılamıyor.");
-                    if (btn != null) btn.IsEnabled = true;
-                    return;
-                }
-
-                var robotPose = new App4.Utilities.GoRobotMath.KukaPose(
-                    robot.PosX, robot.PosY, robot.PosZ,
-                    robot.PosA, robot.PosB, robot.PosC);
-
-                var targetPose = _codesysMath.CalculateFromArray(gocValues, robotPose);
-
-                if (!_codesysMath.LastCalculationSuccess)
-                {
-                    AddLog($"⚠ CODESYS hesaplama hatası: {_codesysMath.LastError}");
-                    if (btn != null) btn.IsEnabled = true;
-                    return;
-                }
-
-                // 4. Referans olarak kaydet
+                // Referans olarak kaydet
                 App4.Utilities.GlobalData.SetTablaReference(caseId,
-                    targetPose.X, targetPose.Y, targetPose.Z,
-                    targetPose.A, targetPose.B, targetPose.C);
+                    lastTarget.X, lastTarget.Y, lastTarget.Z,
+                    lastTarget.A, lastTarget.B, lastTarget.C);
 
-                // 5. UI kartını güncelle
-                var card = TablaReferenceCards.FirstOrDefault(c => c.CasingIndex == caseId);
-                if (card != null)
-                    card.UpdateFrom(App4.Utilities.GlobalData.GetTablaReference(caseId));
+                // UI kartını güncelle + aktif durumunu yenile
+                RefreshTablaReferenceCardStates();
 
-                AddLog($"✓ Tabla referans kaydedildi (Case {caseId}): X={targetPose.X:F3} Y={targetPose.Y:F3} Z={targetPose.Z:F3} A={targetPose.A:F3} B={targetPose.B:F3} C={targetPose.C:F3}");
+                var caseName = App4.Utilities.GlobalData.CasingTypes.FirstOrDefault(c => c.Index == caseId)?.Name ?? caseId.ToString();
+                AddLog($"✓ Tabla referans kaydedildi ({caseName}): X={lastTarget.X:F3} Y={lastTarget.Y:F3} Z={lastTarget.Z:F3} A={lastTarget.A:F3} B={lastTarget.B:F3} C={lastTarget.C:F3}");
             }
             catch (Exception ex)
             {
                 AddLog($"⚠ Tabla referans hatası: {ex.Message}");
             }
-            if (btn != null) btn.IsEnabled = true;
+        }
+
+        private void BtnTablaRefAlCard_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var btn = sender as Button;
+                if (btn?.Tag == null) return;
+                int caseId = (int)btn.Tag;
+
+                // Mevcut CODESYS tabla sonucunu kullan
+                var lastTarget = _codesysMath.LastTargetPose;
+                if (lastTarget == null || !_codesysMath.LastCalculationSuccess)
+                {
+                    AddLog("⚠ Referans alınamadı: Önce tabla ölçümü alıp CODESYS'ten geçirin.");
+                    return;
+                }
+
+                App4.Utilities.GlobalData.SetTablaReference(caseId,
+                    lastTarget.X, lastTarget.Y, lastTarget.Z,
+                    lastTarget.A, lastTarget.B, lastTarget.C);
+
+                RefreshTablaReferenceCardStates();
+
+                var caseName = App4.Utilities.GlobalData.CasingTypes.FirstOrDefault(c => c.Index == caseId)?.Name ?? caseId.ToString();
+                AddLog($"✓ Tabla referans kaydedildi ({caseName}): X={lastTarget.X:F3} Y={lastTarget.Y:F3} Z={lastTarget.Z:F3}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ Tabla referans hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>Aktif case kartını yeşil, diğerlerini gri yapar + referans verilerini günceller</summary>
+        private void RefreshTablaReferenceCardStates()
+        {
+            int activeCaseId = 0;
+            int klimaIdx = App4.Utilities.GlobalData.AktuelKlimaIndex;
+            if (klimaIdx > 0 && klimaIdx <= App4.Utilities.GlobalData.KnownRfids.Count)
+                activeCaseId = App4.Utilities.GlobalData.KnownRfids[klimaIdx - 1].CasingIndex;
+
+            foreach (var card in TablaReferenceCards)
+            {
+                card.IsActive = (card.CasingIndex == activeCaseId);
+                var refData = App4.Utilities.GlobalData.GetTablaReference(card.CasingIndex);
+                card.UpdateFrom(refData);
+            }
         }
 
         // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır, 3 seçenek) ---
@@ -2765,21 +2765,64 @@ namespace App4.PAGES
 
                 if (result.Item1 == 1 && result.Item2 != null)
                 {
-                    // 4. Tabla sinyal gönder
-                    App4.Utilities.GlobalData.SetTablaMeasurementSignal();
+                    // 4. CODESYS'ten geçir
+                    _codesysMath.OffsetX = _codesysOffsetX;
+                    _codesysMath.OffsetY = _codesysOffsetY;
+                    _codesysMath.OffsetZ = _codesysOffsetZ;
 
-                    // 5. TablaLastMeasurements koleksiyonunu güncelle (UI thread'de)
+                    var gocValues = new double[result.Item2.Count];
+                    for (int i = 0; i < result.Item2.Count; i++)
+                        gocValues[i] = result.Item2[i].Value;
+
+                    var robot = _calibSelectedRobot ?? App4.Utilities.KukaRobotManager.Instance?.Robots?.FirstOrDefault();
+                    App4.Utilities.GoRobotMath.KukaPose codesysTarget = null;
+
+                    if (robot != null && robot.IsConnected)
+                    {
+                        var robotPose = new App4.Utilities.GoRobotMath.KukaPose(
+                            robot.PosX, robot.PosY, robot.PosZ,
+                            robot.PosA, robot.PosB, robot.PosC);
+                        codesysTarget = _codesysMath.CalculateFromArray(gocValues, robotPose);
+
+                        if (_codesysMath.LastCalculationSuccess)
+                            AddLog($"✓ [TABLA] CODESYS sonuç: X={codesysTarget.X:F3} Y={codesysTarget.Y:F3} Z={codesysTarget.Z:F3} A={codesysTarget.A:F3} B={codesysTarget.B:F3} C={codesysTarget.C:F3}");
+                        else
+                            AddLog($"⚠ [TABLA] CODESYS hatası: {_codesysMath.LastError}");
+                    }
+                    else
+                    {
+                        AddLog("⚠ [TABLA] Robot bağlı değil, CODESYS hesaplaması atlandı.");
+                    }
+
+                    // 5. TablaLastMeasurements → CODESYS sonucunu göster
                     this.DispatcherQueue.TryEnqueue(() =>
                     {
                         App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
-                        foreach (var m in result.Item2)
+
+                        if (codesysTarget != null && _codesysMath.LastCalculationSuccess)
                         {
-                            App4.Utilities.GlobalData.TablaLastMeasurements.Add(m);
+                            // CODESYS sonucunu tabla sonuçlarına yaz
+                            string[] names = { "Target X", "Target Y", "Target Z", "Target A", "Target B", "Target C" };
+                            string[] units = { "mm", "mm", "mm", "°", "°", "°" };
+                            double[] vals = { codesysTarget.X, codesysTarget.Y, codesysTarget.Z, codesysTarget.A, codesysTarget.B, codesysTarget.C };
+                            for (int i = 0; i < 6; i++)
+                            {
+                                App4.Utilities.GlobalData.TablaLastMeasurements.Add(new App4.Utilities.GocatorMeasurement
+                                {
+                                    Id = i + 1, Name = names[i], Value = Math.Round(vals[i], 3), Unit = units[i], Decision = "Pass"
+                                });
+                            }
+                        }
+                        else
+                        {
+                            // CODESYS yoksa ham verileri göster
+                            foreach (var m in result.Item2)
+                                App4.Utilities.GlobalData.TablaLastMeasurements.Add(m);
                         }
                         App4.Utilities.GlobalData.SaveTablaMeasurements();
 
-                        // 6. Tabla PLC satırlarına aktar
-                        TransferTablaToPlcRows();
+                        // 6. Referans ile fark hesapla → Tabla aktarım tablosuna yaz
+                        TransferTablaWithReferenceDiff(codesysTarget);
                     });
 
                     AddLog($"✅ [TABLA] {result.Item2.Count} adet tabla kaçıklık ölçümü alındı.");
@@ -2799,7 +2842,61 @@ namespace App4.PAGES
             }
         }
 
-        // --- TABLA ÖLÇÜMLERİNİ PLC SATIRLARINA AKTAR ---
+        // --- TABLA: CODESYS sonucu - Referans farkını aktarım tablosuna yaz ---
+        private void TransferTablaWithReferenceDiff(App4.Utilities.GoRobotMath.KukaPose codesysTarget)
+        {
+            try
+            {
+                if (codesysTarget == null || !_codesysMath.LastCalculationSuccess)
+                {
+                    AddLog("⚠ [TABLA] CODESYS sonucu yok, aktarım yapılamadı.");
+                    return;
+                }
+
+                // Aktüel case ID
+                int caseId = 0;
+                int klimaIdx = App4.Utilities.GlobalData.AktuelKlimaIndex;
+                if (klimaIdx > 0 && klimaIdx <= App4.Utilities.GlobalData.KnownRfids.Count)
+                    caseId = App4.Utilities.GlobalData.KnownRfids[klimaIdx - 1].CasingIndex;
+
+                var refPoint = App4.Utilities.GlobalData.GetTablaReference(caseId);
+                if (refPoint == null || !refPoint.HasReference)
+                {
+                    AddLog($"⚠ [TABLA] Case {caseId} için referans noktası tanımlı değil! Önce REFERANS AL yapın.");
+                    // Referans yoksa CODESYS sonucunu direkt aktar
+                    TransferTablaToPlcRows();
+                    return;
+                }
+
+                // Matris farkı: AKTÜEL - REFERANS = TABLA_OFFSET
+                double[] diff = new double[6];
+                diff[0] = codesysTarget.X - refPoint.X;  // TABLA_OFFSET_X
+                diff[1] = codesysTarget.Y - refPoint.Y;  // TABLA_OFFSET_Y
+                diff[2] = codesysTarget.Z - refPoint.Z;  // TABLA_OFFSET_Z
+                diff[3] = codesysTarget.A - refPoint.A;  // TABLA_OFFSET_A
+                diff[4] = codesysTarget.B - refPoint.B;  // TABLA_OFFSET_B
+                diff[5] = codesysTarget.C - refPoint.C;  // TABLA_OFFSET_C
+
+                AddLog($"► [TABLA] Kaçıklık (AKTÜEL-REF): dX={diff[0]:F3} dY={diff[1]:F3} dZ={diff[2]:F3} dA={diff[3]:F3} dB={diff[4]:F3} dC={diff[5]:F3}");
+
+                // Aktarım tablosuna yaz
+                int count = Math.Min(6, TablaTransferRows.Count);
+                for (int i = 0; i < count; i++)
+                {
+                    TablaTransferRows[i].Value = Math.Round(diff[i], 3).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    TablaTransferRows[i].Status = "WAIT";
+                    TablaTransferRows[i].StatusColor = BrushOrange;
+                }
+
+                AddLog($"✓ [TABLA] {count} adet kaçıklık farkı aktarım tablosuna yazıldı.");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ [TABLA] Fark hesaplama hatası: {ex.Message}");
+            }
+        }
+
+        // --- TABLA ÖLÇÜMLERİNİ PLC SATIRLARINA AKTAR (referans yoksa direkt) ---
         private void TransferTablaToPlcRows()
         {
             try

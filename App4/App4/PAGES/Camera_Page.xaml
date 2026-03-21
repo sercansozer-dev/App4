@@ -1777,72 +1777,80 @@
                     </Border>
 
                     <!-- ═══ TABLA REFERANS NOKTALARI ═══ -->
-                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#1A1A1C" BorderThickness="1" BorderBrush="#6A1B9A" CornerRadius="10" Padding="0">
+                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#1A1A1C" BorderThickness="1" BorderBrush="#444" CornerRadius="10" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- Başlık -->
-                            <Border Grid.Row="0" Background="#2A1A3A" Padding="15,8" CornerRadius="10,10,0,0" BorderThickness="0,0,0,1" BorderBrush="#6A1B9A">
+                            <Border Grid.Row="0" Background="#252526" Padding="15,8" CornerRadius="10,10,0,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                 <Grid>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <FontIcon Glyph="&#xE81D;" Foreground="#CE93D8" FontSize="14"/>
-                                        <TextBlock Text="TABLA REFERANS NOKTALARI" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                        <Border Background="#6A1B9A" CornerRadius="4" Padding="6,2">
-                                            <TextBlock Text="CASE BAZLI" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                        <FontIcon Glyph="&#xE81D;" Foreground="#4CAF50" FontSize="14"/>
+                                        <TextBlock Text="TABLA REFERANS NOKTALARI" FontSize="12" FontWeight="Bold" Foreground="#DDD"/>
+                                        <Border Background="#333" CornerRadius="4" Padding="6,2">
+                                            <TextBlock Text="CASE BAZLI" FontSize="8" FontWeight="Bold" Foreground="#888"/>
                                         </Border>
                                     </StackPanel>
-                                    <Button HorizontalAlignment="Right" Click="BtnTablaRefAl_Click" Background="#6A1B9A" Foreground="White" CornerRadius="4" Padding="10,4">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <FontIcon Glyph="&#xE722;" FontSize="11" Foreground="White"/>
-                                            <TextBlock Text="REFERANS AL" FontSize="10" FontWeight="Bold"/>
-                                        </StackPanel>
-                                    </Button>
+                                    <!-- Referans al butonu artık her kartın içinde -->
                                 </Grid>
                             </Border>
 
                             <!-- Referans Kartları -->
-                            <ItemsControl Grid.Row="1" ItemsSource="{x:Bind TablaReferenceCards, Mode=OneWay}" Margin="10,8,10,8">
+                            <ItemsControl Grid.Row="1" ItemsSource="{x:Bind TablaReferenceCards, Mode=OneWay}" Margin="10,10,10,10">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="10"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="utils:TablaReferenceCard">
-                                        <Border Background="#222" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" BorderThickness="1" CornerRadius="6" Padding="10,6" Width="220">
-                                            <StackPanel Spacing="3">
-                                                <TextBlock Text="{x:Bind CaseName, Mode=OneWay}" FontWeight="Bold" FontSize="11" Foreground="{x:Bind BorderColor, Mode=OneWay}"/>
-                                                <Grid ColumnSpacing="4" RowSpacing="1">
+                                        <Border Background="{x:Bind CardBackground, Mode=OneWay}" BorderBrush="{x:Bind BorderColor, Mode=OneWay}" BorderThickness="1" CornerRadius="8" Padding="12,8" Width="230">
+                                            <StackPanel Spacing="4">
+                                                <Grid>
+                                                    <TextBlock Text="{x:Bind CaseName, Mode=OneWay}" FontWeight="Bold" FontSize="12" Foreground="{x:Bind TitleColor, Mode=OneWay}"/>
+                                                    <Border HorizontalAlignment="Right" Background="#333" CornerRadius="3" Padding="5,1">
+                                                        <TextBlock Text="REFERANS" FontSize="7" FontWeight="Bold" Foreground="#888"/>
+                                                    </Border>
+                                                </Grid>
+                                                <Grid ColumnSpacing="6" RowSpacing="2" Margin="0,4,0,0">
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="20"/>
+                                                        <ColumnDefinition Width="18"/>
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
                                                     <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                                                     </Grid.RowDefinitions>
-                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" Foreground="#888" FontSize="9"/>
-                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind RefX, Mode=OneWay}" Foreground="#CE93D8" FontSize="9" FontFamily="Consolas"/>
-                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" Foreground="#888" FontSize="9"/>
-                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind RefY, Mode=OneWay}" Foreground="#CE93D8" FontSize="9" FontFamily="Consolas"/>
-                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" Foreground="#888" FontSize="9"/>
-                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind RefZ, Mode=OneWay}" Foreground="#CE93D8" FontSize="9" FontFamily="Consolas"/>
-                                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="A:" Foreground="#888" FontSize="9"/>
-                                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Bind RefA, Mode=OneWay}" Foreground="#CE93D8" FontSize="9" FontFamily="Consolas"/>
-                                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="B:" Foreground="#888" FontSize="9"/>
-                                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{x:Bind RefB, Mode=OneWay}" Foreground="#CE93D8" FontSize="9" FontFamily="Consolas"/>
-                                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="C:" Foreground="#888" FontSize="9"/>
-                                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Bind RefC, Mode=OneWay}" Foreground="#CE93D8" FontSize="9" FontFamily="Consolas"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" Foreground="{x:Bind TitleColor, Mode=OneWay}" FontSize="9" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind RefX, Mode=OneWay}" Foreground="{x:Bind ValueColor, Mode=OneWay}" FontSize="9" FontFamily="Consolas"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" Foreground="{x:Bind TitleColor, Mode=OneWay}" FontSize="9" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind RefY, Mode=OneWay}" Foreground="{x:Bind ValueColor, Mode=OneWay}" FontSize="9" FontFamily="Consolas"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" Foreground="{x:Bind TitleColor, Mode=OneWay}" FontSize="9" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind RefZ, Mode=OneWay}" Foreground="{x:Bind ValueColor, Mode=OneWay}" FontSize="9" FontFamily="Consolas"/>
+                                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="A:" Foreground="{x:Bind TitleColor, Mode=OneWay}" FontSize="9" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Bind RefA, Mode=OneWay}" Foreground="{x:Bind AngleColor, Mode=OneWay}" FontSize="9" FontFamily="Consolas"/>
+                                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="B:" Foreground="{x:Bind TitleColor, Mode=OneWay}" FontSize="9" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{x:Bind RefB, Mode=OneWay}" Foreground="{x:Bind AngleColor, Mode=OneWay}" FontSize="9" FontFamily="Consolas"/>
+                                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="C:" Foreground="{x:Bind TitleColor, Mode=OneWay}" FontSize="9" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Bind RefC, Mode=OneWay}" Foreground="{x:Bind AngleColor, Mode=OneWay}" FontSize="9" FontFamily="Consolas"/>
                                                 </Grid>
-                                                <TextBlock Text="{x:Bind DateText, Mode=OneWay}" Foreground="#555" FontSize="8" HorizontalAlignment="Right"/>
+                                                <!-- Tarih + Referans Al butonu -->
+                                                <Grid Margin="0,4,0,0">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                        <FontIcon Glyph="&#xE787;" FontSize="8" Foreground="#444"/>
+                                                        <TextBlock Text="{x:Bind DateText, Mode=OneWay}" Foreground="#555" FontSize="8"/>
+                                                    </StackPanel>
+                                                    <Button HorizontalAlignment="Right" Click="BtnTablaRefAlCard_Click" Tag="{x:Bind CasingIndex}"
+                                                            Background="#2E7D32" Foreground="White" CornerRadius="3" Padding="8,3" Height="24">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <FontIcon Glyph="&#xE722;" FontSize="9" Foreground="White"/>
+                                                            <TextBlock Text="REFERANS AL" FontSize="8" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </Grid>
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
