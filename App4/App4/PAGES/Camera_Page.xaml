@@ -1595,17 +1595,43 @@
                                         <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[2].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Grid>
 
-                                    <!-- Gocator_Raw_AngleZ -->
+                                    <!-- Gocator_Yaw -->
                                     <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="120"/>
                                             <ColumnDefinition Width="60"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Gocator_Angle_Z" Foreground="#E67E22" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Yaw" Foreground="#E67E22" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
                                         <NumberBox x:Name="NbCodesysMapA" Grid.Column="1" Value="3" Minimum="0" Maximum="11"
                                                    SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
                                         <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[3].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Gocator_Roll -->
+                                    <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Roll" Foreground="#9B59B6" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <NumberBox x:Name="NbCodesysMapRoll" Grid.Column="1" Value="4" Minimum="0" Maximum="11"
+                                                   SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[4].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- Gocator_Pitch -->
+                                    <Grid Background="#0F0A15" Height="30" CornerRadius="3" Padding="6,0" ColumnSpacing="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Gocator_Pitch" Foreground="#1ABC9C" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas"/>
+                                        <NumberBox x:Name="NbCodesysMapPitch" Grid.Column="1" Value="5" Minimum="0" Maximum="11"
+                                                   SpinButtonPlacementMode="Hidden" Width="50" Height="24" FontSize="9" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind CodesysMappings[5].ValueDisplay, Mode=OneWay}" Foreground="#AAA" FontSize="9" FontFamily="Consolas" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -1718,7 +1744,7 @@
                             <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
                                     <FontIcon Glyph="&#xE8F4;" Foreground="#4CAF50" FontSize="16"/>
-                                    <TextBlock Text="TABLA KAÇIKLIK SONUÇLARI" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                    <TextBlock Text="TABLA KAÇIKLIK HAM VERİLERİ" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
                                     <Border Background="#4CAF50" CornerRadius="4" Padding="6,2"><TextBlock Text="JOB 0" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
                                 </StackPanel>
                             </Border>

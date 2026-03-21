@@ -1660,6 +1660,8 @@ namespace App4.PAGES
                 if (NbCodesysMapY != null) CodesysMappings[1].GocatorIndex = (int)NbCodesysMapY.Value;
                 if (NbCodesysMapZ != null) CodesysMappings[2].GocatorIndex = (int)NbCodesysMapZ.Value;
                 if (NbCodesysMapA != null) CodesysMappings[3].GocatorIndex = (int)NbCodesysMapA.Value;
+                if (NbCodesysMapRoll != null && CodesysMappings.Count > 4) CodesysMappings[4].GocatorIndex = (int)NbCodesysMapRoll.Value;
+                if (NbCodesysMapPitch != null && CodesysMappings.Count > 5) CodesysMappings[5].GocatorIndex = (int)NbCodesysMapPitch.Value;
 
                 // GlobalData'ya kaydet
                 GlobalData.CodesysOffsetX = _codesysOffsetX;
@@ -1699,6 +1701,8 @@ namespace App4.PAGES
             if (NbCodesysMapY != null) NbCodesysMapY.Value = 1;
             if (NbCodesysMapZ != null) NbCodesysMapZ.Value = 2;
             if (NbCodesysMapA != null) NbCodesysMapA.Value = 3;
+            if (NbCodesysMapRoll != null) NbCodesysMapRoll.Value = 4;
+            if (NbCodesysMapPitch != null) NbCodesysMapPitch.Value = 5;
 
             AddLog("► CODESYS ofsetler sıfırlandı: X=0 Y=0 Z=0");
         }
@@ -1815,23 +1819,37 @@ namespace App4.PAGES
                 var btn = sender as Button;
                 if (btn?.Tag == null) return;
                 int caseId = (int)btn.Tag;
+                var caseName = App4.Utilities.GlobalData.CasingTypes.FirstOrDefault(c => c.Index == caseId)?.Name ?? caseId.ToString();
 
-                // Mevcut CODESYS tabla sonucunu kullan
-                var lastTarget = _codesysMath.LastTargetPose;
-                if (lastTarget == null || !_codesysMath.LastCalculationSuccess)
+                // Aktarım tablosundaki CODESYS değerlerini oku
+                if (TablaTransferRows.Count < 6)
                 {
-                    AddLog("⚠ Referans alınamadı: Önce tabla ölçümü alıp CODESYS'ten geçirin.");
+                    AddLog($"⚠ [{caseName}] Referans alınamadı: Aktarım tablosunda yeterli veri yok. Önce tabla ölçümü alın.");
                     return;
                 }
 
-                App4.Utilities.GlobalData.SetTablaReference(caseId,
-                    lastTarget.X, lastTarget.Y, lastTarget.Z,
-                    lastTarget.A, lastTarget.B, lastTarget.C);
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                double x = 0, y = 0, z = 0, a = 0, b = 0, c = 0;
+                double.TryParse(TablaTransferRows[0].Value, System.Globalization.NumberStyles.Any, ci, out x);
+                double.TryParse(TablaTransferRows[1].Value, System.Globalization.NumberStyles.Any, ci, out y);
+                double.TryParse(TablaTransferRows[2].Value, System.Globalization.NumberStyles.Any, ci, out z);
+                double.TryParse(TablaTransferRows[3].Value, System.Globalization.NumberStyles.Any, ci, out a);
+                double.TryParse(TablaTransferRows[4].Value, System.Globalization.NumberStyles.Any, ci, out b);
+                double.TryParse(TablaTransferRows[5].Value, System.Globalization.NumberStyles.Any, ci, out c);
 
+                if (x == 0 && y == 0 && z == 0)
+                {
+                    AddLog($"⚠ [{caseName}] Referans alınamadı: Aktarım tablosu boş. Önce tabla ölçümü alın.");
+                    return;
+                }
+
+                // Referans olarak kaydet
+                App4.Utilities.GlobalData.SetTablaReference(caseId, x, y, z, a, b, c);
+
+                // UI kartını güncelle
                 RefreshTablaReferenceCardStates();
 
-                var caseName = App4.Utilities.GlobalData.CasingTypes.FirstOrDefault(c => c.Index == caseId)?.Name ?? caseId.ToString();
-                AddLog($"✓ Tabla referans kaydedildi ({caseName}): X={lastTarget.X:F3} Y={lastTarget.Y:F3} Z={lastTarget.Z:F3}");
+                AddLog($"✓ [{caseName}] Tabla referans kaydedildi: X={x:F3} Y={y:F3} Z={z:F3} A={a:F3} B={b:F3} C={c:F3}");
             }
             catch (Exception ex)
             {
@@ -2765,10 +2783,16 @@ namespace App4.PAGES
 
                 if (result.Item1 == 1 && result.Item2 != null)
                 {
-                    // 4. CODESYS'ten geçir
+                    // 4. CODESYS'ten geçir (ofset + mapping index senkronize)
                     _codesysMath.OffsetX = _codesysOffsetX;
                     _codesysMath.OffsetY = _codesysOffsetY;
                     _codesysMath.OffsetZ = _codesysOffsetZ;
+                    _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
+                    _codesysMath.MapIndexY = CodesysMappings[1].GocatorIndex;
+                    _codesysMath.MapIndexZ = CodesysMappings[2].GocatorIndex;
+                    _codesysMath.MapIndexYaw = CodesysMappings[3].GocatorIndex;
+                    if (CodesysMappings.Count > 4) _codesysMath.MapIndexRoll = CodesysMappings[4].GocatorIndex;
+                    if (CodesysMappings.Count > 5) _codesysMath.MapIndexPitch = CodesysMappings[5].GocatorIndex;
 
                     var gocValues = new double[result.Item2.Count];
                     for (int i = 0; i < result.Item2.Count; i++)
@@ -2794,35 +2818,23 @@ namespace App4.PAGES
                         AddLog("⚠ [TABLA] Robot bağlı değil, CODESYS hesaplaması atlandı.");
                     }
 
-                    // 5. TablaLastMeasurements → CODESYS sonucunu göster
+                    // 5. TablaLastMeasurements → HAM VERİ göster (Gocator'dan gelen)
                     this.DispatcherQueue.TryEnqueue(() =>
                     {
                         App4.Utilities.GlobalData.TablaLastMeasurements.Clear();
-
-                        if (codesysTarget != null && _codesysMath.LastCalculationSuccess)
-                        {
-                            // CODESYS sonucunu tabla sonuçlarına yaz
-                            string[] names = { "Target X", "Target Y", "Target Z", "Target A", "Target B", "Target C" };
-                            string[] units = { "mm", "mm", "mm", "°", "°", "°" };
-                            double[] vals = { codesysTarget.X, codesysTarget.Y, codesysTarget.Z, codesysTarget.A, codesysTarget.B, codesysTarget.C };
-                            for (int i = 0; i < 6; i++)
-                            {
-                                App4.Utilities.GlobalData.TablaLastMeasurements.Add(new App4.Utilities.GocatorMeasurement
-                                {
-                                    Id = i + 1, Name = names[i], Value = Math.Round(vals[i], 3), Unit = units[i], Decision = "Pass"
-                                });
-                            }
-                        }
-                        else
-                        {
-                            // CODESYS yoksa ham verileri göster
-                            foreach (var m in result.Item2)
-                                App4.Utilities.GlobalData.TablaLastMeasurements.Add(m);
-                        }
+                        foreach (var m in result.Item2)
+                            App4.Utilities.GlobalData.TablaLastMeasurements.Add(m);
                         App4.Utilities.GlobalData.SaveTablaMeasurements();
 
-                        // 6. Referans ile fark hesapla → Tabla aktarım tablosuna yaz
-                        TransferTablaWithReferenceDiff(codesysTarget);
+                        // CODESYS girdi tablosunu da güncelle (ham veri yansısın)
+                        foreach (var mapping in CodesysMappings)
+                        {
+                            double val = mapping.GocatorIndex < gocValues.Length ? gocValues[mapping.GocatorIndex] : 0;
+                            mapping.CurrentValue = val;
+                        }
+
+                        // 6. CODESYS sonucunu → Tabla aktarım tablosuna yaz
+                        TransferCodesysToTablaRows(codesysTarget);
                     });
 
                     AddLog($"✅ [TABLA] {result.Item2.Count} adet tabla kaçıklık ölçümü alındı.");
@@ -2842,7 +2854,37 @@ namespace App4.PAGES
             }
         }
 
-        // --- TABLA: CODESYS sonucu - Referans farkını aktarım tablosuna yaz ---
+        // --- TABLA: CODESYS sonucunu direkt aktarım tablosuna yaz ---
+        private void TransferCodesysToTablaRows(App4.Utilities.GoRobotMath.KukaPose codesysTarget)
+        {
+            try
+            {
+                if (codesysTarget == null || !_codesysMath.LastCalculationSuccess)
+                {
+                    AddLog("⚠ [TABLA] CODESYS sonucu yok, aktarım yapılamadı.");
+                    TransferTablaToPlcRows(); // fallback: ham veri
+                    return;
+                }
+
+                double[] vals = { codesysTarget.X, codesysTarget.Y, codesysTarget.Z, codesysTarget.A, codesysTarget.B, codesysTarget.C };
+                int count = Math.Min(6, TablaTransferRows.Count);
+
+                for (int i = 0; i < count; i++)
+                {
+                    TablaTransferRows[i].Value = Math.Round(vals[i], 3).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    TablaTransferRows[i].Status = "WAIT";
+                    TablaTransferRows[i].StatusColor = BrushOrange;
+                }
+
+                AddLog($"✓ [TABLA] CODESYS sonuçları aktarım tablosuna yazıldı: X={vals[0]:F3} Y={vals[1]:F3} Z={vals[2]:F3}");
+            }
+            catch (Exception ex)
+            {
+                AddLog($"⚠ [TABLA] CODESYS aktarım hatası: {ex.Message}");
+            }
+        }
+
+        // --- TABLA: CODESYS sonucu - Referans farkını hesapla (otomasyon için) ---
         private void TransferTablaWithReferenceDiff(App4.Utilities.GoRobotMath.KukaPose codesysTarget)
         {
             try
