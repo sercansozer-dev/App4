@@ -3938,7 +3938,7 @@ namespace App4.Utilities
                     int pointCount = (measurements.Count + 5) / 6;
                     double[] codesysTargetValues = null;
 
-                    if (idx > 0 && jobDataMode == "CODESYS")
+                    if (jobDataMode == "CODESYS")
                     {
                         try
                         {
@@ -4072,17 +4072,45 @@ namespace App4.Utilities
                         // Değerleri Eşle (CODESYS hesaplanmışsa hedef değerleri, yoksa ham ölçüm) + PointIndex ata
                         if (codesysTargetValues != null)
                         {
-                            // CODESYS hesaplanmış hedef değerleri (çoklu nokta destekli)
-                            int cCount = Math.Min(codesysTargetValues.Length, targetRows.Count);
+                            double[] writeValues = codesysTargetValues;
+
+                            // ═══ TABLA KAÇIKLIK: CODESYS sonucundan REFERANS farkı hesapla ═══
+                            if (idx == 0 && codesysTargetValues.Length >= 6)
+                            {
+                                // Aktif case ID'ye göre referans bul
+                                int caseId = 0;
+                                int klimaIdx = AktuelKlimaIndex;
+                                if (klimaIdx > 0 && klimaIdx <= KnownRfids.Count)
+                                    caseId = KnownRfids[klimaIdx - 1].CasingIndex;
+
+                                var refPoint = GetTablaReference(caseId);
+                                if (refPoint != null && refPoint.HasReference)
+                                {
+                                    // FARK = YENİ ÖLÇÜM - REFERANS
+                                    double[] refVals = { refPoint.X, refPoint.Y, refPoint.Z, refPoint.A, refPoint.B, refPoint.C };
+                                    writeValues = new double[6];
+                                    for (int di = 0; di < 6; di++)
+                                        writeValues[di] = Math.Round(codesysTargetValues[di] - refVals[di], 3);
+
+                                    OnAutomationLog?.Invoke($"Tabla FARK: X={writeValues[0]:F3} Y={writeValues[1]:F3} Z={writeValues[2]:F3} A={writeValues[3]:F3} B={writeValues[4]:F3} C={writeValues[5]:F3}");
+                                }
+                                else
+                                {
+                                    OnAutomationLog?.Invoke($"⚠ Tabla REFERANS yok (Case {caseId}), CODESYS çıktısı direkt aktarılıyor");
+                                }
+                            }
+
+                            // CODESYS hesaplanmış değerleri (tabla: fark, boru: hedef)
+                            int cCount = Math.Min(writeValues.Length, targetRows.Count);
                             for (int i = 0; i < cCount; i++)
                             {
                                 var row = targetRows[i];
-                                row.Value = codesysTargetValues[i].ToString("F3");
-                                row.PointIndex = i / 6; // Çoklu nokta
+                                row.Value = writeValues[i].ToString("F3");
+                                row.PointIndex = i / 6;
                                 row.Status = "WAIT";
                                 row.StatusColor = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0));
                                 tagsToWrite.Add(row.SelectedTag);
-                                valuesToWrite.Add(codesysTargetValues[i]);
+                                valuesToWrite.Add(writeValues[i]);
                             }
                         }
                         else
