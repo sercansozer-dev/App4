@@ -317,25 +317,32 @@ namespace App4.Utilities
         }
 
         // ═══ KL100 İSTASYON POZİSYONLARI (mm cinsinden kaydedilen konum verileri) ═══
-        private static double _kl100Station1Pos = 0;
+        private static double _kl100StationBakimPos = 0;
+        public static double KL100_StationBakimPos
+        {
+            get => _kl100StationBakimPos;
+            set { if (_kl100StationBakimPos != value) { _kl100StationBakimPos = value; SaveKL100StationPositions(); SyncStationPosToRobots(); } }
+        }
+
+        private static double _kl100Station1Pos = 1041;
         public static double KL100_Station1Pos
         {
             get => _kl100Station1Pos;
-            set { if (_kl100Station1Pos != value) { _kl100Station1Pos = value; SaveKL100StationPositions(); } }
+            set { if (_kl100Station1Pos != value) { _kl100Station1Pos = value; SaveKL100StationPositions(); SyncStationPosToRobots(); } }
         }
 
-        private static double _kl100Station2Pos = 0;
+        private static double _kl100Station2Pos = 2377;
         public static double KL100_Station2Pos
         {
             get => _kl100Station2Pos;
-            set { if (_kl100Station2Pos != value) { _kl100Station2Pos = value; SaveKL100StationPositions(); } }
+            set { if (_kl100Station2Pos != value) { _kl100Station2Pos = value; SaveKL100StationPositions(); SyncStationPosToRobots(); } }
         }
 
-        private static double _kl100Station3Pos = 0;
+        private static double _kl100Station3Pos = 3716;
         public static double KL100_Station3Pos
         {
             get => _kl100Station3Pos;
-            set { if (_kl100Station3Pos != value) { _kl100Station3Pos = value; SaveKL100StationPositions(); } }
+            set { if (_kl100Station3Pos != value) { _kl100Station3Pos = value; SaveKL100StationPositions(); SyncStationPosToRobots(); } }
         }
 
         private static readonly string _kl100PosFilePath = System.IO.Path.Combine(ConfigBaseDir, "KL100_StationPositions.json");
@@ -344,7 +351,7 @@ namespace App4.Utilities
         {
             try
             {
-                var data = new { Station1 = _kl100Station1Pos, Station2 = _kl100Station2Pos, Station3 = _kl100Station3Pos };
+                var data = new { StationBakim = _kl100StationBakimPos, Station1 = _kl100Station1Pos, Station2 = _kl100Station2Pos, Station3 = _kl100Station3Pos };
                 var json = System.Text.Json.JsonSerializer.Serialize(data, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 var dir = System.IO.Path.GetDirectoryName(_kl100PosFilePath);
                 if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
@@ -361,9 +368,35 @@ namespace App4.Utilities
                 {
                     var json = System.IO.File.ReadAllText(_kl100PosFilePath);
                     var doc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+                    if (doc.TryGetProperty("StationBakim", out var sb)) _kl100StationBakimPos = sb.GetDouble();
                     if (doc.TryGetProperty("Station1", out var s1)) _kl100Station1Pos = s1.GetDouble();
                     if (doc.TryGetProperty("Station2", out var s2)) _kl100Station2Pos = s2.GetDouble();
                     if (doc.TryGetProperty("Station3", out var s3)) _kl100Station3Pos = s3.GetDouble();
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// İstasyon E1 pozisyonlarını robot output değişkenlerine yazar.
+        /// Config değiştiğinde veya uygulama başlangıcında çağrılır.
+        /// </summary>
+        public static void SyncStationPosToRobots()
+        {
+            try
+            {
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots == null) return;
+                foreach (var robot in robots)
+                {
+                    var bakimVar = robot.OutputVars.FirstOrDefault(v => v.Name == "G_IST_BAKIM_E1_POZ");
+                    if (bakimVar != null) bakimVar.Value = _kl100StationBakimPos.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var ist1Var = robot.OutputVars.FirstOrDefault(v => v.Name == "G_IST1_E1_POZ");
+                    if (ist1Var != null) ist1Var.Value = _kl100Station1Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var ist2Var = robot.OutputVars.FirstOrDefault(v => v.Name == "G_IST2_E1_POZ");
+                    if (ist2Var != null) ist2Var.Value = _kl100Station2Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    var ist3Var = robot.OutputVars.FirstOrDefault(v => v.Name == "G_IST3_E1_POZ");
+                    if (ist3Var != null) ist3Var.Value = _kl100Station3Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
             catch { }
@@ -1021,6 +1054,7 @@ namespace App4.Utilities
             LoadInficonLogs();
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
+            SyncStationPosToRobots();   // İstasyon E1 pozisyonlarını robotlara yaz
 
             // Modelleri Yükle
             RefreshAvailableModels();
@@ -1556,6 +1590,11 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
                 RobotOutputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Output", false)); // Slider hareket komutu (PC -> Robot 2)
                 RobotOutputVars.Add(Create("G_HEDEF_ISTASYON", "INT", "Output", 0));      // Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)
+                // --- İSTASYON E1 SLİDER POZİSYONLARI (PC -> Robot 2, config'den okunur) ---
+                RobotOutputVars.Add(Create("G_IST_BAKIM_E1_POZ", "REAL", "Output", 0.0));   // Bakim istasyonu E1 (0mm)
+                RobotOutputVars.Add(Create("G_IST1_E1_POZ", "REAL", "Output", 1041.0));  // Istasyon 1 E1 pozisyonu (mm)
+                RobotOutputVars.Add(Create("G_IST2_E1_POZ", "REAL", "Output", 2377.0));  // Istasyon 2 E1 pozisyonu (mm)
+                RobotOutputVars.Add(Create("G_IST3_E1_POZ", "REAL", "Output", 3716.0));  // Istasyon 3 E1 pozisyonu (mm)
                 // --- ROBOT 2 SLIDER KOPRU (R2 -> R1 bridge) ---
                 RobotOutputVars.Add(Create("G_R2_SLIDER_TAMAM", "BOOL", "Output", false));  // R2 slider hedefe ulasti (Robot 1'e yazilir)
                 RobotOutputVars.Add(Create("G_R2_SLIDER_HOME", "BOOL", "Output", false));   // R2 slider home'da (Robot 1'e yazilir)

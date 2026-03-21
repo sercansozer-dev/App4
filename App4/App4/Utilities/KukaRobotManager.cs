@@ -1749,10 +1749,15 @@ namespace App4.Utilities
                     {
                         RobotPlcMappings.Clear();
                         foreach (var m in list) RobotPlcMappings.Add(m);
+                        System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotPlcMappings yuklendi: {list.Count} eslestirme ← {_robotPlcMappingsPath}");
                     }
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotPlcMappings dosyasi bulunamadi: {_robotPlcMappingsPath}");
+                }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotPlcMappings yukleme HATASI: {ex.Message}"); }
         }
 
         public void SaveRobotPlcMappings()
@@ -1764,8 +1769,9 @@ namespace App4.Utilities
                 var dir = Path.GetDirectoryName(_robotPlcMappingsPath);
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 File.WriteAllText(_robotPlcMappingsPath, json);
+                System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotPlcMappings kaydedildi: {filtered.Count} eslestirme → {_robotPlcMappingsPath}");
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotPlcMappings kaydetme HATASI: {ex.Message}"); }
         }
 
         public void LoadRobotRobotMappings()
@@ -1780,10 +1786,15 @@ namespace App4.Utilities
                     {
                         RobotRobotMappings.Clear();
                         foreach (var m in list) RobotRobotMappings.Add(m);
+                        System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotRobotMappings yuklendi: {list.Count} eslestirme ← {_robotRobotMappingsPath}");
                     }
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotRobotMappings dosyasi bulunamadi: {_robotRobotMappingsPath}");
+                }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotRobotMappings yukleme HATASI: {ex.Message}"); }
 
             // Boş girdileri temizle
             var empty = RobotRobotMappings.Where(m => string.IsNullOrEmpty(m.SourceTag) && string.IsNullOrEmpty(m.TargetTag)).ToList();
@@ -1801,8 +1812,9 @@ namespace App4.Utilities
                 var dir = Path.GetDirectoryName(_robotRobotMappingsPath);
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 File.WriteAllText(_robotRobotMappingsPath, json);
+                System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotRobotMappings kaydedildi: {filtered.Count} eslestirme → {_robotRobotMappingsPath}");
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[KukaRobotManager] RobotRobotMappings kaydetme HATASI: {ex.Message}"); }
         }
 
         private void MergeDefaultRobotRobotMappings()

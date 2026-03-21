@@ -790,6 +790,27 @@ namespace App4.PAGES
 
             if (result.Item1 == 1) // 1 = Başarılı
             {
+                // *** Kritik: TryEnqueue henüz çalışmamış olabilir — result.Item2'den senkron güncelle ***
+                if (result.Item2 != null && result.Item2.Count > 0)
+                {
+                    GlobalData.LastMeasurements.Clear();
+                    foreach (var item in result.Item2)
+                        GlobalData.LastMeasurements.Add(item);
+                }
+
+                // CODESYS eşleştirme tablosunu her ölçümde güncelle (CODESYS açık/kapalı fark etmez)
+                var freshMeasurements = GlobalData.LastMeasurements;
+                if (freshMeasurements.Count > 0)
+                {
+                    var gocValues = new double[freshMeasurements.Count];
+                    for (int gi = 0; gi < freshMeasurements.Count; gi++)
+                        gocValues[gi] = freshMeasurements[gi].Value;
+                    foreach (var mapping in CodesysMappings)
+                    {
+                        mapping.CurrentValue = mapping.GocatorIndex < gocValues.Length ? gocValues[mapping.GocatorIndex] : 0;
+                    }
+                }
+
                 // Hand-Eye dönüşüm uygula (kalibrasyon varsa) - her zaman BASE KOORDİNAT panelini doldur
                 var measurements = GlobalData.LastMeasurements;
                 bool transformSuccess = false;
@@ -913,11 +934,13 @@ namespace App4.PAGES
                     }
                 }
 
+                // CODESYS hesaplamasını her zaman çalıştır (HEDEF NOKTA paneli güncel kalsın)
+                RunCodesysCalculation();
+
                 // BORU ÖLÇÜM AKTARIM: Kullanıcı seçimine göre aktar (3 seçenek)
                 if (_useCodesysForTransfer)
                 {
-                    // CODESYS matematik fonksiyonu ile hesapla ve aktar
-                    RunCodesysCalculation();
+                    // CODESYS sonuçlarını Boru Ölçüm Aktarım tablosuna yaz
                     TransferCodesysToPlcRows();
                 }
                 else if (_useTransformedForTransfer && transformSuccess)
@@ -1600,6 +1623,17 @@ namespace App4.PAGES
             {
                 AddLog($"⚠ CODESYS hesaplama hatası: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// CODESYS ofset değeri değiştiğinde otomatik kaydet.
+        /// </summary>
+        private void CodesysOffset_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (double.IsNaN(args.NewValue)) return;
+            if (NbCodesysOffsetX != null) { _codesysOffsetX = NbCodesysOffsetX.Value; GlobalData.CodesysOffsetX = _codesysOffsetX; }
+            if (NbCodesysOffsetY != null) { _codesysOffsetY = NbCodesysOffsetY.Value; GlobalData.CodesysOffsetY = _codesysOffsetY; }
+            if (NbCodesysOffsetZ != null) { _codesysOffsetZ = NbCodesysOffsetZ.Value; GlobalData.CodesysOffsetZ = _codesysOffsetZ; }
         }
 
         /// <summary>

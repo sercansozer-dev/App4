@@ -839,6 +839,45 @@
                         </Border>
                         <TextBlock Text="Slider'ın gerçek mm pozisyonunu gösterir (görseli etkilemez)" FontSize="10" Foreground="#666" Margin="0,-6,0,0"/>
 
+                        <!-- İstasyon E1 Pozisyonları -->
+                        <Border Background="#151515" CornerRadius="6" Padding="12,10" Margin="0,4,0,0">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE707;" FontSize="12" Foreground="#FF9800"/>
+                                    <TextBlock Text="İSTASYON E1 POZİSYONLARI (mm)" FontSize="11" FontWeight="Bold" Foreground="#FF9800"/>
+                                </StackPanel>
+                                <Grid ColumnSpacing="10" RowSpacing="6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="BAKIM:" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBox x:Name="TxtAutoStBakimPos" Grid.Row="0" Grid.Column="1" PlaceholderText="0.0"
+                                             FontSize="11" Height="30" Background="#1A1A1C" BorderBrush="#333" Foreground="White"
+                                             LostFocus="AutoStationPos_LostFocus"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="İSTASYON 1:" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBox x:Name="TxtAutoSt1Pos" Grid.Row="0" Grid.Column="3" PlaceholderText="0.0"
+                                             FontSize="11" Height="30" Background="#1A1A1C" BorderBrush="#333" Foreground="White"
+                                             LostFocus="AutoStationPos_LostFocus"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="İSTASYON 2:" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBox x:Name="TxtAutoSt2Pos" Grid.Row="1" Grid.Column="1" PlaceholderText="0.0"
+                                             FontSize="11" Height="30" Background="#1A1A1C" BorderBrush="#333" Foreground="White"
+                                             LostFocus="AutoStationPos_LostFocus"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="İSTASYON 3:" FontSize="11" Foreground="#AAA" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBox x:Name="TxtAutoSt3Pos" Grid.Row="1" Grid.Column="3" PlaceholderText="0.0"
+                                             FontSize="11" Height="30" Background="#1A1A1C" BorderBrush="#333" Foreground="White"
+                                             LostFocus="AutoStationPos_LostFocus"/>
+                                </Grid>
+                                <TextBlock Text="Değerleri değiştirip dışına tıkladığınızda otomatik kaydedilir" FontSize="9" Foreground="#555"/>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Robot Bağlantı Durumu -->
                         <Grid ColumnSpacing="15">
                             <Grid.ColumnDefinitions>
@@ -1363,11 +1402,13 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="60"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="TxtNewRfidId" Grid.Column="0" PlaceholderText="ID Gr" FontSize="11"/>
                                     <TextBox x:Name="TxtNewRfidDesc" Grid.Column="1" PlaceholderText="Açıklama" FontSize="11"/>
-                                    <Button Grid.Column="2" Content="Ekle" Click="BtnAddRfid_Click" FontSize="11" Background="#0078D4" Foreground="White"/>
+                                    <TextBox x:Name="TxtNewRfidCasing" Grid.Column="2" PlaceholderText="Kasa" FontSize="11" TextAlignment="Center"/>
+                                    <Button Grid.Column="3" Content="Ekle" Click="BtnAddRfid_Click" FontSize="11" Background="#0078D4" Foreground="White"/>
                                 </Grid>
 
                                 <!-- Sütun Başlıkları -->

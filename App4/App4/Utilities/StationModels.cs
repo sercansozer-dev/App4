@@ -772,30 +772,33 @@ namespace App4.Utilities
                 }
 
                 // 2. AKTUEL_KLIMA_INDEX → KnownRfids listesindeki sıra numarası (1-based)
-                var indexVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
-                if (indexVar != null)
+                //    + GlobalData.AktuelKlimaIndex set ederek G_CASE_ID robotlara yazılır
+                int newIndex = 0;
+                if (!string.IsNullOrEmpty(aktuelRfid))
                 {
-                    if (!string.IsNullOrEmpty(aktuelRfid))
+                    var knownList = GlobalData.KnownRfids.ToList();
+                    var k = knownList.FindIndex(r => r.Id == aktuelRfid);
+                    newIndex = (k >= 0) ? k + 1 : 0;
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ✅ AKTUEL_KLIMA_INDEX={newIndex} (KnownRfids count={knownList.Count}, found at={k})");
+                    if (k < 0)
                     {
-                        var knownList = GlobalData.KnownRfids.ToList();
-                        var k = knownList.FindIndex(r => r.Id == aktuelRfid);
-                        indexVar.CurrentValue = (k >= 0) ? k + 1 : 0;
-                        System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ✅ AKTUEL_KLIMA_INDEX={((k >= 0) ? k + 1 : 0)} (KnownRfids count={knownList.Count}, found at={k})");
-                        if (k < 0)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ⚠️ RFID '{aktuelRfid}' KnownRfids'te yok! Mevcut Id'ler: [{string.Join(", ", knownList.Select(r => r.Id))}]");
-                        }
-                    }
-                    else
-                    {
-                        indexVar.CurrentValue = 0;
-                        System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] AKTUEL_KLIMA_INDEX=0 (RFID boş)");
+                        System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ⚠️ RFID '{aktuelRfid}' KnownRfids'te yok! Mevcut Id'ler: [{string.Join(", ", knownList.Select(r => r.Id))}]");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ❌ AKTUEL_KLIMA_INDEX değişkeni GeneralOutputVars'ta bulunamadı!");
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] AKTUEL_KLIMA_INDEX=0 (RFID boş)");
                 }
+
+                // GeneralOutputVars tablosunu güncelle (UI)
+                var indexVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "AKTUEL_KLIMA_INDEX");
+                if (indexVar != null)
+                {
+                    indexVar.CurrentValue = newIndex;
+                }
+
+                // *** KRİTİK: GlobalData.AktuelKlimaIndex set et → G_CASE_ID + G_KLIMA_TIP robotlara yazılır ***
+                GlobalData.AktuelKlimaIndex = newIndex;
             }
             catch (Exception ex)
             {

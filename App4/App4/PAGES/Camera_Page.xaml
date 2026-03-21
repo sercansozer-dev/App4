@@ -1508,7 +1508,8 @@
                                                 <TextBlock Text="X Ofset" Foreground="#E74C3C" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
                                                 <NumberBox x:Name="NbCodesysOffsetX" Value="7.44" Minimum="-1000" Maximum="1000"
                                                            SpinButtonPlacementMode="Compact" SmallChange="0.01" LargeChange="1"
-                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"/>
+                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"
+                                                           ValueChanged="CodesysOffset_ValueChanged"/>
                                             </StackPanel>
                                         </Border>
                                         <!-- Y Offset -->
@@ -1517,7 +1518,8 @@
                                                 <TextBlock Text="Y Ofset" Foreground="#2ECC71" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
                                                 <NumberBox x:Name="NbCodesysOffsetY" Value="16.79" Minimum="-1000" Maximum="1000"
                                                            SpinButtonPlacementMode="Compact" SmallChange="0.01" LargeChange="1"
-                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"/>
+                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"
+                                                           ValueChanged="CodesysOffset_ValueChanged"/>
                                             </StackPanel>
                                         </Border>
                                         <!-- Z Offset -->
@@ -1526,7 +1528,8 @@
                                                 <TextBlock Text="Z Ofset" Foreground="#3498DB" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
                                                 <NumberBox x:Name="NbCodesysOffsetZ" Value="242.90" Minimum="-1000" Maximum="1000"
                                                            SpinButtonPlacementMode="Compact" SmallChange="0.01" LargeChange="1"
-                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"/>
+                                                           Height="28" FontSize="10" HorizontalAlignment="Stretch"
+                                                           ValueChanged="CodesysOffset_ValueChanged"/>
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -2007,7 +2010,7 @@
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="14"/>
                                                                         <ColumnDefinition Width="26"/>
-                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="2*"/>
                                                                         <ColumnDefinition Width="80"/>
                                                                         <ColumnDefinition Width="75"/>
                                                                         <ColumnDefinition Width="75"/>
@@ -2024,7 +2027,7 @@
                                                                         <TextBlock Text="{x:Bind Index}" Foreground="White" FontWeight="Bold" FontSize="10"
                                                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                     </Border>
-                                                                    <TextBlock Grid.Column="2" Text="{x:Bind JobName}" Foreground="White" VerticalAlignment="Center" FontSize="11" Margin="5,0" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="2" Text="{x:Bind JobName}" Foreground="White" VerticalAlignment="Center" FontSize="10" Margin="5,0" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind JobName}"/>
                                                                     <!-- Ölçüm Yöntemi (SENSOR / HAND_EYE / CODESYS) -->
                                                                     <ComboBox Grid.Column="3"
                                                                               Loaded="DataSourceModeComboBox_Loaded"

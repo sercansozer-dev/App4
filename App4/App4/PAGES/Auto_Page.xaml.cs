@@ -370,6 +370,9 @@ namespace App4
             // İstasyon pozisyon label'larını güncelle (Manuel sayfadan girilen KL100 değerleri)
             UpdateSliderStationPosLabels();
 
+            // İstasyon E1 pozisyon TextBox'larını doldur
+            LoadAutoStationPosTextBoxes();
+
             if (sliderCanvas == null || robotPlatform == null) return;
 
             var robots = KukaRobotManager.Instance.Robots;
@@ -2106,8 +2109,7 @@ namespace App4
         {
             if (sender is TextBlock tb && tb.DataContext is App4.Utilities.RfidDef rfid)
             {
-                var ct = GlobalData.CasingTypes.FirstOrDefault(c => c.Index == rfid.CasingIndex);
-                tb.Text = ct != null ? $"{ct.Index}-{ct.Name}" : "-";
+                tb.Text = rfid.CasingIndex > 0 ? rfid.CasingIndex.ToString() : "-";
                 // Tiklayinca casing sec
                 var parent = tb.Parent as Border;
                 if (parent != null)
@@ -2121,7 +2123,7 @@ namespace App4
                         if (nextIdx < types.Count)
                         {
                             rfid.CasingIndex = types[nextIdx].Index;
-                            tb.Text = $"{types[nextIdx].Index}-{types[nextIdx].Name}";
+                            tb.Text = types[nextIdx].Index.ToString();
                         }
                         else
                         {
@@ -2138,14 +2140,21 @@ namespace App4
         {
             if (!string.IsNullOrEmpty(TxtNewRfidId.Text))
             {
+                int casingIdx = 0;
+                if (!string.IsNullOrEmpty(TxtNewRfidCasing?.Text))
+                    int.TryParse(TxtNewRfidCasing.Text, out casingIdx);
+
                 KnownRfids.Add(new App4.Utilities.RfidDef
                 {
                     Id = TxtNewRfidId.Text,
-                    Description = TxtNewRfidDesc.Text
+                    Description = TxtNewRfidDesc.Text,
+                    CasingIndex = casingIdx
                 });
 
                 TxtNewRfidId.Text = "";
                 TxtNewRfidDesc.Text = "";
+                if (TxtNewRfidCasing != null) TxtNewRfidCasing.Text = "";
+                GlobalData.SaveRfids();
             }
         }
         private void BtnDeleteRfid_Click(object sender, RoutedEventArgs e)
@@ -3046,6 +3055,34 @@ namespace App4
                 border.Visibility = Visibility.Visible;
                 text.Text = message;
             }
+        }
+
+        // --- İSTASYON E1 POZİSYON TEXTBOX YÜKLEME/KAYDETME ---
+        private void LoadAutoStationPosTextBoxes()
+        {
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            if (TxtAutoStBakimPos != null) TxtAutoStBakimPos.Text = GlobalData.KL100_StationBakimPos.ToString(ci);
+            if (TxtAutoSt1Pos != null) TxtAutoSt1Pos.Text = GlobalData.KL100_Station1Pos.ToString(ci);
+            if (TxtAutoSt2Pos != null) TxtAutoSt2Pos.Text = GlobalData.KL100_Station2Pos.ToString(ci);
+            if (TxtAutoSt3Pos != null) TxtAutoSt3Pos.Text = GlobalData.KL100_Station3Pos.ToString(ci);
+        }
+
+        private void AutoStationPos_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            var ns = System.Globalization.NumberStyles.Any;
+            if (TxtAutoStBakimPos != null && double.TryParse(TxtAutoStBakimPos.Text, ns, ci, out double pb))
+                GlobalData.KL100_StationBakimPos = pb;
+            if (TxtAutoSt1Pos != null && double.TryParse(TxtAutoSt1Pos.Text, ns, ci, out double p1))
+                GlobalData.KL100_Station1Pos = p1;
+            if (TxtAutoSt2Pos != null && double.TryParse(TxtAutoSt2Pos.Text, ns, ci, out double p2))
+                GlobalData.KL100_Station2Pos = p2;
+            if (TxtAutoSt3Pos != null && double.TryParse(TxtAutoSt3Pos.Text, ns, ci, out double p3))
+                GlobalData.KL100_Station3Pos = p3;
+
+            GlobalData.SaveKL100StationPositions();
+            GlobalData.SyncStationPosToRobots();
+            UpdateSliderStationPosLabels();
         }
 
         // --- İSTASYON POZİSYON LABEL GÜNCELLEMESİ ---

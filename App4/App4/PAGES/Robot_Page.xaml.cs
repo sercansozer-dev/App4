@@ -27,6 +27,9 @@ namespace App4.Pages
         private ObservableCollection<RobotPlcMapping> _mappings => KukaRobotManager.Instance.RobotPlcMappings;
         private ObservableCollection<RobotRobotMapping> _robotRobotMappings => KukaRobotManager.Instance.RobotRobotMappings;
 
+        // Programatik combo değişikliklerinde save tetiklenmesini engeller
+        private bool _suppressSave = false;
+
         public Robot_Page()
         {
             this.InitializeComponent();
@@ -799,6 +802,7 @@ namespace App4.Pages
         {
             this.DispatcherQueue.TryEnqueue(() =>
             {
+                _suppressSave = true;
                 BridgeTablesContainer.Children.Clear();
                 MappingCountText.Text = $"{_mappings.Count} Eşleşme";
 
@@ -881,6 +885,7 @@ namespace App4.Pages
                     panelBorder.Child = mainGrid;
                     BridgeTablesContainer.Children.Add(panelBorder);
                 }
+                _suppressSave = false;
             });
         }
 
@@ -1063,8 +1068,8 @@ namespace App4.Pages
                     foreach (var item in targetCombo.Items)
                         if (item.ToString() == mapping.RobotTag) { targetCombo.SelectedItem = item; break; }
 
-                sourceCombo.SelectionChanged += (s, e) => { mapping.PlcTag = sourceCombo.SelectedItem?.ToString(); SaveMappings(); };
-                targetCombo.SelectionChanged += (s, e) => { mapping.RobotTag = targetCombo.SelectedItem?.ToString(); SaveMappings(); };
+                sourceCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.PlcTag = sourceCombo.SelectedItem?.ToString(); SaveMappings(); };
+                targetCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.RobotTag = targetCombo.SelectedItem?.ToString(); SaveMappings(); };
             }
             else
             {
@@ -1081,8 +1086,8 @@ namespace App4.Pages
                     foreach (var item in targetCombo.Items)
                         if (item.ToString() == mapping.PlcTag) { targetCombo.SelectedItem = item; break; }
 
-                sourceCombo.SelectionChanged += (s, e) => { mapping.RobotTag = sourceCombo.SelectedItem?.ToString(); SaveMappings(); };
-                targetCombo.SelectionChanged += (s, e) => { mapping.PlcTag = targetCombo.SelectedItem?.ToString(); SaveMappings(); };
+                sourceCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.RobotTag = sourceCombo.SelectedItem?.ToString(); SaveMappings(); };
+                targetCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.PlcTag = targetCombo.SelectedItem?.ToString(); SaveMappings(); };
             }
 
             Grid.SetColumn(sourceCombo, 1);
@@ -1325,6 +1330,7 @@ namespace App4.Pages
         {
             this.DispatcherQueue.TryEnqueue(() =>
             {
+                _suppressSave = true;
                 RobotRobotRowsContainer.Children.Clear();
                 RobotRobotCountText.Text = $"{_robotRobotMappings.Count} Eşleşme";
 
@@ -1333,6 +1339,7 @@ namespace App4.Pages
                     var row = CreateRobotRobotMappingRow(_robotRobotMappings[i], i + 1);
                     RobotRobotRowsContainer.Children.Add(row);
                 }
+                _suppressSave = false;
             });
         }
 
@@ -1480,40 +1487,55 @@ namespace App4.Pages
             Grid.SetColumn(deleteBtn, 9);
             grid.Children.Add(deleteBtn);
 
-            // Source Robot tag list update — Kaynak robottan OKUNAN değişkenler (InputVars)
+            // Source Robot tag list update — Kaynak robottan okunabilecek TÜM değişkenler
             void UpdateSourceTags()
             {
                 srcTagCombo.Items.Clear();
                 var selectedRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == srcRobotCombo.SelectedItem?.ToString());
                 if (selectedRobot == null) return;
-                foreach (var v in selectedRobot.InputVars)
-                    srcTagCombo.Items.Add($"{v.Name} ({v.PlcTag})");
+                // Hem InputVars hem OutputVars göster — robot-robot köprüde her değişken okunabilir/yazılabilir
+                var allVars = selectedRobot.InputVars.Concat(selectedRobot.OutputVars);
+                var seen = new HashSet<string>();
+                foreach (var v in allVars)
+                {
+                    string display = $"{v.Name} ({v.PlcTag})";
+                    if (seen.Add(display)) srcTagCombo.Items.Add(display);
+                }
                 if (!string.IsNullOrEmpty(mapping.SourceTag))
                     foreach (var item in srcTagCombo.Items)
                         if (item.ToString() == mapping.SourceTag) { srcTagCombo.SelectedItem = item; break; }
             }
 
-            // Target Robot tag list update — Hedef robota YAZILAN değişkenler (OutputVars)
+            // Target Robot tag list update — Hedef robota yazılabilecek TÜM değişkenler
             void UpdateTargetTags()
             {
                 tgtTagCombo.Items.Clear();
                 var selectedRobot = KukaRobotManager.Instance.Robots.FirstOrDefault(r => r.Name == tgtRobotCombo.SelectedItem?.ToString());
                 if (selectedRobot == null) return;
-                foreach (var v in selectedRobot.OutputVars)
-                    tgtTagCombo.Items.Add($"{v.Name} ({v.PlcTag})");
+                // Hem OutputVars hem InputVars göster — WriteVariableAsync her değişkene yazabilir
+                var allVars = selectedRobot.OutputVars.Concat(selectedRobot.InputVars);
+                var seen = new HashSet<string>();
+                foreach (var v in allVars)
+                {
+                    string display = $"{v.Name} ({v.PlcTag})";
+                    if (seen.Add(display)) tgtTagCombo.Items.Add(display);
+                }
                 if (!string.IsNullOrEmpty(mapping.TargetTag))
                     foreach (var item in tgtTagCombo.Items)
                         if (item.ToString() == mapping.TargetTag) { tgtTagCombo.SelectedItem = item; break; }
             }
 
-            srcRobotCombo.SelectionChanged += (s, e) => { mapping.SourceRobotName = srcRobotCombo.SelectedItem?.ToString(); UpdateSourceTags(); SaveRobotRobotMappings(); };
-            srcTagCombo.SelectionChanged += (s, e) => { mapping.SourceTag = srcTagCombo.SelectedItem?.ToString(); SaveRobotRobotMappings(); };
-            tgtRobotCombo.SelectionChanged += (s, e) => { mapping.TargetRobotName = tgtRobotCombo.SelectedItem?.ToString(); UpdateTargetTags(); SaveRobotRobotMappings(); };
-            tgtTagCombo.SelectionChanged += (s, e) => { mapping.TargetTag = tgtTagCombo.SelectedItem?.ToString(); SaveRobotRobotMappings(); };
-
-            // Initial tag list fill
+            // Initial tag list fill — ÖNCE tagleri doldur, SONRA event handler bağla
+            // Aksi halde Items.Clear() → SelectionChanged → tag=null → save → mapping kayboluyor!
+            _suppressSave = true;
             if (!string.IsNullOrEmpty(mapping.SourceRobotName)) UpdateSourceTags();
             if (!string.IsNullOrEmpty(mapping.TargetRobotName)) UpdateTargetTags();
+            _suppressSave = false;
+
+            srcRobotCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.SourceRobotName = srcRobotCombo.SelectedItem?.ToString(); _suppressSave = true; UpdateSourceTags(); _suppressSave = false; SaveRobotRobotMappings(); };
+            srcTagCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.SourceTag = srcTagCombo.SelectedItem?.ToString(); SaveRobotRobotMappings(); };
+            tgtRobotCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.TargetRobotName = tgtRobotCombo.SelectedItem?.ToString(); _suppressSave = true; UpdateTargetTags(); _suppressSave = false; SaveRobotRobotMappings(); };
+            tgtTagCombo.SelectionChanged += (s, e) => { if (_suppressSave) return; mapping.TargetTag = tgtTagCombo.SelectedItem?.ToString(); SaveRobotRobotMappings(); };
 
             rowBorder.Child = grid;
             return rowBorder;

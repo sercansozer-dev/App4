@@ -45,6 +45,7 @@ namespace App4
             RefreshHomeSignalCombos();
 
             // KL100 İstasyon pozisyon değerlerini yükle
+            TxtKL100StBakimPos.Text = GlobalData.KL100_StationBakimPos.ToString(System.Globalization.CultureInfo.InvariantCulture);
             TxtKL100St1Pos.Text = GlobalData.KL100_Station1Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
             TxtKL100St2Pos.Text = GlobalData.KL100_Station2Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
             TxtKL100St3Pos.Text = GlobalData.KL100_Station3Pos.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -632,12 +633,18 @@ namespace App4
         // ═══ İSTASYON POZİSYON KAYIT (TextBox LostFocus) ═══
         private void KL100StationPos_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (TxtKL100St1Pos != null && double.TryParse(TxtKL100St1Pos.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p1))
+            var ns = System.Globalization.NumberStyles.Any;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            if (TxtKL100StBakimPos != null && double.TryParse(TxtKL100StBakimPos.Text, ns, ci, out double pb))
+                GlobalData.KL100_StationBakimPos = pb;
+            if (TxtKL100St1Pos != null && double.TryParse(TxtKL100St1Pos.Text, ns, ci, out double p1))
                 GlobalData.KL100_Station1Pos = p1;
-            if (TxtKL100St2Pos != null && double.TryParse(TxtKL100St2Pos.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p2))
+            if (TxtKL100St2Pos != null && double.TryParse(TxtKL100St2Pos.Text, ns, ci, out double p2))
                 GlobalData.KL100_Station2Pos = p2;
-            if (TxtKL100St3Pos != null && double.TryParse(TxtKL100St3Pos.Text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double p3))
+            if (TxtKL100St3Pos != null && double.TryParse(TxtKL100St3Pos.Text, ns, ci, out double p3))
                 GlobalData.KL100_Station3Pos = p3;
+            GlobalData.SaveKL100StationPositions();
+            GlobalData.SyncStationPosToRobots();
         }
 
         // ═══ HEDEF İSTASYON SEÇİLDİĞİNDE KAYITLI POZİSYONU GÖSTER ═══
