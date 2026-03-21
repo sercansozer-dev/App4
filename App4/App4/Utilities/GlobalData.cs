@@ -260,6 +260,16 @@ namespace App4.Utilities
                         }
                     }
                     System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelCaseId = {caseId} (robotlara yazıldı)");
+
+                    // ═══ RFID değişince mevcut G_JOB_INDEX için job ön-yükle ═══
+                    // (0→0 değişim tetiklenmez, bu yüzden RFID değişiminde zorla tetikle)
+                    try
+                    {
+                        var jobIdxVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_JOB_INDEX");
+                        string currentJobIdx = jobIdxVar?.Value ?? "0";
+                        _ = HandleJobIndexChangeAsync(currentJobIdx, 0);
+                    }
+                    catch { }
                 }
             }
         }
@@ -942,32 +952,74 @@ namespace App4.Utilities
         }
 
         // ═══ CODESYS Matematik Fonksiyonu Ayarları (kalıcı) ═══
-        private static double _codesysOffsetX = 7.44;
+        private static readonly string _codesysOffsetsFilePath = Path.Combine("C:\\Simbiosis\\Config", "Codesys_Offsets.json");
+        private static double _codesysOffsetX = 0;
         public static double CodesysOffsetX
         {
             get => _codesysOffsetX;
-            set { _codesysOffsetX = value; SaveAutomationSettings(); }
+            set { _codesysOffsetX = value; SaveAutomationSettings(); SaveCodesysOffsets(); }
         }
 
-        private static double _codesysOffsetY = 16.79;
+        private static double _codesysOffsetY = 0;
         public static double CodesysOffsetY
         {
             get => _codesysOffsetY;
-            set { _codesysOffsetY = value; SaveAutomationSettings(); }
+            set { _codesysOffsetY = value; SaveAutomationSettings(); SaveCodesysOffsets(); }
         }
 
         private static double _codesysOffsetZ = 242.90;
         public static double CodesysOffsetZ
         {
             get => _codesysOffsetZ;
-            set { _codesysOffsetZ = value; SaveAutomationSettings(); }
+            set { _codesysOffsetZ = value; SaveAutomationSettings(); SaveCodesysOffsets(); }
+        }
+
+        /// <summary>
+        /// CODESYS ofsetleri ve eşleştirmeleri JSON dosyasına kaydeder.
+        /// Başka bilgisayara taşınabilir (C:\Simbiosis\Config\Codesys_Offsets.json)
+        /// </summary>
+        public static void SaveCodesysOffsets()
+        {
+            try
+            {
+                var data = new Dictionary<string, object>
+                {
+                    ["OffsetX"] = _codesysOffsetX,
+                    ["OffsetY"] = _codesysOffsetY,
+                    ["OffsetZ"] = _codesysOffsetZ,
+                    ["GocMappings"] = _codesysGocMappings
+                };
+                Directory.CreateDirectory(Path.GetDirectoryName(_codesysOffsetsFilePath));
+                File.WriteAllText(_codesysOffsetsFilePath,
+                    System.Text.Json.JsonSerializer.Serialize(data, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// CODESYS ofsetleri JSON dosyasından yükler (başka bilgisayardan kopyalanabilir)
+        /// </summary>
+        public static void LoadCodesysOffsets()
+        {
+            try
+            {
+                if (!File.Exists(_codesysOffsetsFilePath)) return;
+                var json = File.ReadAllText(_codesysOffsetsFilePath);
+                var doc = System.Text.Json.JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("OffsetX", out var ox)) _codesysOffsetX = ox.GetDouble();
+                if (root.TryGetProperty("OffsetY", out var oy)) _codesysOffsetY = oy.GetDouble();
+                if (root.TryGetProperty("OffsetZ", out var oz)) _codesysOffsetZ = oz.GetDouble();
+                if (root.TryGetProperty("GocMappings", out var gm)) _codesysGocMappings = gm.GetString() ?? "0,1,2,3";
+            }
+            catch { }
         }
 
         private static string _codesysGocMappings = "0,1,2,3";
         public static string CodesysGocMappings
         {
             get => _codesysGocMappings;
-            set { _codesysGocMappings = value ?? "0,1,2,3"; SaveAutomationSettings(); }
+            set { _codesysGocMappings = value ?? "0,1,2,3"; SaveAutomationSettings(); SaveCodesysOffsets(); }
         }
 
         // Tool göreceli konum verileri (JSON formatında kalıcı kayıt)
@@ -1038,6 +1090,7 @@ namespace App4.Utilities
             if (_isInitialized) return;
             LoadRfids();
             LoadCasingTypes();
+            LoadCodesysOffsets();
             InitializeStations();
             LoadStationStates();
             InitializeVariables();
@@ -1853,23 +1906,12 @@ namespace App4.Utilities
                 if (!string.IsNullOrEmpty(mode)) _dataSourceMode = mode;
             }
 
-            // CODESYS matematik fonksiyonu ayarları
-            if (settings.ContainsKey("CodesysOffsetX"))
-            {
-                try { _codesysOffsetX = (double)settings["CodesysOffsetX"]; } catch { }
-            }
-            if (settings.ContainsKey("CodesysOffsetY"))
-            {
-                try { _codesysOffsetY = (double)settings["CodesysOffsetY"]; } catch { }
-            }
-            if (settings.ContainsKey("CodesysOffsetZ"))
-            {
-                try { _codesysOffsetZ = (double)settings["CodesysOffsetZ"]; } catch { }
-            }
-            if (settings.ContainsKey("CodesysGocMappings"))
-            {
-                try { _codesysGocMappings = settings["CodesysGocMappings"] as string ?? "0,1,2,3"; } catch { }
-            }
+            // CODESYS ofsetleri artık Codesys_Offsets.json'dan yükleniyor (LoadCodesysOffsets)
+            // LocalSettings'teki eski değerleri temizle (migration)
+            settings.Remove("CodesysOffsetX");
+            settings.Remove("CodesysOffsetY");
+            settings.Remove("CodesysOffsetZ");
+            settings.Remove("CodesysGocMappings");
 
             // Haberleşme zamanlama ayarları (clamp ile güvenli yükleme)
             if (settings.ContainsKey("Plc_ReadInterval"))
@@ -1939,11 +1981,7 @@ namespace App4.Utilities
             // Veri kaynağı seçimi
             settings["DataSourceMode"] = DataSourceMode;
 
-            // CODESYS matematik fonksiyonu ayarları
-            settings["CodesysOffsetX"] = CodesysOffsetX;
-            settings["CodesysOffsetY"] = CodesysOffsetY;
-            settings["CodesysOffsetZ"] = CodesysOffsetZ;
-            settings["CodesysGocMappings"] = CodesysGocMappings ?? "0,1,2,3";
+            // CODESYS ofsetleri artık SaveCodesysOffsets() ile JSON'a yazılıyor
 
             // KL100 Slider R1/R2 Home sinyal seçimleri
             settings["KL100_R1Home"] = KL100_Robot1HomeSignal ?? "";
@@ -2318,14 +2356,13 @@ namespace App4.Utilities
                 string jobName = recipe.JobSequence[idx];
                 if (string.IsNullOrEmpty(jobName)) return;
 
-                // Zaten yüklü mü?
                 // ═══ SNIFFER SÜRESİ + SAPMA LİMİTİ ROBOTA GÖNDER (sayfa bağımsız) ═══
                 UpdateSnifferDurationOutput(recipe, idx);
                 UpdateDeviationLimitOutput(recipe, idx);
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] G_JOB_INDEX={idx} → Sniffer + Sapma limiti gönderildi");
 
                 // ═══ GOCATOR JOB ÖN-YÜKLEME ═══
-                if (_preLoadedGocatorJob == jobName) return;
+                // NOT: Cache kontrolü kaldırıldı — aynı job bile olsa yükle (0→0 durumu için)
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] G_JOB_INDEX={idx} → Job ön-yükleniyor: {jobName}...");
                 bool loadOk = await GocatorJobLogic.LoadJob(jobName, s => OnAutomationLog?.Invoke($"[Gocator] {s}"));
@@ -2510,11 +2547,13 @@ namespace App4.Utilities
                                     OffsetY = CodesysOffsetY,
                                     OffsetZ = CodesysOffsetZ
                                 };
-                                var mappingParts = (CodesysGocMappings ?? "0,1,2,3").Split(',');
+                                var mappingParts = (CodesysGocMappings ?? "0,1,2,3,4,5").Split(',');
                                 if (mappingParts.Length >= 1 && int.TryParse(mappingParts[0], out int mx)) codesysCalc.MapIndexX = mx;
                                 if (mappingParts.Length >= 2 && int.TryParse(mappingParts[1], out int my)) codesysCalc.MapIndexY = my;
                                 if (mappingParts.Length >= 3 && int.TryParse(mappingParts[2], out int mz)) codesysCalc.MapIndexZ = mz;
-                                if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexAngleZ = ma;
+                                if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexYaw = ma;
+                                if (mappingParts.Length >= 5 && int.TryParse(mappingParts[4], out int mr)) codesysCalc.MapIndexRoll = mr;
+                                if (mappingParts.Length >= 6 && int.TryParse(mappingParts[5], out int mp)) codesysCalc.MapIndexPitch = mp;
 
                                 var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
                                 var allTargetValues = new List<double>();
@@ -3469,8 +3508,21 @@ namespace App4.Utilities
 
             if (string.IsNullOrEmpty(currentRfid)) return;
 
-            var recipe = KnownRfids.FirstOrDefault(r =>
-                string.Equals(r.Id, currentRfid, StringComparison.OrdinalIgnoreCase));
+            RfidDef recipe = null;
+            // Aktif kartı bul + diğer kartların ► göstergesini temizle
+            foreach (var rfid in KnownRfids)
+            {
+                if (string.Equals(rfid.Id, currentRfid, StringComparison.OrdinalIgnoreCase))
+                {
+                    recipe = rfid;
+                }
+                else
+                {
+                    // Aktif olmayan kartların göstergesini temizle
+                    if (rfid.CurrentJobIndex != -1)
+                        rfid.CurrentJobIndex = -1;
+                }
+            }
             if (recipe == null) return;
 
             recipe.CurrentJobIndex = jobIndex;
@@ -3849,11 +3901,13 @@ namespace App4.Utilities
                                     OffsetY = CodesysOffsetY,
                                     OffsetZ = CodesysOffsetZ
                                 };
-                                var mappingParts = (CodesysGocMappings ?? "0,1,2,3").Split(',');
+                                var mappingParts = (CodesysGocMappings ?? "0,1,2,3,4,5").Split(',');
                                 if (mappingParts.Length >= 1 && int.TryParse(mappingParts[0], out int mx)) codesysCalc.MapIndexX = mx;
                                 if (mappingParts.Length >= 2 && int.TryParse(mappingParts[1], out int my)) codesysCalc.MapIndexY = my;
                                 if (mappingParts.Length >= 3 && int.TryParse(mappingParts[2], out int mz)) codesysCalc.MapIndexZ = mz;
-                                if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexAngleZ = ma;
+                                if (mappingParts.Length >= 4 && int.TryParse(mappingParts[3], out int ma)) codesysCalc.MapIndexYaw = ma;
+                                if (mappingParts.Length >= 5 && int.TryParse(mappingParts[4], out int mr)) codesysCalc.MapIndexRoll = mr;
+                                if (mappingParts.Length >= 6 && int.TryParse(mappingParts[5], out int mp)) codesysCalc.MapIndexPitch = mp;
 
                                 var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
                                 var allTargetValues = new List<double>();

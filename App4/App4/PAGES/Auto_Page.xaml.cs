@@ -281,6 +281,22 @@ namespace App4
             // Tüm binding'ler tamamlandıktan sonra aktif istasyondan RFID bilgisini yaz
             UpdateAktuelRfidFromStation();
 
+            // 2.91. Gecikmeli tekrar güncelle — robot bağlantısı/PLC verisi gecikebilir
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000);
+                DispatcherQueue?.TryEnqueue(() =>
+                {
+                    // Tüm istasyonların RFID bilgilerini tekrar tetikle
+                    foreach (var s in Stations)
+                    {
+                        if (s is Utilities.ExtendedStationViewModel ext)
+                            ext.RefreshAktuelRfid();
+                    }
+                    UpdateAktuelRfidFromStation();
+                });
+            });
+
             // 2.92. SNIFFER + SAPMA değerlerini aktif kart+job'a göre senkronize et
             // AktuelRfid değişmemiş olsa bile doğru değerleri output tag'lere yazmayı garanti eder.
             GlobalData.SyncCurrentJobOutputs();

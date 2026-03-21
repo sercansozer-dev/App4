@@ -664,9 +664,9 @@ namespace App4.PAGES
         private bool _useCodesysForTransfer = false;
 
         // CODESYS optik ofset parametreleri (değiştirilebilir)
-        private double _codesysOffsetX = 7.44;     // Lens montaj kayması X (mm)
-        private double _codesysOffsetY = 16.79;    // Lens montaj kayması Y (mm)
-        private double _codesysOffsetZ = 242.90;   // Optik odak uzaklığı Z (mm)
+        private double _codesysOffsetX = 0;
+        private double _codesysOffsetY = 0;
+        private double _codesysOffsetZ = 0;
 
         // CODESYS input eşleştirmeleri (Gocator index → fonksiyon girdisi)
         public ObservableCollection<CodesysMappingItem> CodesysMappings { get; } = new ObservableCollection<CodesysMappingItem>
@@ -1565,7 +1565,9 @@ namespace App4.PAGES
                 _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
                 _codesysMath.MapIndexY = CodesysMappings[1].GocatorIndex;
                 _codesysMath.MapIndexZ = CodesysMappings[2].GocatorIndex;
-                _codesysMath.MapIndexAngleZ = CodesysMappings[3].GocatorIndex;
+                _codesysMath.MapIndexYaw = CodesysMappings[3].GocatorIndex;
+                if (CodesysMappings.Count > 4) _codesysMath.MapIndexRoll = CodesysMappings[4].GocatorIndex;
+                if (CodesysMappings.Count > 5) _codesysMath.MapIndexPitch = CodesysMappings[5].GocatorIndex;
 
                 // Gocator ham ölçüm değerlerini diziye çevir
                 var gocValues = new double[measurements.Count];
@@ -1673,9 +1675,9 @@ namespace App4.PAGES
         /// </summary>
         private void BtnCodesysReset_Click(object sender, RoutedEventArgs e)
         {
-            _codesysOffsetX = 7.44;
-            _codesysOffsetY = 16.79;
-            _codesysOffsetZ = 242.90;
+            _codesysOffsetX = 0;
+            _codesysOffsetY = 0;
+            _codesysOffsetZ = 0;
 
             if (NbCodesysOffsetX != null) NbCodesysOffsetX.Value = _codesysOffsetX;
             if (NbCodesysOffsetY != null) NbCodesysOffsetY.Value = _codesysOffsetY;
@@ -1691,7 +1693,7 @@ namespace App4.PAGES
             if (NbCodesysMapZ != null) NbCodesysMapZ.Value = 2;
             if (NbCodesysMapA != null) NbCodesysMapA.Value = 3;
 
-            AddLog("► CODESYS ofsetler varsayılana sıfırlandı: X=7.44 Y=16.79 Z=242.90");
+            AddLog("► CODESYS ofsetler sıfırlandı: X=0 Y=0 Z=0");
         }
 
         /// <summary>
@@ -1703,6 +1705,11 @@ namespace App4.PAGES
             _codesysOffsetY = GlobalData.CodesysOffsetY;
             _codesysOffsetZ = GlobalData.CodesysOffsetZ;
 
+            // NumberBox'ları güncelle (XAML default'larını override et)
+            if (NbCodesysOffsetX != null) NbCodesysOffsetX.Value = _codesysOffsetX;
+            if (NbCodesysOffsetY != null) NbCodesysOffsetY.Value = _codesysOffsetY;
+            if (NbCodesysOffsetZ != null) NbCodesysOffsetZ.Value = _codesysOffsetZ;
+
             // Eşleştirme index'lerini parse et
             var parts = (GlobalData.CodesysGocMappings ?? "0,1,2,3").Split(',');
             for (int i = 0; i < Math.Min(parts.Length, CodesysMappings.Count); i++)
@@ -1711,6 +1718,11 @@ namespace App4.PAGES
                     CodesysMappings[i].GocatorIndex = idx;
             }
 
+            if (NbCodesysMapX != null) NbCodesysMapX.Value = CodesysMappings[0].GocatorIndex;
+            if (NbCodesysMapY != null) NbCodesysMapY.Value = CodesysMappings[1].GocatorIndex;
+            if (NbCodesysMapZ != null) NbCodesysMapZ.Value = CodesysMappings[2].GocatorIndex;
+            if (NbCodesysMapA != null) NbCodesysMapA.Value = CodesysMappings[3].GocatorIndex;
+
             // CodesysMathFunction instance'ını senkronize et
             _codesysMath.OffsetX = _codesysOffsetX;
             _codesysMath.OffsetY = _codesysOffsetY;
@@ -1718,7 +1730,9 @@ namespace App4.PAGES
             _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
             _codesysMath.MapIndexY = CodesysMappings[1].GocatorIndex;
             _codesysMath.MapIndexZ = CodesysMappings[2].GocatorIndex;
-            _codesysMath.MapIndexAngleZ = CodesysMappings[3].GocatorIndex;
+            _codesysMath.MapIndexYaw = CodesysMappings[3].GocatorIndex;
+            if (CodesysMappings.Count > 4) _codesysMath.MapIndexRoll = CodesysMappings[4].GocatorIndex;
+            if (CodesysMappings.Count > 5) _codesysMath.MapIndexPitch = CodesysMappings[5].GocatorIndex;
         }
 
         // --- VERİ KAYNAĞI SEÇİMİ (CheckBox - birini seçince diğeri kapanır, 3 seçenek) ---
@@ -2756,6 +2770,9 @@ namespace App4.PAGES
 
             // 3. Kayıtlı seçimleri UI'a doğrudan ata (Task.Delay yerine direkt)
             RefreshTransferRowBindings();
+
+            // 3.5. CODESYS ayarlarını NumberBox'lara yükle (Loaded sonrası — XAML default'ları override)
+            LoadCodesysSettings();
 
             // 4. Watcher'ları kur
             SetupWatchers();

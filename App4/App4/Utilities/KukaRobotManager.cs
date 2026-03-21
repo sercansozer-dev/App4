@@ -680,6 +680,13 @@ namespace App4.Utilities
             return rawValue;
         }
 
+        // Handshake sinyalleri: PC TRUE yazar → Robot FALSE'a çeker → App senkronize eder
+        private static readonly HashSet<string> _handshakeSignals = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "G_BORU_OLCUM_TAMAM", "G_TABLA_OLCUM_TAMAM", "G_OLCUM_OK", "G_OLCUM_TAMAM",
+            "G_SNIFFER_OLCUM_TAMAM", "G_BORU_OLCUM_TETIK", "G_TABLA_OLCUM_TETIK"
+        };
+
         private async Task FlushPriorityOutputs(List<PlcVariable> priorityOutputs)
         {
             foreach (var variable in priorityOutputs)
@@ -687,6 +694,25 @@ namespace App4.Utilities
                 if (!_isRunning || !IsConnected) break;
                 try
                 {
+                    // ★ Handshake sinyalleri: Robot FALSE'a çektiyse geri okumadan senkronize et
+                    if (_handshakeSignals.Contains(variable.PlcTag))
+                    {
+                        var readbackVar = InputVars.FirstOrDefault(v => v.PlcTag == variable.PlcTag);
+                        if (readbackVar != null)
+                        {
+                            string robotVal = NormalizeBoolValue(readbackVar, readbackVar.Value ?? "");
+                            string appVal = NormalizeBoolValue(variable, variable.Value ?? "");
+                            // Robot FALSE'a çekmiş ama App hâlâ TRUE → App'i senkronize et
+                            if (robotVal == "FALSE" && appVal == "TRUE")
+                            {
+                                variable.Value = "FALSE";
+                                _lastWrittenOutputs[variable.PlcTag] = "FALSE";
+                                OnLog?.Invoke($"[{Name}] 🔄 Handshake senkron: {variable.PlcTag} = FALSE (robot tarafından sıfırlandı)");
+                                continue;
+                            }
+                        }
+                    }
+
                     string currentVal = NormalizeBoolValue(variable, variable.Value ?? "");
                     _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
                     if (currentVal != (lastVal ?? ""))
