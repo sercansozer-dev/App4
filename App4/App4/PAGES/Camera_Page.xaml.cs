@@ -688,6 +688,9 @@ namespace App4.PAGES
         // Tabla referans kartları (Case bazlı)
         public ObservableCollection<App4.Utilities.TablaReferenceCard> TablaReferenceCards { get; } = new();
 
+        // Tabla CODESYS sonuçları (YENİ ÖLÇÜM NOKTASI paneli)
+        public ObservableCollection<App4.Utilities.GocatorMeasurement> TablaCodesysResults { get; } = new();
+
         // 3D Spatial Visualizer
         private bool _isVisualizerWebViewInitialized = false;
         private DispatcherTimer _liveTcpTimer;
@@ -2833,8 +2836,20 @@ namespace App4.PAGES
                             mapping.CurrentValue = val;
                         }
 
-                        // 6. CODESYS sonucunu → Tabla aktarım tablosuna yaz
-                        TransferCodesysToTablaRows(codesysTarget);
+                        // 6. YENİ ÖLÇÜM NOKTASI tablosuna CODESYS sonucunu yaz
+                        TablaCodesysResults.Clear();
+                        if (codesysTarget != null && _codesysMath.LastCalculationSuccess)
+                        {
+                            string[] cNames = { "X", "Y", "Z", "A", "B", "C" };
+                            string[] cUnits = { "mm", "mm", "mm", "°", "°", "°" };
+                            double[] cVals = { codesysTarget.X, codesysTarget.Y, codesysTarget.Z, codesysTarget.A, codesysTarget.B, codesysTarget.C };
+                            for (int ci2 = 0; ci2 < 6; ci2++)
+                                TablaCodesysResults.Add(new App4.Utilities.GocatorMeasurement
+                                { Id = ci2 + 1, Name = cNames[ci2], Value = Math.Round(cVals[ci2], 3), Unit = cUnits[ci2], Decision = "Pass" });
+                        }
+
+                        // 7. AKTARIM tablosuna FARK yaz (YENİ ÖLÇÜM - REFERANS)
+                        TransferTablaWithReferenceDiff(codesysTarget);
                     });
 
                     AddLog($"✅ [TABLA] {result.Item2.Count} adet tabla kaçıklık ölçümü alındı.");
