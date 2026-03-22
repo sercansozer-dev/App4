@@ -798,7 +798,9 @@ namespace App4.Utilities
                 }
 
                 // *** KRİTİK: GlobalData.AktuelKlimaIndex set et → G_CASE_ID + G_KLIMA_TIP robotlara yazılır ***
-                GlobalData.AktuelKlimaIndex = newIndex;
+                // newIndex==0 ise (RFID tanımsız veya boş) mevcut değeri koru, robota 0 gönderme
+                if (newIndex > 0)
+                    GlobalData.AktuelKlimaIndex = newIndex;
             }
             catch (Exception ex)
             {

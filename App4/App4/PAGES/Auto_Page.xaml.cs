@@ -2365,17 +2365,18 @@ namespace App4
                 GlobalData.AktuelRfid = aktuelRfid;
 
                 // 4. AKTUEL_KLIMA_INDEX → KnownRfids listesinde kaçıncı sırada (1-based)
-                int idx = 0;
                 if (!string.IsNullOrEmpty(aktuelRfid))
                 {
                     var knownList = GlobalData.KnownRfids.ToList();
                     int k = knownList.FindIndex(r => r.Id == aktuelRfid);
-                    idx = (k >= 0) ? k + 1 : 0;
+                    int idx2 = (k >= 0) ? k + 1 : 0;
+                    if (idx2 > 0)
+                        GlobalData.AktuelKlimaIndex = idx2;
+                    // idx2==0 ise (RFID tanımsız) mevcut değeri koru, 0 yazma
                 }
-                GlobalData.AktuelKlimaIndex = idx;
 
                 // 5. Slider hedef pozisyonunu Robot 2'ye gönder (istasyon değiştiğinde)
-                if (idx > 0 && GlobalData.TargetSliderStation >= 1)
+                if (GlobalData.AktuelKlimaIndex > 0 && GlobalData.TargetSliderStation >= 1)
                 {
                     _ = SendSliderPositionToRobot2Async();
                 }
