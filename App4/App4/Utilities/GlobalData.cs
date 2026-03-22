@@ -4189,8 +4189,12 @@ namespace App4.Utilities
                     {
                         offsets = new[] { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z",
                                           "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
-                        for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
-                            await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                        // AKTARIM tablosundaki değerleri yaz (CODESYS FARK hesabı dahil)
+                        for (int i = 0; i < Math.Min(valuesToWrite.Count, offsets.Length); i++)
+                        {
+                            double v = valuesToWrite[i] is double dv ? dv : Convert.ToDouble(valuesToWrite[i]);
+                            await WriteToAllRobotsAsync(offsets[i], v.ToString("F3"));
+                        }
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
                     }
                     else
