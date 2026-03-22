@@ -1592,7 +1592,7 @@ namespace App4.Utilities
                 // --- KLIMA SECIMI ---
                 RobotInputVars.Add(Create("G_KLIMA_TIP", "INT", "Input", 0));             // 0=Secilmedi 1..N=Klima tipi
                 RobotInputVars.Add(Create("G_KLIMA_ADET", "INT", "Input", 0));            // Toplam klima tipi sayisi
-                RobotInputVars.Add(Create("G_AKTIF_NOKTA_ADI", "STRING", "Input", ""));    // Aktif kaynak nokta adı (B1-Brazing vb.)
+                RobotInputVars.Add(Create("G_AKTIF_NOKTA_NO", "INT", "Input", 0));    // Aktif nokta no (0=bekleme, 1+=aktif)
                 RobotInputVars.Add(Create("G_TOPLAM_NOKTA", "INT", "Input", 0));          // Toplam olcum noktasi
                 RobotInputVars.Add(Create("G_NOK_SAYISI", "INT", "Input", 0));            // Basarisiz nokta sayisi
                 RobotInputVars.Add(Create("G_NOK_NOKTA", "INT", "Input", 0));             // Son NOK olan nokta numarasi
@@ -2340,24 +2340,36 @@ namespace App4.Utilities
 
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
         {
-            // ═══ AKTİF NOKTA DEĞİŞİMİ → TABLA OLCUM TAMAM DÜŞÜR ═══
-            // "-" → "B1" geçişi = program başladı → TAMAM düşür
-            // "B1" → "B2" geçişi = nokta değişimi → düşürme
-            if (changedVar.Name == "G_AKTIF_NOKTA_ADI")
+            // ═══ TABLA OLCUM TAMAM → Her iki robot TRUE aldıysa 2sn sonra FALSE'a çek ═══
+            if (changedVar.Name == "G_TABLA_OLCUM_TAMAM")
             {
-                string val = changedVar.Value?.Trim('"', ' ') ?? "";
-                string prevKey = $"_prevNoktaAdi_R{robotNo}";
-
-                // Önceki değeri al
-                string prev = "-";
-                if (_noktaAdiPrev.ContainsKey(robotNo)) prev = _noktaAdiPrev[robotNo];
-                _noktaAdiPrev[robotNo] = val;
-
-                // Sadece "-" → aktif nokta geçişinde (program başlangıcı) TAMAM düşür
-                if ((prev == "-" || string.IsNullOrEmpty(prev)) && !string.IsNullOrEmpty(val) && val != "-")
+                bool isTamamTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+                if (isTamamTrue)
                 {
-                    _ = WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru başladı: \"-\" → \"{val}\" → G_TABLA_OLCUM_TAMAM = FALSE");
+                    _tablaOlcumTamamFlags[robotNo] = true;
+
+                    // Her iki robot da TRUE aldı mı kontrol et
+                    bool r1Ok = _tablaOlcumTamamFlags.ContainsKey(1) && _tablaOlcumTamamFlags[1];
+                    bool r2Ok = _tablaOlcumTamamFlags.ContainsKey(2) && _tablaOlcumTamamFlags[2];
+
+                    if (r1Ok && r2Ok)
+                    {
+                        OnAutomationLog?.Invoke($"[Tabla] Her iki robot TAMAM aldı → 2sn sonra FALSE'a çekilecek");
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(2000);
+                            await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
+                            _tablaOlcumTamamFlags[1] = false;
+                            _tablaOlcumTamamFlags[2] = false;
+                            // Kamera sayfası tabla çıktı sinyalini de BEKLİYOR'a al
+                            ResetTablaMeasurementSignal();
+                            OnAutomationLog?.Invoke($"[Tabla] G_TABLA_OLCUM_TAMAM = FALSE + Tabla sinyal sıfırlandı (yeni ölçüm bekleniyor)");
+                        });
+                    }
+                }
+                else
+                {
+                    _tablaOlcumTamamFlags[robotNo] = false;
                 }
                 return;
             }
@@ -2928,8 +2940,9 @@ namespace App4.Utilities
             var robots = KukaRobotManager.Instance?.Robots;
             if (robots == null || robots.Count < robotNo) return "";
             var robot = robots[robotNo - 1];
-            var v = robot.InputVars.FirstOrDefault(x => x.Name == "G_AKTIF_NOKTA_ADI");
-            return v?.Value?.Trim('"', ' ') ?? "";
+            var v = robot.InputVars.FirstOrDefault(x => x.Name == "G_AKTIF_NOKTA_NO");
+            if (v != null && int.TryParse(v.Value, out int no) && no > 0) return $"Nokta {no}";
+            return "";
         }
 
         private static double GetSnifferLeakRate(int robotNo)
@@ -2994,7 +3007,7 @@ namespace App4.Utilities
             _snifferOlcumProcessing = true;
             try
             {
-                var noktaAdiVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_NOKTA_ADI");
+                var noktaAdiVar = robot.InputVars.FirstOrDefault(v => v.Name == "G_AKTIF_NOKTA_NO");
                 string aktifInfo = noktaAdiVar?.Value?.Trim('"', ' ') ?? "";
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] INFICON sniffer ölçüm isteği alındı ({aktifInfo})");
@@ -3054,7 +3067,8 @@ namespace App4.Utilities
 
         private static bool _boruTriggerArmed = true;   // FALSE geldi mi? (ilk tetik için true)
         private static bool _tablaTriggerArmed = true;
-        private static Dictionary<int, string> _noktaAdiPrev = new(); // Robot bazlı önceki G_AKTIF_NOKTA_ADI
+        private static Dictionary<int, int> _noktaNoPrev = new(); // Robot bazlı önceki G_AKTIF_NOKTA_NO
+        private static Dictionary<int, bool> _tablaOlcumTamamFlags = new(); // Robot bazlı TABLA_OLCUM_TAMAM durumu
 
         private static void TriggerVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
