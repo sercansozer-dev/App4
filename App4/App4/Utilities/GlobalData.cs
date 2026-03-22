@@ -1668,8 +1668,11 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_OFFSET_B", "REAL", "Output", 0.0));
                 RobotOutputVars.Add(Create("G_OFFSET_C", "REAL", "Output", 0.0));
                 // --- OLCUM SONUC (PC -> Robot) ---
-                RobotOutputVars.Add(Create("G_BORU_OLCUM_TAMAM", "BOOL", "Output", false));  // Boru olcum tamamlandi (PC -> Robot)
-                RobotOutputVars.Add(Create("G_TABLA_OLCUM_TAMAM", "BOOL", "Output", false)); // Tabla olcum tamamlandi (PC -> Robot)
+                // G_BORU_OLCUM_TAMAM: Output listesinde TUTULMAZ — handshake sinyali.
+                // WriteToAllRobotsAsync ile anlık yazılır, robot FALSE'a çeker.
+                // G_TABLA_OLCUM_TAMAM: Output listesinde TUTULMAZ — handshake sinyali.
+                // WriteToAllRobotsAsync ile anlık yazılır, robot FALSE'a çeker.
+                // Output'ta tutulursa comm loop eski TRUE'yu geri yazar.
                 RobotOutputVars.Add(Create("G_OLCUM_OK", "BOOL", "Output", false));       // Sonuc OK/NOK (PC -> Robot)
                 // --- GOCATOR TABLA OFFSET (PC yazar) ---
                 RobotOutputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Output", 0.0));
@@ -3838,9 +3841,17 @@ namespace App4.Utilities
             // Tabla tetik → sadece tabla sinyalini sıfırla (boru TAMAM'ına dokunma)
             // Boru tetik → sadece boru sinyalini sıfırla (tabla TAMAM'ına dokunma)
             if (forceTablaIndex)
+            {
                 ResetTablaMeasurementSignal();
+                // Yeni tetik geldi → önceki TAMAM sinyalini FALSE'a çek
+                _ = WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
+            }
             else
+            {
                 ResetMeasurementSignal();
+                // Yeni tetik geldi → önceki TAMAM sinyalini FALSE'a çek
+                _ = WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+            }
             ResetAllJobStatuses();
 
 
