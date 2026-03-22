@@ -2340,6 +2340,19 @@ namespace App4.Utilities
 
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
         {
+            // ═══ AKTİF NOKTA DEĞİŞİMİ → TABLA OLCUM TAMAM DÜŞÜR ═══
+            // Robot aktif noktayı okumaya başladığında tabla ölçüm tamam sinyalini sıfırla
+            if (changedVar.Name == "G_AKTIF_NOKTA_ADI")
+            {
+                string val = changedVar.Value?.Trim('"', ' ') ?? "";
+                if (!string.IsNullOrEmpty(val) && val != "-")
+                {
+                    _ = WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] G_AKTIF_NOKTA_ADI=\"{val}\" → G_TABLA_OLCUM_TAMAM = FALSE");
+                }
+                return;
+            }
+
             // ═══ G_JOB_INDEX DEĞİŞİMİ → JOB ÖN-YÜKLEME ═══
             // Robot index'i değiştirdiği an job yüklenir (robot hareket ederken paralel)
             if (changedVar.Name == "G_JOB_INDEX")
