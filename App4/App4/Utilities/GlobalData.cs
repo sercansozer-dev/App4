@@ -2341,14 +2341,23 @@ namespace App4.Utilities
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
         {
             // ═══ AKTİF NOKTA DEĞİŞİMİ → TABLA OLCUM TAMAM DÜŞÜR ═══
-            // Robot aktif noktayı okumaya başladığında tabla ölçüm tamam sinyalini sıfırla
+            // "-" → "B1" geçişi = program başladı → TAMAM düşür
+            // "B1" → "B2" geçişi = nokta değişimi → düşürme
             if (changedVar.Name == "G_AKTIF_NOKTA_ADI")
             {
                 string val = changedVar.Value?.Trim('"', ' ') ?? "";
-                if (!string.IsNullOrEmpty(val) && val != "-")
+                string prevKey = $"_prevNoktaAdi_R{robotNo}";
+
+                // Önceki değeri al
+                string prev = "-";
+                if (_noktaAdiPrev.ContainsKey(robotNo)) prev = _noktaAdiPrev[robotNo];
+                _noktaAdiPrev[robotNo] = val;
+
+                // Sadece "-" → aktif nokta geçişinde (program başlangıcı) TAMAM düşür
+                if ((prev == "-" || string.IsNullOrEmpty(prev)) && !string.IsNullOrEmpty(val) && val != "-")
                 {
                     _ = WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] G_AKTIF_NOKTA_ADI=\"{val}\" → G_TABLA_OLCUM_TAMAM = FALSE");
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Boru başladı: \"-\" → \"{val}\" → G_TABLA_OLCUM_TAMAM = FALSE");
                 }
                 return;
             }
@@ -3045,6 +3054,7 @@ namespace App4.Utilities
 
         private static bool _boruTriggerArmed = true;   // FALSE geldi mi? (ilk tetik için true)
         private static bool _tablaTriggerArmed = true;
+        private static Dictionary<int, string> _noktaAdiPrev = new(); // Robot bazlı önceki G_AKTIF_NOKTA_ADI
 
         private static void TriggerVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
