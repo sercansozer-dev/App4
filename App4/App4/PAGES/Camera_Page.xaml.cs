@@ -688,8 +688,8 @@ namespace App4.PAGES
         // Tabla referans kartları (Case bazlı)
         public ObservableCollection<App4.Utilities.TablaReferenceCard> TablaReferenceCards { get; } = new();
 
-        // Tabla CODESYS sonuçları (YENİ ÖLÇÜM NOKTASI paneli)
-        public ObservableCollection<App4.Utilities.GocatorMeasurement> TablaCodesysResults { get; } = new();
+        // Tabla CODESYS sonuçları (YENİ ÖLÇÜM NOKTASI paneli — GlobalData'dan paylaşılır)
+        public ObservableCollection<App4.Utilities.GocatorMeasurement> TablaCodesysResults => App4.Utilities.GlobalData.TablaCodesysTargetResults;
 
         // 3D Spatial Visualizer
         private bool _isVisualizerWebViewInitialized = false;

@@ -64,6 +64,9 @@ namespace App4.Utilities
         // CODESYS HESAPLAMA SONUÇLARI (otomasyon sırasında hesaplanan hedef nokta)
         public static ObservableCollection<GocatorMeasurement> CodesysTargetResults { get; private set; } = new();
 
+        // TABLA CODESYS SONUÇLARI (YENİ ÖLÇÜM NOKTASI paneli — tabla ölçüm CODESYS çıktısı)
+        public static ObservableCollection<GocatorMeasurement> TablaCodesysTargetResults { get; private set; } = new();
+
         // ═══ AKTİF KALİBRASYON BİLGİLERİ (tüm sayfalardan erişilebilir) ═══
         public static string CalibHandEyeX { get; set; } = "---";
         public static string CalibHandEyeY { get; set; } = "---";
@@ -4062,6 +4065,25 @@ namespace App4.Utilities
                         }
                     }
                     // ▲▲▲ CODESYS HESAPLAMA SONU ▲▲▲
+
+                    // ═══ TABLA YENİ ÖLÇÜM NOKTASI TABLOSUNU GÜNCELLE (idx==0, CODESYS çıktısı) ═══
+                    if (idx == 0 && codesysTargetValues != null && codesysTargetValues.Length >= 6)
+                    {
+                        try
+                        {
+                            await PlcService.Instance.RunOnUiAsync(() =>
+                            {
+                                TablaCodesysTargetResults.Clear();
+                                string[] cNames = { "X", "Y", "Z", "A", "B", "C" };
+                                string[] cUnits = { "mm", "mm", "mm", "°", "°", "°" };
+                                for (int ci = 0; ci < 6; ci++)
+                                    TablaCodesysTargetResults.Add(new GocatorMeasurement
+                                    { Id = ci + 1, Name = cNames[ci], Value = Math.Round(codesysTargetValues[ci], 3), Unit = cUnits[ci], Decision = "Pass" });
+                            });
+                            OnAutomationLog?.Invoke($"Tabla YENİ ÖLÇÜM: X={codesysTargetValues[0]:F3} Y={codesysTargetValues[1]:F3} Z={codesysTargetValues[2]:F3}");
+                        }
+                        catch { }
+                    }
 
                     // Yazılacak verileri topla
                     List<string> tagsToWrite = new List<string>();

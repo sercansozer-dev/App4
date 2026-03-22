@@ -208,12 +208,12 @@ namespace App4.Utilities
             while (_snifferDurations.Count < _jobSequence.Count) _snifferDurations.Add(5000);
             // DeviationLimits eksikse tamamla (fazlaysa dokunma — silme islemi zaten paralel yapiliyor)
             while (_deviationLimits.Count < _jobSequence.Count) _deviationLimits.Add(50.0);
-            // DataSourceModes eksikse tamamla (idx 0=tabla→SENSOR, idx 1+=boru→CODESYS)
+            // DataSourceModes eksikse tamamla (tümü CODESYS default)
             while (_dataSourceModes.Count < _jobSequence.Count)
-            {
-                int idx = _dataSourceModes.Count;
-                _dataSourceModes.Add(idx == 0 ? "SENSOR" : "CODESYS");
-            }
+                _dataSourceModes.Add("CODESYS");
+            // Fazla entry varsa kırp (JobSequence ile senkronize et)
+            while (_dataSourceModes.Count > _jobSequence.Count && _dataSourceModes.Count > 0)
+                _dataSourceModes.RemoveAt(_dataSourceModes.Count - 1);
             for (int i = 0; i < _jobSequence.Count; i++)
             {
                 IndexedJobSequence.Add(new IndexedJobItem
