@@ -1452,6 +1452,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- Header -->
@@ -1636,8 +1637,30 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- A/B/C DAHİL/HARİÇ SEÇENEĞİ -->
+                            <Border Grid.Row="3" Background="#1A1520" Padding="10,6" BorderThickness="0,1,0,0" BorderBrush="#333">
+                                <Grid ColumnSpacing="15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <!-- BORU ÖLÇÜM A/B/C -->
+                                    <StackPanel Grid.Column="0" Spacing="3">
+                                        <TextBlock Text="BORU ÖLÇÜM" Foreground="#4CAF50" FontSize="9" FontWeight="Bold"/>
+                                        <ToggleSwitch x:Name="TglBoruAbc" Header="A/B/C Dahil" IsOn="False" OnContent="DAHİL" OffContent="HARİÇ"
+                                                      FontSize="9" MinHeight="0" Padding="0" Toggled="BoruAbcToggle_Changed"/>
+                                    </StackPanel>
+                                    <!-- TABLA ÖLÇÜM A/B/C -->
+                                    <StackPanel Grid.Column="1" Spacing="3">
+                                        <TextBlock Text="TABLA ÖLÇÜM" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                        <ToggleSwitch x:Name="TglTablaAbc" Header="A/B/C Dahil" IsOn="True" OnContent="DAHİL" OffContent="HARİÇ"
+                                                      FontSize="9" MinHeight="0" Padding="0" Toggled="TablaAbcToggle_Changed"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
                             <!-- FORMÜL BİLGİSİ -->
-                            <Border Grid.Row="3" Background="#150A20" Padding="10,6" CornerRadius="0,0,8,8">
+                            <Border Grid.Row="4" Background="#150A20" Padding="10,6" CornerRadius="0,0,8,8">
                                 <StackPanel Spacing="2">
                                     <TextBlock Text="Formül (6 eksen):" Foreground="#9C27B0" FontSize="8" FontWeight="Bold"/>
                                     <TextBlock Text="PartInCam.X = Raw_Y + OffsetX" Foreground="#666" FontSize="8" FontFamily="Consolas"/>

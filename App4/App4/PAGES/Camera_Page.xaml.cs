@@ -1564,10 +1564,11 @@ namespace App4.PAGES
                     return;
                 }
 
-                // Ofsetleri güncelle (UI'dan değişmiş olabilir)
+                // Ofsetleri güncelle (UI'dan değişmiş olabilir) — BORU ölçüm
                 _codesysMath.OffsetX = _codesysOffsetX;
                 _codesysMath.OffsetY = _codesysOffsetY;
                 _codesysMath.OffsetZ = _codesysOffsetZ;
+                _codesysMath.IncludeABC = GlobalData.BoruAbcDahil;
 
                 // Eşleştirme index'lerini güncelle
                 _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
@@ -1649,6 +1650,24 @@ namespace App4.PAGES
         /// <summary>
         /// CODESYS ofset ayarlarını kaydet.
         /// </summary>
+        private void BoruAbcToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (TglBoruAbc != null)
+            {
+                GlobalData.BoruAbcDahil = TglBoruAbc.IsOn;
+                AddLog($"BORU A/B/C: {(TglBoruAbc.IsOn ? "DAHİL" : "HARİÇ")}");
+            }
+        }
+
+        private void TablaAbcToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (TglTablaAbc != null)
+            {
+                GlobalData.TablaAbcDahil = TglTablaAbc.IsOn;
+                AddLog($"TABLA A/B/C: {(TglTablaAbc.IsOn ? "DAHİL" : "HARİÇ")}");
+            }
+        }
+
         private void BtnCodesysSave_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1747,6 +1766,10 @@ namespace App4.PAGES
             _codesysMath.MapIndexYaw = CodesysMappings[3].GocatorIndex;
             if (CodesysMappings.Count > 4) _codesysMath.MapIndexRoll = CodesysMappings[4].GocatorIndex;
             if (CodesysMappings.Count > 5) _codesysMath.MapIndexPitch = CodesysMappings[5].GocatorIndex;
+
+            // A/B/C toggle'ları yükle
+            if (TglBoruAbc != null) TglBoruAbc.IsOn = GlobalData.BoruAbcDahil;
+            if (TglTablaAbc != null) TglTablaAbc.IsOn = GlobalData.TablaAbcDahil;
         }
 
         // --- TABLA REFERANS KART SİSTEMİ ---
@@ -2786,10 +2809,11 @@ namespace App4.PAGES
 
                 if (result.Item1 == 1 && result.Item2 != null)
                 {
-                    // 4. CODESYS'ten geçir (ofset + mapping index senkronize)
+                    // 4. CODESYS'ten geçir (ofset + mapping index senkronize) — TABLA ölçüm
                     _codesysMath.OffsetX = _codesysOffsetX;
                     _codesysMath.OffsetY = _codesysOffsetY;
                     _codesysMath.OffsetZ = _codesysOffsetZ;
+                    _codesysMath.IncludeABC = GlobalData.TablaAbcDahil;
                     _codesysMath.MapIndexX = CodesysMappings[0].GocatorIndex;
                     _codesysMath.MapIndexY = CodesysMappings[1].GocatorIndex;
                     _codesysMath.MapIndexZ = CodesysMappings[2].GocatorIndex;

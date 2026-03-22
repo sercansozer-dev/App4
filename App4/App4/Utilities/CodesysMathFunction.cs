@@ -60,6 +60,9 @@ namespace App4.Utilities
         /// <summary>Gocator_Raw_Pitch (Y dönüşü) index'i. Varsayılan: 5</summary>
         public int MapIndexPitch { get; set; } = 5;
 
+        /// <summary>A/B/C dahil mi? false ise PartInCam.A/B/C = 0 olarak hesaplanır</summary>
+        public bool IncludeABC { get; set; } = true;
+
         // ═══════════════════════════════════════════════════════════════
         // SON HESAPLAMA SONUÇLARI
         // ═══════════════════════════════════════════════════════════════
@@ -113,9 +116,9 @@ namespace App4.Utilities
                     X = gocRawY + OffsetX,
                     Y = -gocRawX + OffsetY,
                     Z = OffsetZ - gocRawZ,
-                    A = -gocRawYaw,
-                    B = -gocRawRoll,
-                    C = gocRawPitch
+                    A = IncludeABC ? -gocRawYaw : 0,
+                    B = IncludeABC ? -gocRawRoll : 0,
+                    C = IncludeABC ? gocRawPitch : 0
                 };
 
                 LastPartInCam = partInCam;

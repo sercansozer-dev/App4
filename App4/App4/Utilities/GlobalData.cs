@@ -977,6 +977,21 @@ namespace App4.Utilities
             set { _codesysOffsetZ = value; SaveAutomationSettings(); SaveCodesysOffsets(); }
         }
 
+        // BORU/TABLA A/B/C dahil/hariç ayarları
+        private static bool _boruAbcDahil = false;
+        public static bool BoruAbcDahil
+        {
+            get => _boruAbcDahil;
+            set { _boruAbcDahil = value; SaveCodesysOffsets(); }
+        }
+
+        private static bool _tablaAbcDahil = true;
+        public static bool TablaAbcDahil
+        {
+            get => _tablaAbcDahil;
+            set { _tablaAbcDahil = value; SaveCodesysOffsets(); }
+        }
+
         /// <summary>
         /// CODESYS ofsetleri ve eşleştirmeleri JSON dosyasına kaydeder.
         /// Başka bilgisayara taşınabilir (C:\Simbiosis\Config\Codesys_Offsets.json)
@@ -990,7 +1005,9 @@ namespace App4.Utilities
                     ["OffsetX"] = _codesysOffsetX,
                     ["OffsetY"] = _codesysOffsetY,
                     ["OffsetZ"] = _codesysOffsetZ,
-                    ["GocMappings"] = _codesysGocMappings
+                    ["GocMappings"] = _codesysGocMappings,
+                    ["BoruAbcDahil"] = _boruAbcDahil,
+                    ["TablaAbcDahil"] = _tablaAbcDahil
                 };
                 Directory.CreateDirectory(Path.GetDirectoryName(_codesysOffsetsFilePath));
                 File.WriteAllText(_codesysOffsetsFilePath,
@@ -1014,6 +1031,8 @@ namespace App4.Utilities
                 if (root.TryGetProperty("OffsetY", out var oy)) _codesysOffsetY = oy.GetDouble();
                 if (root.TryGetProperty("OffsetZ", out var oz)) _codesysOffsetZ = oz.GetDouble();
                 if (root.TryGetProperty("GocMappings", out var gm)) _codesysGocMappings = gm.GetString() ?? "0,1,2,3";
+                if (root.TryGetProperty("BoruAbcDahil", out var ba)) _boruAbcDahil = ba.GetBoolean();
+                if (root.TryGetProperty("TablaAbcDahil", out var ta)) _tablaAbcDahil = ta.GetBoolean();
             }
             catch { }
         }
@@ -2635,7 +2654,8 @@ namespace App4.Utilities
                                 {
                                     OffsetX = CodesysOffsetX,
                                     OffsetY = CodesysOffsetY,
-                                    OffsetZ = CodesysOffsetZ
+                                    OffsetZ = CodesysOffsetZ,
+                                    IncludeABC = BoruAbcDahil
                                 };
                                 var mappingParts = (CodesysGocMappings ?? "0,1,2,3,4,5").Split(',');
                                 if (mappingParts.Length >= 1 && int.TryParse(mappingParts[0], out int mx)) codesysCalc.MapIndexX = mx;
@@ -3996,11 +4016,13 @@ namespace App4.Utilities
                             var robot = KukaRobotManager.Instance?.Robots?.FirstOrDefault();
                             if (robot != null && robot.IsConnected)
                             {
+                                // idx==0: tabla ölçüm, idx>0: boru ölçüm → ABC dahil/hariç ayarı
                                 var codesysCalc = new CodesysMathFunction
                                 {
                                     OffsetX = CodesysOffsetX,
                                     OffsetY = CodesysOffsetY,
-                                    OffsetZ = CodesysOffsetZ
+                                    OffsetZ = CodesysOffsetZ,
+                                    IncludeABC = (idx == 0) ? TablaAbcDahil : BoruAbcDahil
                                 };
                                 var mappingParts = (CodesysGocMappings ?? "0,1,2,3,4,5").Split(',');
                                 if (mappingParts.Length >= 1 && int.TryParse(mappingParts[0], out int mx)) codesysCalc.MapIndexX = mx;
