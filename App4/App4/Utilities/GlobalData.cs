@@ -2396,6 +2396,29 @@ namespace App4.Utilities
                 return;
             }
 
+            // ═══ G_KLIMA_TIP SIFIRA DÜŞTÜ → App tekrar yazsın ═══
+            if (changedVar.Name == "G_KLIMA_TIP")
+            {
+                if (changedVar.Value == "0" || changedVar.Value == "0.0")
+                {
+                    int currentIdx = _aktuelKlimaIndex;
+                    if (currentIdx > 0 && currentIdx <= KnownRfids.Count)
+                    {
+                        // App'te hâlâ geçerli klima var — robota tekrar yaz
+                        string klimaStr = currentIdx.ToString();
+                        int caseId = KnownRfids[currentIdx - 1].CasingIndex;
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(1000); // Robot restart tamamlansın
+                            await WriteToAllRobotsAsync("G_KLIMA_TIP", klimaStr);
+                            await WriteToAllRobotsAsync("G_CASE_ID", caseId.ToString());
+                            OnAutomationLog?.Invoke($"[Robot {robotNo}] G_KLIMA_TIP=0 algılandı → tekrar yazıldı: TIP={klimaStr}, CASE={caseId}");
+                        });
+                    }
+                }
+                return;
+            }
+
             // ═══ BORU OLCUM TAMAM → Robot 1 TRUE aldıysa 2sn sonra FALSE'a çek ═══
             // Boru ölçüm sadece Robot 1'i ilgilendiriyor (Gocator Robot 1'de)
             if (changedVar.Name == "G_BORU_OLCUM_TAMAM")
