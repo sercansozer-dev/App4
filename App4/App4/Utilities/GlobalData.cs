@@ -2396,34 +2396,21 @@ namespace App4.Utilities
                 return;
             }
 
-            // ═══ BORU OLCUM TAMAM → Her iki robot TRUE aldıysa 2sn sonra FALSE'a çek ═══
+            // ═══ BORU OLCUM TAMAM → Robot 1 TRUE aldıysa 2sn sonra FALSE'a çek ═══
+            // Boru ölçüm sadece Robot 1'i ilgilendiriyor (Gocator Robot 1'de)
             if (changedVar.Name == "G_BORU_OLCUM_TAMAM")
             {
                 bool isTamamTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
-                if (isTamamTrue)
+                if (isTamamTrue && robotNo == 1)
                 {
-                    _boruOlcumTamamFlags[robotNo] = true;
-
-                    bool r1Ok = _boruOlcumTamamFlags.ContainsKey(1) && _boruOlcumTamamFlags[1];
-                    bool r2Ok = _boruOlcumTamamFlags.ContainsKey(2) && _boruOlcumTamamFlags[2];
-
-                    if (r1Ok && r2Ok)
+                    OnAutomationLog?.Invoke($"[Boru] Robot 1 TAMAM aldı → 2sn sonra FALSE'a çekilecek");
+                    _ = Task.Run(async () =>
                     {
-                        OnAutomationLog?.Invoke($"[Boru] Her iki robot TAMAM aldı → 2sn sonra FALSE'a çekilecek");
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(2000);
-                            await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
-                            _boruOlcumTamamFlags[1] = false;
-                            _boruOlcumTamamFlags[2] = false;
-                            ResetMeasurementSignal();
-                            OnAutomationLog?.Invoke($"[Boru] G_BORU_OLCUM_TAMAM = FALSE + Boru sinyal sıfırlandı");
-                        });
-                    }
-                }
-                else
-                {
-                    _boruOlcumTamamFlags[robotNo] = false;
+                        await Task.Delay(2000);
+                        await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+                        ResetMeasurementSignal();
+                        OnAutomationLog?.Invoke($"[Boru] G_BORU_OLCUM_TAMAM = FALSE + sinyal sıfırlandı");
+                    });
                 }
                 return;
             }
