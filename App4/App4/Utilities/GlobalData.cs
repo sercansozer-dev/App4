@@ -2396,6 +2396,26 @@ namespace App4.Utilities
                 return;
             }
 
+            // ═══ G_RESET → TAMAM sinyallerini sıfırla ═══
+            if (changedVar.Name == "G_RESET")
+            {
+                bool isResetTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+                if (isResetTrue)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
+                        await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+                        ResetTablaMeasurementSignal();
+                        ResetMeasurementSignal();
+                        _tablaOlcumTamamFlags.Clear();
+                        _boruOlcumTamamFlags.Clear();
+                        OnAutomationLog?.Invoke($"[Reset] G_TABLA_OLCUM_TAMAM + G_BORU_OLCUM_TAMAM = FALSE (sistem reset)");
+                    });
+                }
+                return;
+            }
+
             // ═══ G_KLIMA_TIP SIFIRA DÜŞTÜ → App tekrar yazsın ═══
             if (changedVar.Name == "G_KLIMA_TIP")
             {
