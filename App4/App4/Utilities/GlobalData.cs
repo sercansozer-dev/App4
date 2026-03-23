@@ -4255,6 +4255,19 @@ namespace App4.Utilities
                                 }
                             }
 
+                            // A/B/C HARİÇ ise → A/B/C değerlerini 0'a çek (her 6'lı blokta index 3,4,5)
+                            bool abcDahil = (idx == 0) ? TablaAbcDahil : BoruAbcDahil;
+                            if (!abcDahil && writeValues.Length >= 6)
+                            {
+                                for (int blk = 0; blk < writeValues.Length / 6; blk++)
+                                {
+                                    writeValues[blk * 6 + 3] = 0; // A
+                                    writeValues[blk * 6 + 4] = 0; // B
+                                    writeValues[blk * 6 + 5] = 0; // C
+                                }
+                                OnAutomationLog?.Invoke($"A/B/C HARİÇ → A=0, B=0, C=0 (idx={idx})");
+                            }
+
                             // CODESYS hesaplanmış değerleri (tabla: fark, boru: hedef)
                             int cCount = Math.Min(writeValues.Length, targetRows.Count);
                             for (int i = 0; i < cCount; i++)
