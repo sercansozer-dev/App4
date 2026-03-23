@@ -2396,6 +2396,38 @@ namespace App4.Utilities
                 return;
             }
 
+            // ═══ BORU OLCUM TAMAM → Her iki robot TRUE aldıysa 2sn sonra FALSE'a çek ═══
+            if (changedVar.Name == "G_BORU_OLCUM_TAMAM")
+            {
+                bool isTamamTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+                if (isTamamTrue)
+                {
+                    _boruOlcumTamamFlags[robotNo] = true;
+
+                    bool r1Ok = _boruOlcumTamamFlags.ContainsKey(1) && _boruOlcumTamamFlags[1];
+                    bool r2Ok = _boruOlcumTamamFlags.ContainsKey(2) && _boruOlcumTamamFlags[2];
+
+                    if (r1Ok && r2Ok)
+                    {
+                        OnAutomationLog?.Invoke($"[Boru] Her iki robot TAMAM aldı → 2sn sonra FALSE'a çekilecek");
+                        _ = Task.Run(async () =>
+                        {
+                            await Task.Delay(2000);
+                            await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+                            _boruOlcumTamamFlags[1] = false;
+                            _boruOlcumTamamFlags[2] = false;
+                            ResetMeasurementSignal();
+                            OnAutomationLog?.Invoke($"[Boru] G_BORU_OLCUM_TAMAM = FALSE + Boru sinyal sıfırlandı");
+                        });
+                    }
+                }
+                else
+                {
+                    _boruOlcumTamamFlags[robotNo] = false;
+                }
+                return;
+            }
+
             // ═══ G_JOB_INDEX DEĞİŞİMİ → JOB ÖN-YÜKLEME ═══
             // Robot index'i değiştirdiği an job yüklenir (robot hareket ederken paralel)
             if (changedVar.Name == "G_JOB_INDEX")
@@ -3092,6 +3124,7 @@ namespace App4.Utilities
         private static bool _tablaTriggerArmed = true;
         private static Dictionary<int, int> _noktaNoPrev = new(); // Robot bazlı önceki G_AKTIF_NOKTA_NO
         private static Dictionary<int, bool> _tablaOlcumTamamFlags = new(); // Robot bazlı TABLA_OLCUM_TAMAM durumu
+        private static Dictionary<int, bool> _boruOlcumTamamFlags = new(); // Robot bazlı BORU_OLCUM_TAMAM durumu
 
         private static void TriggerVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
