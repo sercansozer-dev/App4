@@ -928,6 +928,14 @@ namespace App4.Utilities
         // Cift tetik korumasi - RunAutomationSequence ve HandleOlcumTetikAsync cakismasini onler
         public static bool OlcumInProgress { get; set; } = false;
 
+        // ═══ ÖLÇÜM DURUM BİLGİLERİ (Kamera sayfası status bar) ═══
+        // Tabla: BASE 2 + TOOL 2 ile çekildi mi?
+        // Boru: BASE 1 + TOOL 2 ile çekildi mi?
+        public static string TablaOlcumDurum { get; set; } = "";
+        public static bool TablaOlcumBasarili { get; set; } = false;
+        public static string BoruOlcumDurum { get; set; } = "";
+        public static bool BoruOlcumBasarili { get; set; } = false;
+
         // ═══════════════════════════════════════════════════════════════════════════
         // GLOBAL EKİPMAN DURUMLARI - Tüm uygulamadan erişilebilir
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1718,6 +1726,13 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_SLIDER_HEDEF_POZ", "REAL", "Output", 0.0)); // Slider hedef pozisyon (mm)
                 RobotOutputVars.Add(Create("G_SLIDER_HAREKET", "BOOL", "Output", false)); // Slider hareket komutu (PC -> Robot 2)
                 RobotOutputVars.Add(Create("G_HEDEF_ISTASYON", "INT", "Output", 0));      // Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)
+                // --- İSTASYON HAZIR + İŞ BİTTİ (Robot programlarında mevcut) ---
+                RobotOutputVars.Add(Create("G_IST1_HAZIR", "BOOL", "Output", false));      // İstasyon 1 hazır
+                RobotOutputVars.Add(Create("G_IST2_HAZIR", "BOOL", "Output", false));      // İstasyon 2 hazır
+                RobotOutputVars.Add(Create("G_IST3_HAZIR", "BOOL", "Output", false));      // İstasyon 3 hazır
+                RobotOutputVars.Add(Create("G_IST1_IS_BITTI", "BOOL", "Output", false));   // İstasyon 1 iş bitti
+                RobotOutputVars.Add(Create("G_IST2_IS_BITTI", "BOOL", "Output", false));   // İstasyon 2 iş bitti
+                RobotOutputVars.Add(Create("G_IST3_IS_BITTI", "BOOL", "Output", false));   // İstasyon 3 iş bitti
                 // --- İSTASYON E1 SLİDER POZİSYONLARI (PC -> Robot 2, config'den okunur) ---
                 RobotOutputVars.Add(Create("G_IST_BAKIM_E1_POZ", "REAL", "Output", 0.0));   // Bakim istasyonu E1 (0mm)
                 RobotOutputVars.Add(Create("G_IST1_E1_POZ", "REAL", "Output", 1041.0));  // Istasyon 1 E1 pozisyonu (mm)
@@ -2283,6 +2298,59 @@ namespace App4.Utilities
             }
         }
 
+        // ─── İSTASYON ÇALIŞ (MANUEL SAYFA → GLOBAL ETKİ) ───
+        // Manuel sayfadan istasyon çalış butonuna basıldığında her iki robota:
+        //   1) G_ISTx_IS_BITTI = FALSE  (iş bitmedi)
+        //   2) G_ISTx_HAZIR = TRUE      (istasyon hazır)
+        //   3) G_HEDEF_ISTASYON = stationNo
+        //   4) Tabla ölçüm sıfırla (bekleniyor)
+        //   5) Boru ölçüm sıfırla (bekleniyor)
+        // ════════════════════════════════════════════════════════════
+        public static async Task PrepareStationWorkAsync(int stationNo)
+        {
+            if (stationNo < 1 || stationNo > 3) return;
+
+            OnAutomationLog?.Invoke($"[İstasyon Çalış] İstasyon {stationNo} hazırlanıyor...");
+
+            // 1. Seçilen istasyon: IS_BITTI=FALSE, HAZIR=TRUE
+            //    Diğer istasyonlar: IS_BITTI=TRUE, HAZIR=FALSE
+            for (int ist = 1; ist <= 3; ist++)
+            {
+                if (ist == stationNo)
+                {
+                    await WriteToAllRobotsAsync($"G_IST{ist}_IS_BITTI", "FALSE");
+                    await WriteToAllRobotsAsync($"G_IST{ist}_HAZIR", "TRUE");
+                }
+                else
+                {
+                    await WriteToAllRobotsAsync($"G_IST{ist}_IS_BITTI", "TRUE");
+                    await WriteToAllRobotsAsync($"G_IST{ist}_HAZIR", "FALSE");
+                }
+            }
+
+            // 2. Hedef istasyon bilgisini her iki robota yaz
+            await WriteToAllRobotsAsync("G_HEDEF_ISTASYON", stationNo.ToString());
+
+            // 3. Tabla ölçüm → 0'a çek
+            await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
+            _tablaOlcumTamamFlags.Clear();
+            ResetTablaMeasurementSignal();
+
+            // 4. Boru ölçüm → 0'a çek
+            await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+            _boruOlcumTamamFlags.Clear();
+            ResetMeasurementSignal();
+
+            // 5. Klima tip bilgisini tazele (tekrar test için)
+            var klimaTipVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP");
+            if (klimaTipVar != null && !string.IsNullOrEmpty(klimaTipVar.Value))
+            {
+                await WriteToAllRobotsAsync("G_KLIMA_TIP", klimaTipVar.Value);
+            }
+
+            OnAutomationLog?.Invoke($"[İstasyon Çalış] İstasyon {stationNo} aktif. Diğerleri kapatıldı. Klima tip tazelendi. Tabla+Boru sıfırlandı.");
+        }
+
         // ─── ROBOT SİNYAL İZLEME (GLOBAL - SAYFA BAĞIMSIZ) ───
         // G_OLCUM_TETIK ve G_SNIFFER_OLCUM_TETIK sinyallerini GlobalData'dan dinler.
         // Hangi sayfada olursa olsun tetik alınır ve işlenir.
@@ -2357,7 +2425,54 @@ namespace App4.Utilities
             }
 
             _robotSignalMonitoringActive = true;
+
+            // ═══ KLİMA TİP PERİYODİK SYNC (2sn) ═══
+            // Ölçüm yapılmıyorken klima tipini robotlara yazar
+            // Robot programı G_KLIMA_TIP=0 yapsa bile PC düzeltir
+            StartKlimaTipSyncTimer();
+
             OnAutomationLog?.Invoke("Robot sinyal izleme başlatıldı (Global - sayfa bağımsız, Output lifecycle aktif).");
+        }
+
+        private static System.Threading.Timer _klimaTipSyncTimer;
+
+        private static void StartKlimaTipSyncTimer()
+        {
+            _klimaTipSyncTimer?.Dispose();
+            _klimaTipSyncTimer = new System.Threading.Timer(async _ =>
+            {
+                try
+                {
+                    // Ölçüm veya sniffer işlemi varsa YAZMA — haberleşme hattını meşgul etme
+                    if (_olcumTetikProcessing || _snifferOlcumProcessing) return;
+
+                    int currentIdx = _aktuelKlimaIndex;
+                    if (currentIdx <= 0 || currentIdx > KnownRfids.Count) return;
+
+                    string klimaStr = currentIdx.ToString();
+                    int caseId = KnownRfids[currentIdx - 1].CasingIndex;
+
+                    var robots = Utilities.KukaRobotManager.Instance?.Robots;
+                    if (robots == null) return;
+
+                    foreach (var r in robots)
+                    {
+                        if (!r.IsConnected) continue;
+
+                        // Sadece robotun değeri farklıysa yaz (gereksiz trafik önlenir)
+                        var tipVar = r.InputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP");
+                        if (tipVar != null && tipVar.Value == klimaStr) continue;
+
+                        try
+                        {
+                            await r.WriteVariableAsync("G_KLIMA_TIP", klimaStr);
+                            await r.WriteVariableAsync("G_CASE_ID", caseId.ToString());
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }, null, 2000, 2000);
         }
 
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
@@ -2595,6 +2710,40 @@ namespace App4.Utilities
 
                 OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik alındı (JOB_INDEX={jobIndex}, raw=\"{rawJobIndex}\")");
 
+                // ═══ TETİK ANINDA POZİSYON SNAPSHOT ═══
+                // Robot tetik gönderdiğinde durağan — pozisyonu ŞİMDİ yakala.
+                // Gocator ölçümü ~200-500ms sürer; bu süre boyunca cache değişmez
+                // ama güvenlik için snapshot'ı en erken noktada alıyoruz.
+                // Canlı okuma dene, başarısızsa cache kullan.
+                KukaPose snapshotPose;
+                try
+                {
+                    var tasks = new[]
+                    {
+                        robot.ReadVariableAsync("$POS_ACT.X"),
+                        robot.ReadVariableAsync("$POS_ACT.Y"),
+                        robot.ReadVariableAsync("$POS_ACT.Z"),
+                        robot.ReadVariableAsync("$POS_ACT.A"),
+                        robot.ReadVariableAsync("$POS_ACT.B"),
+                        robot.ReadVariableAsync("$POS_ACT.C")
+                    };
+                    await Task.WhenAll(tasks);
+                    double.TryParse(tasks[0].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sx);
+                    double.TryParse(tasks[1].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sy);
+                    double.TryParse(tasks[2].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sz);
+                    double.TryParse(tasks[3].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sa);
+                    double.TryParse(tasks[4].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sb);
+                    double.TryParse(tasks[5].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sc);
+                    snapshotPose = new KukaPose(sx, sy, sz, sa, sb, sc);
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Pozisyon snapshot (canlı): X={sx:F3} Y={sy:F3} Z={sz:F3} A={sa:F3} B={sb:F3} C={sc:F3}");
+                }
+                catch
+                {
+                    // Canlı okuma başarısız → cache'den al
+                    snapshotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Pozisyon snapshot (cache): X={robot.PosX:F3} Y={robot.PosY:F3} Z={robot.PosZ:F3}");
+                }
+
                 // ═══ SEÇİLİ INDEX'İN SNIFFER SÜRESİ + NOKTA SAPMA LİMİTİ GÜNCELLE ═══
                 UpdateCurrentJobIndex(jobIndex);
 
@@ -2609,7 +2758,6 @@ namespace App4.Utilities
                 if (string.IsNullOrEmpty(jobName))
                 {
                     OnAutomationLog?.Invoke($"[Robot {robotNo}] Job bulunamadı (RFID={currentRfid}, Index={jobIndex})");
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
                     return;
                 }
 
@@ -2630,7 +2778,6 @@ namespace App4.Utilities
                     if (!loadOk)
                     {
                         OnAutomationLog?.Invoke($"[Robot {robotNo}] Job yüklenemedi: {jobName}");
-                        await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
                         return;
                     }
                 }
@@ -2727,7 +2874,8 @@ namespace App4.Utilities
                                 if (mappingParts.Length >= 5 && int.TryParse(mappingParts[4], out int mr)) codesysCalc.MapIndexRoll = mr;
                                 if (mappingParts.Length >= 6 && int.TryParse(mappingParts[5], out int mp)) codesysCalc.MapIndexPitch = mp;
 
-                                var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
+                                // Tetik anında alınan snapshot pozisyonunu kullan (cache değil)
+                                var robotPose = snapshotPose;
                                 var allTargetValues = new List<double>();
                                 var allTargetPoses = new List<KukaPose>();
                                 bool allSuccess = true;
@@ -2905,48 +3053,40 @@ namespace App4.Utilities
                         }
                     }
 
-                    // Başarı sinyali
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
+                    // ═══ TAMAM SİNYALİ: CODESYS hesaplandı + offset robota yazıldı → TAMAM gönder ═══
+                    string tamamSignal = jobIndex == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
+                    await WriteToAllRobotsAsync(tamamSignal, "TRUE");
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] {tamamSignal} = TRUE (offset yazıldı, hesap tamam)");
 
-                    // PLC çıktı sinyali (Boru: hemen, Tabla: TAMAM sonrası finally'de)
-                    if (jobIndex != 0)
+                    // Durum bilgisi güncelle (Kamera sayfası status bar)
+                    if (jobIndex == 0)
+                    {
+                        TablaOlcumDurum = $"Tabla ölçüm: BASE 2 + TOOL 2 ile yapıldı (Poz: X={snapshotPose.X:F1} Y={snapshotPose.Y:F1} Z={snapshotPose.Z:F1})";
+                        TablaOlcumBasarili = true;
+                        SetTablaMeasurementSignal();
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla aktarım tamamlandı → TABLA_OFFSET_TAMAM = 1");
+                    }
+                    else
+                    {
+                        BoruOlcumDurum = $"Boru ölçüm: BASE 1 + TOOL 2 ile yapıldı (Poz: X={snapshotPose.X:F1} Y={snapshotPose.Y:F1} Z={snapshotPose.Z:F1})";
+                        BoruOlcumBasarili = true;
                         SetMeasurementSignal();
+                    }
                 }
                 else
                 {
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm BAŞARISIZ (Job {jobIndex}: {jobName})");
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    _preLoadedGocatorJob = null; // Hata durumunda sıfırla
+                    OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm BAŞARISIZ (Job {jobIndex}: {jobName}) — TAMAM GÖNDERİLMEDİ");
+                    _preLoadedGocatorJob = null;
                 }
             }
             catch (Exception ex)
             {
-                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik hatası: {ex.Message}");
-                _preLoadedGocatorJob = null; // Exception durumunda sıfırla
-                try
-                {
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                }
-                catch { }
+                OnAutomationLog?.Invoke($"[Robot {robotNo}] Ölçüm tetik hatası: {ex.Message} — TAMAM GÖNDERİLMEDİ");
+                _preLoadedGocatorJob = null;
             }
             finally
             {
-                // TAMAM pulse - robot KRL bu sinyali REPEAT/UNTIL dongusunde bekliyor
-                try
-                {
-                    string tamamSignal = jobIndex == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
-                    await WriteToAllRobotsAsync(tamamSignal, "TRUE");
-                    OnAutomationLog?.Invoke($"[Robot {robotNo}] {tamamSignal} = TRUE gönderildi (robot FALSE'a çekecek)");
-
-                    // Tabla: Tüm aktarım tamamlandıktan SONRA PLC çıkış sinyalini 1'e çek
-                    if (jobIndex == 0)
-                    {
-                        SetTablaMeasurementSignal();
-                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla aktarım tamamlandı → TABLA_OFFSET_TAMAM = 1");
-                    }
-                }
-                catch { }
-
+                // Sadece temizlik — TAMAM sinyali artık burada DEĞİL, başarı bloğunda
                 _olcumTetikProcessing = false;
                 OlcumInProgress = false;
             }
@@ -4033,6 +4173,38 @@ namespace App4.Utilities
                 // ▶ Anlik index gostergesini guncelle (kamera sayfasinda vurgulu satir)
                 UpdateCurrentJobIndex(idx);
 
+                // ═══ TETİK ANINDA POZİSYON SNAPSHOT (RunAutomationSequence) ═══
+                KukaPose seqSnapshotPose = null;
+                try
+                {
+                    var snapRobot = KukaRobotManager.Instance?.Robots?.FirstOrDefault(r => r.IsConnected);
+                    if (snapRobot != null)
+                    {
+                        var posTasks = new[]
+                        {
+                            snapRobot.ReadVariableAsync("$POS_ACT.X"),
+                            snapRobot.ReadVariableAsync("$POS_ACT.Y"),
+                            snapRobot.ReadVariableAsync("$POS_ACT.Z"),
+                            snapRobot.ReadVariableAsync("$POS_ACT.A"),
+                            snapRobot.ReadVariableAsync("$POS_ACT.B"),
+                            snapRobot.ReadVariableAsync("$POS_ACT.C")
+                        };
+                        await Task.WhenAll(posTasks);
+                        double.TryParse(posTasks[0].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sx);
+                        double.TryParse(posTasks[1].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sy);
+                        double.TryParse(posTasks[2].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sz);
+                        double.TryParse(posTasks[3].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sa);
+                        double.TryParse(posTasks[4].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sb);
+                        double.TryParse(posTasks[5].Result, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double sc);
+                        seqSnapshotPose = new KukaPose(sx, sy, sz, sa, sb, sc);
+                        OnAutomationLog?.Invoke($"[RunAuto] Pozisyon snapshot (canlı): X={sx:F3} Y={sy:F3} Z={sz:F3} A={sa:F3} B={sb:F3} C={sc:F3}");
+                    }
+                }
+                catch
+                {
+                    OnAutomationLog?.Invoke("[RunAuto] Pozisyon snapshot canlı okuma başarısız → cache kullanılacak");
+                }
+
                 // ▼▼▼ JOB YÜKLEME (ÖN-YÜKLEME KONTROLÜ) ▼▼▼
                 // Devam eden ön-yükleme varsa bekle (sensör çakışmasını önle)
                 try { await _jobPreLoadTask; } catch { }
@@ -4058,10 +4230,7 @@ namespace App4.Utilities
                     // Job durumunu OK olarak guncelle (idx 0-based, UpdateJobStatus 1-based)
                     UpdateJobStatus(idx + 1, "OK");
 
-                    // ▼▼▼ SİNYAL GÖNDER (Boru: hemen, Tabla: PLC yazma sonrası) ▼▼▼
-                    if (idx != 0)
-                        SetMeasurementSignal();
-
+                    // SİNYAL: Boru ve Tabla TAMAM → CODESYS hesaplama + offset yazma SONRASINDA gönderilecek
                     OnAutomationLog?.Invoke("PLC Yazma işlemi başlıyor...");
 
                     // ▼▼▼ CODESYS HESAPLAMA (per-job DataSourceMode kontrolü + çoklu nokta) ▼▼▼
@@ -4095,7 +4264,8 @@ namespace App4.Utilities
                                 if (mappingParts.Length >= 5 && int.TryParse(mappingParts[4], out int mr)) codesysCalc.MapIndexRoll = mr;
                                 if (mappingParts.Length >= 6 && int.TryParse(mappingParts[5], out int mp)) codesysCalc.MapIndexPitch = mp;
 
-                                var robotPose = new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
+                                // Tetik anında alınan snapshot varsa onu kullan, yoksa cache
+                                var robotPose = seqSnapshotPose ?? new KukaPose(robot.PosX, robot.PosY, robot.PosZ, robot.PosA, robot.PosB, robot.PosC);
                                 var allTargetValues = new List<double>();
                                 var allTargetPoses = new List<KukaPose>();
                                 bool allSuccess = true;
@@ -4422,18 +4592,25 @@ namespace App4.Utilities
                         }
                     }
 
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "TRUE");
-                    OnAutomationLog?.Invoke("Robot write-back: Offset + G_OLCUM_OK yazildi");
-
-                    // TAMAM sinyali HOLD — robot islemini bitirince FALSE'a cekecek
+                    // ═══ TAMAM SİNYALİ: CODESYS hesaplanıp offset yazıldıktan SONRA ═══
                     string tamamSignal = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
                     await WriteToAllRobotsAsync(tamamSignal, "TRUE");
+                    OnAutomationLog?.Invoke($"{tamamSignal} = TRUE (offset yazıldı, hesap tamam)");
 
-                    // Tabla: PLC yazma + robot yazma tamamlandıktan SONRA tabla çıkış sinyalini 1'e çek
+                    // Durum bilgisi güncelle (Kamera sayfası status bar)
+                    string posInfo = seqSnapshotPose != null ? $"Poz: X={seqSnapshotPose.X:F1} Y={seqSnapshotPose.Y:F1} Z={seqSnapshotPose.Z:F1}" : "";
                     if (idx == 0)
                     {
+                        TablaOlcumDurum = $"Tabla ölçüm: BASE 2 + TOOL 2 ile yapıldı ({posInfo})";
+                        TablaOlcumBasarili = true;
                         SetTablaMeasurementSignal();
                         OnAutomationLog?.Invoke("Tabla aktarım tamamlandı → TABLA_OFFSET_TAMAM = 1");
+                    }
+                    else
+                    {
+                        BoruOlcumDurum = $"Boru ölçüm: BASE 1 + TOOL 2 ile yapıldı ({posInfo})";
+                        BoruOlcumBasarili = true;
+                        SetMeasurementSignal();
                     }
 
                     ProcessStatus = "TAMAMLANDI";
@@ -4446,31 +4623,16 @@ namespace App4.Utilities
                     UpdateJobStatus(idx + 1, "NOK");
                     UpdateCurrentJobIndex(-1);
                     ProcessStatus = "VERİ YOK";
-                    OnAutomationLog?.Invoke("Olcum alinamadi: Cikti yok veya zaman asimi.");
-                    _preLoadedGocatorJob = null; // Hata durumunda sıfırla
-
-                    // Robot'a basarisizlik bildirimi
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    string tamamSignalErr = idx == 0 ? "G_TABLA_OLCUM_TAMAM" : "G_BORU_OLCUM_TAMAM";
-                    await WriteToAllRobotsAsync(tamamSignalErr, "TRUE");
+                    OnAutomationLog?.Invoke("Ölçüm alınamadı: Çıktı yok veya zaman aşımı — TAMAM GÖNDERİLMEDİ");
+                    _preLoadedGocatorJob = null;
                 }
             }
             catch (Exception ex)
             {
                 ProcessStatus = "HATA";
                 UpdateCurrentJobIndex(-1);
-                _preLoadedGocatorJob = null; // Hata durumunda ön-yükleme sıfırla
-                OnAutomationLog?.Invoke($"Hata: {ex.Message}");
-
-                // Robot'a hata bildirimi
-                try
-                {
-                    await WriteToAllRobotsAsync("G_OLCUM_OK", "FALSE");
-                    // Exception durumunda her iki TAMAM sinyalini HOLD (robot FALSE'a cekecek)
-                    await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "TRUE");
-                    await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "TRUE");
-                }
-                catch { }
+                _preLoadedGocatorJob = null;
+                OnAutomationLog?.Invoke($"Hata: {ex.Message} — TAMAM GÖNDERİLMEDİ");
             }
             finally
             {

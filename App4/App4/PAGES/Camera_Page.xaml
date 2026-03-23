@@ -1183,18 +1183,27 @@
                                 </Grid.RowDefinitions>
 
                                 <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                                            <FontIcon Glyph="&#xE8F4;" Foreground="#FF9800" FontSize="16"/>
-                                            <TextBlock Text="GOCATOR HAM VERİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                            <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="SENSOR" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
-                                        </StackPanel>
-                                        <CheckBox x:Name="ChkSourceSensor" Grid.Column="1" Checked="ChkSourceSensor_Checked" IsChecked="False" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu veriyi Boru Ölçüm Aktarım tablosuna ilet"/>
-                                    </Grid>
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                                                <FontIcon Glyph="&#xE8F4;" Foreground="#FF9800" FontSize="16"/>
+                                                <TextBlock Text="GOCATOR HAM VERİ" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                                <Border Background="#FF9800" CornerRadius="4" Padding="6,2"><TextBlock Text="SENSOR" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
+                                            </StackPanel>
+                                            <CheckBox x:Name="ChkSourceSensor" Grid.Column="1" Checked="ChkSourceSensor_Checked" IsChecked="False" VerticalAlignment="Center" MinWidth="0" Padding="0" ToolTipService.ToolTip="Bu veriyi Boru Ölçüm Aktarım tablosuna ilet"/>
+                                        </Grid>
+                                        <!-- BORU ÖLÇÜM DURUM BARI -->
+                                        <Border x:Name="BoruOlcumStatusBar" Background="#1B5E20" CornerRadius="4" Padding="8,3" Margin="0,4,0,2" Visibility="Collapsed">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE73E;" Foreground="#4CAF50" FontSize="11"/>
+                                                <TextBlock x:Name="TxtBoruOlcumStatus" Text="Boru ölçüm: BASE 1 + TOOL 2 ile yapıldı" FontSize="10" FontWeight="SemiBold" Foreground="#4CAF50"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
                                 </Border>
 
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="8">
@@ -1766,10 +1775,19 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0" Background="#252526" CornerRadius="8,8,0,0" Padding="15,0" BorderThickness="0,0,0,1" BorderBrush="#333">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
-                                    <FontIcon Glyph="&#xE8F4;" Foreground="#4CAF50" FontSize="16"/>
-                                    <TextBlock Text="TABLA KAÇIKLIK HAM VERİLERİ" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
-                                    <Border Background="#4CAF50" CornerRadius="4" Padding="6,2"><TextBlock Text="JOB 0" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="15">
+                                        <FontIcon Glyph="&#xE8F4;" Foreground="#4CAF50" FontSize="16"/>
+                                        <TextBlock Text="TABLA KAÇIKLIK HAM VERİLERİ" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                                        <Border Background="#4CAF50" CornerRadius="4" Padding="6,2"><TextBlock Text="JOB 0" FontSize="9" FontWeight="Bold" Foreground="White"/></Border>
+                                    </StackPanel>
+                                    <!-- TABLA ÖLÇÜM DURUM BARI -->
+                                    <Border x:Name="TablaOlcumStatusBar" Background="#1B5E20" CornerRadius="4" Padding="8,3" Margin="0,4,0,2" Visibility="Collapsed">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE73E;" Foreground="#4CAF50" FontSize="11"/>
+                                            <TextBlock x:Name="TxtTablaOlcumStatus" Text="Tabla ölçüm: BASE 2 + TOOL 2 ile yapıldı" FontSize="10" FontWeight="SemiBold" Foreground="#4CAF50"/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
 

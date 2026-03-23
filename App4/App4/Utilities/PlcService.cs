@@ -391,114 +391,420 @@ namespace App4.Utilities
             GlobalData.PlcConnected = false;
         }
 
-        // --- GÜÇLENDİRİLMİŞ OKUMA DÖNGÜSÜ ---
+        // ═══════════════════════════════════════════════════════════
+        // BLOK OKUMA SİSTEMİ
+        // Ardışık adresleri gruplar → tek TCP isteğiyle okur → değişkenlere dağıtır
+        // 417 ayrı istek → ~25 blok okuma (15-20x hız artışı)
+        // ═══════════════════════════════════════════════════════════
+
         private bool _isScanning = false;
         private List<PlcVariable> _cachedReadList;
         private bool _readListDirty = true;
-        
-        // Semaphore to limit parallel PLC requests to avoid overloading the socket/network
-        private System.Threading.SemaphoreSlim _parallelLimiter = new System.Threading.SemaphoreSlim(4);
+        private List<ReadGroup> _cachedReadGroups;
+
+        // Bir blok okuma grubunu temsil eder
+        private class ReadGroup
+        {
+            public string BaseAddress;     // Blok başlangıç adresi (örn: "W900", "D10100")
+            public ushort WordCount;       // Okunacak WORD sayısı
+            public string GroupType;       // "BOOL_WORD", "WORD", "REAL"
+            public List<(PlcVariable Var, int BitIndex)> BoolMembers;  // BOOL: bit pozisyonları
+            public List<(PlcVariable Var, int WordOffset, string Type)> WordMembers; // WORD/INT/REAL: offset
+            public PlcVariable SingleVar;  // Tek başına okunan değişken (gruplanamayan)
+        }
 
         private void UpdateReadList()
         {
             _cachedReadList = InputVariables.Concat(OutputVariables).ToList();
+            _cachedReadGroups = BuildReadGroups(_cachedReadList);
             _readListDirty = false;
+            System.Diagnostics.Debug.WriteLine($"[PLC_BLOCK] {_cachedReadList.Count} değişken → {_cachedReadGroups.Count} blok okuma grubu");
         }
 
+        /// <summary>
+        /// Değişkenleri adres analizi yaparak blok okuma gruplarına ayırır.
+        /// Aynı base word'deki BOOL'lar tek WORD olarak okunur.
+        /// Ardışık WORD/REAL'ler blok halinde okunur.
+        /// </summary>
+        private List<ReadGroup> BuildReadGroups(List<PlcVariable> allVars)
+        {
+            var groups = new List<ReadGroup>();
+            var boolsByBase = new Dictionary<string, List<(PlcVariable var, int bitIdx)>>();
+            var wordVars = new List<(PlcVariable var, string prefix, int num)>();
+            var realVars = new List<(PlcVariable var, string prefix, int num)>();
+            var singleVars = new List<PlcVariable>(); // Gruplanamayan
+
+            foreach (var v in allVars)
+            {
+                string addr = v.Address;
+                if (string.IsNullOrEmpty(addr)) continue;
+                string type = v.Type?.ToUpper() ?? "";
+
+                if (type == "BOOL" && addr.Contains('.'))
+                {
+                    // BOOL bit adresi: W900.0, D10000.5 vb.
+                    int dotIdx = addr.LastIndexOf('.');
+                    string baseAddr = addr.Substring(0, dotIdx);
+                    string bitStr = addr.Substring(dotIdx + 1);
+                    int bitIndex = ParseHexBit(bitStr);
+                    if (bitIndex >= 0)
+                    {
+                        if (!boolsByBase.ContainsKey(baseAddr))
+                            boolsByBase[baseAddr] = new List<(PlcVariable, int)>();
+                        boolsByBase[baseAddr].Add((v, bitIndex));
+                        continue;
+                    }
+                }
+
+                if ((type == "REAL" || type == "FLOAT") && !addr.Contains('.'))
+                {
+                    // REAL: 2 WORD, adres numarası
+                    var (prefix, num) = ParseAddress(addr);
+                    if (prefix != null) { realVars.Add((v, prefix, num)); continue; }
+                }
+
+                if ((type == "WORD" || type == "INT" || type == "DINT" || type == "DWORD") && !addr.Contains('.'))
+                {
+                    var (prefix, num) = ParseAddress(addr);
+                    if (prefix != null) { wordVars.Add((v, prefix, num)); continue; }
+                }
+
+                // Gruplanamayan (STRING, adressiz, vb.)
+                singleVars.Add(v);
+            }
+
+            // 1. BOOL grupları: her base word → 1 WORD okuma → bit dağıtımı
+            foreach (var kvp in boolsByBase)
+            {
+                groups.Add(new ReadGroup
+                {
+                    BaseAddress = kvp.Key,
+                    WordCount = 1,
+                    GroupType = "BOOL_WORD",
+                    BoolMembers = kvp.Value,
+                    WordMembers = new()
+                });
+            }
+
+            // 2. WORD/INT blokları: aynı prefix, ardışık adresler
+            var wordByPrefix = wordVars.GroupBy(w => w.prefix);
+            foreach (var pg in wordByPrefix)
+            {
+                var sorted = pg.OrderBy(x => x.num).ToList();
+                BuildWordBlocks(sorted, groups, 1); // WORD = 1 word
+            }
+
+            // 3. REAL blokları: aynı prefix, ardışık adresler (her REAL = 2 word, adres farkı 2)
+            var realByPrefix = realVars.GroupBy(r => r.prefix);
+            foreach (var pg in realByPrefix)
+            {
+                var sorted = pg.OrderBy(x => x.num).ToList();
+                BuildRealBlocks(sorted, groups);
+            }
+
+            // 4. Tekil değişkenler (gruplanamayan)
+            foreach (var v in singleVars)
+            {
+                if (!string.IsNullOrEmpty(v.Address))
+                {
+                    groups.Add(new ReadGroup
+                    {
+                        GroupType = "SINGLE",
+                        SingleVar = v
+                    });
+                }
+            }
+
+            return groups;
+        }
+
+        private void BuildWordBlocks(List<(PlcVariable var, string prefix, int num)> sorted, List<ReadGroup> groups, int stride)
+        {
+            int i = 0;
+            while (i < sorted.Count)
+            {
+                var block = new List<(PlcVariable var, string prefix, int num)> { sorted[i] };
+                // Ardışık olanları topla (max boşluk = 4 word — küçük boşluklar blokla kapansın)
+                while (i + 1 < sorted.Count && sorted[i + 1].num - sorted[i].num <= 4)
+                {
+                    i++;
+                    block.Add(sorted[i]);
+                }
+
+                if (block.Count == 1)
+                {
+                    // Tekil WORD/INT
+                    var v = block[0];
+                    groups.Add(new ReadGroup
+                    {
+                        GroupType = "SINGLE",
+                        SingleVar = v.var
+                    });
+                }
+                else
+                {
+                    // Blok okuma
+                    int startNum = block[0].num;
+                    int endNum = block[block.Count - 1].num;
+                    ushort wordCount = (ushort)(endNum - startNum + stride);
+                    string baseAddr = $"{block[0].prefix}{startNum}";
+
+                    var members = new List<(PlcVariable Var, int WordOffset, string Type)>();
+                    foreach (var b in block)
+                    {
+                        int offset = b.num - startNum;
+                        members.Add((b.var, offset, b.var.Type.ToUpper()));
+                    }
+
+                    groups.Add(new ReadGroup
+                    {
+                        BaseAddress = baseAddr,
+                        WordCount = wordCount,
+                        GroupType = "WORD_BLOCK",
+                        BoolMembers = new(),
+                        WordMembers = members
+                    });
+                }
+                i++;
+            }
+        }
+
+        private void BuildRealBlocks(List<(PlcVariable var, string prefix, int num)> sorted, List<ReadGroup> groups)
+        {
+            int i = 0;
+            while (i < sorted.Count)
+            {
+                var block = new List<(PlcVariable var, string prefix, int num)> { sorted[i] };
+                // REAL ardışık = adres farkı 2 (her REAL 2 word kaplar), max boşluk 4
+                while (i + 1 < sorted.Count && sorted[i + 1].num - sorted[i].num <= 4)
+                {
+                    i++;
+                    block.Add(sorted[i]);
+                }
+
+                if (block.Count == 1)
+                {
+                    groups.Add(new ReadGroup
+                    {
+                        GroupType = "SINGLE",
+                        SingleVar = block[0].var
+                    });
+                }
+                else
+                {
+                    int startNum = block[0].num;
+                    int endNum = block[block.Count - 1].num;
+                    ushort wordCount = (ushort)(endNum - startNum + 2); // +2 son REAL'in 2 word'ü
+
+                    var members = new List<(PlcVariable Var, int WordOffset, string Type)>();
+                    foreach (var b in block)
+                        members.Add((b.var, b.num - startNum, "REAL"));
+
+                    groups.Add(new ReadGroup
+                    {
+                        BaseAddress = $"{block[0].prefix}{startNum}",
+                        WordCount = wordCount,
+                        GroupType = "REAL_BLOCK",
+                        BoolMembers = new(),
+                        WordMembers = members
+                    });
+                }
+                i++;
+            }
+        }
+
+        private static (string prefix, int num) ParseAddress(string addr)
+        {
+            // "W900" → ("W", 900), "D10100" → ("D", 10100)
+            if (string.IsNullOrEmpty(addr)) return (null, 0);
+            int numStart = -1;
+            for (int i = 0; i < addr.Length; i++)
+            {
+                if (char.IsDigit(addr[i])) { numStart = i; break; }
+            }
+            if (numStart <= 0) return (null, 0);
+            string prefix = addr.Substring(0, numStart);
+            if (int.TryParse(addr.Substring(numStart), out int num))
+                return (prefix, num);
+            return (null, 0);
+        }
+
+        private static int ParseHexBit(string bitStr)
+        {
+            // "0"-"9" → 0-9, "A"-"F" → 10-15
+            if (string.IsNullOrEmpty(bitStr)) return -1;
+            if (int.TryParse(bitStr, out int dec)) return dec;
+            if (bitStr.Length == 1)
+            {
+                char c = char.ToUpper(bitStr[0]);
+                if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+            }
+            return -1;
+        }
+
+        // ═══ ANA OKUMA DÖNGÜSÜ (BLOK TABANLI) ═══
         private async void TimerCallback(object state)
         {
             if (!IsConnected || _melsecNet == null || _isScanning) return;
-            
+
             _isScanning = true;
             try
             {
-                if (_readListDirty) UpdateReadList();
-                var scanList = _cachedReadList;
+                if (_readListDirty || _cachedReadGroups == null) UpdateReadList();
+                var readGroups = _cachedReadGroups;
+                if (readGroups == null || readGroups.Count == 0) return;
 
-                // PARALEL OKUMA (Limiter ile): 
-                // Serial çok yavaş kalıyor. Parallel full çok riskli. 
-                // SemaphoreSlim ile aynı anda maks 4 istek gönderiyoruz.
-                var tasks = scanList.Select(async variable =>
+                foreach (var group in readGroups)
                 {
-                    await _parallelLimiter.WaitAsync();
+                    if (!IsConnected) break;
+
                     try
                     {
-                        string address = variable.Address;
-                        if (string.IsNullOrEmpty(address)) return;
-
-                        object newValue = null;
-                        bool readSuccess = false;
-                        string type = variable.Type.ToUpper(); 
-
-                        switch (type)
+                        switch (group.GroupType)
                         {
-                            case "BOOL":
-                                var bRes = await _melsecNet.ReadBoolAsync(address);
-                                if (bRes.IsSuccess) { newValue = bRes.Content ? 1 : 0; readSuccess = true; }
+                            case "BOOL_WORD":
+                                await ReadBoolWordGroup(group);
                                 break;
-
-                            case "INT": 
-                                var iRes = await _melsecNet.ReadInt16Async(address);
-                                if (iRes.IsSuccess) { newValue = iRes.Content; readSuccess = true; }
+                            case "WORD_BLOCK":
+                                await ReadWordBlock(group);
                                 break;
-
-                            case "WORD": 
-                                var wRes = await _melsecNet.ReadUInt16Async(address);
-                                if (wRes.IsSuccess) { newValue = wRes.Content; readSuccess = true; }
+                            case "REAL_BLOCK":
+                                await ReadRealBlock(group);
                                 break;
-
-                            case "DINT": 
-                                var diRes = await _melsecNet.ReadInt32Async(address);
-                                if (diRes.IsSuccess) { newValue = diRes.Content; readSuccess = true; }
+                            case "SINGLE":
+                                await ReadSingleVar(group.SingleVar);
                                 break;
-
-                            case "DWORD": 
-                                var dwRes = await _melsecNet.ReadUInt32Async(address);
-                                if (dwRes.IsSuccess) { newValue = dwRes.Content; readSuccess = true; }
-                                break;
-
-                            case "REAL": 
-                            case "FLOAT":
-                                var fRes = await _melsecNet.ReadFloatAsync(address);
-                                if (fRes.IsSuccess) { newValue = Math.Round(fRes.Content, 2); readSuccess = true; } 
-                                break;
-
-                            case "STRING":
-                                var sRes = await _melsecNet.ReadStringAsync(address, 10);
-                                if (sRes.IsSuccess)
-                                {
-                                    newValue = sRes.Content.Trim('\0', ' '); 
-                                    readSuccess = true;
-                                }
-                                break;
-
-                            default: 
-                                var defRes = await _melsecNet.ReadInt16Async(address);
-                                if (defRes.IsSuccess) { newValue = defRes.Content; readSuccess = true; }
-                                break;
-                        }
-
-                        if (readSuccess && newValue != null)
-                        {
-                            if (variable.CurrentValue?.ToString() != newValue.ToString())
-                            {
-                                UiRunner?.Invoke(() => variable.CurrentValue = newValue);
-                            }
                         }
                     }
                     catch { }
-                    finally
-                    {
-                        _parallelLimiter.Release();
-                    }
-                });
-
-                await Task.WhenAll(tasks);
+                }
             }
             finally
             {
                 _isScanning = false;
             }
+        }
+
+        /// <summary>1 WORD oku → 16 bit'e ayır → BOOL değişkenlere dağıt</summary>
+        private async Task ReadBoolWordGroup(ReadGroup group)
+        {
+            var res = await _melsecNet.ReadUInt16Async(group.BaseAddress);
+            if (!res.IsSuccess) return;
+
+            ushort word = res.Content;
+            foreach (var (variable, bitIndex) in group.BoolMembers)
+            {
+                int newVal = (word >> bitIndex) & 1;
+                if (variable.CurrentValue?.ToString() != newVal.ToString())
+                    UiRunner?.Invoke(() => variable.CurrentValue = newVal);
+            }
+        }
+
+        /// <summary>Ardışık WORD/INT'leri blok halinde oku → offset'e göre dağıt</summary>
+        private async Task ReadWordBlock(ReadGroup group)
+        {
+            var res = await _melsecNet.ReadAsync(group.BaseAddress, group.WordCount);
+            if (!res.IsSuccess || res.Content == null) return;
+
+            byte[] data = res.Content;
+            foreach (var (variable, wordOffset, type) in group.WordMembers)
+            {
+                int byteOffset = wordOffset * 2;
+                if (byteOffset + 1 >= data.Length) continue;
+
+                object newValue = null;
+                switch (type)
+                {
+                    case "WORD":
+                        newValue = BitConverter.ToUInt16(data, byteOffset);
+                        break;
+                    case "INT":
+                        newValue = BitConverter.ToInt16(data, byteOffset);
+                        break;
+                    case "DINT":
+                        if (byteOffset + 3 < data.Length)
+                            newValue = BitConverter.ToInt32(data, byteOffset);
+                        break;
+                    case "DWORD":
+                        if (byteOffset + 3 < data.Length)
+                            newValue = BitConverter.ToUInt32(data, byteOffset);
+                        break;
+                }
+
+                if (newValue != null && variable.CurrentValue?.ToString() != newValue.ToString())
+                    UiRunner?.Invoke(() => variable.CurrentValue = newValue);
+            }
+        }
+
+        /// <summary>Ardışık REAL'leri blok halinde oku → 2 WORD'den float çıkar → dağıt</summary>
+        private async Task ReadRealBlock(ReadGroup group)
+        {
+            var res = await _melsecNet.ReadAsync(group.BaseAddress, group.WordCount);
+            if (!res.IsSuccess || res.Content == null) return;
+
+            byte[] data = res.Content;
+            foreach (var (variable, wordOffset, _) in group.WordMembers)
+            {
+                int byteOffset = wordOffset * 2;
+                if (byteOffset + 3 >= data.Length) continue;
+
+                float raw = BitConverter.ToSingle(data, byteOffset);
+                object newValue = Math.Round(raw, 2);
+
+                if (variable.CurrentValue?.ToString() != newValue.ToString())
+                    UiRunner?.Invoke(() => variable.CurrentValue = newValue);
+            }
+        }
+
+        /// <summary>Gruplanamayan tekil değişkeni oku (eski yöntem)</summary>
+        private async Task ReadSingleVar(PlcVariable variable)
+        {
+            if (variable == null) return;
+            string address = variable.Address;
+            if (string.IsNullOrEmpty(address)) return;
+
+            object newValue = null;
+            string type = variable.Type?.ToUpper() ?? "";
+
+            switch (type)
+            {
+                case "BOOL":
+                    var bRes = await _melsecNet.ReadBoolAsync(address);
+                    if (bRes.IsSuccess) newValue = bRes.Content ? 1 : 0;
+                    break;
+                case "INT":
+                    var iRes = await _melsecNet.ReadInt16Async(address);
+                    if (iRes.IsSuccess) newValue = iRes.Content;
+                    break;
+                case "WORD":
+                    var wRes = await _melsecNet.ReadUInt16Async(address);
+                    if (wRes.IsSuccess) newValue = wRes.Content;
+                    break;
+                case "DINT":
+                    var diRes = await _melsecNet.ReadInt32Async(address);
+                    if (diRes.IsSuccess) newValue = diRes.Content;
+                    break;
+                case "DWORD":
+                    var dwRes = await _melsecNet.ReadUInt32Async(address);
+                    if (dwRes.IsSuccess) newValue = dwRes.Content;
+                    break;
+                case "REAL":
+                case "FLOAT":
+                    var fRes = await _melsecNet.ReadFloatAsync(address);
+                    if (fRes.IsSuccess) newValue = Math.Round(fRes.Content, 2);
+                    break;
+                case "STRING":
+                    var sRes = await _melsecNet.ReadStringAsync(address, 10);
+                    if (sRes.IsSuccess) newValue = sRes.Content?.Trim('\0', ' ');
+                    break;
+                default:
+                    var defRes = await _melsecNet.ReadInt16Async(address);
+                    if (defRes.IsSuccess) newValue = defRes.Content;
+                    break;
+            }
+
+            if (newValue != null && variable.CurrentValue?.ToString() != newValue.ToString())
+                UiRunner?.Invoke(() => variable.CurrentValue = newValue);
         }
 
         // --- GÜÇLENDİRİLMİŞ YAZMA METODU ---

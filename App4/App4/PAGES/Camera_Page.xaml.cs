@@ -754,6 +754,9 @@ namespace App4.PAGES
                     OnPropertyChanged(nameof(TablaOutputValue));
                     OnPropertyChanged(nameof(TablaOutputStatusText));
                     OnPropertyChanged(nameof(TablaOutputStatusColor));
+
+                    // Ölçüm durum barları güncelle
+                    UpdateOlcumStatusBars();
                 });
             };
 
@@ -1732,6 +1735,34 @@ namespace App4.PAGES
         /// <summary>
         /// CODESYS ayarlarını GlobalData'dan yükle (sayfa açılışında çağrılır).
         /// </summary>
+        // ═══ ÖLÇÜM DURUM BARLARI (BASE+TOOL bilgisi) ═══
+        private void UpdateOlcumStatusBars()
+        {
+            try
+            {
+                // BORU durum barı
+                if (GlobalData.BoruOlcumBasarili && !string.IsNullOrEmpty(GlobalData.BoruOlcumDurum))
+                {
+                    if (BoruOlcumStatusBar != null)
+                    {
+                        BoruOlcumStatusBar.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                        TxtBoruOlcumStatus.Text = GlobalData.BoruOlcumDurum;
+                    }
+                }
+
+                // TABLA durum barı
+                if (GlobalData.TablaOlcumBasarili && !string.IsNullOrEmpty(GlobalData.TablaOlcumDurum))
+                {
+                    if (TablaOlcumStatusBar != null)
+                    {
+                        TablaOlcumStatusBar.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                        TxtTablaOlcumStatus.Text = GlobalData.TablaOlcumDurum;
+                    }
+                }
+            }
+            catch { }
+        }
+
         private void LoadCodesysSettings()
         {
             _codesysOffsetX = GlobalData.CodesysOffsetX;
