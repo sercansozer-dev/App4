@@ -2001,6 +2001,18 @@ namespace App4
 
                 await Task.Delay(500); // Robot KRL'nin WAIT FOR G_RESET==TRUE'yu yakalaması için
 
+                // ═══ TABLA/BORU OLCUM TAMAM sinyallerini sıfırla ═══
+                for (int i = 0; i < robots.Count; i++)
+                {
+                    var robot = robots[i];
+                    if (!robot.IsConnected) continue;
+                    try { await robot.WriteVariableAsync("G_TABLA_OLCUM_TAMAM", "FALSE"); } catch { }
+                    try { await robot.WriteVariableAsync("G_BORU_OLCUM_TAMAM", "FALSE"); } catch { }
+                }
+                GlobalData.ResetTablaMeasurementSignal();
+                GlobalData.ResetMeasurementSignal();
+                AddLog("TABLA/BORU OLCUM TAMAM sinyalleri sıfırlandı", "Orange");
+
                 for (int i = 0; i < robots.Count; i++)
                 {
                     var robot = robots[i];
