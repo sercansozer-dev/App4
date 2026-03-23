@@ -290,12 +290,26 @@ namespace App4.Utilities
                     {
                         EnsureConnected(log);
 
-                        // ▼▼▼ START → SNAPSHOT TRIGGER → RECEIVE → STOP ▼▼▼
-                        // SDK ConfigureSensor sample sırası: Start() → Call(trigger) → ReceiveDataSync → Stop()
-                        if (_persistentSystem.RunningState() == GoSystem.State.Ready)
-                            _persistentSystem.Start();
+                        // ▼▼▼ STOP → START → SNAPSHOT TRIGGER → RECEIVE → STOP ▼▼▼
+                        // Önce sensörü durdur (eski GDP buffer temizlenir)
+                        try
+                        {
+                            if (_persistentSystem.RunningState() != GoSystem.State.Ready)
+                            {
+                                _persistentSystem.Stop();
+                                log?.Invoke("Sensör durduruldu (eski buffer temizlendi)");
+                            }
+                        }
+                        catch { }
 
-                        // Software trigger (snapshot) — doğru endpoint: /actions/trigger
+                        // GDP buffer'ı temizle (varsa eski ölçüm verisi)
+                        try { _persistentGdpClient.ClearData(); } catch { }
+
+                        // Start
+                        _persistentSystem.Start();
+                        log?.Invoke("Sensör başlatıldı");
+
+                        // Software trigger (snapshot)
                         log?.Invoke("Software trigger (snapshot) gönderiliyor...");
                         try
                         {
