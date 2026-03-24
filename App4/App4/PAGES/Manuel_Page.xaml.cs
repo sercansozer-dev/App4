@@ -459,32 +459,20 @@ namespace App4
         // ================================================================
         public async Task WriteGlobalRobotOutVarAsync(string outVarName, string valueToWrite)
         {
-            // OutputVars'ta ara
-            var gVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == outVarName);
-            if (gVar != null)
-            {
-                gVar.Value = valueToWrite;
-            }
+            // WriteToRobotsAndLocal üzerinden yaz — robot.OutputVars + _lastWrittenOutputs cache güncellemesi dahil
+            await WriteToRobotsAndLocal(outVarName, valueToWrite);
 
-            var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == outVarName);
-            if (plcVar != null)
+            // PLC'ye de yaz (WriteToRobotsAndLocal sadece robotlara yazıyor)
+            try
             {
-                plcVar.Value = valueToWrite;
-                await PlcService.Instance.WriteAsync(plcVar, valueToWrite);
-            }
-
-            // Write to ALL robots
-            var robots = KukaRobotManager.Instance?.Robots;
-            if (robots != null)
-            {
-                foreach (var r in robots)
+                var plcVar = PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == outVarName);
+                if (plcVar != null)
                 {
-                    if (r.IsConnected)
-                    {
-                        try { await r.WriteVariableAsync(outVarName, valueToWrite); } catch { }
-                    }
+                    plcVar.Value = valueToWrite;
+                    await PlcService.Instance.WriteAsync(plcVar, valueToWrite);
                 }
             }
+            catch { }
         }
 
         // ================================================================
