@@ -184,6 +184,42 @@
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>
+
+                                    <!-- TABLA KAÇIKLIK DEĞERLERİ -->
+                                    <Border Background="#1A1A2E" CornerRadius="6" Padding="8" BorderBrush="#3F51B5" BorderThickness="1">
+                                        <StackPanel Spacing="3">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <FontIcon Glyph="&#xE809;" Foreground="#7986CB" FontSize="12"/>
+                                                <TextBlock Text="TABLA KAÇIKLIK" FontSize="10" FontWeight="Bold" Foreground="#7986CB"/>
+                                                <TextBlock Text="{x:Bind Stations[0].TablaStatusText, Mode=OneWay}" FontSize="9" FontWeight="SemiBold" Foreground="{x:Bind Stations[0].TablaStatusColor, Mode=OneWay}" Margin="8,0,0,0"/>
+                                            </StackPanel>
+                                            <Grid ColumnSpacing="4" RowSpacing="1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind Stations[0].TablaOffsetX, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="A:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="3" Text="{x:Bind Stations[0].TablaOffsetA, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind Stations[0].TablaOffsetY, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="B:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="3" Text="{x:Bind Stations[0].TablaOffsetB, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind Stations[0].TablaOffsetZ, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="2" Text="C:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="3" Text="{x:Bind Stations[0].TablaOffsetC, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                                 <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
                                     <Grid VerticalAlignment="Center">
@@ -226,72 +262,93 @@
                                     </Grid>
                                 </Border>
                                 <Grid Grid.Row="1" Background="#151515">
-                                    <Grid Margin="10">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <Border Grid.Row="0" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
+                                    <StackPanel Margin="10" Spacing="8">
+                                        <Border CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station2" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <Grid Grid.Row="1">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="1.2*"/>
-                                            </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[1].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
+                                            <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
+                                            <TextBlock Text="{x:Bind Stations[1].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
+                                        </StackPanel>
 
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0" Spacing="4">
-                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[1].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
-                                                    <TextBlock Text="{x:Bind Stations[1].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
+                                        <Border Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
+                                            <StackPanel Spacing="5">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/>
+                                                    <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
                                                 </StackPanel>
-                                                <!-- R1/R2 robot göstergeleri kaldırıldı -->
+                                                <ComboBox ItemsSource="{Binding Stations[1].RfidOpModes}" SelectedItem="{Binding Stations[1].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
+                                                <StackPanel Visibility="{Binding Stations[1].IsSpecificRfidVisible}">
+                                                    <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
+                                                    <ComboBox ItemsSource="{Binding Stations[1].RefRfids}" SelectedValue="{Binding Stations[1].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
+                                                </StackPanel>
+                                                <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Okunan:" FontSize="8" Foreground="#888"/>
+                                                        <TextBlock Text="{x:Bind Stations[1].CurrentRfid, Mode=OneWay}" FontSize="11" Foreground="{x:Bind Stations[1].RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                    <FontIcon Grid.Column="1" Glyph="{x:Bind Stations[1].RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind Stations[1].RfidMatchColor, Mode=OneWay}" FontSize="14" VerticalAlignment="Center" Margin="2,0"/>
+                                                </Grid>
                                             </StackPanel>
+                                        </Border>
 
-                                            <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/>
-                                                        <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <ComboBox ItemsSource="{Binding Stations[1].RfidOpModes}" SelectedItem="{Binding Stations[1].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    <StackPanel Visibility="{Binding Stations[1].IsSpecificRfidVisible}">
-                                                        <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
-                                                        <ComboBox ItemsSource="{Binding Stations[1].RefRfids}" SelectedValue="{Binding Stations[1].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0">
-                                                            <TextBlock Text="Okunan:" FontSize="8" Foreground="#888"/>
-                                                            <TextBlock Text="{x:Bind Stations[1].CurrentRfid, Mode=OneWay}" FontSize="11" Foreground="{x:Bind Stations[1].RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                        <FontIcon Grid.Column="1" Glyph="{x:Bind Stations[1].RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind Stations[1].RfidMatchColor, Mode=OneWay}" FontSize="14" VerticalAlignment="Center" Margin="2,0"/>
-                                                    </Grid>
+                                        <!-- AKTİF NOKTA BİLGİSİ -->
+                                        <Border Background="#1A2A1A" CornerRadius="6" Padding="8" BorderBrush="#2E7D32" BorderThickness="1">
+                                            <StackPanel Spacing="3">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <FontIcon Glyph="&#xECAD;" Foreground="#4CAF50" FontSize="12"/>
+                                                    <TextBlock Text="AKTİF NOKTA" FontSize="10" FontWeight="Bold" Foreground="#4CAF50"/>
                                                 </StackPanel>
-                                            </Border>
+                                                <StackPanel Visibility="{x:Bind Stations[1].R1ActivePointVisibility, Mode=OneWay}">
+                                                    <TextBlock FontSize="8" Foreground="#888"><Run Text="R1: "/><Run Text="{x:Bind Stations[1].R1ActivePoint, Mode=OneWay}" Foreground="#4CAF50" FontWeight="Bold"/></TextBlock>
+                                                </StackPanel>
+                                                <StackPanel Visibility="{x:Bind Stations[1].R2ActivePointVisibility, Mode=OneWay}">
+                                                    <TextBlock FontSize="8" Foreground="#888"><Run Text="R2: "/><Run Text="{x:Bind Stations[1].R2ActivePoint, Mode=OneWay}" Foreground="#FF9800" FontWeight="Bold"/></TextBlock>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
 
-                                            <!-- AKTİF NOKTA BİLGİSİ -->
-                                            <Border Background="#1A2A1A" CornerRadius="6" Padding="8" BorderBrush="#2E7D32" BorderThickness="1">
-                                                <StackPanel Spacing="3">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <FontIcon Glyph="&#xECAD;" Foreground="#4CAF50" FontSize="12"/>
-                                                        <TextBlock Text="AKTİF NOKTA" FontSize="10" FontWeight="Bold" Foreground="#4CAF50"/>
-                                                    </StackPanel>
-                                                    <StackPanel Visibility="{x:Bind Stations[1].R1ActivePointVisibility, Mode=OneWay}">
-                                                        <TextBlock FontSize="8" Foreground="#888"><Run Text="R1: "/><Run Text="{x:Bind Stations[1].R1ActivePoint, Mode=OneWay}" Foreground="#4CAF50" FontWeight="Bold"/></TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Visibility="{x:Bind Stations[1].R2ActivePointVisibility, Mode=OneWay}">
-                                                        <TextBlock FontSize="8" Foreground="#888"><Run Text="R2: "/><Run Text="{x:Bind Stations[1].R2ActivePoint, Mode=OneWay}" Foreground="#FF9800" FontWeight="Bold"/></TextBlock>
-                                                    </StackPanel>
+                                        <!-- TABLA KAÇIKLIK DEĞERLERİ -->
+                                        <Border Background="#1A1A2E" CornerRadius="6" Padding="8" BorderBrush="#3F51B5" BorderThickness="1">
+                                            <StackPanel Spacing="3">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <FontIcon Glyph="&#xE809;" Foreground="#7986CB" FontSize="12"/>
+                                                    <TextBlock Text="TABLA KAÇIKLIK" FontSize="10" FontWeight="Bold" Foreground="#7986CB"/>
+                                                    <TextBlock Text="{x:Bind Stations[1].TablaStatusText, Mode=OneWay}" FontSize="9" FontWeight="SemiBold" Foreground="{x:Bind Stations[1].TablaStatusColor, Mode=OneWay}" Margin="8,0,0,0"/>
                                                 </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </Grid>
+                                                <Grid ColumnSpacing="4" RowSpacing="1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind Stations[1].TablaOffsetX, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="A:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="3" Text="{x:Bind Stations[1].TablaOffsetA, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind Stations[1].TablaOffsetY, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="B:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{x:Bind Stations[1].TablaOffsetB, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind Stations[1].TablaOffsetZ, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="C:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="3" Text="{x:Bind Stations[1].TablaOffsetC, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
                                 </Grid>
                                 <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
                                     <Grid VerticalAlignment="Center">
@@ -334,72 +391,93 @@
                                     </Grid>
                                 </Border>
                                 <Grid Grid.Row="1" Background="#151515">
-                                    <Grid Margin="10">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <Border Grid.Row="0" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" Margin="0,0,0,10" MinHeight="200">
+                                    <StackPanel Margin="10" Spacing="8">
+                                        <Border CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" MinHeight="200">
                                              <WebView2 x:Name="Viewer_Station3" DefaultBackgroundColor="Transparent"/>
                                         </Border>
 
-                                        <Grid Grid.Row="1">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="1.2*"/>
-                                            </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[2].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
+                                            <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
+                                            <TextBlock Text="{x:Bind Stations[2].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
+                                        </StackPanel>
 
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0" Spacing="4">
-                                                <StackPanel Orientation="Horizontal" Spacing="5" Visibility="{x:Bind Stations[2].AlarmVisibility, Mode=OneWay}" HorizontalAlignment="Center">
-                                                    <FontIcon Glyph="&#xE7BA;" Foreground="Red" FontSize="14"/>
-                                                    <TextBlock Text="{x:Bind Stations[2].AlarmText, Mode=OneWay}" Foreground="Red" FontSize="10" FontWeight="Bold"/>
+                                        <Border Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
+                                            <StackPanel Spacing="5">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/>
+                                                    <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
                                                 </StackPanel>
-                                                <!-- R1/R2 robot göstergeleri kaldırıldı -->
+                                                <ComboBox ItemsSource="{Binding Stations[2].RfidOpModes}" SelectedItem="{Binding Stations[2].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
+                                                <StackPanel Visibility="{Binding Stations[2].IsSpecificRfidVisible}">
+                                                    <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
+                                                    <ComboBox ItemsSource="{Binding Stations[2].RefRfids}" SelectedValue="{Binding Stations[2].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
+                                                </StackPanel>
+                                                <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Okunan:" FontSize="8" Foreground="#888"/>
+                                                        <TextBlock Text="{x:Bind Stations[2].CurrentRfid, Mode=OneWay}" FontSize="11" Foreground="{x:Bind Stations[2].RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                    <FontIcon Grid.Column="1" Glyph="{x:Bind Stations[2].RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind Stations[2].RfidMatchColor, Mode=OneWay}" FontSize="14" VerticalAlignment="Center" Margin="2,0"/>
+                                                </Grid>
                                             </StackPanel>
+                                        </Border>
 
-                                            <Border Grid.Column="1" Background="#202020" CornerRadius="6" Padding="8" BorderBrush="#333" BorderThickness="1">
-                                                <StackPanel Spacing="5">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <FontIcon Glyph="&#xEFA9;" Foreground="#0078D4" FontSize="12"/>
-                                                        <TextBlock Text="RFID KONTROL" FontSize="10" FontWeight="Bold" Foreground="#DDD"/>
-                                                    </StackPanel>
-                                                    <ComboBox ItemsSource="{Binding Stations[2].RfidOpModes}" SelectedItem="{Binding Stations[2].RfidOpMode, Mode=TwoWay}" Foreground="White" FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    <StackPanel Visibility="{Binding Stations[2].IsSpecificRfidVisible}">
-                                                        <TextBlock Text="Beklenen ID :" FontSize="9" Foreground="#888" Margin="0,0,0,2"/>
-                                                        <ComboBox ItemsSource="{Binding Stations[2].RefRfids}" SelectedValue="{Binding Stations[2].TargetRfid, Mode=TwoWay}" SelectedValuePath="Id" DisplayMemberPath="Id" Foreground="White" PlaceholderText="..." FontSize="10" HorizontalAlignment="Stretch" BorderThickness="1" Background="#151515" Height="24"/>
-                                                    </StackPanel>
-                                                    <Grid ColumnSpacing="5" Margin="0,2,0,0" Background="#151515" Padding="4" CornerRadius="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0">
-                                                            <TextBlock Text="Okunan:" FontSize="8" Foreground="#888"/>
-                                                            <TextBlock Text="{x:Bind Stations[2].CurrentRfid, Mode=OneWay}" FontSize="11" Foreground="{x:Bind Stations[2].RfidMatchColor, Mode=OneWay}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                        <FontIcon Grid.Column="1" Glyph="{x:Bind Stations[2].RfidMatchIcon, Mode=OneWay}" Foreground="{x:Bind Stations[2].RfidMatchColor, Mode=OneWay}" FontSize="14" VerticalAlignment="Center" Margin="2,0"/>
-                                                    </Grid>
+                                        <!-- AKTİF NOKTA BİLGİSİ -->
+                                        <Border Background="#1A2A1A" CornerRadius="6" Padding="8" BorderBrush="#2E7D32" BorderThickness="1">
+                                            <StackPanel Spacing="3">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <FontIcon Glyph="&#xECAD;" Foreground="#4CAF50" FontSize="12"/>
+                                                    <TextBlock Text="AKTİF NOKTA" FontSize="10" FontWeight="Bold" Foreground="#4CAF50"/>
                                                 </StackPanel>
-                                            </Border>
+                                                <StackPanel Visibility="{x:Bind Stations[2].R1ActivePointVisibility, Mode=OneWay}">
+                                                    <TextBlock FontSize="8" Foreground="#888"><Run Text="R1: "/><Run Text="{x:Bind Stations[2].R1ActivePoint, Mode=OneWay}" Foreground="#4CAF50" FontWeight="Bold"/></TextBlock>
+                                                </StackPanel>
+                                                <StackPanel Visibility="{x:Bind Stations[2].R2ActivePointVisibility, Mode=OneWay}">
+                                                    <TextBlock FontSize="8" Foreground="#888"><Run Text="R2: "/><Run Text="{x:Bind Stations[2].R2ActivePoint, Mode=OneWay}" Foreground="#FF9800" FontWeight="Bold"/></TextBlock>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
 
-                                            <!-- AKTİF NOKTA BİLGİSİ -->
-                                            <Border Background="#1A2A1A" CornerRadius="6" Padding="8" BorderBrush="#2E7D32" BorderThickness="1">
-                                                <StackPanel Spacing="3">
-                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                        <FontIcon Glyph="&#xECAD;" Foreground="#4CAF50" FontSize="12"/>
-                                                        <TextBlock Text="AKTİF NOKTA" FontSize="10" FontWeight="Bold" Foreground="#4CAF50"/>
-                                                    </StackPanel>
-                                                    <StackPanel Visibility="{x:Bind Stations[2].R1ActivePointVisibility, Mode=OneWay}">
-                                                        <TextBlock FontSize="8" Foreground="#888"><Run Text="R1: "/><Run Text="{x:Bind Stations[2].R1ActivePoint, Mode=OneWay}" Foreground="#4CAF50" FontWeight="Bold"/></TextBlock>
-                                                    </StackPanel>
-                                                    <StackPanel Visibility="{x:Bind Stations[2].R2ActivePointVisibility, Mode=OneWay}">
-                                                        <TextBlock FontSize="8" Foreground="#888"><Run Text="R2: "/><Run Text="{x:Bind Stations[2].R2ActivePoint, Mode=OneWay}" Foreground="#FF9800" FontWeight="Bold"/></TextBlock>
-                                                    </StackPanel>
+                                        <!-- TABLA KAÇIKLIK DEĞERLERİ -->
+                                        <Border Background="#1A1A2E" CornerRadius="6" Padding="8" BorderBrush="#3F51B5" BorderThickness="1">
+                                            <StackPanel Spacing="3">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <FontIcon Glyph="&#xE809;" Foreground="#7986CB" FontSize="12"/>
+                                                    <TextBlock Text="TABLA KAÇIKLIK" FontSize="10" FontWeight="Bold" Foreground="#7986CB"/>
+                                                    <TextBlock Text="{x:Bind Stations[2].TablaStatusText, Mode=OneWay}" FontSize="9" FontWeight="SemiBold" Foreground="{x:Bind Stations[2].TablaStatusColor, Mode=OneWay}" Margin="8,0,0,0"/>
                                                 </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </Grid>
+                                                <Grid ColumnSpacing="4" RowSpacing="1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind Stations[2].TablaOffsetX, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="A:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="3" Text="{x:Bind Stations[2].TablaOffsetA, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Y:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind Stations[2].TablaOffsetY, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="B:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{x:Bind Stations[2].TablaOffsetB, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Z:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind Stations[2].TablaOffsetZ, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="C:" FontSize="9" Foreground="#888" FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="3" Text="{x:Bind Stations[2].TablaOffsetC, Mode=OneWay}" FontSize="9" Foreground="#BBDEFB" FontWeight="Bold"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
                                 </Grid>
                                 <Border Grid.Row="2" Background="#202020" CornerRadius="0,0,6,6" Padding="15,0">
                                     <Grid VerticalAlignment="Center">

@@ -212,6 +212,25 @@ namespace App4.Utilities
         // Output değişkenlerinin son yazılan değerlerini takip eder (gereksiz tekrar yazmayı önler)
         private readonly Dictionary<string, string> _lastWrittenOutputs = new();
 
+        /// <summary>
+        /// Dış kaynaktan (WriteToAllRobotsAsync) output cache'ini günceller.
+        /// CommunicationLoop'un eski değeri tekrar yazmasını engeller.
+        /// </summary>
+        public void UpdateLastWrittenOutput(string plcTag, string value)
+        {
+            if (!string.IsNullOrEmpty(plcTag))
+            {
+                // BOOL normalize et
+                var fakeVar = new PlcVariable { Type = "BOOL" };
+                string normalized = NormalizeBoolValue(fakeVar, value);
+                // Eğer tip BOOL değilse ham değeri kullan
+                if (normalized == value || normalized == "TRUE" || normalized == "FALSE")
+                    _lastWrittenOutputs[plcTag] = normalized;
+                else
+                    _lastWrittenOutputs[plcTag] = value;
+            }
+        }
+
         // Standart KUKA değişkenleri (pozisyon, eksen, override için)
         private readonly List<(string Tag, Action<string> Setter)> _standardReads;
 

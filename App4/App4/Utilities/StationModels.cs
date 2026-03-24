@@ -519,6 +519,28 @@ namespace App4.Utilities
         }
         public Visibility R2Visibility => !string.IsNullOrEmpty(R2DurumText) ? Visibility.Visible : Visibility.Collapsed;
 
+        // ═══ TABLA KAÇIKLIK DEĞERLERİ ═══
+        private string _tablaOffsetX = "0.0";
+        public string TablaOffsetX { get => _tablaOffsetX; set { if (_tablaOffsetX != value) { _tablaOffsetX = value; OnPropertyChanged(); } } }
+        private string _tablaOffsetY = "0.0";
+        public string TablaOffsetY { get => _tablaOffsetY; set { if (_tablaOffsetY != value) { _tablaOffsetY = value; OnPropertyChanged(); } } }
+        private string _tablaOffsetZ = "0.0";
+        public string TablaOffsetZ { get => _tablaOffsetZ; set { if (_tablaOffsetZ != value) { _tablaOffsetZ = value; OnPropertyChanged(); } } }
+        private string _tablaOffsetA = "0.0";
+        public string TablaOffsetA { get => _tablaOffsetA; set { if (_tablaOffsetA != value) { _tablaOffsetA = value; OnPropertyChanged(); } } }
+        private string _tablaOffsetB = "0.0";
+        public string TablaOffsetB { get => _tablaOffsetB; set { if (_tablaOffsetB != value) { _tablaOffsetB = value; OnPropertyChanged(); } } }
+        private string _tablaOffsetC = "0.0";
+        public string TablaOffsetC { get => _tablaOffsetC; set { if (_tablaOffsetC != value) { _tablaOffsetC = value; OnPropertyChanged(); } } }
+        private bool _tablaOlcumTamam;
+        public bool TablaOlcumTamam
+        {
+            get => _tablaOlcumTamam;
+            set { if (_tablaOlcumTamam != value) { _tablaOlcumTamam = value; OnPropertyChanged(); OnPropertyChanged(nameof(TablaStatusText)); OnPropertyChanged(nameof(TablaStatusColor)); } }
+        }
+        public string TablaStatusText => TablaOlcumTamam ? "ÖLÇÜM TAMAM" : "BEKLENİYOR";
+        public SolidColorBrush TablaStatusColor => TablaOlcumTamam ? HexToBrush("#4CAF50") : HexToBrush("#FF9800");
+
         // Görsel Özellikler
         public string ModeText => Mode.ToString().ToUpper();
         public SolidColorBrush ModeColor { get; private set; }

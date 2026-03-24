@@ -2266,8 +2266,17 @@ namespace App4.Utilities
                         string krlTag = varName;
                         var matchVar = r.InputVars.FirstOrDefault(v => v.Name == varName)
                                     ?? r.OutputVars.FirstOrDefault(v => v.Name == varName);
-                        if (matchVar != null && !string.IsNullOrEmpty(matchVar.PlcTag))
-                            krlTag = matchVar.PlcTag;
+                        if (matchVar != null)
+                        {
+                            if (!string.IsNullOrEmpty(matchVar.PlcTag))
+                                krlTag = matchVar.PlcTag;
+                            // ★ Robot'un kendi OutputVars/InputVars değerini de güncelle
+                            // CommunicationLoop bu değeri okuyup robota yazıyor
+                            matchVar.Value = value;
+                            // ★ CommunicationLoop'un _lastWrittenOutputs cache'ini de güncelle
+                            // Yoksa eski cache değeri farklıysa CommunicationLoop tekrar eski değeri yazabilir
+                            r.UpdateLastWrittenOutput(matchVar.PlcTag ?? varName, value);
+                        }
 
                         string capturedTag = krlTag; // closure için kopyala
                         writeTasks.Add(Task.Run(async () =>
@@ -2349,6 +2358,44 @@ namespace App4.Utilities
             }
 
             OnAutomationLog?.Invoke($"[İstasyon Çalış] İstasyon {stationNo} aktif. Diğerleri kapatıldı. Klima tip tazelendi. Tabla+Boru sıfırlandı.");
+
+            // Tabla kaçıklık UI sıfırla
+            if (stationNo >= 1 && stationNo <= 3 && stationNo - 1 < Stations.Count)
+            {
+                var st = Stations[stationNo - 1];
+                st.TablaOffsetX = "0.0"; st.TablaOffsetY = "0.0"; st.TablaOffsetZ = "0.0";
+                st.TablaOffsetA = "0.0"; st.TablaOffsetB = "0.0"; st.TablaOffsetC = "0.0";
+                st.TablaOlcumTamam = false;
+            }
+        }
+
+        /// <summary>
+        /// Aktif istasyonun tabla kaçıklık değerlerini UI'da günceller.
+        /// </summary>
+        private static void UpdateStationTablaOffsets(List<GocatorMeasurement> results)
+        {
+            // Hedef istasyonu bul
+            var hedefVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON");
+            int hedefIdx = 0;
+            if (hedefVar != null) int.TryParse(hedefVar.Value, out hedefIdx);
+            if (hedefIdx < 1 || hedefIdx > 3 || hedefIdx - 1 >= Stations.Count) return;
+
+            var station = Stations[hedefIdx - 1];
+            string[] axes = { "X", "Y", "Z", "A", "B", "C" };
+            for (int i = 0; i < Math.Min(results.Count, 6); i++)
+            {
+                string val = results[i].Value.ToString("F3");
+                switch (i)
+                {
+                    case 0: station.TablaOffsetX = val; break;
+                    case 1: station.TablaOffsetY = val; break;
+                    case 2: station.TablaOffsetZ = val; break;
+                    case 3: station.TablaOffsetA = val; break;
+                    case 4: station.TablaOffsetB = val; break;
+                    case 5: station.TablaOffsetC = val; break;
+                }
+            }
+            station.TablaOlcumTamam = true;
         }
 
         // ─── ROBOT SİNYAL İZLEME (GLOBAL - SAYFA BAĞIMSIZ) ───
@@ -2827,6 +2874,9 @@ namespace App4.Utilities
 
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
                         OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı (tag tabanlı)");
+
+                        // Aktif istasyonun tabla kaçıklık UI'ını güncelle
+                        UpdateStationTablaOffsets(results);
                     }
                     else
                     {
@@ -4534,6 +4584,15 @@ namespace App4.Utilities
                             await WriteToAllRobotsAsync(offsets[i], v.ToString("F3"));
                         }
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
+
+                        // Aktif istasyonun tabla kaçıklık UI'ını güncelle
+                        var tablaValues = new List<GocatorMeasurement>();
+                        for (int i = 0; i < Math.Min(valuesToWrite.Count, 6); i++)
+                        {
+                            double v = valuesToWrite[i] is double dv2 ? dv2 : Convert.ToDouble(valuesToWrite[i]);
+                            tablaValues.Add(new GocatorMeasurement { Value = v });
+                        }
+                        UpdateStationTablaOffsets(tablaValues);
                     }
                     else
                     {

@@ -16,7 +16,7 @@ namespace App4
     {
         private DispatcherTimer _refreshTimer;
         // Manuel sayfadan yazılan değerlerin local kopyası (InputVars'a dokunmadan LED güncellemesi için)
-        private readonly Dictionary<string, string> _manuelLocalState = new Dictionary<string, string>();
+        // Local state kaldırıldı — tüm sinyal yönetimi GlobalData.RobotOutputVars üzerinden yapılır
 
         public Manuel_Page()
         {
@@ -212,14 +212,7 @@ namespace App4
 
         private bool IsGlobalVarTrue(string varName)
         {
-            // 1) Local state'te varsa (Manuel sayfadan yazılan) onu kullan
-            if (_manuelLocalState.TryGetValue(varName, out string localVal) && !string.IsNullOrEmpty(localVal))
-            {
-                string lv = localVal.ToUpper();
-                return lv == "TRUE" || lv == "1" || lv == "ON";
-            }
-
-            // 2) GlobalData OutputVars
+            // GlobalData.RobotOutputVars — tek kaynak, tüm sayfalardan erişilebilir
             var gVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == varName);
             if (gVar != null && !string.IsNullOrEmpty(gVar.Value))
             {
@@ -265,6 +258,13 @@ namespace App4
         // ================================================================
         // STATION CALIS / DURDUR BUTTONS
         // ================================================================
+
+        /// <summary>
+        /// Seçilen istasyonu aktif yap:
+        /// - Seçilen: HAZIR=TRUE, IS_BITTI=FALSE
+        /// - Diğerleri: HAZIR=FALSE, IS_BITTI=TRUE
+        /// - G_HEDEF_ISTASYON = seçilen istasyon no
+        /// </summary>
         private async void BtnIstasyonCalis_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
@@ -274,42 +274,18 @@ namespace App4
             btn.IsEnabled = false;
             try
             {
-                // 1. Close other stations
-                for (int i = 1; i <= 3; i++)
-                {
-                    if (i != stNum)
-                    {
-                        await WriteGlobalRobotOutVarAsync($"G_IST{i}_HAZIR", "FALSE");
-                        await WriteGlobalRobotOutVarAsync($"G_IST{i}_IS_BITTI", "FALSE");
-                    }
-                }
+                // Aktif istasyonu hazırla
+                await SetStationActive(stNum);
 
-                // 2. Open selected station
-                await WriteGlobalRobotOutVarAsync($"G_IST{stNum}_HAZIR", "TRUE");
-                await WriteGlobalRobotOutVarAsync($"G_IST{stNum}_IS_BITTI", "FALSE");
-
-                // 3. Get klima from dropdown
+                // Klima tip bilgisini dropdown'dan al ve yaz
                 var cmb = stNum == 1 ? CmbKlima_IST1 : stNum == 2 ? CmbKlima_IST2 : CmbKlima_IST3;
                 if (cmb.SelectedItem is App4.Utilities.RfidDef rfid)
                 {
                     int klimaIdx = GlobalData.KnownRfids.IndexOf(rfid) + 1;
                     int caseId = rfid.CasingIndex;
-                    await WriteGlobalRobotOutVarAsync("G_KLIMA_TIP", klimaIdx.ToString());
-                    await WriteGlobalRobotOutVarAsync("G_CASE_ID", caseId.ToString());
+                    await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
+                    await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
                 }
-
-                // 4. Set target station (Robot 2)
-                await WriteGlobalRobotOutVarAsync("G_HEDEF_ISTASYON", stNum.ToString());
-                double pos = GlobalData.GetStationSliderPosition(stNum);
-                await WriteGlobalRobotOutVarAsync("G_SLIDER_HEDEF_POZ", pos.ToString(CultureInfo.InvariantCulture));
-
-                // 5. Reset TAMAM signals
-                await WriteGlobalRobotOutVarAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
-                await WriteGlobalRobotOutVarAsync("G_BORU_OLCUM_TAMAM", "FALSE");
-
-                // 6. Ensure OTO mode and START
-                await WriteGlobalRobotOutVarAsync("G_OTO_MOD", "TRUE");
-                await WriteGlobalRobotOutVarAsync("G_SISTEM_START", "TRUE");
             }
             catch { }
             finally
@@ -318,6 +294,10 @@ namespace App4
             }
         }
 
+        /// <summary>
+        /// Seçilen istasyonu durdur:
+        /// - HAZIR=FALSE, IS_BITTI=TRUE
+        /// </summary>
         private async void BtnIstasyonDurdur_Click(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
@@ -327,13 +307,78 @@ namespace App4
             btn.IsEnabled = false;
             try
             {
-                await WriteGlobalRobotOutVarAsync($"G_IST{stNum}_HAZIR", "FALSE");
+                await WriteToRobotsAndLocal($"G_IST{stNum}_HAZIR", "FALSE");
+                await WriteToRobotsAndLocal($"G_IST{stNum}_IS_BITTI", "TRUE");
             }
             catch { }
             finally
             {
                 btn.IsEnabled = true;
             }
+        }
+
+        /// <summary>
+        /// İstasyonu aktifleştir — diğerlerini kapat.
+        /// Hem robotlara yazar hem local state günceller (LED anında yanıt verir).
+        /// </summary>
+        private async Task SetStationActive(int stNum)
+        {
+            for (int i = 1; i <= 3; i++)
+            {
+                if (i == stNum)
+                {
+                    // SEÇİLEN: İş bitmedi, hazır
+                    await WriteToRobotsAndLocal($"G_IST{i}_IS_BITTI", "FALSE");
+                    await WriteToRobotsAndLocal($"G_IST{i}_HAZIR", "TRUE");
+                }
+                else
+                {
+                    // DİĞERLERİ: İş bitti, hazır değil
+                    await WriteToRobotsAndLocal($"G_IST{i}_HAZIR", "FALSE");
+                    await WriteToRobotsAndLocal($"G_IST{i}_IS_BITTI", "TRUE");
+                }
+            }
+
+            // Hedef istasyon — her iki robota
+            await WriteToRobotsAndLocal("G_HEDEF_ISTASYON", stNum.ToString());
+
+            // Tabla + Boru ölçüm sıfırla
+            await WriteToRobotsAndLocal("G_TABLA_OLCUM_TAMAM", "FALSE");
+            await WriteToRobotsAndLocal("G_BORU_OLCUM_TAMAM", "FALSE");
+
+            // Robot 2'ye slider pozisyonu
+            var robots = KukaRobotManager.Instance?.Robots;
+            if (robots != null && robots.Count >= 2 && robots[1].IsConnected)
+            {
+                double pos = GlobalData.GetStationSliderPosition(stNum);
+                await robots[1].WriteVariableAsync("G_SLIDER_HEDEF_POZ", pos.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
+        /// GlobalData.RobotOutputVars + robotlara yazar.
+        /// Tüm sayfalardan erişilebilir, LED'ler anında güncellenir.
+        /// </summary>
+        private async Task WriteToRobotsAndLocal(string varName, string value)
+        {
+            // GlobalData OutputVars güncelle (LED ve diğer sayfalar için)
+            var gVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == varName);
+            if (gVar != null)
+            {
+                gVar.Value = value;
+                System.Diagnostics.Debug.WriteLine($"[MANUEL] GlobalData.{varName} = {value} (Value set OK)");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[MANUEL] ⚠ GlobalData.{varName} BULUNAMADI!");
+            }
+
+            // Robotlara yaz (bağlıysa)
+            try { await GlobalData.WriteToAllRobotsAsync(varName, value); } catch { }
+
+            // Doğrulama: Yazıldıktan sonra hala doğru mu?
+            var verify = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == varName);
+            System.Diagnostics.Debug.WriteLine($"[MANUEL] DOĞRULAMA: {varName} = '{verify?.Value}' (beklenen: {value})");
         }
 
         // ================================================================
@@ -349,25 +394,18 @@ namespace App4
                 // 3 istasyonun hepsi: IS_BITTI=FALSE, HAZIR=TRUE
                 for (int st = 1; st <= 3; st++)
                 {
-                    await WriteGlobalRobotOutVarAsync($"G_IST{st}_IS_BITTI", "FALSE");
-                    await WriteGlobalRobotOutVarAsync($"G_IST{st}_HAZIR", "TRUE");
+                    await WriteToRobotsAndLocal($"G_IST{st}_IS_BITTI", "FALSE");
+                    await WriteToRobotsAndLocal($"G_IST{st}_HAZIR", "TRUE");
                 }
 
-                // Hedef istasyon = 0 (tümü aktif, belirli bir hedef yok)
-                await WriteGlobalRobotOutVarAsync("G_HEDEF_ISTASYON", "0");
-
-                // Tabla + Boru ölçüm sıfırla (bekleniyor)
-                await WriteGlobalRobotOutVarAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
-                await WriteGlobalRobotOutVarAsync("G_BORU_OLCUM_TAMAM", "FALSE");
+                // Tabla + Boru ölçüm sıfırla
+                await WriteToRobotsAndLocal("G_TABLA_OLCUM_TAMAM", "FALSE");
+                await WriteToRobotsAndLocal("G_BORU_OLCUM_TAMAM", "FALSE");
 
                 // Klima tip tazeleme
                 var klimaTipVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP");
                 if (klimaTipVar != null && !string.IsNullOrEmpty(klimaTipVar.Value))
-                    await WriteGlobalRobotOutVarAsync("G_KLIMA_TIP", klimaTipVar.Value);
-
-                // OTO mod + START
-                await WriteGlobalRobotOutVarAsync("G_OTO_MOD", "TRUE");
-                await WriteGlobalRobotOutVarAsync("G_SISTEM_START", "TRUE");
+                    await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaTipVar.Value);
             }
             catch { }
             finally
@@ -427,9 +465,6 @@ namespace App4
             {
                 gVar.Value = valueToWrite;
             }
-
-            // Manuel sayfa local state güncelle (LED'ler buradan okur)
-            _manuelLocalState[outVarName] = valueToWrite;
 
             var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == outVarName);
             if (plcVar != null)
