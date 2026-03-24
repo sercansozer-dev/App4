@@ -783,6 +783,11 @@ namespace App4.Pages
                             if (success)
                             {
                                 v.Value = newVal;
+                                // ★ CommunicationLoop cache'ini güncelle — eski değeri geri yazmasın
+                                robot.UpdateLastWrittenOutput(tagName, newVal);
+                                // ★ GlobalData'daki karşılığını da güncelle (diğer sayfalar görsün)
+                                var gVar = GlobalData.RobotOutputVars.FirstOrDefault(g => g.Name == v.Name);
+                                if (gVar != null) gVar.Value = newVal;
                                 LogMessage($"✅ {tagName} = {newVal} yazıldı");
                             }
                             else
