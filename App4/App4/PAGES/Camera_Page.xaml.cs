@@ -2426,6 +2426,56 @@ namespace App4.PAGES
         }
 
 
+        // ═══ AKTİF NOKTA KARTLARI (Ekleme/Silme/Taşıma) ═══
+        private void BtnAddPoint_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            var rfidItem = FindParentRfidDef(btn);
+            if (rfidItem == null) return;
+
+            var parentGrid = VisualTreeHelper.GetParent(btn) as Grid;
+            var txtBox = parentGrid?.Children.OfType<TextBox>().FirstOrDefault();
+            string pointName = txtBox?.Text?.Trim();
+            if (string.IsNullOrEmpty(pointName)) { AddLog("Nokta adı giriniz."); return; }
+
+            rfidItem.PointSequence.Add(new App4.Utilities.PointItem
+            {
+                Index = rfidItem.PointSequence.Count + 1,
+                Name = pointName,
+                Area = "",
+                Description = ""
+            });
+            App4.Utilities.GlobalData.SaveRfids();
+            if (txtBox != null) txtBox.Text = "";
+            AddLog($"✓ Nokta eklendi: {pointName} → {rfidItem.Id}");
+        }
+
+        private void BtnRemovePoint_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            var rfidItem = FindParentRfidDef(btn);
+            if (rfidItem == null || rfidItem.PointSequence.Count == 0) return;
+
+            var removed = rfidItem.PointSequence[rfidItem.PointSequence.Count - 1];
+            rfidItem.PointSequence.RemoveAt(rfidItem.PointSequence.Count - 1);
+            App4.Utilities.GlobalData.SaveRfids();
+            AddLog($"✕ Nokta silindi: {removed.Name} ← {rfidItem.Id}");
+        }
+
+        private void BtnMovePoint_Click(object sender, RoutedEventArgs e)
+        {
+            // Son noktayı bir üste taşı (basit döngüsel)
+            var btn = sender as Button;
+            var rfidItem = FindParentRfidDef(btn);
+            if (rfidItem == null || rfidItem.PointSequence.Count < 2) return;
+
+            int lastIdx = rfidItem.PointSequence.Count - 1;
+            var item = rfidItem.PointSequence[lastIdx];
+            rfidItem.PointSequence.RemoveAt(lastIdx);
+            rfidItem.PointSequence.Insert(lastIdx - 1, item);
+            App4.Utilities.GlobalData.SaveRfids();
+        }
+
         // --- OTOMASYON AYARLARI ---
         // ▼▼▼ YENİ: SEÇİM DEĞİŞTİĞİNDE KAYDET ▼▼▼
         private void AutomationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

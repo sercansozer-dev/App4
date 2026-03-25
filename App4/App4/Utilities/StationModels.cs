@@ -110,6 +110,43 @@ namespace App4.Utilities
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
+    // --- AKTİF NOKTA ITEM (ROBOT DOLAŞIM NOKTASI) ---
+    public class PointItem : INotifyPropertyChanged
+    {
+        private int _index;
+        public int Index { get => _index; set { if (_index != value) { _index = value; OnPropertyChanged(); } } }
+
+        private string _name = "";
+        public string Name { get => _name; set { if (_name != value) { _name = value; OnPropertyChanged(); } } }
+
+        private string _area = "";
+        public string Area { get => _area; set { if (_area != value) { _area = value; OnPropertyChanged(); } } }
+
+        private string _description = "";
+        public string Description { get => _description; set { if (_description != value) { _description = value; OnPropertyChanged(); } } }
+
+        private bool _isCurrent;
+        [JsonIgnore]
+        public bool IsCurrent
+        {
+            get => _isCurrent;
+            set { if (_isCurrent != value) { _isCurrent = value; OnPropertyChanged(); OnPropertyChanged(nameof(RowBackground)); OnPropertyChanged(nameof(CurrentIndicator)); } }
+        }
+
+        [JsonIgnore]
+        public SolidColorBrush RowBackground =>
+            IsCurrent
+                ? new SolidColorBrush(Color.FromArgb(255, 20, 40, 50))
+                : new SolidColorBrush(Color.FromArgb(255, 42, 42, 44));
+
+        [JsonIgnore]
+        public string CurrentIndicator => IsCurrent ? "\u25B6" : "";
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     // --- KASA TİPİ ---
     public class CasingType : INotifyPropertyChanged
     {
@@ -190,9 +227,56 @@ namespace App4.Utilities
         [JsonIgnore]
         public ObservableCollection<IndexedJobItem> IndexedJobSequence { get; } = new();
 
+        // ═══ AKTİF NOKTA LİSTESİ (Robot dolaşım noktaları) ═══
+        private ObservableCollection<PointItem> _pointSequence = new();
+        public ObservableCollection<PointItem> PointSequence
+        {
+            get => _pointSequence;
+            set
+            {
+                if (_pointSequence != null)
+                    _pointSequence.CollectionChanged -= PointSequence_CollectionChanged;
+                _pointSequence = value ?? new ObservableCollection<PointItem>();
+                _pointSequence.CollectionChanged += PointSequence_CollectionChanged;
+                RefreshPointIndices();
+                OnPropertyChanged();
+            }
+        }
+
+        private void PointSequence_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            RefreshPointIndices();
+            OnPropertyChanged(nameof(PointSequence));
+        }
+
+        private void RefreshPointIndices()
+        {
+            for (int i = 0; i < _pointSequence.Count; i++)
+                _pointSequence[i].Index = i + 1; // 1-based index
+        }
+
+        // Aktif nokta index güncellemesi (G_AKTIF_NOKTA'dan gelir)
+        private int _currentPointIndex = -1;
+        [JsonIgnore]
+        public int CurrentPointIndex
+        {
+            get => _currentPointIndex;
+            set
+            {
+                if (_currentPointIndex != value)
+                {
+                    _currentPointIndex = value;
+                    for (int i = 0; i < _pointSequence.Count; i++)
+                        _pointSequence[i].IsCurrent = (i + 1 == _currentPointIndex); // 1-based karşılaştırma
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public RfidDef()
         {
             _jobSequence.CollectionChanged += JobSequence_CollectionChanged;
+            _pointSequence.CollectionChanged += PointSequence_CollectionChanged;
         }
 
         private void JobSequence_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)

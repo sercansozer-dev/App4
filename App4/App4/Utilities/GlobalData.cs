@@ -1414,8 +1414,10 @@ namespace App4.Utilities
                     RefreshRfidIndexes();
                     SaveRfids();
                 }; 
-            } 
-            catch { } 
+                // PointSequence boş olan kartlara default noktaları seed et
+                SeedDefaultPoints();
+            }
+            catch { }
         }
 
         /// <summary>RFID listesindeki index numaralarını yeniden atar (1-based)</summary>
@@ -1434,11 +1436,78 @@ namespace App4.Utilities
                 e.PropertyName == nameof(RfidDef.JobSequence) ||
                 e.PropertyName == nameof(RfidDef.SnifferDurations) ||
                 e.PropertyName == nameof(RfidDef.DeviationLimits) ||
-                e.PropertyName == nameof(RfidDef.Description))
+                e.PropertyName == nameof(RfidDef.Description) ||
+                e.PropertyName == nameof(RfidDef.PointSequence))
                 SaveRfids();
         }
 
         public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, JsonConvert.SerializeObject(KnownRfids, Formatting.Indented)); } catch { } }
+
+        /// <summary>PointSequence boş olan RFID kartlarına Excel'deki default noktaları seed eder</summary>
+        public static void SeedDefaultPoints()
+        {
+            // Alpha klima tipleri için default noktalar (R1=LEFT AREA B+D, R2=RIGHT AREA A+C)
+            var alphaPoints = new List<PointItem>
+            {
+                // AREA-A: U Bend Inside (A1-A15)
+                new PointItem { Name = "A1", Area = "AREA-A", Description = "U Bend Inside 1" },
+                new PointItem { Name = "A2", Area = "AREA-A", Description = "U Bend Inside 2" },
+                new PointItem { Name = "A3", Area = "AREA-A", Description = "U Bend Inside 3" },
+                new PointItem { Name = "A4", Area = "AREA-A", Description = "U Bend Inside 4" },
+                new PointItem { Name = "A5", Area = "AREA-A", Description = "U Bend Inside 5" },
+                new PointItem { Name = "A6", Area = "AREA-A", Description = "U Bend Inside 6" },
+                new PointItem { Name = "A7", Area = "AREA-A", Description = "U Bend Inside 7" },
+                new PointItem { Name = "A8", Area = "AREA-A", Description = "U Bend Inside 8" },
+                new PointItem { Name = "A9", Area = "AREA-A", Description = "U Bend Inside 9" },
+                new PointItem { Name = "A10", Area = "AREA-A", Description = "U Bend Inside 10" },
+                new PointItem { Name = "A11", Area = "AREA-A", Description = "U Bend Inside 11" },
+                new PointItem { Name = "A12", Area = "AREA-A", Description = "U Bend Inside 12" },
+                new PointItem { Name = "A13", Area = "AREA-A", Description = "U Bend Inside 13" },
+                new PointItem { Name = "A14", Area = "AREA-A", Description = "U Bend Inside 14" },
+                new PointItem { Name = "A15", Area = "AREA-A", Description = "U Bend Inside 15" },
+                // AREA-B: 4WV + Brazing Points
+                new PointItem { Name = "B1", Area = "AREA-B", Description = "4WV (4 Yollu Vana)" },
+                new PointItem { Name = "B2", Area = "AREA-B", Description = "Connection" },
+                new PointItem { Name = "B3-1", Area = "AREA-B", Description = "Suction-1" },
+                new PointItem { Name = "B3-2", Area = "AREA-B", Description = "Suction-2" },
+                new PointItem { Name = "B4-1", Area = "AREA-B", Description = "Gas Valve - Muffler inlet" },
+                new PointItem { Name = "B4-2", Area = "AREA-B", Description = "Gas Valve - Muffler outlet" },
+                new PointItem { Name = "B4-3", Area = "AREA-B", Description = "Gas Valve-inlet" },
+                new PointItem { Name = "B5-1", Area = "AREA-B", Description = "Discharge-1" },
+                new PointItem { Name = "B5-2", Area = "AREA-B", Description = "Discharge-2" },
+                new PointItem { Name = "B6", Area = "AREA-B", Description = "Compressor inlet" },
+                // AREA-C: MOV Brazing Points
+                new PointItem { Name = "C1-1", Area = "AREA-C", Description = "MOV - Liquid receiver connection" },
+                new PointItem { Name = "C1-2", Area = "AREA-C", Description = "Liquid receiver inlet" },
+                new PointItem { Name = "C1-3", Area = "AREA-C", Description = "Liquid receiver outlet" },
+                new PointItem { Name = "C2-1", Area = "AREA-C", Description = "MOV - HX Side -1" },
+                new PointItem { Name = "C2-2", Area = "AREA-C", Description = "MOV - HX Side -2" },
+                new PointItem { Name = "C2-3", Area = "AREA-C", Description = "MOV - HX Side -3" },
+            };
+
+            // Alpha kasa tipi RFID'leri (Type 1)
+            var alphaModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "RXJ20A5V1B9","RXJ25A5V1B9","RXJ35A5V1B9","RXJ42A5V1B9","RXJ50A5V1B9",
+                "RXA20A5V1B8","RXA25A5V1B8","RXA35A5V1B8","RXA42B5V1B8","RXA50B5V1B8",
+                "RXD25A5V1B","RXD35A5V1B","ARXD25A5V1B","ARXD35A5V1B"
+            };
+
+            bool changed = false;
+            foreach (var rfid in KnownRfids)
+            {
+                if (rfid.PointSequence == null || rfid.PointSequence.Count == 0)
+                {
+                    if (alphaModels.Contains(rfid.Id))
+                    {
+                        rfid.PointSequence = new System.Collections.ObjectModel.ObservableCollection<PointItem>(
+                            alphaPoints.Select(p => new PointItem { Name = p.Name, Area = p.Area, Description = p.Description }));
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) SaveRfids();
+        }
 
         // --- CASING TİPLERİ ---
         public static void LoadCasingTypes()
