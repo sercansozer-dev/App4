@@ -2670,22 +2670,11 @@ namespace App4.Utilities
                 return;
             }
 
-            // ═══ BORU OLCUM TAMAM → Robot 1 TRUE aldıysa 2sn sonra FALSE'a çek ═══
-            // Boru ölçüm sadece Robot 1'i ilgilendiriyor (Gocator Robot 1'de)
+            // ═══ BORU OLCUM TAMAM — PC yazdıktan sonra DOKUNMA ═══
+            // Robot kendisi FALSE'a çeker (handshake). CommunicationLoop senkronize eder.
+            // PC otomatik FALSE çekmez — robot T2 %100 hızda çalışırken zamanlama sorunu yaratır.
             if (changedVar.Name == "G_BORU_OLCUM_TAMAM")
             {
-                bool isTamamTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
-                if (isTamamTrue && robotNo == 1)
-                {
-                    OnAutomationLog?.Invoke($"[Boru] Robot 1 TAMAM aldı → 2sn sonra FALSE'a çekilecek");
-                    _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(2000);
-                        await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
-                        ResetMeasurementSignal();
-                        OnAutomationLog?.Invoke($"[Boru] G_BORU_OLCUM_TAMAM = FALSE + sinyal sıfırlandı");
-                    });
-                }
                 return;
             }
 
