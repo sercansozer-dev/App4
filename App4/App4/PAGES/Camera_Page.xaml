@@ -2341,7 +2341,7 @@
                         </Border>
                         <Grid Grid.Row="1" Padding="15,10">
                             <GridView x:Name="PointCardsGridView"
-                                      ItemsSource="{x:Bind KnownRfids}"
+                                      ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}"
                                       SelectionMode="None"
                                       IsItemClickEnabled="False"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
