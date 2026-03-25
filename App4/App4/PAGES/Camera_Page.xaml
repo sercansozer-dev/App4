@@ -2340,6 +2340,7 @@
                             </Grid>
                         </Border>
                         <Grid Grid.Row="1" Padding="15,10">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled">
                             <ItemsControl x:Name="PointCardsGridView"
                                       ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}">
                                 <ItemsControl.ItemsPanel>
@@ -2420,6 +2421,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            </ScrollViewer>
                         </Grid>
                     </Grid>
                 </Border>
