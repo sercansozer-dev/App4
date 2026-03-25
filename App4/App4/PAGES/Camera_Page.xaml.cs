@@ -2433,21 +2433,33 @@ namespace App4.PAGES
             var rfidItem = FindParentRfidDef(btn);
             if (rfidItem == null) return;
 
-            var parentGrid = VisualTreeHelper.GetParent(btn) as Grid;
-            var txtBox = parentGrid?.Children.OfType<TextBox>().FirstOrDefault();
-            string pointName = txtBox?.Text?.Trim();
+            // Form alanlarını bul (StackPanel > Grid > TextBox/ComboBox)
+            var stackPanel = VisualTreeHelper.GetParent(VisualTreeHelper.GetParent(btn)) as StackPanel;
+            if (stackPanel == null) return;
+            var formGrid = stackPanel.Children.OfType<Grid>().FirstOrDefault();
+            if (formGrid == null) return;
+
+            var txtName = formGrid.Children.OfType<TextBox>().FirstOrDefault(t => t.PlaceholderText == "Ad");
+            var txtDesc = formGrid.Children.OfType<TextBox>().FirstOrDefault(t => t.PlaceholderText == "Açıklama");
+            var cmbArea = formGrid.Children.OfType<ComboBox>().FirstOrDefault();
+
+            string pointName = txtName?.Text?.Trim();
             if (string.IsNullOrEmpty(pointName)) { AddLog("Nokta adı giriniz."); return; }
+
+            string desc = txtDesc?.Text?.Trim() ?? "";
+            string area = (cmbArea?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
 
             rfidItem.PointSequence.Add(new App4.Utilities.PointItem
             {
                 Index = rfidItem.PointSequence.Count + 1,
                 Name = pointName,
-                Area = "",
-                Description = ""
+                Area = area,
+                Description = desc
             });
             App4.Utilities.GlobalData.SaveRfids();
-            if (txtBox != null) txtBox.Text = "";
-            AddLog($"✓ Nokta eklendi: {pointName} → {rfidItem.Id}");
+            if (txtName != null) txtName.Text = "";
+            if (txtDesc != null) txtDesc.Text = "";
+            AddLog($"✓ Nokta eklendi: {pointName} ({area}) → {rfidItem.Id}");
         }
 
         private void BtnRemovePoint_Click(object sender, RoutedEventArgs e)

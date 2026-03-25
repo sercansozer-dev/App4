@@ -2391,8 +2391,8 @@
                                                                     <TextBlock Grid.Column="1" Text="{x:Bind Index, Mode=OneWay}" FontSize="10" Foreground="#888" FontWeight="Bold" VerticalAlignment="Center"/>
                                                                     <TextBlock Grid.Column="2" Text="{x:Bind Name}" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" VerticalAlignment="Center"/>
                                                                     <TextBlock Grid.Column="3" Text="{x:Bind Description}" FontSize="9" Foreground="#607D8B" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                                    <Border Grid.Column="4" Background="#0D253F" CornerRadius="3" Padding="4,1">
-                                                                        <TextBlock Text="{x:Bind Area}" FontSize="8" Foreground="#42A5F5" FontWeight="Bold"/>
+                                                                    <Border Grid.Column="4" Background="{x:Bind AreaBadgeColor, Mode=OneWay}" CornerRadius="3" Padding="4,1">
+                                                                        <TextBlock Text="{x:Bind Area}" FontSize="8" Foreground="{x:Bind AreaTextColor, Mode=OneWay}" FontWeight="Bold"/>
                                                                     </Border>
                                                                 </Grid>
                                                             </Border>
@@ -2402,18 +2402,33 @@
 
                                                 <!-- EKLE/SİL KONTROL -->
                                                 <Border Grid.Row="2" Background="#151525" CornerRadius="0,0,8,8" Padding="8,6">
-                                                    <Grid ColumnSpacing="4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBox x:Name="TxtAddPoint" Grid.Column="0" PlaceholderText="Nokta Adı (ör: B3-1)" FontSize="10" Height="28" Background="#1A1A2E" Foreground="White"/>
-                                                        <Button Grid.Column="1" Content="+ EKLE" Click="BtnAddPoint_Click" Background="#1565C0" Foreground="White" FontSize="9" FontWeight="Bold" Height="28" Margin="4,0,0,0"/>
-                                                        <Button Grid.Column="2" Content="▲▼" Click="BtnMovePoint_Click" Background="#37474F" Foreground="White" FontSize="9" Height="28" Margin="2,0,0,0" ToolTipService.ToolTip="Seçili noktayı taşı"/>
-                                                        <Button Grid.Column="3" Content="✕" Click="BtnRemovePoint_Click" Background="#B71C1C" Foreground="White" FontSize="9" Height="28" Margin="2,0,0,0" ToolTipService.ToolTip="Son noktayı sil"/>
-                                                    </Grid>
+                                                    <StackPanel Spacing="4">
+                                                        <Grid ColumnSpacing="4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="70"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="80"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox x:Name="TxtAddPointName" Grid.Column="0" PlaceholderText="Ad" FontSize="10" Height="26" Background="#1A1A2E" Foreground="White"/>
+                                                            <TextBox x:Name="TxtAddPointDesc" Grid.Column="1" PlaceholderText="Açıklama" FontSize="10" Height="26" Background="#1A1A2E" Foreground="White"/>
+                                                            <ComboBox x:Name="CmbAddPointArea" Grid.Column="2" PlaceholderText="Bölge" FontSize="10" Height="26" Background="#1A1A2E" HorizontalAlignment="Stretch">
+                                                                <ComboBoxItem Content="AREA-A"/>
+                                                                <ComboBoxItem Content="AREA-B"/>
+                                                                <ComboBoxItem Content="AREA-C"/>
+                                                                <ComboBoxItem Content="AREA-D"/>
+                                                            </ComboBox>
+                                                        </Grid>
+                                                        <Grid ColumnSpacing="4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Button Grid.Column="0" Content="+ EKLE" Click="BtnAddPoint_Click" Background="#1565C0" Foreground="White" FontSize="9" FontWeight="Bold" Height="26" HorizontalAlignment="Stretch"/>
+                                                            <Button Grid.Column="1" Content="▲▼" Click="BtnMovePoint_Click" Background="#37474F" Foreground="White" FontSize="9" Height="26" ToolTipService.ToolTip="Son noktayı bir üste taşı"/>
+                                                            <Button Grid.Column="2" Content="✕" Click="BtnRemovePoint_Click" Background="#B71C1C" Foreground="White" FontSize="9" Height="26" ToolTipService.ToolTip="Son noktayı sil"/>
+                                                        </Grid>
+                                                    </StackPanel>
                                                 </Border>
                                             </Grid>
                                             </Border>

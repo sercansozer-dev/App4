@@ -140,6 +140,36 @@ namespace App4.Utilities
         [JsonIgnore]
         public string TouchUpIcon => IsTouchedUp ? "\uE73E" : "\uE739"; // ✓ veya ○
 
+        [JsonIgnore]
+        public SolidColorBrush AreaBadgeColor
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Area)) return new SolidColorBrush(Color.FromArgb(255, 60, 60, 60));
+                var upper = Area.ToUpper();
+                if (upper.Contains("AREA-A")) return new SolidColorBrush(Color.FromArgb(255, 21, 101, 192));  // Mavi
+                if (upper.Contains("AREA-B")) return new SolidColorBrush(Color.FromArgb(255, 230, 81, 0));    // Turuncu
+                if (upper.Contains("AREA-C")) return new SolidColorBrush(Color.FromArgb(255, 46, 125, 50));   // Yeşil
+                if (upper.Contains("AREA-D")) return new SolidColorBrush(Color.FromArgb(255, 142, 36, 170));  // Mor
+                return new SolidColorBrush(Color.FromArgb(255, 60, 60, 60));
+            }
+        }
+
+        [JsonIgnore]
+        public SolidColorBrush AreaTextColor
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Area)) return new SolidColorBrush(Color.FromArgb(255, 130, 130, 130));
+                var upper = Area.ToUpper();
+                if (upper.Contains("AREA-A")) return new SolidColorBrush(Color.FromArgb(255, 144, 202, 249)); // Açık mavi
+                if (upper.Contains("AREA-B")) return new SolidColorBrush(Color.FromArgb(255, 255, 183, 77));  // Açık turuncu
+                if (upper.Contains("AREA-C")) return new SolidColorBrush(Color.FromArgb(255, 165, 214, 167)); // Açık yeşil
+                if (upper.Contains("AREA-D")) return new SolidColorBrush(Color.FromArgb(255, 206, 147, 216)); // Açık mor
+                return new SolidColorBrush(Color.FromArgb(255, 130, 130, 130));
+            }
+        }
+
         private bool _isCurrent;
         [JsonIgnore]
         public bool IsCurrent
