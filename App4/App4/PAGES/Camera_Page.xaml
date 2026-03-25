@@ -2388,7 +2388,9 @@
                                                                         <ColumnDefinition Width="*"/>
                                                                         <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
-                                                                    <TextBlock Grid.Column="0" Text="{x:Bind CurrentIndicator, Mode=OneWay}" FontSize="10" Foreground="#2196F3" VerticalAlignment="Center"/>
+                                                                    <Button Grid.Column="0" Click="BtnToggleTouchUp_Click" Background="Transparent" BorderThickness="0" Padding="0" MinWidth="18" MinHeight="18" VerticalAlignment="Center">
+                                                                        <FontIcon Glyph="{x:Bind TouchUpIcon, Mode=OneWay}" FontSize="13" Foreground="{x:Bind TouchUpColor, Mode=OneWay}"/>
+                                                                    </Button>
                                                                     <TextBlock Grid.Column="1" Text="{x:Bind Index, Mode=OneWay}" FontSize="10" Foreground="#888" FontWeight="Bold" VerticalAlignment="Center"/>
                                                                     <TextBlock Grid.Column="2" Text="{x:Bind Name}" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" VerticalAlignment="Center"/>
                                                                     <TextBlock Grid.Column="3" Text="{x:Bind Description}" FontSize="9" Foreground="#607D8B" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>

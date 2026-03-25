@@ -125,6 +125,21 @@ namespace App4.Utilities
         private string _description = "";
         public string Description { get => _description; set { if (_description != value) { _description = value; OnPropertyChanged(); } } }
 
+        private bool _isTouchedUp;
+        public bool IsTouchedUp
+        {
+            get => _isTouchedUp;
+            set { if (_isTouchedUp != value) { _isTouchedUp = value; OnPropertyChanged(); OnPropertyChanged(nameof(TouchUpColor)); OnPropertyChanged(nameof(TouchUpIcon)); } }
+        }
+
+        [JsonIgnore]
+        public SolidColorBrush TouchUpColor => IsTouchedUp
+            ? new SolidColorBrush(Color.FromArgb(255, 76, 175, 80))   // Yeşil
+            : new SolidColorBrush(Color.FromArgb(255, 100, 100, 100)); // Gri
+
+        [JsonIgnore]
+        public string TouchUpIcon => IsTouchedUp ? "\uE73E" : "\uE739"; // ✓ veya ○
+
         private bool _isCurrent;
         [JsonIgnore]
         public bool IsCurrent

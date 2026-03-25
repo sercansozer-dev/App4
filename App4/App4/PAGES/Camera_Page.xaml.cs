@@ -2476,6 +2476,16 @@ namespace App4.PAGES
             App4.Utilities.GlobalData.SaveRfids();
         }
 
+        private void BtnToggleTouchUp_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (btn?.DataContext is App4.Utilities.PointItem point)
+            {
+                point.IsTouchedUp = !point.IsTouchedUp;
+                App4.Utilities.GlobalData.SaveRfids();
+            }
+        }
+
         // --- OTOMASYON AYARLARI ---
         // ▼▼▼ YENİ: SEÇİM DEĞİŞTİĞİNDE KAYDET ▼▼▼
         private void AutomationComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
