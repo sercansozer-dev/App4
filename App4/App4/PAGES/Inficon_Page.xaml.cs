@@ -43,25 +43,13 @@ namespace App4.PAGES
 
             // PLC tag listelerini doldur
             InitializeAvailablePlcTags();
-
-            RefreshLogTable();
         }
 
         // ═══ PAGE LIFECYCLE ═══
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            // WebView2 baslat
-            try
-            {
-                var env = await CoreWebView2Environment.CreateWithOptionsAsync(null,
-                    Path.Combine(Path.GetTempPath(), "App4_InficonTrend"), null);
-                await TrendWebView.EnsureCoreWebView2Async(env);
-                string htmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "InficonTrendChart.html");
-                if (File.Exists(htmlPath))
-                    TrendWebView.CoreWebView2.Navigate(new Uri(htmlPath).AbsoluteUri);
-                _webViewReady = true;
-            }
-            catch { _webViewReady = false; }
+            // WebView2 baslat (arka planda — sayfa donmasını engeller)
+            _ = InitWebViewAsync();
 
             // PLC okuma timer (GlobalData'dan, default 200ms)
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(GlobalData.Inficon_RefreshInterval) };
@@ -76,6 +64,9 @@ namespace App4.PAGES
             // INFICON PLC değişkenlerini bağla
             BindInficonVars();
 
+            // Log tablosunu yükle (Page_Loaded'da, XAML hazır olduktan sonra)
+            RefreshLogTable();
+
             // Sniffer nokta tabloları — CollectionChanged ile otomatik güncelle
             GlobalData.Robot1SnifferPoints.CollectionChanged += (s, args) => DispatcherQueue.TryEnqueue(() => RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount));
             GlobalData.Robot2SnifferPoints.CollectionChanged += (s, args) => DispatcherQueue.TryEnqueue(() => RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount));
@@ -87,6 +78,21 @@ namespace App4.PAGES
         {
             if (_refreshTimer != null) { _refreshTimer.Stop(); _refreshTimer.Tick -= RefreshTimer_Tick; _refreshTimer = null; }
             if (_trendTimer != null) { _trendTimer.Stop(); _trendTimer.Tick -= TrendTimer_Tick; _trendTimer = null; }
+        }
+
+        private async Task InitWebViewAsync()
+        {
+            try
+            {
+                var env = await CoreWebView2Environment.CreateWithOptionsAsync(null,
+                    Path.Combine(Path.GetTempPath(), "App4_InficonTrend"), null);
+                await TrendWebView.EnsureCoreWebView2Async(env);
+                string htmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "InficonTrendChart.html");
+                if (File.Exists(htmlPath))
+                    TrendWebView.CoreWebView2.Navigate(new Uri(htmlPath).AbsoluteUri);
+                _webViewReady = true;
+            }
+            catch { _webViewReady = false; }
         }
 
         // ═══ TIMER TICK — PLC OKUMA (200ms) ═══

@@ -993,7 +993,7 @@ namespace App4.Utilities
             set { _boruAbcDahil = value; SaveCodesysOffsets(); }
         }
 
-        private static bool _tablaAbcDahil = true;
+        private static bool _tablaAbcDahil = false;
         public static bool TablaAbcDahil
         {
             get => _tablaAbcDahil;
@@ -2262,10 +2262,10 @@ namespace App4.Utilities
                     if (r.IsConnected)
                     {
                         // ★ Robot'ta tanımlı PlcTag varsa onu kullan (CommunicationLoop PlcTag ile okur)
-                        // Yoksa doğrudan varName kullan (KRL değişken adı olarak)
+                        // OutputVars ÖNCE aranmalı — yazma işlemi yapıyoruz, CommunicationLoop OutputVars'tan okur
                         string krlTag = varName;
-                        var matchVar = r.InputVars.FirstOrDefault(v => v.Name == varName)
-                                    ?? r.OutputVars.FirstOrDefault(v => v.Name == varName);
+                        var matchVar = r.OutputVars.FirstOrDefault(v => v.Name == varName)
+                                    ?? r.InputVars.FirstOrDefault(v => v.Name == varName);
                         if (matchVar != null)
                         {
                             if (!string.IsNullOrEmpty(matchVar.PlcTag))
