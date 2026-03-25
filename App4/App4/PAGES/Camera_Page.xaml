@@ -2330,113 +2330,112 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
+
+                        <!-- HEADER + KLİMA SEÇİCİ -->
                         <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,10">
                             <Grid>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                     <FontIcon Glyph="&#xE81D;" Foreground="#2196F3" FontSize="16"/>
                                     <TextBlock Text="AKTİF NOKTA KARTLARI" FontSize="14" FontWeight="Bold" Foreground="#2196F3"/>
-                                    <TextBlock Text="(Robot Dolaşım Noktaları — G_AKTIF_NOKTA)" FontSize="10" Foreground="#666" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                 </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="20,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Klima:" FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="CmbPointCardRfid"
+                                              ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}"
+                                              DisplayMemberPath="Id"
+                                              SelectionChanged="CmbPointCardRfid_SelectionChanged"
+                                              FontSize="11" Height="32" MinWidth="200" Background="#1A1A2E"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" x:Name="TxtPointCount" Text="0 nokta" FontSize="10" Foreground="#666" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
+
+                        <!-- SEÇİLİ KLİMA NOKTA LİSTESİ -->
                         <Grid Grid.Row="1" Padding="15,10">
-                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled">
-                            <ItemsControl x:Name="PointCardsGridView"
-                                      ItemsSource="{x:Bind utils:GlobalData.KnownRfids, Mode=OneWay}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="utils:RfidDef">
-                                        <Border Background="{x:Bind ActiveCardBackground, Mode=OneWay}"
-                                                CornerRadius="8" BorderBrush="{x:Bind ActiveBorderBrush, Mode=OneWay}"
-                                                BorderThickness="{x:Bind ActiveBorderThickness, Mode=OneWay}"
-                                                Padding="0" Margin="4" Width="320">
-                                            <Border Background="#1A1A2E" CornerRadius="8" Padding="0">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="280"/>
+                            </Grid.ColumnDefinitions>
 
-                                                <!-- HEADER -->
-                                                <Border Grid.Row="0" Background="#0D253F" CornerRadius="8,8,0,0" Padding="10,8">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <FontIcon Glyph="&#xE81D;" Foreground="#42A5F5" FontSize="12"/>
-                                                        <TextBlock Text="{x:Bind Id}" FontSize="12" FontWeight="Bold" Foreground="#90CAF9"/>
-                                                        <TextBlock Text="|" Foreground="#555" FontSize="10" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="{x:Bind Description}" FontSize="10" Foreground="#78909C" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                    </StackPanel>
-                                                </Border>
-
-                                                <!-- NOKTA LİSTESİ -->
-                                                <ItemsControl Grid.Row="1" ItemsSource="{x:Bind PointSequence, Mode=OneWay}" Margin="0,4,0,4">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="utils:PointItem">
-                                                            <Border Background="{x:Bind RowBackground, Mode=OneWay}" CornerRadius="4" Padding="8,4" Margin="4,1">
-                                                                <Grid>
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="18"/>
-                                                                        <ColumnDefinition Width="28"/>
-                                                                        <ColumnDefinition Width="50"/>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <Button Grid.Column="0" Click="BtnToggleTouchUp_Click" Background="Transparent" BorderThickness="0" Padding="0" MinWidth="18" MinHeight="18" VerticalAlignment="Center">
-                                                                        <FontIcon Glyph="{x:Bind TouchUpIcon, Mode=OneWay}" FontSize="13" Foreground="{x:Bind TouchUpColor, Mode=OneWay}"/>
-                                                                    </Button>
-                                                                    <TextBlock Grid.Column="1" Text="{x:Bind Index, Mode=OneWay}" FontSize="10" Foreground="#888" FontWeight="Bold" VerticalAlignment="Center"/>
-                                                                    <TextBlock Grid.Column="2" Text="{x:Bind Name}" FontSize="10" Foreground="#90CAF9" FontWeight="Bold" VerticalAlignment="Center"/>
-                                                                    <TextBlock Grid.Column="3" Text="{x:Bind Description}" FontSize="9" Foreground="#607D8B" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                                    <Border Grid.Column="4" Background="{x:Bind AreaBadgeColor, Mode=OneWay}" CornerRadius="3" Padding="4,1">
-                                                                        <TextBlock Text="{x:Bind Area}" FontSize="8" Foreground="{x:Bind AreaTextColor, Mode=OneWay}" FontWeight="Bold"/>
-                                                                    </Border>
-                                                                </Grid>
+                            <!-- NOKTA TABLOSU -->
+                            <Border Grid.Column="0" Background="#1A1A2E" CornerRadius="8" Padding="0" Margin="0,0,10,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <!-- Tablo Başlık -->
+                                    <Border Grid.Row="0" Background="#0D253F" CornerRadius="8,8,0,0" Padding="10,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30"/>
+                                                <ColumnDefinition Width="35"/>
+                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="70"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="✓" FontSize="10" Foreground="#42A5F5" FontWeight="Bold"/>
+                                            <TextBlock Grid.Column="1" Text="#" FontSize="10" Foreground="#42A5F5" FontWeight="Bold"/>
+                                            <TextBlock Grid.Column="2" Text="NOKTA" FontSize="10" Foreground="#42A5F5" FontWeight="Bold"/>
+                                            <TextBlock Grid.Column="3" Text="AÇIKLAMA" FontSize="10" Foreground="#42A5F5" FontWeight="Bold"/>
+                                            <TextBlock Grid.Column="4" Text="BÖLGE" FontSize="10" Foreground="#42A5F5" FontWeight="Bold"/>
+                                        </Grid>
+                                    </Border>
+                                    <!-- Nokta Satırları -->
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="500">
+                                        <ItemsControl x:Name="PointListControl">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="utils:PointItem">
+                                                    <Border Background="{x:Bind RowBackground, Mode=OneWay}" CornerRadius="3" Padding="10,5" Margin="2,1">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="30"/>
+                                                                <ColumnDefinition Width="35"/>
+                                                                <ColumnDefinition Width="60"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Button Grid.Column="0" Click="BtnToggleTouchUp_Click" Background="Transparent" BorderThickness="0" Padding="0" MinWidth="20" MinHeight="20" VerticalAlignment="Center">
+                                                                <FontIcon Glyph="{x:Bind TouchUpIcon, Mode=OneWay}" FontSize="14" Foreground="{x:Bind TouchUpColor, Mode=OneWay}"/>
+                                                            </Button>
+                                                            <TextBlock Grid.Column="1" Text="{x:Bind Index, Mode=OneWay}" FontSize="11" Foreground="#888" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="2" Text="{x:Bind Name}" FontSize="11" Foreground="#90CAF9" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="3" Text="{x:Bind Description}" FontSize="10" Foreground="#78909C" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                            <Border Grid.Column="4" Background="{x:Bind AreaBadgeColor, Mode=OneWay}" CornerRadius="4" Padding="6,2">
+                                                                <TextBlock Text="{x:Bind Area}" FontSize="9" Foreground="{x:Bind AreaTextColor, Mode=OneWay}" FontWeight="Bold"/>
                                                             </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
 
-                                                <!-- EKLE/SİL KONTROL -->
-                                                <Border Grid.Row="2" Background="#151525" CornerRadius="0,0,8,8" Padding="8,6">
-                                                    <StackPanel Spacing="4">
-                                                        <Grid ColumnSpacing="4">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="70"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="80"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBox x:Name="TxtAddPointName" Grid.Column="0" PlaceholderText="Ad" FontSize="10" Height="26" Background="#1A1A2E" Foreground="White"/>
-                                                            <TextBox x:Name="TxtAddPointDesc" Grid.Column="1" PlaceholderText="Açıklama" FontSize="10" Height="26" Background="#1A1A2E" Foreground="White"/>
-                                                            <ComboBox x:Name="CmbAddPointArea" Grid.Column="2" PlaceholderText="Bölge" FontSize="10" Height="26" Background="#1A1A2E" HorizontalAlignment="Stretch">
-                                                                <ComboBoxItem Content="AREA-A"/>
-                                                                <ComboBoxItem Content="AREA-B"/>
-                                                                <ComboBoxItem Content="AREA-C"/>
-                                                                <ComboBoxItem Content="AREA-D"/>
-                                                            </ComboBox>
-                                                        </Grid>
-                                                        <Grid ColumnSpacing="4">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Button Grid.Column="0" Content="+ EKLE" Click="BtnAddPoint_Click" Background="#1565C0" Foreground="White" FontSize="9" FontWeight="Bold" Height="26" HorizontalAlignment="Stretch"/>
-                                                            <Button Grid.Column="1" Content="▲▼" Click="BtnMovePoint_Click" Background="#37474F" Foreground="White" FontSize="9" Height="26" ToolTipService.ToolTip="Son noktayı bir üste taşı"/>
-                                                            <Button Grid.Column="2" Content="✕" Click="BtnRemovePoint_Click" Background="#B71C1C" Foreground="White" FontSize="9" Height="26" ToolTipService.ToolTip="Son noktayı sil"/>
-                                                        </Grid>
-                                                    </StackPanel>
-                                                </Border>
-                                            </Grid>
-                                            </Border>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            </ScrollViewer>
+                            <!-- SAĞ PANEL: EKLE/SİL/TAŞI -->
+                            <Border Grid.Column="1" Background="#151525" CornerRadius="8" Padding="12">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="NOKTA EKLE" FontSize="12" FontWeight="Bold" Foreground="#42A5F5"/>
+                                    <TextBox x:Name="TxtAddPointName" PlaceholderText="Nokta Adı (ör: B3-1)" FontSize="11" Height="32" Background="#1A1A2E" Foreground="White"/>
+                                    <TextBox x:Name="TxtAddPointDesc" PlaceholderText="Açıklama" FontSize="11" Height="32" Background="#1A1A2E" Foreground="White"/>
+                                    <ComboBox x:Name="CmbAddPointArea" PlaceholderText="Bölge Seç" FontSize="11" Height="32" Background="#1A1A2E" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="AREA-A"/>
+                                        <ComboBoxItem Content="AREA-B"/>
+                                        <ComboBoxItem Content="AREA-C"/>
+                                        <ComboBoxItem Content="AREA-D"/>
+                                    </ComboBox>
+                                    <Button Content="+ NOKTA EKLE" Click="BtnAddPoint_Click" Background="#1565C0" Foreground="White" FontSize="11" FontWeight="Bold" Height="36" HorizontalAlignment="Stretch" CornerRadius="6"/>
+                                    <Rectangle Height="1" Fill="#333" Margin="0,4"/>
+                                    <Button Content="▲ YUKARI TAŞI" Click="BtnMovePoint_Click" Background="#37474F" Foreground="White" FontSize="10" Height="30" HorizontalAlignment="Stretch" CornerRadius="4"/>
+                                    <Button Content="✕ SON NOKTAYI SİL" Click="BtnRemovePoint_Click" Background="#B71C1C" Foreground="White" FontSize="10" Height="30" HorizontalAlignment="Stretch" CornerRadius="4"/>
+                                </StackPanel>
+                            </Border>
                         </Grid>
                     </Grid>
                 </Border>

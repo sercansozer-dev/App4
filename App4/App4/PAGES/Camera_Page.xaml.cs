@@ -2427,65 +2427,73 @@ namespace App4.PAGES
 
 
         // ═══ AKTİF NOKTA KARTLARI (Ekleme/Silme/Taşıma) ═══
+        private RfidDef _selectedPointRfid;
+
+        private void CmbPointCardRfid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            _selectedPointRfid = CmbPointCardRfid.SelectedItem as RfidDef;
+            RefreshPointList();
+        }
+
+        private void RefreshPointList()
+        {
+            if (_selectedPointRfid != null)
+            {
+                PointListControl.ItemsSource = _selectedPointRfid.PointSequence;
+                TxtPointCount.Text = $"{_selectedPointRfid.PointSequence.Count} nokta";
+            }
+            else
+            {
+                PointListControl.ItemsSource = null;
+                TxtPointCount.Text = "0 nokta";
+            }
+        }
+
         private void BtnAddPoint_Click(object sender, RoutedEventArgs e)
         {
-            var btn = sender as Button;
-            var rfidItem = FindParentRfidDef(btn);
-            if (rfidItem == null) return;
+            if (_selectedPointRfid == null) { AddLog("Önce klima seçiniz."); return; }
 
-            // Form alanlarını bul (StackPanel > Grid > TextBox/ComboBox)
-            var stackPanel = VisualTreeHelper.GetParent(VisualTreeHelper.GetParent(btn)) as StackPanel;
-            if (stackPanel == null) return;
-            var formGrid = stackPanel.Children.OfType<Grid>().FirstOrDefault();
-            if (formGrid == null) return;
-
-            var txtName = formGrid.Children.OfType<TextBox>().FirstOrDefault(t => t.PlaceholderText == "Ad");
-            var txtDesc = formGrid.Children.OfType<TextBox>().FirstOrDefault(t => t.PlaceholderText == "Açıklama");
-            var cmbArea = formGrid.Children.OfType<ComboBox>().FirstOrDefault();
-
-            string pointName = txtName?.Text?.Trim();
+            string pointName = TxtAddPointName?.Text?.Trim();
             if (string.IsNullOrEmpty(pointName)) { AddLog("Nokta adı giriniz."); return; }
 
-            string desc = txtDesc?.Text?.Trim() ?? "";
-            string area = (cmbArea?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+            string desc = TxtAddPointDesc?.Text?.Trim() ?? "";
+            string area = (CmbAddPointArea?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
 
-            rfidItem.PointSequence.Add(new App4.Utilities.PointItem
+            _selectedPointRfid.PointSequence.Add(new App4.Utilities.PointItem
             {
-                Index = rfidItem.PointSequence.Count + 1,
+                Index = _selectedPointRfid.PointSequence.Count + 1,
                 Name = pointName,
                 Area = area,
                 Description = desc
             });
             App4.Utilities.GlobalData.SaveRfids();
-            if (txtName != null) txtName.Text = "";
-            if (txtDesc != null) txtDesc.Text = "";
-            AddLog($"✓ Nokta eklendi: {pointName} ({area}) → {rfidItem.Id}");
+            TxtAddPointName.Text = "";
+            TxtAddPointDesc.Text = "";
+            RefreshPointList();
+            AddLog($"✓ Nokta eklendi: {pointName} ({area}) → {_selectedPointRfid.Id}");
         }
 
         private void BtnRemovePoint_Click(object sender, RoutedEventArgs e)
         {
-            var btn = sender as Button;
-            var rfidItem = FindParentRfidDef(btn);
-            if (rfidItem == null || rfidItem.PointSequence.Count == 0) return;
+            if (_selectedPointRfid == null || _selectedPointRfid.PointSequence.Count == 0) return;
 
-            var removed = rfidItem.PointSequence[rfidItem.PointSequence.Count - 1];
-            rfidItem.PointSequence.RemoveAt(rfidItem.PointSequence.Count - 1);
+            var removed = _selectedPointRfid.PointSequence[_selectedPointRfid.PointSequence.Count - 1];
+            _selectedPointRfid.PointSequence.RemoveAt(_selectedPointRfid.PointSequence.Count - 1);
             App4.Utilities.GlobalData.SaveRfids();
-            AddLog($"✕ Nokta silindi: {removed.Name} ← {rfidItem.Id}");
+            RefreshPointList();
+            AddLog($"✕ Nokta silindi: {removed.Name} ← {_selectedPointRfid.Id}");
         }
 
         private void BtnMovePoint_Click(object sender, RoutedEventArgs e)
         {
-            // Son noktayı bir üste taşı (basit döngüsel)
-            var btn = sender as Button;
-            var rfidItem = FindParentRfidDef(btn);
-            if (rfidItem == null || rfidItem.PointSequence.Count < 2) return;
+            if (_selectedPointRfid == null || _selectedPointRfid.PointSequence.Count < 2) return;
 
-            int lastIdx = rfidItem.PointSequence.Count - 1;
-            var item = rfidItem.PointSequence[lastIdx];
-            rfidItem.PointSequence.RemoveAt(lastIdx);
-            rfidItem.PointSequence.Insert(lastIdx - 1, item);
+            int lastIdx = _selectedPointRfid.PointSequence.Count - 1;
+            var item = _selectedPointRfid.PointSequence[lastIdx];
+            _selectedPointRfid.PointSequence.RemoveAt(lastIdx);
+            _selectedPointRfid.PointSequence.Insert(lastIdx - 1, item);
             App4.Utilities.GlobalData.SaveRfids();
+            RefreshPointList();
         }
 
         private void BtnToggleTouchUp_Click(object sender, RoutedEventArgs e)
