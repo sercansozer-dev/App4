@@ -1869,7 +1869,36 @@ namespace App4.PAGES
             }
         }
 
-        private void BtnTablaRefAlCard_Click(object sender, RoutedEventArgs e)
+        private async void BtnTablaRefSifirla_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var btn = sender as Button;
+                if (btn?.Tag == null) return;
+                int caseId = (int)btn.Tag;
+                var caseName = App4.Utilities.GlobalData.CasingTypes.FirstOrDefault(c => c.Index == caseId)?.Name ?? caseId.ToString();
+
+                var dialog = new ContentDialog
+                {
+                    Title = "Referans Sıfırla",
+                    Content = $"{caseName} için kayıtlı tabla referansını sıfırlamak istediğinize emin misiniz?\n\nBu işlem geri alınamaz.",
+                    PrimaryButtonText = "Sıfırla",
+                    CloseButtonText = "İptal",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+
+                var result = await dialog.ShowAsync();
+                if (result != ContentDialogResult.Primary) return;
+
+                App4.Utilities.GlobalData.SetTablaReference(caseId, 0, 0, 0, 0, 0, 0);
+                RefreshTablaReferenceCardStates();
+                AddLog($"✓ [{caseName}] Tabla referansı sıfırlandı.");
+            }
+            catch (Exception ex) { AddLog($"❌ Referans sıfırlama hatası: {ex.Message}"); }
+        }
+
+        private async void BtnTablaRefAlCard_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -1899,6 +1928,20 @@ namespace App4.PAGES
                     AddLog($"⚠ [{caseName}] Referans alınamadı: Aktarım tablosu boş. Önce tabla ölçümü alın.");
                     return;
                 }
+
+                // Onay diyalogu
+                var refDialog = new ContentDialog
+                {
+                    Title = "Yeni Referans Kaydet",
+                    Content = $"{caseName} için yeni tabla referansı kaydedilecek:\n\nX={x:F3}  Y={y:F3}  Z={z:F3}\nA={a:F3}  B={b:F3}  C={c:F3}\n\nOnaylıyor musunuz?",
+                    PrimaryButtonText = "Kaydet",
+                    CloseButtonText = "İptal",
+                    DefaultButton = ContentDialogButton.Primary,
+                    XamlRoot = this.XamlRoot
+                };
+
+                var refResult = await refDialog.ShowAsync();
+                if (refResult != ContentDialogResult.Primary) return;
 
                 // Referans olarak kaydet
                 App4.Utilities.GlobalData.SetTablaReference(caseId, x, y, z, a, b, c);

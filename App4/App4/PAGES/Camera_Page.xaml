@@ -1911,13 +1911,22 @@
                                                         <FontIcon Glyph="&#xE787;" FontSize="8" Foreground="#444"/>
                                                         <TextBlock Text="{x:Bind DateText, Mode=OneWay}" Foreground="#555" FontSize="8"/>
                                                     </StackPanel>
-                                                    <Button HorizontalAlignment="Right" Click="BtnTablaRefAlCard_Click" Tag="{x:Bind CasingIndex}"
-                                                            Background="#2E7D32" Foreground="White" CornerRadius="3" Padding="8,3" Height="24">
-                                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                                            <FontIcon Glyph="&#xE722;" FontSize="9" Foreground="White"/>
-                                                            <TextBlock Text="REFERANS AL" FontSize="8" FontWeight="Bold"/>
-                                                        </StackPanel>
-                                                    </Button>
+                                                    <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                                        <Button Click="BtnTablaRefSifirla_Click" Tag="{x:Bind CasingIndex}"
+                                                                Background="#7E5109" Foreground="White" CornerRadius="3" Padding="6,3" Height="24">
+                                                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                                                <FontIcon Glyph="&#xE74D;" FontSize="9" Foreground="#F1C40F"/>
+                                                                <TextBlock Text="SIFIRLA" FontSize="8" FontWeight="Bold"/>
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button Click="BtnTablaRefAlCard_Click" Tag="{x:Bind CasingIndex}"
+                                                                Background="#2E7D32" Foreground="White" CornerRadius="3" Padding="8,3" Height="24">
+                                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                <FontIcon Glyph="&#xE722;" FontSize="9" Foreground="White"/>
+                                                                <TextBlock Text="REFERANS AL" FontSize="8" FontWeight="Bold"/>
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
                                                 </Grid>
                                             </StackPanel>
                                         </Border>
