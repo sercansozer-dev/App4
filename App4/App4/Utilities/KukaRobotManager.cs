@@ -632,12 +632,13 @@ namespace App4.Utilities
             "G_BORU_OLCUM_TAMAM", "G_TABLA_OLCUM_TAMAM", "G_OLCUM_OK", "G_OLCUM_TAMAM",
             "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C",
             "G_SNIFFER_OLCUM_TAMAM",
-            "G_TABLA_LIMIT_ALARM"  // Safety: Tabla kaçıklık alarm sinyali
+            "G_TABLA_LIMIT_ALARM",  // Safety: Tabla kaçıklık alarm sinyali
+            "G_HEDEF_ISTASYON"      // Robot 2 hedef istasyon bilgisi — ürün seçimi için kritik
         };
 
         // ★ Anahtar kelime bazlı öncelik kontrolü — isim listesinde olmasa bile
         //   OLCUM / OFFSET / TAMAM / SAPMA / NOKTA içeren her tag otomatik öncelikli
-        private static readonly string[] _priorityKeywords = { "OLCUM", "OFFSET", "TAMAM", "SAPMA", "NOKTA", "ALARM" };
+        private static readonly string[] _priorityKeywords = { "OLCUM", "OFFSET", "TAMAM", "SAPMA", "NOKTA", "ALARM", "HEDEF", "ISTASYON" };
 
         private static bool IsPriorityInput(string varName)
         {
