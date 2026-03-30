@@ -213,6 +213,25 @@ namespace App4.Utilities
         private readonly Dictionary<string, string> _lastWrittenOutputs = new();
 
         /// <summary>
+        /// Output cache'ini temizler → CommunicationLoop bir sonraki döngüde tüm output'ları tekrar yazar.
+        /// Periyodik sync timer tarafından çağrılır.
+        /// </summary>
+        public void InvalidateOutputCache()
+        {
+            // Handshake sinyallerini koruyarak cache'i temizle
+            // Bu sinyaller robot tarafından FALSE'a çekilir, App ezmemeli
+            var preserved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var hs in _handshakeSignals)
+            {
+                if (_lastWrittenOutputs.TryGetValue(hs, out string val))
+                    preserved[hs] = val;
+            }
+            _lastWrittenOutputs.Clear();
+            foreach (var kv in preserved)
+                _lastWrittenOutputs[kv.Key] = kv.Value;
+        }
+
+        /// <summary>
         /// Dış kaynaktan (WriteToAllRobotsAsync) output cache'ini günceller.
         /// CommunicationLoop'un eski değeri tekrar yazmasını engeller.
         /// </summary>
@@ -419,6 +438,7 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "G_OFFSET_C_RD", Type = "REAL", PlcTag = "G_OFFSET_C", Direction = "Input", Description = "Boru offset C geri okuma" });
             InputVars.Add(new PlcVariable { Name = "G_BORU_OLCUM_TAMAM_RD", Type = "BOOL", PlcTag = "G_BORU_OLCUM_TAMAM", Direction = "Input", Description = "Boru ölçüm tamamlandı geri okuma" });
             InputVars.Add(new PlcVariable { Name = "G_TABLA_OLCUM_TAMAM_RD", Type = "BOOL", PlcTag = "G_TABLA_OLCUM_TAMAM", Direction = "Input", Description = "Tabla ölçüm tamamlandı geri okuma" });
+            InputVars.Add(new PlcVariable { Name = "G_TABLA_OLCUM_ALINDI", Type = "BOOL", PlcTag = "G_TABLA_OLCUM_ALINDI", Direction = "Input", Description = "Robot teyit: tabla ölçümü aldım (ikili handshake)" });
             InputVars.Add(new PlcVariable { Name = "G_OLCUM_OK_RD", Type = "BOOL", PlcTag = "G_OLCUM_OK", Direction = "Input", Description = "Ölçüm OK/NOK geri okuma" });
 
             // ═══ GOCATOR TABLA OFFSET (Robot → PC) ═══
@@ -1900,6 +1920,9 @@ namespace App4.Utilities
                 AddIfMissing(r2, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)", r1, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)");
                 AddIfMissing(r2, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)", r1, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)");
                 AddIfMissing(r2, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)", r1, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)");
+                // IS_BASLADI köprü sinyalleri
+                AddIfMissing(r1, $"G_IS_BASLADI (G_IS_BASLADI)", r2, $"G_R1_IS_BASLADI (G_R1_IS_BASLADI)");
+                AddIfMissing(r2, $"G_IS_BASLADI (G_IS_BASLADI)", r1, $"G_R2_IS_BASLADI (G_R2_IS_BASLADI)");
             }
 
             if (added) SaveRobotRobotMappings();
@@ -1920,7 +1943,7 @@ namespace App4.Utilities
                         await ProcessRobotRobotBridgeAsync();
                     }
                     catch { }
-                    await Task.Delay(1000);
+                    await Task.Delay(500); // Bridge sync hızı: 500ms
                 }
             });
         }
@@ -1939,25 +1962,31 @@ namespace App4.Utilities
 
                     try
                     {
-                        var robot = Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
-                        if (robot == null) continue;
-
-                        // Robot değişkenini bul
-                        PlcVariable robotVar = null;
-                        foreach (var v in robot.InputVars.Concat(robot.OutputVars))
+                        // ═══ RESOLVED REFERENCE — ilk seferde çöz, sonra direkt kullan ═══
+                        if (!mapping.IsResolved)
                         {
-                            if ($"{v.Name} ({v.PlcTag})" == mapping.RobotTag) { robotVar = v; break; }
-                        }
-
-                        // PLC değişkenini bul
-                        PlcVariable plcVar = null;
-                        if (PlcService.Instance != null)
-                        {
-                            foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
+                            mapping.ResolvedRobot = Robots.FirstOrDefault(r => r.Name == mapping.RobotName);
+                            if (mapping.ResolvedRobot != null)
                             {
-                                if ($"{v.Name} ({v.Address})" == mapping.PlcTag) { plcVar = v; break; }
+                                foreach (var v in mapping.ResolvedRobot.InputVars.Concat(mapping.ResolvedRobot.OutputVars))
+                                {
+                                    if ($"{v.Name} ({v.PlcTag})" == mapping.RobotTag) { mapping.ResolvedRobotVar = v; break; }
+                                }
                             }
+                            if (PlcService.Instance != null)
+                            {
+                                foreach (var v in PlcService.Instance.OutputVariables.Concat(PlcService.Instance.InputVariables))
+                                {
+                                    if ($"{v.Name} ({v.Address})" == mapping.PlcTag) { mapping.ResolvedPlcVar = v; break; }
+                                }
+                            }
+                            mapping.IsResolved = true;
                         }
+
+                        var robot = mapping.ResolvedRobot;
+                        var robotVar = mapping.ResolvedRobotVar;
+                        var plcVar = mapping.ResolvedPlcVar;
+                        if (robot == null) continue;
 
                         // Anlık değeri güncelle (aktif olmasa bile)
                         string direction = mapping.Direction ?? "Robot→PLC";

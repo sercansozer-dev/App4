@@ -18,6 +18,11 @@ namespace App4
         // Manuel sayfadan yazılan değerlerin local kopyası (InputVars'a dokunmadan LED güncellemesi için)
         // Local state kaldırıldı — tüm sinyal yönetimi GlobalData.RobotOutputVars üzerinden yapılır
 
+        // --- TEKRARLA MODU ---
+        private readonly Dictionary<int, bool> _tekrarlaAktif = new() { { 1, false }, { 2, false }, { 3, false } };
+        private readonly Dictionary<int, int> _tekrarlaSayac = new() { { 1, 0 }, { 2, 0 }, { 3, 0 } };
+        private readonly Dictionary<int, bool> _tekrarlaIsBittiSon = new() { { 1, false }, { 2, false }, { 3, false } };
+
         public Manuel_Page()
         {
             this.InitializeComponent();
@@ -110,6 +115,9 @@ namespace App4
 
             // Update control panel badges
             UpdateControlPanelBadges();
+
+            // Tekrarla modu izle
+            CheckTekrarlaLoop();
         }
 
         // ================================================================
@@ -283,6 +291,8 @@ namespace App4
                 {
                     int klimaIdx = GlobalData.KnownRfids.IndexOf(rfid) + 1;
                     int caseId = rfid.CasingIndex;
+                    // AktuelKlimaIndex set et — KlimaTipSyncTimer doğru CaseID'yi korusun
+                    GlobalData.AktuelKlimaIndex = klimaIdx;
                     await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
                     await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
                 }
@@ -314,6 +324,136 @@ namespace App4
             finally
             {
                 btn.IsEnabled = true;
+            }
+        }
+
+        // ================================================================
+        // TEKRARLA MODU
+        // ================================================================
+
+        /// <summary>
+        /// Tekrarla toggle butonu — basınca aktif, tekrar basınca kapalı.
+        /// Aktifken: robotlar IS_BITTI verdiğinde aynı istasyonu otomatik tekrar başlatır.
+        /// </summary>
+        private void BtnTekrarla_Click(object sender, RoutedEventArgs e)
+        {
+            var toggle = sender as Microsoft.UI.Xaml.Controls.Primitives.ToggleButton;
+            if (toggle == null) return;
+            int stNum = int.Parse(toggle.Tag.ToString());
+
+            bool isChecked = toggle.IsChecked == true;
+            _tekrarlaAktif[stNum] = isChecked;
+
+            // Diğer istasyonların tekrarla modunu kapat
+            if (isChecked)
+            {
+                for (int i = 1; i <= 3; i++)
+                {
+                    if (i != stNum) StopTekrarla(i);
+                }
+                _tekrarlaSayac[stNum] = 0;
+                _tekrarlaIsBittiSon[stNum] = false;
+            }
+
+            // UI güncelle
+            UpdateTekrarlaUI(stNum, isChecked);
+        }
+
+        private void StopTekrarla(int stNum)
+        {
+            _tekrarlaAktif[stNum] = false;
+            _tekrarlaSayac[stNum] = 0;
+            _tekrarlaIsBittiSon[stNum] = false;
+
+            var toggle = stNum switch
+            {
+                1 => BtnTekrarla_IST1,
+                2 => BtnTekrarla_IST2,
+                3 => BtnTekrarla_IST3,
+                _ => null
+            };
+            if (toggle != null) toggle.IsChecked = false;
+            UpdateTekrarlaUI(stNum, false);
+        }
+
+        private void UpdateTekrarlaUI(int stNum, bool aktif)
+        {
+            var txt = stNum switch
+            {
+                1 => TxtTekrarla_IST1,
+                2 => TxtTekrarla_IST2,
+                3 => TxtTekrarla_IST3,
+                _ => null
+            };
+            if (txt == null) return;
+
+            if (aktif)
+                txt.Text = $"TEKRARLA AKTIF ({_tekrarlaSayac[stNum]})";
+            else
+                txt.Text = "TEKRARLA";
+        }
+
+        /// <summary>
+        /// Timer'dan çağrılır — robotların IS_BITTI sinyalini izler.
+        /// Her iki robot da IS_BITTI=TRUE verdiğinde aynı istasyonu tekrar başlatır.
+        /// </summary>
+        private async void CheckTekrarlaLoop()
+        {
+            try
+            {
+                for (int st = 1; st <= 3; st++)
+                {
+                    if (!_tekrarlaAktif[st]) continue;
+
+                    // Her iki robotun IS_BITTI sinyalini kontrol et
+                    var robots = KukaRobotManager.Instance?.Robots;
+                    if (robots == null || robots.Count < 2) continue;
+
+                    bool r1IsBitti = false;
+                    bool r2IsBitti = false;
+
+                    var r1Var = robots[0].InputVars?.FirstOrDefault(v => v.Name == "G_IS_BITTI");
+                    var r2Var = robots[1].InputVars?.FirstOrDefault(v => v.Name == "G_IS_BITTI");
+
+                    if (r1Var != null) r1IsBitti = r1Var.Value?.ToString().Equals("TRUE", StringComparison.OrdinalIgnoreCase) == true;
+                    if (r2Var != null) r2IsBitti = r2Var.Value?.ToString().Equals("TRUE", StringComparison.OrdinalIgnoreCase) == true;
+
+                    bool ikisindeIsBitti = r1IsBitti && r2IsBitti;
+
+                    if (ikisindeIsBitti && !_tekrarlaIsBittiSon[st])
+                    {
+                        // Yeni IS_BITTI geldi — sayacı artır ve tekrar başlat
+                        _tekrarlaSayac[st]++;
+                        UpdateTekrarlaUI(st, true);
+
+                        System.Diagnostics.Debug.WriteLine($"[TEKRARLA] IST{st} — Tekrar #{_tekrarlaSayac[st]} baslatiliyor...");
+
+                        // Kısa bekleme — robotlar HOME'a gelsin
+                        await Task.Delay(2000);
+
+                        if (!_tekrarlaAktif[st]) break; // Bu arada kapatılmış olabilir
+
+                        // Aynı istasyonu tekrar başlat
+                        await SetStationActive(st);
+
+                        // Klima tip bilgisini yaz
+                        var cmb = st == 1 ? CmbKlima_IST1 : st == 2 ? CmbKlima_IST2 : CmbKlima_IST3;
+                        if (cmb.SelectedItem is App4.Utilities.RfidDef rfid)
+                        {
+                            int klimaIdx = GlobalData.KnownRfids.IndexOf(rfid) + 1;
+                            int caseId = rfid.CasingIndex;
+                            GlobalData.AktuelKlimaIndex = klimaIdx;
+                            await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
+                            await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
+                        }
+                    }
+
+                    _tekrarlaIsBittiSon[st] = ikisindeIsBitti;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TEKRARLA] Hata: {ex.Message}");
             }
         }
 

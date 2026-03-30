@@ -1686,6 +1686,7 @@ namespace App4.Utilities
                 // --- ROBOT GENEL DURUM (Salt Input: Robot→PC) ---
                 RobotInputVars.Add(Create("G_ROBOT_DURUM", "INT", "Input", 0));          // R1: 0=Bosta 1=Calisiyor 2=Hata 10-12=Gocator 50-51=Tabla | R2: 5=Timeout 10-11=TablaOffset 20-22=Sniffer 30-31=Slider
                 RobotInputVars.Add(Create("G_IS_BITTI", "BOOL", "Input", false));         // Is tamamlandi bayragi
+                RobotInputVars.Add(Create("G_IS_BASLADI", "BOOL", "Input", false));      // Is basladi bayragi
                 RobotInputVars.Add(Create("G_HATA_VAR", "BOOL", "Input", false));         // Hata var bayragi
                 RobotInputVars.Add(Create("G_HATA_KODU", "INT", "Input", 0));             // Hata kodu
                 // --- KLIMA SECIMI ---
@@ -1708,6 +1709,7 @@ namespace App4.Utilities
                 RobotInputVars.Add(Create("G_OLCUM_TETIK", "BOOL", "Input", false));      // Salt Input: Robot -> PC : Olcum baslat
                 RobotInputVars.Add(Create("G_BORU_OLCUM_TAMAM", "BOOL", "Input", false));  // ⇄ Handshake: PC TRUE yazar, robot FALSE'a çeker
                 RobotInputVars.Add(Create("G_TABLA_OLCUM_TAMAM", "BOOL", "Input", false)); // ⇄ Handshake: PC TRUE yazar, robot FALSE'a çeker
+                RobotInputVars.Add(Create("G_TABLA_OLCUM_ALINDI", "BOOL", "Input", false)); // Robot teyit: ölçümü aldım (ikili handshake)
                 RobotInputVars.Add(Create("G_OLCUM_OK", "BOOL", "Input", false));         // ⇄ Handshake: PC sonuc yazar, robot okur
                 // --- GOCATOR TABLA OFFSET (Geri-okuma: PC yazar Output'tan, burada izlenir) ---
                 RobotInputVars.Add(Create("G_TABLA_OFFSET_X", "REAL", "Input", 0.0));
@@ -1813,11 +1815,13 @@ namespace App4.Utilities
                 RobotOutputVars.Add(Create("G_R2_SLIDER_POZ", "REAL", "Output", 0.0));      // R2 slider aktuel poz (Robot 1'e yazilir)
                 // --- ÇAPRAZ ROBOT DURUM (Robot-Robot haberleşme) ---
                 RobotOutputVars.Add(Create("G_R1_IS_BITTI", "BOOL", "Output", false));       // Robot 1 iş bitti (Robot 2'ye yazılır)
+                RobotOutputVars.Add(Create("G_R1_IS_BASLADI", "BOOL", "Output", false));     // Robot 1 işe başladı (Robot 2'ye yazılır)
                 RobotOutputVars.Add(Create("G_R1_ROBOT_DURUM", "INT", "Output", 0));         // Robot 1 durum (Robot 2'ye yazılır)
                 RobotOutputVars.Add(Create("G_R1_HATA_VAR", "BOOL", "Output", false));       // Robot 1 hata var (Robot 2'ye yazılır)
                 RobotOutputVars.Add(Create("G_R1_HATA_KODU", "INT", "Output", 0));           // Robot 1 hata kodu (Robot 2'ye yazılır)
                 RobotOutputVars.Add(Create("G_R1_EKSEN_E1", "REAL", "Output", 0.0));         // Robot 1 harici eksen E1 (Robot 2'ye yazılır)
                 RobotOutputVars.Add(Create("G_R2_IS_BITTI", "BOOL", "Output", false));       // Robot 2 iş bitti (Robot 1'e yazılır)
+                RobotOutputVars.Add(Create("G_R2_IS_BASLADI", "BOOL", "Output", false));     // Robot 2 işe başladı (Robot 1'e yazılır)
                 RobotOutputVars.Add(Create("G_R2_ROBOT_DURUM", "INT", "Output", 0));         // Robot 2 durum (Robot 1'e yazılır)
                 RobotOutputVars.Add(Create("G_R2_HATA_VAR", "BOOL", "Output", false));       // Robot 2 hata var (Robot 1'e yazılır)
                 RobotOutputVars.Add(Create("G_R2_HATA_KODU", "INT", "Output", 0));           // Robot 2 hata kodu (Robot 1'e yazılır)
@@ -2419,6 +2423,7 @@ namespace App4.Utilities
             _boruOlcumTamamFlags.Clear();
             ResetMeasurementSignal();
 
+
             // 5. Klima tip bilgisini tazele (tekrar test için)
             var klimaTipVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP");
             if (klimaTipVar != null && !string.IsNullOrEmpty(klimaTipVar.Value))
@@ -2551,6 +2556,7 @@ namespace App4.Utilities
         }
 
         private static System.Threading.Timer _klimaTipSyncTimer;
+        private static System.Threading.Timer _outputSyncTimer;
 
         private static void StartKlimaTipSyncTimer()
         {
@@ -2589,36 +2595,64 @@ namespace App4.Utilities
                 }
                 catch { }
             }, null, 2000, 2000);
+
+            // ═══ PERİYODİK OUTPUT SYNC (3sn) ═══
+            // Tüm output sinyallerini belirli aralıklarla robota tekrar yazar.
+            // Robot tarafı sinyali sıfırlasa veya kaçırsa bile App düzeltir.
+            // Cache temizlenerek CommunicationLoop bir sonraki döngüde tümünü yazar.
+            _outputSyncTimer?.Dispose();
+            _outputSyncTimer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    // Ölçüm sırasında cache temizleme — handshake bozulmasın
+                    if (_olcumTetikProcessing || _snifferOlcumProcessing) return;
+
+                    var robots = Utilities.KukaRobotManager.Instance?.Robots;
+                    if (robots == null) return;
+
+                    foreach (var r in robots)
+                    {
+                        if (!r.IsConnected) continue;
+                        r.InvalidateOutputCache();
+                    }
+                }
+                catch { }
+            }, null, 3000, 3000);
         }
 
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
         {
-            // ═══ TABLA OLCUM TAMAM → Her iki robot TRUE aldıysa 2sn sonra FALSE'a çek ═══
+            // ═══ TABLA OLCUM ALINDI (İKİLİ TEYİT) ═══
+            // Robot G_TABLA_OLCUM_ALINDI=TRUE yaptığında → ölçümü aldı, TAMAM sıfırlanabilir
+            if (changedVar.Name == "G_TABLA_OLCUM_ALINDI")
+            {
+                bool isAlindiTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
+                if (isAlindiTrue)
+                {
+                    OnAutomationLog?.Invoke($"[Tabla] Robot {robotNo} ölçümü aldı (ALINDI=TRUE) → TAMAM sıfırlanıyor");
+                    _ = Task.Run(async () =>
+                    {
+                        await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
+                        // OutputVars'taki değeri de sıfırla (cache senkron)
+                        var outVar = RobotOutputVars?.FirstOrDefault(v => v.Name == "G_TABLA_OLCUM_TAMAM");
+                        if (outVar != null) outVar.Value = "FALSE";
+                        _tablaOlcumTamamFlags[1] = false;
+                        _tablaOlcumTamamFlags[2] = false;
+                        ResetTablaMeasurementSignal();
+                        OnAutomationLog?.Invoke($"[Tabla] G_TABLA_OLCUM_TAMAM = FALSE (ALINDI teyit ile sıfırlandı)");
+                    });
+                }
+                return;
+            }
+
+            // ═══ TABLA OLCUM TAMAM (eski fallback — ALINDI yoksa 2sn sonra sıfırla) ═══
             if (changedVar.Name == "G_TABLA_OLCUM_TAMAM")
             {
                 bool isTamamTrue = changedVar.Value?.ToUpper() == "TRUE" || changedVar.Value == "1";
                 if (isTamamTrue)
                 {
                     _tablaOlcumTamamFlags[robotNo] = true;
-
-                    // Her iki robot da TRUE aldı mı kontrol et
-                    bool r1Ok = _tablaOlcumTamamFlags.ContainsKey(1) && _tablaOlcumTamamFlags[1];
-                    bool r2Ok = _tablaOlcumTamamFlags.ContainsKey(2) && _tablaOlcumTamamFlags[2];
-
-                    if (r1Ok && r2Ok)
-                    {
-                        OnAutomationLog?.Invoke($"[Tabla] Her iki robot TAMAM aldı → 2sn sonra FALSE'a çekilecek");
-                        _ = Task.Run(async () =>
-                        {
-                            await Task.Delay(2000);
-                            await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
-                            _tablaOlcumTamamFlags[1] = false;
-                            _tablaOlcumTamamFlags[2] = false;
-                            // Kamera sayfası tabla çıktı sinyalini de BEKLİYOR'a al
-                            ResetTablaMeasurementSignal();
-                            OnAutomationLog?.Invoke($"[Tabla] G_TABLA_OLCUM_TAMAM = FALSE + Tabla sinyal sıfırlandı (yeni ölçüm bekleniyor)");
-                        });
-                    }
                 }
                 else
                 {
@@ -3403,6 +3437,7 @@ namespace App4.Utilities
         private static Dictionary<int, int> _noktaNoPrev = new(); // Robot bazlı önceki G_AKTIF_NOKTA_NO
         private static Dictionary<int, bool> _tablaOlcumTamamFlags = new(); // Robot bazlı TABLA_OLCUM_TAMAM durumu
         private static Dictionary<int, bool> _boruOlcumTamamFlags = new(); // Robot bazlı BORU_OLCUM_TAMAM durumu
+
 
         private static void TriggerVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {

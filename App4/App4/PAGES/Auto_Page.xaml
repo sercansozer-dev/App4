@@ -8,7 +8,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     x:Name="AutoPageRoot"
     Loaded="Page_Loaded"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    NavigationCacheMode="Required">
 
     <Page.Resources>
         <!-- StationCardTemplate removed as we are inlining it to support WebViews -->

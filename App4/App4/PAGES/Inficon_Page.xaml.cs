@@ -48,6 +48,9 @@ namespace App4.PAGES
         // ═══ PAGE LIFECYCLE ═══
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            // Cache modunda çift init koruması
+            if (_refreshTimer != null) return;
+
             // WebView2 baslat (arka planda — sayfa donmasını engeller)
             _ = InitWebViewAsync();
 

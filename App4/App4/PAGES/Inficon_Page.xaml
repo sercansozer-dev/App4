@@ -9,6 +9,7 @@
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     xmlns:utils="using:App4.Utilities"
     mc:Ignorable="d"
+    NavigationCacheMode="Required"
     Loaded="Page_Loaded"
     Unloaded="Page_Unloaded">
 

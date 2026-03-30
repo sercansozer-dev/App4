@@ -209,6 +209,12 @@
                                     </StackPanel>
                                 </Button>
                             </Grid>
+                            <ToggleButton x:Name="BtnTekrarla_IST1" Tag="1" Click="BtnTekrarla_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#4A148C" BorderBrush="#7B1FA2" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE1CD;" FontSize="12" Foreground="White"/>
+                                    <TextBlock x:Name="TxtTekrarla_IST1" Text="TEKRARLA" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                                </StackPanel>
+                            </ToggleButton>
                         </StackPanel>
                     </Border>
 
@@ -286,6 +292,12 @@
                                     </StackPanel>
                                 </Button>
                             </Grid>
+                            <ToggleButton x:Name="BtnTekrarla_IST2" Tag="2" Click="BtnTekrarla_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#4A148C" BorderBrush="#7B1FA2" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE1CD;" FontSize="12" Foreground="White"/>
+                                    <TextBlock x:Name="TxtTekrarla_IST2" Text="TEKRARLA" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                                </StackPanel>
+                            </ToggleButton>
                         </StackPanel>
                     </Border>
 
@@ -363,6 +375,12 @@
                                     </StackPanel>
                                 </Button>
                             </Grid>
+                            <ToggleButton x:Name="BtnTekrarla_IST3" Tag="3" Click="BtnTekrarla_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#4A148C" BorderBrush="#7B1FA2" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE1CD;" FontSize="12" Foreground="White"/>
+                                    <TextBlock x:Name="TxtTekrarla_IST3" Text="TEKRARLA" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                                </StackPanel>
+                            </ToggleButton>
                         </StackPanel>
                     </Border>
                 </Grid>

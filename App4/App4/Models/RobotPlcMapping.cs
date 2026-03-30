@@ -19,14 +19,14 @@ namespace App4.Models
         public string RobotTag
         {
             get => _robotTag;
-            set { if (_robotTag != value) { _robotTag = value; OnPropertyChanged(); } }
+            set { if (_robotTag != value) { _robotTag = value; IsResolved = false; OnPropertyChanged(); } }
         }
 
         private string _plcTag;
         public string PlcTag
         {
             get => _plcTag;
-            set { if (_plcTag != value) { _plcTag = value; OnPropertyChanged(); } }
+            set { if (_plcTag != value) { _plcTag = value; IsResolved = false; OnPropertyChanged(); } }
         }
 
         private string _lastValue = "-";
@@ -59,6 +59,12 @@ namespace App4.Models
             get => _tableType;
             set { if (_tableType != value) { _tableType = value; OnPropertyChanged(); } }
         }
+
+        // ═══ RESOLVED REFERENCES (ilk lookup sonrası cache — JSON'a yazılmaz) ═══
+        [JsonIgnore] public PlcVariable ResolvedRobotVar { get; set; }
+        [JsonIgnore] public PlcVariable ResolvedPlcVar { get; set; }
+        [JsonIgnore] public KukaRobotInstance ResolvedRobot { get; set; }
+        [JsonIgnore] public bool IsResolved { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

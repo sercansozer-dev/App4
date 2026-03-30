@@ -1619,6 +1619,7 @@ namespace App4.Pages
             // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
             AddRRIfMissing("ROBOT 1", robot1, "G_R1_HOME", "ROBOT 2", robot2, "G_R1_HOME");
             AddRRIfMissing("ROBOT 1", robot1, "G_IS_BITTI", "ROBOT 2", robot2, "G_R1_IS_BITTI");
+            AddRRIfMissing("ROBOT 1", robot1, "G_IS_BASLADI", "ROBOT 2", robot2, "G_R1_IS_BASLADI");
             AddRRIfMissing("ROBOT 1", robot1, "G_ROBOT_DURUM", "ROBOT 2", robot2, "G_R1_ROBOT_DURUM");
             AddRRIfMissing("ROBOT 1", robot1, "G_HATA_VAR", "ROBOT 2", robot2, "G_R1_HATA_VAR");
             AddRRIfMissing("ROBOT 1", robot1, "G_HATA_KODU", "ROBOT 2", robot2, "G_R1_HATA_KODU");
@@ -1633,6 +1634,7 @@ namespace App4.Pages
             // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
             AddRRIfMissing("ROBOT 2", robot2, "G_R2_HOME", "ROBOT 1", robot1, "G_R2_HOME");
             AddRRIfMissing("ROBOT 2", robot2, "G_IS_BITTI", "ROBOT 1", robot1, "G_R2_IS_BITTI");
+            AddRRIfMissing("ROBOT 2", robot2, "G_IS_BASLADI", "ROBOT 1", robot1, "G_R2_IS_BASLADI");
             AddRRIfMissing("ROBOT 2", robot2, "G_ROBOT_DURUM", "ROBOT 1", robot1, "G_R2_ROBOT_DURUM");
             AddRRIfMissing("ROBOT 2", robot2, "G_HATA_VAR", "ROBOT 1", robot1, "G_R2_HATA_VAR");
             AddRRIfMissing("ROBOT 2", robot2, "G_HATA_KODU", "ROBOT 1", robot1, "G_R2_HATA_KODU");
