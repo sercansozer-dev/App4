@@ -2394,44 +2394,26 @@ namespace App4.Utilities
 
             OnAutomationLog?.Invoke($"[İstasyon Çalış] İstasyon {stationNo} hazırlanıyor...");
 
-            // 1. Seçilen istasyon: IS_BITTI=FALSE, HAZIR=TRUE
-            //    Diğer istasyonlar: IS_BITTI=TRUE, HAZIR=FALSE
-            for (int ist = 1; ist <= 3; ist++)
-            {
-                if (ist == stationNo)
-                {
-                    await WriteToAllRobotsAsync($"G_IST{ist}_IS_BITTI", "FALSE");
-                    await WriteToAllRobotsAsync($"G_IST{ist}_HAZIR", "TRUE");
-                }
-                else
-                {
-                    await WriteToAllRobotsAsync($"G_IST{ist}_IS_BITTI", "TRUE");
-                    await WriteToAllRobotsAsync($"G_IST{ist}_HAZIR", "FALSE");
-                }
-            }
+            // 1. Sadece seçilen istasyonu hazırla (diğer istasyonlara DOKUNMA)
+            //    Böylece 3 istasyon da aynı anda HAZIR olabilir.
+            await WriteToAllRobotsAsync($"G_IST{stationNo}_IS_BITTI", "FALSE");
+            await WriteToAllRobotsAsync($"G_IST{stationNo}_HAZIR", "TRUE");
 
-            // 2. Hedef istasyon bilgisini her iki robota yaz
-            await WriteToAllRobotsAsync("G_HEDEF_ISTASYON", stationNo.ToString());
-
-            // 3. Tabla ölçüm → 0'a çek
-            await WriteToAllRobotsAsync("G_TABLA_OLCUM_TAMAM", "FALSE");
-            _tablaOlcumTamamFlags.Clear();
-            ResetTablaMeasurementSignal();
-
-            // 4. Boru ölçüm → 0'a çek
-            await WriteToAllRobotsAsync("G_BORU_OLCUM_TAMAM", "FALSE");
-            _boruOlcumTamamFlags.Clear();
-            ResetMeasurementSignal();
-
-
-            // 5. Klima tip bilgisini tazele (tekrar test için)
+            // 2. Klima tip bilgisini tazele
             var klimaTipVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP");
             if (klimaTipVar != null && !string.IsNullOrEmpty(klimaTipVar.Value))
             {
                 await WriteToAllRobotsAsync("G_KLIMA_TIP", klimaTipVar.Value);
             }
 
-            OnAutomationLog?.Invoke($"[İstasyon Çalış] İstasyon {stationNo} aktif. Diğerleri kapatıldı. Klima tip tazelendi. Tabla+Boru sıfırlandı.");
+            // 3. Dahili PC state sıfırla (robota yazma, sadece PC takip bayrakları)
+            _tablaOlcumTamamFlags.Clear();
+            ResetTablaMeasurementSignal();
+            _tablaTriggerArmed = true;
+            _boruOlcumTamamFlags.Clear();
+            ResetMeasurementSignal();
+
+            OnAutomationLog?.Invoke($"[İstasyon Çalış] İstasyon {stationNo} HAZIR. Robot sinyalleri robota bırakıldı.");
 
             // Tabla kaçıklık UI sıfırla
             if (stationNo >= 1 && stationNo <= 3 && stationNo - 1 < Stations.Count)
@@ -2964,8 +2946,13 @@ namespace App4.Utilities
                             }
                         }
 
+                        // ABC her zaman sıfır (tabla ölçümde açısal offset kullanılmıyor)
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_A", "0.000");
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_B", "0.000");
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_C", "0.000");
+
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
-                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı (tag tabanlı)");
+                        OnAutomationLog?.Invoke($"[Robot {robotNo}] Tabla ölçüm OK - {results.Count} offset yazıldı (tag tabanlı, ABC=0)");
 
                         // Aktif istasyonun tabla kaçıklık UI'ını güncelle
                         UpdateStationTablaOffsets(results);
@@ -4676,6 +4663,11 @@ namespace App4.Utilities
                             double v = valuesToWrite[i] is double dv ? dv : Convert.ToDouble(valuesToWrite[i]);
                             await WriteToAllRobotsAsync(offsets[i], v.ToString("F3"));
                         }
+                        // ABC her zaman sıfır (tabla ölçümde açısal offset kullanılmıyor)
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_A", "0.000");
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_B", "0.000");
+                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_C", "0.000");
+
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
 
                         // Aktif istasyonun tabla kaçıklık UI'ını güncelle

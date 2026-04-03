@@ -410,6 +410,13 @@ namespace App4.Utilities
             InputVars.Add(new PlcVariable { Name = "G_ROBOT_HAZIR", Type = "BOOL", PlcTag = "G_ROBOT_HAZIR", Direction = "Input", Description = "Robot hazır mı?" });
             InputVars.Add(new PlcVariable { Name = "G_IS_BITTI", Type = "BOOL", PlcTag = "G_IS_BITTI", Direction = "Input", Description = "Tüm işlem tamamlandı" });
             InputVars.Add(new PlcVariable { Name = "G_HATA_VAR", Type = "BOOL", PlcTag = "G_HATA_VAR", Direction = "Input", Description = "Hata var mı?" });
+            // İstasyon handshake geri okuma: Robot FALSE'a çektiğinde PC senkronize olur
+            InputVars.Add(new PlcVariable { Name = "G_IST1_HAZIR", Type = "BOOL", PlcTag = "G_IST1_HAZIR", Direction = "Input", Description = "İstasyon 1 hazır (robot geri okuma)" });
+            InputVars.Add(new PlcVariable { Name = "G_IST2_HAZIR", Type = "BOOL", PlcTag = "G_IST2_HAZIR", Direction = "Input", Description = "İstasyon 2 hazır (robot geri okuma)" });
+            InputVars.Add(new PlcVariable { Name = "G_IST3_HAZIR", Type = "BOOL", PlcTag = "G_IST3_HAZIR", Direction = "Input", Description = "İstasyon 3 hazır (robot geri okuma)" });
+            InputVars.Add(new PlcVariable { Name = "G_IST1_IS_BITTI", Type = "BOOL", PlcTag = "G_IST1_IS_BITTI", Direction = "Input", Description = "İstasyon 1 iş bitti (robot geri okuma)" });
+            InputVars.Add(new PlcVariable { Name = "G_IST2_IS_BITTI", Type = "BOOL", PlcTag = "G_IST2_IS_BITTI", Direction = "Input", Description = "İstasyon 2 iş bitti (robot geri okuma)" });
+            InputVars.Add(new PlcVariable { Name = "G_IST3_IS_BITTI", Type = "BOOL", PlcTag = "G_IST3_IS_BITTI", Direction = "Input", Description = "İstasyon 3 iş bitti (robot geri okuma)" });
             InputVars.Add(new PlcVariable { Name = "G_HATA_KODU", Type = "INT", PlcTag = "G_HATA_KODU", Direction = "Input", Description = "Hata kodu" });
             InputVars.Add(new PlcVariable { Name = "G_ROBOT_DURUM", Type = "INT", PlcTag = "G_ROBOT_DURUM", Direction = "Input", Description = "0=Idle, 1=Çalışıyor, 2=Hata, 3=Bekliyor" });
 
@@ -565,7 +572,15 @@ namespace App4.Utilities
             OutputVars.Add(new PlcVariable { Name = "G_HEDEF_ISTASYON", Type = "INT", PlcTag = "G_HEDEF_ISTASYON", Direction = "Output", Description = "Hedef istasyon no (1=Ist1, 2=Ist2, 3=Ist3, 4=Bakim)" });
 
             // ═══════════════════════════════════════════════════════════════
-            // İSTASYON HAZIR SİNYALLERİ - PLC → Robot (Output)
+            // İSTASYON IS_BITTI SİNYALLERİ - PC → Robot (Output)
+            // PC ÇALIŞ/DURDUR ile yazar, robot da kendi programında yazar
+            // ═══════════════════════════════════════════════════════════════
+            OutputVars.Add(new PlcVariable { Name = "G_IST1_IS_BITTI", Type = "BOOL", PlcTag = "G_IST1_IS_BITTI", Direction = "Output", Description = "İstasyon 1 iş bitti" });
+            OutputVars.Add(new PlcVariable { Name = "G_IST2_IS_BITTI", Type = "BOOL", PlcTag = "G_IST2_IS_BITTI", Direction = "Output", Description = "İstasyon 2 iş bitti" });
+            OutputVars.Add(new PlcVariable { Name = "G_IST3_IS_BITTI", Type = "BOOL", PlcTag = "G_IST3_IS_BITTI", Direction = "Output", Description = "İstasyon 3 iş bitti" });
+
+            // ═══════════════════════════════════════════════════════════════
+            // İSTASYON HAZIR SİNYALLERİ - PC → Robot (Output)
             // ═══════════════════════════════════════════════════════════════
             OutputVars.Add(new PlcVariable { Name = "G_IST1_HAZIR", Type = "BOOL", PlcTag = "G_IST1_HAZIR", Direction = "Output", Description = "İstasyon 1 hazır (PLC'den robota)" });
             OutputVars.Add(new PlcVariable { Name = "G_IST2_HAZIR", Type = "BOOL", PlcTag = "G_IST2_HAZIR", Direction = "Output", Description = "İstasyon 2 hazır (PLC'den robota)" });
@@ -652,7 +667,7 @@ namespace App4.Utilities
             "G_BORU_OLCUM_TAMAM", "G_TABLA_OLCUM_TAMAM", "G_OLCUM_OK", "G_OLCUM_TAMAM",
             "G_OFFSET_X", "G_OFFSET_Y", "G_OFFSET_Z", "G_OFFSET_A", "G_OFFSET_B", "G_OFFSET_C",
             "G_SNIFFER_OLCUM_TAMAM",
-            "G_TABLA_LIMIT_ALARM",  // Safety: Tabla kaçıklık alarm sinyali
+            "G_TABLA_LIMIT_ALARM",// Safety: Tabla kaçıklık alarm sinyali
             "G_HEDEF_ISTASYON"      // Robot 2 hedef istasyon bilgisi — ürün seçimi için kritik
         };
 
@@ -724,7 +739,10 @@ namespace App4.Utilities
         private static readonly HashSet<string> _handshakeSignals = new(StringComparer.OrdinalIgnoreCase)
         {
             "G_BORU_OLCUM_TAMAM", "G_TABLA_OLCUM_TAMAM", "G_OLCUM_OK", "G_OLCUM_TAMAM",
-            "G_SNIFFER_OLCUM_TAMAM", "G_BORU_OLCUM_TETIK", "G_TABLA_OLCUM_TETIK"
+            "G_SNIFFER_OLCUM_TAMAM", "G_BORU_OLCUM_TETIK", "G_TABLA_OLCUM_TETIK",
+            // IST HAZIR: PC bir kere TRUE yazar, robot FALSE'a çeker, PC ezmez
+            "G_IST1_HAZIR", "G_IST2_HAZIR", "G_IST3_HAZIR",
+            "G_IST1_IS_BITTI", "G_IST2_IS_BITTI", "G_IST3_IS_BITTI"
         };
 
         private async Task FlushPriorityOutputs(List<PlcVariable> priorityOutputs)
@@ -953,6 +971,9 @@ namespace App4.Utilities
                             if (!_isRunning || !IsConnected) break;
                             try
                             {
+                                // ★ Handshake sinyalleri: CommunicationLoop YAZMAZ, sadece ÇALIŞ/DURDUR yazar
+                                if (_handshakeSignals.Contains(variable.PlcTag)) continue;
+
                                 string currentVal = NormalizeBoolValue(variable, variable.Value ?? "");
                                 _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
 
@@ -1917,9 +1938,12 @@ namespace App4.Utilities
                 string r2 = Robots[1].Name;
                 AddIfMissing(r1, $"G_R1_HOME (G_R1_HOME)", r2, $"G_R1_HOME (G_R1_HOME)");
                 AddIfMissing(r2, $"G_R2_HOME (G_R2_HOME)", r1, $"G_R2_HOME (G_R2_HOME)");
-                AddIfMissing(r2, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)", r1, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)");
-                AddIfMissing(r2, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)", r1, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)");
-                AddIfMissing(r2, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)", r1, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)");
+                // v10.0 FIX: R2'nin gerçek robot sinyallerini oku (G_SLIDER_*), R1'e G_R2_SLIDER_* olarak yaz
+                // ESKİ (HATALI): G_R2_SLIDER_TAMAM okuyordu → Output var, kimse yazmıyor, hep FALSE
+                // YENİ (DOĞRU): G_SLIDER_TAMAM okur → Input var, R2 robot kodu yazar
+                AddIfMissing(r2, $"G_SLIDER_TAMAM (G_SLIDER_TAMAM)", r1, $"G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)");
+                AddIfMissing(r2, $"G_SLIDER_HOME (G_SLIDER_HOME)", r1, $"G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)");
+                AddIfMissing(r2, $"G_SLIDER_AKTUEL_POZ (G_SLIDER_AKTUEL_POZ)", r1, $"G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)");
                 // IS_BASLADI köprü sinyalleri
                 AddIfMissing(r1, $"G_IS_BASLADI (G_IS_BASLADI)", r2, $"G_R1_IS_BASLADI (G_R1_IS_BASLADI)");
                 AddIfMissing(r2, $"G_IS_BASLADI (G_IS_BASLADI)", r1, $"G_R2_IS_BASLADI (G_R2_IS_BASLADI)");

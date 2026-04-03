@@ -136,251 +136,238 @@
                     </Border>
 
                     <!-- ISTASYON 1 CARD -->
-                    <Border Grid.Column="1" Background="#1A1A1C" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Padding="12">
-                        <StackPanel Spacing="8">
-                            <!-- Header -->
+                    <Border x:Name="Border_IST1" Grid.Column="1" Background="#1A1A1C" CornerRadius="8" BorderBrush="#333" BorderThickness="2" Padding="10">
+                        <StackPanel Spacing="6">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="10" Height="10" Fill="#FF5722" VerticalAlignment="Center"/>
                                 <TextBlock Text="ISTASYON 1" FontSize="13" FontWeight="Bold" Foreground="#FF5722"/>
                             </StackPanel>
                             <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- LED Panel -->
-                            <Grid ColumnSpacing="8" RowSpacing="4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <!-- HAZIR -->
-                                <Ellipse x:Name="Led_IST1_Hazir" Grid.Row="0" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="HAZIR" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST1_Hazir_Val" Grid.Row="0" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- IS BITTI -->
-                                <Ellipse x:Name="Led_IST1_IsBitti" Grid.Row="1" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BITTI" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST1_IsBitti_Val" Grid.Row="1" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- HEDEF IST -->
-                                <Ellipse x:Name="Led_IST1_HedefIst" Grid.Row="2" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="HEDEF IST" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST1_HedefIst_Val" Grid.Row="2" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- TABLA OK -->
-                                <Ellipse x:Name="Led_IST1_TablaOk" Grid.Row="3" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="TABLA OK" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST1_TablaOk_Val" Grid.Row="3" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- BORU OK -->
-                                <Ellipse x:Name="Led_IST1_BoruOk" Grid.Row="4" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="BORU OK" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST1_BoruOk_Val" Grid.Row="4" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                            <!-- Ortak -->
+                            <Grid ColumnSpacing="6" RowSpacing="2">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Ellipse x:Name="Led_IST1_Hazir" Grid.Row="0" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="HAZIR" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST1_Hazir_Val" Grid.Row="0" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
+                                <Ellipse x:Name="Led_IST1_TablaOk" Grid.Row="1" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="TABLA OK" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST1_TablaOk_Val" Grid.Row="1" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
+                                <Ellipse x:Name="Led_IST1_BoruOk" Grid.Row="2" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="BORU OK" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST1_BoruOk_Val" Grid.Row="2" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
                             </Grid>
-
-                            <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- Klima Dropdown -->
-                            <TextBlock Text="Klima Tipi:" Foreground="#888" FontSize="10"/>
-                            <ComboBox x:Name="CmbKlima_IST1" HorizontalAlignment="Stretch" Background="#252528" FontSize="11" Height="30" BorderBrush="#333"/>
-                            <TextBlock x:Name="TxtKlima_IST1_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="10"/>
-
-                            <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- Action Buttons -->
-                            <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Tag="1" Click="BtnIstasyonCalis_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White"/>
-                                        <TextBlock Text="CALIS" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                            <Rectangle Height="1" Fill="#444"/>
+                            <!-- R1 / R2 -->
+                            <Grid ColumnSpacing="4">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#111118" CornerRadius="4" Padding="5,3">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="R1 (SOL)" Foreground="#42A5F5" FontSize="9" FontWeight="Bold"/>
+                                        <Grid ColumnSpacing="3" RowSpacing="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Ellipse x:Name="Led_IST1_R1_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R1_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R1_Home" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R1_Home_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                        </Grid>
                                     </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Background="#181410" CornerRadius="4" Padding="5,3">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="R2 (SAG)" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                        <Grid ColumnSpacing="3" RowSpacing="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Ellipse x:Name="Led_IST1_R2_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_Slider" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_Slider_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_Hedef" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_Hedef_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Rectangle Height="1" Fill="#333"/>
+                            <Border Background="#1A1A2E" CornerRadius="4" Padding="8,3" BorderBrush="#333" BorderThickness="1" Height="24">
+                                <TextBlock x:Name="TxtKlima_IST1_Name" Text="Seçilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock x:Name="TxtKlima_IST1_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="9"/>
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Tag="1" Click="BtnIstasyonCalis_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="32" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Glyph="&#xE768;" FontSize="11" Foreground="White"/><TextBlock Text="CALIS" FontWeight="Bold" Foreground="White" FontSize="10"/></StackPanel>
                                 </Button>
-                                <Button Grid.Column="1" Tag="1" Click="BtnIstasyonDurdur_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE71A;" FontSize="12" Foreground="White"/>
-                                        <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="10"/>
-                                    </StackPanel>
+                                <Button Grid.Column="1" Tag="1" Click="BtnIstasyonDurdur_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="32" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Glyph="&#xE71A;" FontSize="11" Foreground="White"/><TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="10"/></StackPanel>
                                 </Button>
                             </Grid>
-                            <ToggleButton x:Name="BtnTekrarla_IST1" Tag="1" Click="BtnTekrarla_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#4A148C" BorderBrush="#7B1FA2" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                                    <FontIcon Glyph="&#xE1CD;" FontSize="12" Foreground="White"/>
-                                    <TextBlock x:Name="TxtTekrarla_IST1" Text="TEKRARLA" FontWeight="Bold" Foreground="White" FontSize="10"/>
-                                </StackPanel>
-                            </ToggleButton>
                         </StackPanel>
                     </Border>
 
                     <!-- ISTASYON 2 CARD -->
-                    <Border Grid.Column="2" Background="#1A1A1C" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Padding="12">
-                        <StackPanel Spacing="8">
-                            <!-- Header -->
+                    <Border x:Name="Border_IST2" Grid.Column="2" Background="#1A1A1C" CornerRadius="8" BorderBrush="#333" BorderThickness="2" Padding="10">
+                        <StackPanel Spacing="6">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="10" Height="10" Fill="#FF9800" VerticalAlignment="Center"/>
                                 <TextBlock Text="ISTASYON 2" FontSize="13" FontWeight="Bold" Foreground="#FF9800"/>
                             </StackPanel>
                             <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- LED Panel -->
-                            <Grid ColumnSpacing="8" RowSpacing="4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <!-- HAZIR -->
-                                <Ellipse x:Name="Led_IST2_Hazir" Grid.Row="0" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="HAZIR" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST2_Hazir_Val" Grid.Row="0" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- IS BITTI -->
-                                <Ellipse x:Name="Led_IST2_IsBitti" Grid.Row="1" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BITTI" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST2_IsBitti_Val" Grid.Row="1" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- HEDEF IST -->
-                                <Ellipse x:Name="Led_IST2_HedefIst" Grid.Row="2" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="HEDEF IST" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST2_HedefIst_Val" Grid.Row="2" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- TABLA OK -->
-                                <Ellipse x:Name="Led_IST2_TablaOk" Grid.Row="3" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="TABLA OK" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST2_TablaOk_Val" Grid.Row="3" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- BORU OK -->
-                                <Ellipse x:Name="Led_IST2_BoruOk" Grid.Row="4" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="BORU OK" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST2_BoruOk_Val" Grid.Row="4" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                            <Grid ColumnSpacing="6" RowSpacing="2">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Ellipse x:Name="Led_IST2_Hazir" Grid.Row="0" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="HAZIR" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST2_Hazir_Val" Grid.Row="0" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
+                                <Ellipse x:Name="Led_IST2_TablaOk" Grid.Row="1" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="TABLA OK" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST2_TablaOk_Val" Grid.Row="1" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
+                                <Ellipse x:Name="Led_IST2_BoruOk" Grid.Row="2" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="BORU OK" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST2_BoruOk_Val" Grid.Row="2" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
                             </Grid>
-
-                            <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- Klima Dropdown -->
-                            <TextBlock Text="Klima Tipi:" Foreground="#888" FontSize="10"/>
-                            <ComboBox x:Name="CmbKlima_IST2" HorizontalAlignment="Stretch" Background="#252528" FontSize="11" Height="30" BorderBrush="#333"/>
-                            <TextBlock x:Name="TxtKlima_IST2_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="10"/>
-
-                            <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- Action Buttons -->
-                            <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Tag="2" Click="BtnIstasyonCalis_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White"/>
-                                        <TextBlock Text="CALIS" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                            <Rectangle Height="1" Fill="#444"/>
+                            <Grid ColumnSpacing="4">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#111118" CornerRadius="4" Padding="5,3">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="R1 (SOL)" Foreground="#42A5F5" FontSize="9" FontWeight="Bold"/>
+                                        <Grid ColumnSpacing="3" RowSpacing="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Ellipse x:Name="Led_IST2_R1_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R1_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R1_Home" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R1_Home_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                        </Grid>
                                     </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Background="#181410" CornerRadius="4" Padding="5,3">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="R2 (SAG)" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                        <Grid ColumnSpacing="3" RowSpacing="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Ellipse x:Name="Led_IST2_R2_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_Slider" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_Slider_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_Hedef" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_Hedef_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Rectangle Height="1" Fill="#333"/>
+                            <Border Background="#1A1A2E" CornerRadius="4" Padding="8,3" BorderBrush="#333" BorderThickness="1" Height="24">
+                                <TextBlock x:Name="TxtKlima_IST2_Name" Text="Seçilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock x:Name="TxtKlima_IST2_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="9"/>
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Tag="2" Click="BtnIstasyonCalis_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="32" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Glyph="&#xE768;" FontSize="11" Foreground="White"/><TextBlock Text="CALIS" FontWeight="Bold" Foreground="White" FontSize="10"/></StackPanel>
                                 </Button>
-                                <Button Grid.Column="1" Tag="2" Click="BtnIstasyonDurdur_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE71A;" FontSize="12" Foreground="White"/>
-                                        <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="10"/>
-                                    </StackPanel>
+                                <Button Grid.Column="1" Tag="2" Click="BtnIstasyonDurdur_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="32" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Glyph="&#xE71A;" FontSize="11" Foreground="White"/><TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="10"/></StackPanel>
                                 </Button>
                             </Grid>
-                            <ToggleButton x:Name="BtnTekrarla_IST2" Tag="2" Click="BtnTekrarla_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#4A148C" BorderBrush="#7B1FA2" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                                    <FontIcon Glyph="&#xE1CD;" FontSize="12" Foreground="White"/>
-                                    <TextBlock x:Name="TxtTekrarla_IST2" Text="TEKRARLA" FontWeight="Bold" Foreground="White" FontSize="10"/>
-                                </StackPanel>
-                            </ToggleButton>
                         </StackPanel>
                     </Border>
 
                     <!-- ISTASYON 3 CARD -->
-                    <Border Grid.Column="3" Background="#1A1A1C" CornerRadius="8" BorderBrush="#333" BorderThickness="1" Padding="12">
-                        <StackPanel Spacing="8">
-                            <!-- Header -->
+                    <Border x:Name="Border_IST3" Grid.Column="3" Background="#1A1A1C" CornerRadius="8" BorderBrush="#333" BorderThickness="2" Padding="10">
+                        <StackPanel Spacing="6">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Ellipse Width="10" Height="10" Fill="#4CAF50" VerticalAlignment="Center"/>
                                 <TextBlock Text="ISTASYON 3" FontSize="13" FontWeight="Bold" Foreground="#4CAF50"/>
                             </StackPanel>
                             <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- LED Panel -->
-                            <Grid ColumnSpacing="8" RowSpacing="4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <!-- HAZIR -->
-                                <Ellipse x:Name="Led_IST3_Hazir" Grid.Row="0" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="HAZIR" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST3_Hazir_Val" Grid.Row="0" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- IS BITTI -->
-                                <Ellipse x:Name="Led_IST3_IsBitti" Grid.Row="1" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BITTI" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST3_IsBitti_Val" Grid.Row="1" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- HEDEF IST -->
-                                <Ellipse x:Name="Led_IST3_HedefIst" Grid.Row="2" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="HEDEF IST" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST3_HedefIst_Val" Grid.Row="2" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- TABLA OK -->
-                                <Ellipse x:Name="Led_IST3_TablaOk" Grid.Row="3" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="TABLA OK" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST3_TablaOk_Val" Grid.Row="3" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                <!-- BORU OK -->
-                                <Ellipse x:Name="Led_IST3_BoruOk" Grid.Row="4" Grid.Column="0" Width="12" Height="12" Fill="#555"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="BORU OK" Foreground="#AAA" FontSize="11" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TxtLed_IST3_BoruOk_Val" Grid.Row="4" Grid.Column="2" Text="---" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                            <Grid ColumnSpacing="6" RowSpacing="2">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Ellipse x:Name="Led_IST3_Hazir" Grid.Row="0" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="HAZIR" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST3_Hazir_Val" Grid.Row="0" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
+                                <Ellipse x:Name="Led_IST3_TablaOk" Grid.Row="1" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="TABLA OK" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST3_TablaOk_Val" Grid.Row="1" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
+                                <Ellipse x:Name="Led_IST3_BoruOk" Grid.Row="2" Grid.Column="0" Width="10" Height="10" Fill="#555"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="BORU OK" Foreground="#AAA" FontSize="10"/>
+                                <TextBlock x:Name="TxtLed_IST3_BoruOk_Val" Grid.Row="2" Grid.Column="2" Text="---" Foreground="#888" FontSize="10" FontWeight="SemiBold"/>
                             </Grid>
-
-                            <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- Klima Dropdown -->
-                            <TextBlock Text="Klima Tipi:" Foreground="#888" FontSize="10"/>
-                            <ComboBox x:Name="CmbKlima_IST3" HorizontalAlignment="Stretch" Background="#252528" FontSize="11" Height="30" BorderBrush="#333"/>
-                            <TextBlock x:Name="TxtKlima_IST3_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="10"/>
-
-                            <Rectangle Height="1" Fill="#333"/>
-
-                            <!-- Action Buttons -->
-                            <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Tag="3" Click="BtnIstasyonCalis_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White"/>
-                                        <TextBlock Text="CALIS" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                            <Rectangle Height="1" Fill="#444"/>
+                            <Grid ColumnSpacing="4">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#111118" CornerRadius="4" Padding="5,3">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="R1 (SOL)" Foreground="#42A5F5" FontSize="9" FontWeight="Bold"/>
+                                        <Grid ColumnSpacing="3" RowSpacing="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Ellipse x:Name="Led_IST3_R1_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R1_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R1_Home" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R1_Home_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                        </Grid>
                                     </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Background="#181410" CornerRadius="4" Padding="5,3">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="R2 (SAG)" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
+                                        <Grid ColumnSpacing="3" RowSpacing="1">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Ellipse x:Name="Led_IST3_R2_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_Slider" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_Slider_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_Hedef" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_Hedef_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Rectangle Height="1" Fill="#333"/>
+                            <Border Background="#1A1A2E" CornerRadius="4" Padding="8,3" BorderBrush="#333" BorderThickness="1" Height="24">
+                                <TextBlock x:Name="TxtKlima_IST3_Name" Text="Seçilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock x:Name="TxtKlima_IST3_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="9"/>
+                            <Grid ColumnSpacing="6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Tag="3" Click="BtnIstasyonCalis_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="32" Background="#1E5631" BorderBrush="#27AE60" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Glyph="&#xE768;" FontSize="11" Foreground="White"/><TextBlock Text="CALIS" FontWeight="Bold" Foreground="White" FontSize="10"/></StackPanel>
                                 </Button>
-                                <Button Grid.Column="1" Tag="3" Click="BtnIstasyonDurdur_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE71A;" FontSize="12" Foreground="White"/>
-                                        <TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="10"/>
-                                    </StackPanel>
+                                <Button Grid.Column="1" Tag="3" Click="BtnIstasyonDurdur_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="32" Background="#641E16" BorderBrush="#C0392B" BorderThickness="1">
+                                    <StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Glyph="&#xE71A;" FontSize="11" Foreground="White"/><TextBlock Text="DURDUR" FontWeight="Bold" Foreground="White" FontSize="10"/></StackPanel>
                                 </Button>
                             </Grid>
-                            <ToggleButton x:Name="BtnTekrarla_IST3" Tag="3" Click="BtnTekrarla_Click" CornerRadius="6" HorizontalAlignment="Stretch" Height="36" Background="#4A148C" BorderBrush="#7B1FA2" BorderThickness="1">
-                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                                    <FontIcon Glyph="&#xE1CD;" FontSize="12" Foreground="White"/>
-                                    <TextBlock x:Name="TxtTekrarla_IST3" Text="TEKRARLA" FontWeight="Bold" Foreground="White" FontSize="10"/>
-                                </StackPanel>
-                            </ToggleButton>
                         </StackPanel>
                     </Border>
                 </Grid>

@@ -18,10 +18,7 @@ namespace App4
         // Manuel sayfadan yazılan değerlerin local kopyası (InputVars'a dokunmadan LED güncellemesi için)
         // Local state kaldırıldı — tüm sinyal yönetimi GlobalData.RobotOutputVars üzerinden yapılır
 
-        // --- TEKRARLA MODU ---
-        private readonly Dictionary<int, bool> _tekrarlaAktif = new() { { 1, false }, { 2, false }, { 3, false } };
-        private readonly Dictionary<int, int> _tekrarlaSayac = new() { { 1, 0 }, { 2, 0 }, { 3, 0 } };
-        private readonly Dictionary<int, bool> _tekrarlaIsBittiSon = new() { { 1, false }, { 2, false }, { 3, false } };
+
 
         public Manuel_Page()
         {
@@ -45,8 +42,8 @@ namespace App4
             TxtKL100St2Pos.Text = GlobalData.KL100_Station2Pos.ToString(CultureInfo.InvariantCulture);
             TxtKL100St3Pos.Text = GlobalData.KL100_Station3Pos.ToString(CultureInfo.InvariantCulture);
 
-            // Populate Klima ComboBoxes
-            PopulateKlimaComboBoxes();
+            // İlk yüklemede klima bilgilerini otomatik sayfadan göster
+            UpdateKlimaDisplayFromAuto();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -55,43 +52,62 @@ namespace App4
             _refreshTimer.Stop();
         }
 
-        private void PopulateKlimaComboBoxes()
+        /// <summary>
+        /// Otomatik sayfadaki istasyon ürün tipi bilgisini manuel sayfada gösterir.
+        /// ComboBox yok — sadece okuma. Seçim otomatik sayfadan yapılır.
+        /// </summary>
+        private void UpdateKlimaDisplayFromAuto()
         {
-            var rfids = GlobalData.KnownRfids;
-            if (rfids == null) return;
-
-            CmbKlima_IST1.ItemsSource = rfids;
-            CmbKlima_IST2.ItemsSource = rfids;
-            CmbKlima_IST3.ItemsSource = rfids;
-
-            // Select first item by default if available
-            if (rfids.Count > 0)
+            try
             {
-                if (CmbKlima_IST1.SelectedIndex < 0) CmbKlima_IST1.SelectedIndex = 0;
-                if (CmbKlima_IST2.SelectedIndex < 0) CmbKlima_IST2.SelectedIndex = 0;
-                if (CmbKlima_IST3.SelectedIndex < 0) CmbKlima_IST3.SelectedIndex = 0;
+                var stations = GlobalData.Stations;
+                if (stations == null || stations.Count < 3) return;
+
+                UpdateSingleStationKlima(stations[0], TxtKlima_IST1_Name, TxtKlima_IST1_Info);
+                UpdateSingleStationKlima(stations[1], TxtKlima_IST2_Name, TxtKlima_IST2_Info);
+                UpdateSingleStationKlima(stations[2], TxtKlima_IST3_Name, TxtKlima_IST3_Info);
             }
-
-            // Update info texts
-            UpdateKlimaInfoText(CmbKlima_IST1, TxtKlima_IST1_Info);
-            UpdateKlimaInfoText(CmbKlima_IST2, TxtKlima_IST2_Info);
-            UpdateKlimaInfoText(CmbKlima_IST3, TxtKlima_IST3_Info);
-
-            CmbKlima_IST1.SelectionChanged += (s, e) => UpdateKlimaInfoText(CmbKlima_IST1, TxtKlima_IST1_Info);
-            CmbKlima_IST2.SelectionChanged += (s, e) => UpdateKlimaInfoText(CmbKlima_IST2, TxtKlima_IST2_Info);
-            CmbKlima_IST3.SelectionChanged += (s, e) => UpdateKlimaInfoText(CmbKlima_IST3, TxtKlima_IST3_Info);
+            catch { }
         }
 
-        private void UpdateKlimaInfoText(ComboBox cmb, TextBlock infoText)
+        private void UpdateSingleStationKlima(StationViewModel station, TextBlock nameText, TextBlock infoText)
         {
-            if (cmb.SelectedItem is App4.Utilities.RfidDef rfid)
+            var ext = station as ExtendedStationViewModel;
+            if (ext == null)
             {
-                int tipIdx = GlobalData.KnownRfids.IndexOf(rfid) + 1;
-                infoText.Text = $"Tip: {tipIdx} | Case: {rfid.CasingIndex}";
+                nameText.Text = "---";
+                infoText.Text = "Tip: - | Case: -";
+                return;
+            }
+
+            // Mod bilgisi
+            bool isSpecific = ((int)ext.RfidOpMode == (int)RfidOperationMode.Specific);
+            string modStr = isSpecific ? "SPESİFİK" : "MİX";
+
+            // Specific mod → TargetRfid (beklenen), Mixed mod → CurrentRfid (okunan)
+            string rfidId = isSpecific ? ext.TargetRfid : ext.CurrentRfid;
+
+            if (string.IsNullOrEmpty(rfidId))
+            {
+                nameText.Text = isSpecific ? "Beklenen seçilmedi" : "RFID okunmadı";
+                nameText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 200, 80, 80));
+                infoText.Text = $"[{modStr}] Tip: - | Case: -";
+                return;
+            }
+
+            var rfidDef = GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidId);
+            if (rfidDef != null)
+            {
+                int tipIdx = GlobalData.KnownRfids.IndexOf(rfidDef) + 1;
+                nameText.Text = rfidDef.Id;
+                nameText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80));
+                infoText.Text = $"[{modStr}] Tip: {tipIdx} | Case: {rfidDef.CasingIndex}";
             }
             else
             {
-                infoText.Text = "Tip: - | Case: -";
+                nameText.Text = rfidId;
+                nameText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 193, 7));
+                infoText.Text = $"[{modStr}] Tip: ? | Tanımsız RFID";
             }
         }
 
@@ -110,14 +126,15 @@ namespace App4
             // Update station LEDs
             UpdateStationLeds();
 
+            // Klima tipi bilgilerini otomatik sayfadan güncelle
+            UpdateKlimaDisplayFromAuto();
+
             // Update KL100 slider panel
             UpdateKL100SliderPanel();
 
             // Update control panel badges
             UpdateControlPanelBadges();
 
-            // Tekrarla modu izle
-            CheckTekrarlaLoop();
         }
 
         // ================================================================
@@ -188,33 +205,77 @@ namespace App4
         private void UpdateStationLeds()
         {
             var green = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80));
+            var blue = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 66, 165, 245));
+            var orange = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 152, 0));
             var gray = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 85, 85, 85));
+
+            // Robot instanceları al
+            var robots = KukaRobotManager.Instance?.Robots;
+            var r1 = (robots != null && robots.Count >= 1) ? robots[0] : null;
+            var r2 = (robots != null && robots.Count >= 2) ? robots[1] : null;
+
+            // R2 HEDEF_ISTASYON değerini oku (R2 OutputVars — PC yazdı veya bridge güncelledi)
+            int r2Hedef = 0;
+            if (r2 != null)
+            {
+                var hVar = r2.OutputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON")
+                        ?? r2.InputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON");
+                if (hVar != null) int.TryParse(hVar.Value, out r2Hedef);
+            }
 
             for (int st = 1; st <= 3; st++)
             {
-                // GlobalData.RobotOutputVars'dan oku (PC'nin yazdığı değerler)
-                bool hazir = IsGlobalVarTrue($"G_IST{st}_HAZIR");
-                bool isBitti = IsGlobalVarTrue($"G_IST{st}_IS_BITTI");
+                // --- ORTAK SİNYALLER ---
+                // HAZIR: Robottan oku (robot FALSE'a çekerse LED söner)
+                // Önce robot InputVars'tan oku, bağlı değilse PC cache'ten
+                bool hazir = IsRobotSignalTrue(r1, $"G_IST{st}_HAZIR")
+                          || IsGlobalVarTrue($"G_IST{st}_HAZIR");
                 bool tablaOk = IsGlobalVarTrue("G_TABLA_OLCUM_TAMAM");
                 bool boruOk = IsGlobalVarTrue("G_BORU_OLCUM_TAMAM");
 
-                // HEDEF_ISTASYON check
-                var hedefVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON");
-                bool isHedef = false;
-                if (hedefVar != null && int.TryParse(hedefVar.Value, out int hv)) isHedef = (hv == st);
-
                 SetLed($"Led_IST{st}_Hazir", hazir, green, gray);
-                SetLed($"Led_IST{st}_IsBitti", isBitti, green, gray);
-                SetLed($"Led_IST{st}_HedefIst", isHedef, green, gray);
                 SetLed($"Led_IST{st}_TablaOk", tablaOk, green, gray);
                 SetLed($"Led_IST{st}_BoruOk", boruOk, green, gray);
-
-                // Update value textblocks
                 SetLedText($"TxtLed_IST{st}_Hazir_Val", hazir);
-                SetLedText($"TxtLed_IST{st}_IsBitti_Val", isBitti);
-                SetLedText($"TxtLed_IST{st}_HedefIst_Val", isHedef);
                 SetLedText($"TxtLed_IST{st}_TablaOk_Val", tablaOk);
                 SetLedText($"TxtLed_IST{st}_BoruOk_Val", boruOk);
+
+                // --- R1 SİNYALLERİ (Robot 1 InputVars) ---
+                bool r1IsBitti = IsRobotSignalTrue(r1, "G_IS_BITTI");
+                bool r1Home = IsRobotSignalTrue(r1, "G_R1_HOME");
+
+                SetLed($"Led_IST{st}_R1_IsBitti", r1IsBitti, blue, gray);
+                SetLed($"Led_IST{st}_R1_Home", r1Home, blue, gray);
+                SetLedText($"TxtLed_IST{st}_R1_IsBitti_Val", r1IsBitti);
+                SetLedText($"TxtLed_IST{st}_R1_Home_Val", r1Home);
+
+                // --- R2 SİNYALLERİ (Robot 2 InputVars) ---
+                bool r2IsBitti = IsRobotSignalTrue(r2, "G_IS_BITTI");
+                bool r2Slider = IsRobotSignalTrue(r2, "G_SLIDER_TAMAM");
+                bool r2Home = IsRobotSignalTrue(r2, "G_R2_HOME");
+                bool r2IsHedef = (r2Hedef == st);
+
+                SetLed($"Led_IST{st}_R2_IsBitti", r2IsBitti, orange, gray);
+                SetLed($"Led_IST{st}_R2_Slider", r2Slider, orange, gray);
+                SetLed($"Led_IST{st}_R2_Home", r2Home, orange, gray);
+                SetLed($"Led_IST{st}_R2_Hedef", r2IsHedef, orange, gray);
+                SetLedText($"TxtLed_IST{st}_R2_IsBitti_Val", r2IsBitti);
+                SetLedText($"TxtLed_IST{st}_R2_Slider_Val", r2Slider);
+                SetLedText($"TxtLed_IST{st}_R2_Home_Val", r2Home);
+                // HEDEF: sayı göster (TRUE/FALSE yerine)
+                if (FindName($"TxtLed_IST{st}_R2_Hedef_Val") is TextBlock hedefTxt)
+                {
+                    hedefTxt.Text = r2Hedef > 0 ? r2Hedef.ToString() : "--";
+                    hedefTxt.Foreground = r2IsHedef ? orange : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 136, 136, 136));
+                }
+
+                // Border: HAZIR ise yeşil çerçeve
+                if (FindName($"Border_IST{st}") is Border border)
+                {
+                    border.BorderBrush = hazir
+                        ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 76, 175, 80))
+                        : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 51, 51, 51));
+                }
             }
         }
 
@@ -285,16 +346,41 @@ namespace App4
                 // Aktif istasyonu hazırla
                 await SetStationActive(stNum);
 
-                // Klima tip bilgisini dropdown'dan al ve yaz
-                var cmb = stNum == 1 ? CmbKlima_IST1 : stNum == 2 ? CmbKlima_IST2 : CmbKlima_IST3;
-                if (cmb.SelectedItem is App4.Utilities.RfidDef rfid)
+                // Tabla + Boru ölçüm sinyallerini sıfırla (yeni çevrim temiz başlasın)
+                await WriteToRobotsAndLocal("G_TABLA_OLCUM_TAMAM", "FALSE");
+                await WriteToRobotsAndLocal("G_TABLA_OLCUM_ALINDI", "FALSE");
+                await WriteToRobotsAndLocal("G_TABLA_OFFSET_HAZIR", "FALSE");
+                await WriteToRobotsAndLocal("G_BORU_OLCUM_TAMAM", "FALSE");
+
+                // Dahili PC ölçüm state sıfırla
+                GlobalData.ResetTablaMeasurementSignal();
+                GlobalData.ResetMeasurementSignal();
+
+                // Klima tip bilgisini otomatik sayfadaki istasyon ayarından al
+                var station = (stNum >= 1 && stNum <= GlobalData.Stations.Count)
+                    ? GlobalData.Stations[stNum - 1] as ExtendedStationViewModel
+                    : null;
+
+                if (station != null)
                 {
-                    int klimaIdx = GlobalData.KnownRfids.IndexOf(rfid) + 1;
-                    int caseId = rfid.CasingIndex;
-                    // AktuelKlimaIndex set et — KlimaTipSyncTimer doğru CaseID'yi korusun
-                    GlobalData.AktuelKlimaIndex = klimaIdx;
-                    await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
-                    await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
+                    string rfidId = ((int)station.RfidOpMode == (int)RfidOperationMode.Specific)
+                        ? station.TargetRfid
+                        : station.CurrentRfid;
+
+                    var rfidDef = !string.IsNullOrEmpty(rfidId)
+                        ? GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidId)
+                        : null;
+
+                    if (rfidDef != null)
+                    {
+                        int klimaIdx = GlobalData.KnownRfids.IndexOf(rfidDef) + 1;
+                        int caseId = rfidDef.CasingIndex;
+                        // RFID string + index + case — otomatik sayfayla aynı
+                        GlobalData.AktuelRfid = rfidDef.Id;
+                        GlobalData.AktuelKlimaIndex = klimaIdx;
+                        await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
+                        await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
+                    }
                 }
             }
             catch { }
@@ -317,8 +403,13 @@ namespace App4
             btn.IsEnabled = false;
             try
             {
+                // 1. İstasyon sinyalleri: HAZIR kapat, İŞ BİTTİ aç
                 await WriteToRobotsAndLocal($"G_IST{stNum}_HAZIR", "FALSE");
                 await WriteToRobotsAndLocal($"G_IST{stNum}_IS_BITTI", "TRUE");
+
+                // 2. Robot 1 ana iş bitti sinyali — her iki robota gider
+                //    Robot 2 bu sinyali G_R1_IS_BITTI olarak bridge ile alır
+                await WriteToRobotsAndLocal("G_IS_BITTI", "TRUE");
             }
             catch { }
             finally
@@ -327,135 +418,6 @@ namespace App4
             }
         }
 
-        // ================================================================
-        // TEKRARLA MODU
-        // ================================================================
-
-        /// <summary>
-        /// Tekrarla toggle butonu — basınca aktif, tekrar basınca kapalı.
-        /// Aktifken: robotlar IS_BITTI verdiğinde aynı istasyonu otomatik tekrar başlatır.
-        /// </summary>
-        private void BtnTekrarla_Click(object sender, RoutedEventArgs e)
-        {
-            var toggle = sender as Microsoft.UI.Xaml.Controls.Primitives.ToggleButton;
-            if (toggle == null) return;
-            int stNum = int.Parse(toggle.Tag.ToString());
-
-            bool isChecked = toggle.IsChecked == true;
-            _tekrarlaAktif[stNum] = isChecked;
-
-            // Diğer istasyonların tekrarla modunu kapat
-            if (isChecked)
-            {
-                for (int i = 1; i <= 3; i++)
-                {
-                    if (i != stNum) StopTekrarla(i);
-                }
-                _tekrarlaSayac[stNum] = 0;
-                _tekrarlaIsBittiSon[stNum] = false;
-            }
-
-            // UI güncelle
-            UpdateTekrarlaUI(stNum, isChecked);
-        }
-
-        private void StopTekrarla(int stNum)
-        {
-            _tekrarlaAktif[stNum] = false;
-            _tekrarlaSayac[stNum] = 0;
-            _tekrarlaIsBittiSon[stNum] = false;
-
-            var toggle = stNum switch
-            {
-                1 => BtnTekrarla_IST1,
-                2 => BtnTekrarla_IST2,
-                3 => BtnTekrarla_IST3,
-                _ => null
-            };
-            if (toggle != null) toggle.IsChecked = false;
-            UpdateTekrarlaUI(stNum, false);
-        }
-
-        private void UpdateTekrarlaUI(int stNum, bool aktif)
-        {
-            var txt = stNum switch
-            {
-                1 => TxtTekrarla_IST1,
-                2 => TxtTekrarla_IST2,
-                3 => TxtTekrarla_IST3,
-                _ => null
-            };
-            if (txt == null) return;
-
-            if (aktif)
-                txt.Text = $"TEKRARLA AKTIF ({_tekrarlaSayac[stNum]})";
-            else
-                txt.Text = "TEKRARLA";
-        }
-
-        /// <summary>
-        /// Timer'dan çağrılır — robotların IS_BITTI sinyalini izler.
-        /// Her iki robot da IS_BITTI=TRUE verdiğinde aynı istasyonu tekrar başlatır.
-        /// </summary>
-        private async void CheckTekrarlaLoop()
-        {
-            try
-            {
-                for (int st = 1; st <= 3; st++)
-                {
-                    if (!_tekrarlaAktif[st]) continue;
-
-                    // Her iki robotun IS_BITTI sinyalini kontrol et
-                    var robots = KukaRobotManager.Instance?.Robots;
-                    if (robots == null || robots.Count < 2) continue;
-
-                    bool r1IsBitti = false;
-                    bool r2IsBitti = false;
-
-                    var r1Var = robots[0].InputVars?.FirstOrDefault(v => v.Name == "G_IS_BITTI");
-                    var r2Var = robots[1].InputVars?.FirstOrDefault(v => v.Name == "G_IS_BITTI");
-
-                    if (r1Var != null) r1IsBitti = r1Var.Value?.ToString().Equals("TRUE", StringComparison.OrdinalIgnoreCase) == true;
-                    if (r2Var != null) r2IsBitti = r2Var.Value?.ToString().Equals("TRUE", StringComparison.OrdinalIgnoreCase) == true;
-
-                    bool ikisindeIsBitti = r1IsBitti && r2IsBitti;
-
-                    if (ikisindeIsBitti && !_tekrarlaIsBittiSon[st])
-                    {
-                        // Yeni IS_BITTI geldi — sayacı artır ve tekrar başlat
-                        _tekrarlaSayac[st]++;
-                        UpdateTekrarlaUI(st, true);
-
-                        System.Diagnostics.Debug.WriteLine($"[TEKRARLA] IST{st} — Tekrar #{_tekrarlaSayac[st]} baslatiliyor...");
-
-                        // Kısa bekleme — robotlar HOME'a gelsin
-                        await Task.Delay(2000);
-
-                        if (!_tekrarlaAktif[st]) break; // Bu arada kapatılmış olabilir
-
-                        // Aynı istasyonu tekrar başlat
-                        await SetStationActive(st);
-
-                        // Klima tip bilgisini yaz
-                        var cmb = st == 1 ? CmbKlima_IST1 : st == 2 ? CmbKlima_IST2 : CmbKlima_IST3;
-                        if (cmb.SelectedItem is App4.Utilities.RfidDef rfid)
-                        {
-                            int klimaIdx = GlobalData.KnownRfids.IndexOf(rfid) + 1;
-                            int caseId = rfid.CasingIndex;
-                            GlobalData.AktuelKlimaIndex = klimaIdx;
-                            await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
-                            await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
-                        }
-                    }
-
-                    _tekrarlaIsBittiSon[st] = ikisindeIsBitti;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[TEKRARLA] Hata: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// İstasyonu aktifleştir — diğerlerini kapat.
@@ -463,6 +425,9 @@ namespace App4
         /// </summary>
         private async Task SetStationActive(int stNum)
         {
+            // Robotların ana iş bitti sinyalini sıfırla (yeni çevrim başlıyor)
+            await WriteToRobotsAndLocal("G_IS_BITTI", "FALSE");
+
             for (int i = 1; i <= 3; i++)
             {
                 if (i == stNum)
@@ -531,6 +496,9 @@ namespace App4
 
             try
             {
+                // Robotların ana iş bitti sinyalini sıfırla (yeni çevrim başlıyor)
+                await WriteToRobotsAndLocal("G_IS_BITTI", "FALSE");
+
                 // 3 istasyonun hepsi: IS_BITTI=FALSE, HAZIR=TRUE
                 for (int st = 1; st <= 3; st++)
                 {
@@ -538,14 +506,40 @@ namespace App4
                     await WriteToRobotsAndLocal($"G_IST{st}_HAZIR", "TRUE");
                 }
 
-                // Tabla + Boru ölçüm sıfırla
+                // Tabla + Boru ölçüm sinyallerini sıfırla
                 await WriteToRobotsAndLocal("G_TABLA_OLCUM_TAMAM", "FALSE");
+                await WriteToRobotsAndLocal("G_TABLA_OLCUM_ALINDI", "FALSE");
+                await WriteToRobotsAndLocal("G_TABLA_OFFSET_HAZIR", "FALSE");
                 await WriteToRobotsAndLocal("G_BORU_OLCUM_TAMAM", "FALSE");
+                GlobalData.ResetTablaMeasurementSignal();
+                GlobalData.ResetMeasurementSignal();
 
-                // Klima tip tazeleme
-                var klimaTipVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_KLIMA_TIP");
-                if (klimaTipVar != null && !string.IsNullOrEmpty(klimaTipVar.Value))
-                    await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaTipVar.Value);
+                // Klima tip: İlk HAZIR istasyonun otomatik sayfadaki ürün tipini gönder
+                // (Round-robin R2 sırayla işleyecek, ilk istasyonun tipini başlangıç olarak yaz)
+                for (int st = 0; st < Math.Min(3, GlobalData.Stations.Count); st++)
+                {
+                    var ext = GlobalData.Stations[st] as ExtendedStationViewModel;
+                    if (ext == null) continue;
+
+                    string rfidId = ((int)ext.RfidOpMode == (int)RfidOperationMode.Specific)
+                        ? ext.TargetRfid
+                        : ext.CurrentRfid;
+
+                    var rfidDef = !string.IsNullOrEmpty(rfidId)
+                        ? GlobalData.KnownRfids.FirstOrDefault(r => r.Id == rfidId)
+                        : null;
+
+                    if (rfidDef != null)
+                    {
+                        int klimaIdx = GlobalData.KnownRfids.IndexOf(rfidDef) + 1;
+                        int caseId = rfidDef.CasingIndex;
+                        GlobalData.AktuelRfid = rfidDef.Id;
+                        GlobalData.AktuelKlimaIndex = klimaIdx;
+                        await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
+                        await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
+                        break; // İlk geçerli istasyonun tipini yaz
+                    }
+                }
             }
             catch { }
             finally
