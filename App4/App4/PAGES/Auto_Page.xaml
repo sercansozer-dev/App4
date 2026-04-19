@@ -96,7 +96,11 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- ÜST KISIM: İstasyonlar + Kontrol Butonları Yan Yana -->
+                    <!-- ÜST KISIM: İstasyonlar + Kontrol Butonları Yan Yana
+                         NOT: KONTROL paneli Visibility="Collapsed" ile GİZLENDİ (silinmedi).
+                         START/STOP/RESET/HAT MODU sahadan donanım butonlarıyla yapıldığı için
+                         UI'da görünmüyor; ileride tekrar göstermek için KONTROL Border'ının
+                         Visibility özelliğini "Visible" yapmak yeterli. -->
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -132,9 +136,9 @@
                                         </StackPanel>
                                     </Grid>
                                 </Border>
-                                <StackPanel Grid.Row="1" Background="#151515" Spacing="6" Padding="10">
+                                <StackPanel Grid.Row="1" Background="#151515" Spacing="8" Padding="10">
                                     <!-- Model View -->
-                                    <Border CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" MinHeight="180">
+                                    <Border CornerRadius="8" BorderBrush="#333" BorderThickness="1" Background="#101010" MinHeight="200">
                                          <WebView2 x:Name="Viewer_Station1" DefaultBackgroundColor="Transparent"/>
                                     </Border>
 
@@ -496,8 +500,11 @@
                         </Border>
                     </Grid>
 
-                    <!-- ═══ KONTROL PANELİ (Sol Taraf - Bakım Hizası) ═══ -->
-                    <Border Grid.Column="0" Background="#1A1A1C" CornerRadius="8" Margin="5" Padding="15" MinWidth="180" VerticalAlignment="Stretch">
+                    <!-- ═══ KONTROL PANELİ (Sol Taraf - Bakım Hizası) ═══
+                         GİZLENDİ (Visibility="Collapsed"): START/STOP/RESET ve HAT MODU sahadan
+                         donanım butonları/anahtarları ile yapılıyor. Kodlar silinmedi — tekrar
+                         göstermek için aşağıdaki Border'da Visibility="Visible" yapın. -->
+                    <Border Grid.Column="0" Visibility="Collapsed" Background="#1A1A1C" CornerRadius="8" Margin="5" Padding="15" MinWidth="180" VerticalAlignment="Stretch">
                         <StackPanel Spacing="12">
                             <!-- Başlık -->
                             <StackPanel Orientation="Horizontal" Spacing="8">

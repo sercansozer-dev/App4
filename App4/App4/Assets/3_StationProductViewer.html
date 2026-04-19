@@ -397,7 +397,7 @@
             const maxDim = Math.max(size.x, size.y, size.z);
             const fov = camera.fov * (Math.PI / 180);
             let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-            cameraDist *= 2.0;
+            cameraDist *= 1.5; // Zoom factor (standardized across stations — daha yakın görünüm)
 
             const direction = camera.position.clone().sub(controls.target).normalize();
             const newPos = direction.multiplyScalar(cameraDist).add(center);
@@ -422,21 +422,6 @@
             window.loadModel = loadModel;
             log('Ready for models');
         });
-    </script>
-</body>
-</html>
-                const size = box.getSize(new THREE.Vector3()); const center = box.getCenter(new THREE.Vector3());
-                model.position.x += (model.position.x - center.x); model.position.y += (model.position.y - center.y); model.position.z += (model.position.z - center.z);
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const fov = camera.fov * (Math.PI / 180);
-                let cameraDist = maxDim / (2 * Math.tan(fov / 2)); cameraDist *= 1.5; 
-                camera.position.set(cameraDist, cameraDist*0.5, cameraDist); camera.lookAt(0, 0, 0);
-                if(controls) { controls.target.set(0,0,0); controls.update(); }
-                showLoading(false);
-            }, undefined, (err) => { updateError("Load Error: " + err.message); showLoading(false); });
-        }
-        function animate() { requestAnimationFrame(animate); if(controls) controls.update(); renderer.render(scene, camera); }
-        init(); window.loadModel = loadModel;
     </script>
 </body>
 </html>

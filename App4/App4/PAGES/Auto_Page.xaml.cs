@@ -205,8 +205,8 @@ namespace App4
             {
                 await App4.Utilities.RecipeManager.RefreshModelLibraryAsync();
                 AvailableModels.Clear();
-                
-                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+
+                string modelsRoot = App4.Utilities.ModelsPathHelper.GetModelsFolder();
 
                 if (App4.Utilities.GlobalSettings.AppState.ModelLibrary != null)
                 {
@@ -224,6 +224,11 @@ namespace App4
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            // 0. Model kütüphanesini yenile (Klima Editörü'nden yeni yüklenen modelleri yakala)
+            //    Sayfa NavigationCacheMode="Required" olduğu için ctor tekrar çalışmaz,
+            //    bu yüzden her navigasyonda dropdown'ları tazelemek gerekir.
+            InitializeAvailableModels();
+
             // 1. İstasyon Olaylarını Bağla
             foreach (var s in Stations)
             {
@@ -328,6 +333,7 @@ namespace App4
             UpdateLineStatusVisuals();
 
             // 3.5. OTO/MANUEL Switch'leri PLC değişkeniyle senkronize et
+            // (KONTROL paneli Visibility="Collapsed" olduğunda da kod çalışsın diye null-check ile korunuyor)
             var switchVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "LINE_AUTO_MANUAL_CMD");
             if (switchVar != null)
             {
@@ -356,6 +362,10 @@ namespace App4
 
             // 7. Robot Durum İzleme Panelini Bağla
             InitializeRobotStatusMonitoring();
+
+            // 7.5. Hedef İstasyon değiştiğinde AKTUEL_ anında güncelle
+            GlobalData.OnTargetSliderStationChanged -= OnTargetStationChanged;
+            GlobalData.OnTargetSliderStationChanged += OnTargetStationChanged;
 
             // 8. Safety Çalışma Koşulları Panelini Bağla
             InitializeSafetyConditionsPanel();
@@ -409,15 +419,25 @@ namespace App4
                 if (sliderActualPosText != null) sliderActualPosText.Text = $"{actualPos:F1} mm";
 
                 // Hedef istasyon gösterimi
+                // ★ Öncelik 1: TargetSliderStation (PLC bridge'in HIZLI güncellediği değer — 50ms polling ile gelir)
+                // ★ Öncelik 2: KL100_HEDEF_ISTASYON (PLC'den ayrı general output — fallback)
                 if (sliderHedefStationText != null)
                 {
-                    var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
-                    string hedefVal = hedefVar?.Value ?? "0";
-                    if (int.TryParse(hedefVal, out int hedef) && hedef >= 1 && hedef <= 3)
+                    int hedef = GlobalData.TargetSliderStation;
+                    if (hedef < 1 || hedef > 3)
+                    {
+                        // Fallback: KL100_HEDEF_ISTASYON
+                        var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+                        string hedefVal = hedefVar?.Value ?? "0";
+                        int.TryParse(hedefVal, out hedef);
+                    }
+
+                    if (hedef >= 1 && hedef <= 3)
                         sliderHedefStationText.Text = $"İSTASYON {hedef}";
                     else
                         sliderHedefStationText.Text = "---";
                 }
+
             }
 
             RefreshSlider();
@@ -429,6 +449,12 @@ namespace App4
                     this.DispatcherQueue.TryEnqueue(RefreshSlider);
                 };
             }
+
+            // ★ PLC bridge → TargetSliderStation değiştiğinde UI hemen yenilensin (HIZLI kanal)
+            //   Robot PropertyChanged'ı beklemeden hedef label + istasyon rozeti anında güncellenir
+            GlobalData.OnTargetSliderStationChanged -= OnTargetStationChangedRefreshSlider;
+            GlobalData.OnTargetSliderStationChanged += OnTargetStationChangedRefreshSlider;
+            void OnTargetStationChangedRefreshSlider(int _) => this.DispatcherQueue.TryEnqueue(RefreshSlider);
 
             sliderCanvas.SizeChanged += (s, e) =>
             {
@@ -683,8 +709,8 @@ namespace App4
                 string htmlFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_HTML");
                 if (!Directory.Exists(htmlFolder)) Directory.CreateDirectory(htmlFolder);
 
-                // 2. Modeller Klasörü (App - Okunabilir)
-                string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                // 2. Modeller Klasörü (Yazılabilir kullanıcı klasörü — MSIX kurulumda da güvenli)
+                string modelsFolder = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 if (!Directory.Exists(modelsFolder)) Directory.CreateDirectory(modelsFolder);
 
                 // HTML Dosyalarını Hazırla (Assets'ten kopyala, yoksa oluştur)
@@ -1162,7 +1188,7 @@ namespace App4
             const maxDim = Math.max(size.x, size.y, size.z);
             const fov = camera.fov * (Math.PI / 180);
             let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-            cameraDist *= 2.0;
+            cameraDist *= 1.5; // Zoom factor (standardized across stations — daha yakın görünüm)
 
             const direction = camera.position.clone().sub(controls.target).normalize();
             const newPos = direction.multiplyScalar(cameraDist).add(center);
@@ -1286,7 +1312,7 @@ namespace App4
 
                 // ▼▼▼ MODEL DOSYASINI YÜKLEme ▼▼▼
                 string modelPath = rfidDef.ModelFileName.Replace("\\", "/");
-                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                string modelsRoot = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 string fullPath = Path.Combine(modelsRoot, modelPath);
 
                 if (!File.Exists(fullPath))
@@ -1402,6 +1428,7 @@ namespace App4
                 }
 
                 // OTO/MANUEL switch senkronizasyonu (PLC'den gelen değeri UI'a yansıt)
+                // (KONTROL paneli Visibility="Collapsed" olduğunda null-check sayesinde sorunsuz çalışır)
                 if (localVar.Name == "LINE_AUTO_MANUAL_CMD")
                 {
                     bool isOn = localVar.Value?.ToUpper() == "TRUE" || localVar.Value == "1";
@@ -1620,6 +1647,8 @@ namespace App4
         }
 
         // ═══ HAT OTO/MANUEL SWITCH (KONTROL PANELİNDEN) ═══
+        // NOT: KONTROL paneli XAML'da Visibility="Collapsed" ile gizli; handler duruyor ki
+        //       ileride tekrar görünür yapıldığında sorunsuz çalışsın.
         private void LineAutoManualSwitch_Toggled(object sender, RoutedEventArgs e)
         {
             if (sender is ToggleSwitch ts)
@@ -1926,6 +1955,7 @@ namespace App4
         }
 
         // --- START BUTONU (ARTIK KONTROLLÜ) ---
+        // NOT: KONTROL paneli XAML'da Visibility="Collapsed" ile gizli; handler duruyor.
         // DÜZELTİLDİ: Hardcoded SAFETY_OK kontrolü kaldırıldı.
         // Tüm ön koşullar SystemCheckList + İstasyon alarmları üzerinden kontrol edilir.
         private void BtnStart_Click(object sender, RoutedEventArgs e)
@@ -2263,6 +2293,10 @@ namespace App4
                 var istVar = robot2.OutputVars.FirstOrDefault(v => v.PlcTag == "G_HEDEF_ISTASYON");
                 if (istVar != null) istVar.Value = targetStation.ToString();
 
+                // ★ GlobalData.RobotOutputVars da güncelle — UpdateStationTablaOffsets buradan okur
+                var gHedefVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON");
+                if (gHedefVar != null) gHedefVar.Value = targetStation.ToString();
+
                 // ═══ 2. G_SLIDER_HEDEF_POZ (REAL) → mm pozisyonu da yaz (uyumluluk) ═══
                 double position = GlobalData.GetStationSliderPosition(targetStation);
                 string posStr = position.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -2315,14 +2349,22 @@ namespace App4
         {
             try
             {
-                // 1. Slider hangi istasyonda?
-                // Ana kaynak: GlobalData.GetSliderStationNumber() (robot sinyalinden hesaplanır)
+                // 1. Hedef istasyon belirleme — TargetSliderStation ÖNCELİKLİ
                 Utilities.ExtendedStationViewModel activeStation = null;
 
-                int sliderStation = GlobalData.GetSliderStationNumber();
-                if (sliderStation >= 1 && sliderStation <= 3)
+                // ★ Öncelik 1: TargetSliderStation (Manuel/Auto "Çalıştır" komutuyla set edilir)
+                int targetStation = GlobalData.TargetSliderStation;
+                if (targetStation >= 1 && targetStation <= 3)
                 {
-                    activeStation = Stations[sliderStation - 1] as Utilities.ExtendedStationViewModel;
+                    activeStation = Stations[targetStation - 1] as Utilities.ExtendedStationViewModel;
+                }
+
+                // Öncelik 2: Slider fiziksel pozisyonu
+                if (activeStation == null)
+                {
+                    int sliderStation = GlobalData.GetSliderStationNumber();
+                    if (sliderStation >= 1 && sliderStation <= 3)
+                        activeStation = Stations[sliderStation - 1] as Utilities.ExtendedStationViewModel;
                 }
 
                 // Fallback: IsRobotPresent'a bak
@@ -2333,30 +2375,14 @@ namespace App4
                         activeStation = baseStation as Utilities.ExtendedStationViewModel;
                 }
 
-                // Fallback 2: SLIDER_POS_ACT değişkeninden doğrudan oku
                 if (activeStation == null)
                 {
-                    var sliderVar = GeneralInputVars.FirstOrDefault(v => v.Name == "SLIDER_POS_ACT");
-                    string sliderVal = sliderVar?.Value ?? sliderVar?.CurrentValue?.ToString();
-                    if (int.TryParse(sliderVal, out int pos) && pos >= 1 && pos <= 3)
-                    {
-                        activeStation = Stations[pos - 1] as Utilities.ExtendedStationViewModel;
-                    }
-                }
-
-                if (activeStation == null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ❌ Aktif istasyon bulunamadı! SliderStation={sliderStation}, IsRobotPresent={Stations.Any(s => s.IsRobotPresent)}");
+                    System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] ❌ Aktif istasyon bulunamadı! Target={targetStation}, IsRobotPresent={Stations.Any(s => s.IsRobotPresent)}");
                     return;
                 }
 
-                // 1.5. Aktif istasyonu hedef slider istasyonu olarak kaydet
                 int stationIndex = Stations.IndexOf(activeStation);
-                if (stationIndex >= 0)
-                {
-                    GlobalData.TargetSliderStation = stationIndex + 1;
-                    System.Diagnostics.Debug.WriteLine($"[SLIDER] TargetSliderStation = {stationIndex + 1} ({activeStation.Name})");
-                }
+                System.Diagnostics.Debug.WriteLine($"[SLIDER] Aktif istasyon: {stationIndex + 1} ({activeStation.Name}), TargetSliderStation={targetStation}");
 
                 // 2. İstasyonun moduna göre RFID belirle
                 string aktuelRfid = "";
@@ -2387,17 +2413,30 @@ namespace App4
                     // idx2==0 ise (RFID tanımsız) mevcut değeri koru, 0 yazma
                 }
 
-                // 5. Slider hedef pozisyonunu Robot 2'ye gönder (istasyon değiştiğinde)
-                if (GlobalData.AktuelKlimaIndex > 0 && GlobalData.TargetSliderStation >= 1)
-                {
-                    _ = SendSliderPositionToRobot2Async();
-                }
+                // ★ 5. KALDIRILDI — SendSliderPositionToRobot2Async() buradan ÇAĞRILMAZ.
+                // G_HEDEF_ISTASYON sadece açık kullanıcı komutuyla yazılır:
+                //   - Manuel sayfa: "Çalıştır" butonu → SetStationActive()
+                //   - Auto sayfa: Otomasyon sekansı → RunAutomationSequence()
+                // Monitoring fonksiyonunun robota G_HEDEF_ISTASYON yazması YASAKLANMIŞTIR.
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[AKTUEL_RFID] UpdateAktuelRfidFromStation HATA: {ex.Message}");
             }
         }
+        /// <summary>
+        /// TargetSliderStation değiştiğinde tetiklenir — AKTUEL_ anında güncellenir.
+        /// Manuel sayfa veya otomasyon sekansından hedef istasyon set edildiğinde çalışır.
+        /// </summary>
+        private void OnTargetStationChanged(int newStation)
+        {
+            DispatcherQueue?.TryEnqueue(() =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[AKTUEL] TargetSliderStation → {newStation}, AKTUEL güncelleniyor...");
+                UpdateAktuelRfidFromStation();
+            });
+        }
+
         private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).

@@ -27,6 +27,32 @@ namespace App4.Utilities
     {
         // --- DOSYA YOLLARI ---
         public static readonly string ConfigBaseDir = @"C:\Simbiosis\SimbiosisLeakTestApp\Config";
+
+        /// <summary>
+        /// ConfigBaseDir klasörü yoksa oluşturur. Tüm servislerin/sınıfların ortak
+        /// referans noktası — başka bir PC'ye kurulduğunda config dizini burada
+        /// garanti altına alınır. İdempotent, her yerden güvenle çağrılabilir.
+        /// </summary>
+        public static void EnsureConfigBaseDir()
+        {
+            try
+            {
+                if (!Directory.Exists(ConfigBaseDir))
+                    Directory.CreateDirectory(ConfigBaseDir);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CONFIG_DIR] Oluşturma hatası: {ex.Message}");
+            }
+        }
+
+        // Statik constructor — App başlar başlamaz ConfigBaseDir oluşur.
+        // Böylece sonraki tüm Path.Combine sonuçları yazılabilir bir klasöre işaret eder.
+        static GlobalData()
+        {
+            EnsureConfigBaseDir();
+        }
+
         private static readonly string _rfidFilePath = Path.Combine(ConfigBaseDir, "Saved_RFID_List.json");
         private static readonly string _stationStateFilePath = Path.Combine(ConfigBaseDir, "Station_States.json");
         private static readonly string _autoPageVariablesFilePath = Path.Combine(ConfigBaseDir, "Auto_Page_Variables.json");
@@ -163,13 +189,25 @@ namespace App4.Utilities
         private static int _targetSliderStation = 0;
         /// <summary>
         /// Slider'ın gitmesi gereken hedef istasyon numarası (1, 2, 3).
-        /// UpdateAktuelRfidFromStation tarafından set edilir.
+        /// Değiştiğinde OnTargetSliderStationChanged tetiklenir → AKTUEL_ güncellenir.
         /// </summary>
         public static int TargetSliderStation
         {
             get => _targetSliderStation;
-            set => _targetSliderStation = value;
+            set
+            {
+                if (_targetSliderStation != value)
+                {
+                    _targetSliderStation = value;
+                    OnTargetSliderStationChanged?.Invoke(value);
+                }
+            }
         }
+
+        /// <summary>
+        /// TargetSliderStation değiştiğinde tetiklenir. Parametre: yeni istasyon numarası.
+        /// </summary>
+        public static event Action<int> OnTargetSliderStationChanged;
 
         /// <summary>
         /// Hedef istasyonun mm cinsinden slider pozisyonunu döndürür.
@@ -250,19 +288,14 @@ namespace App4.Utilities
                             plcCaseVar.CurrentValue = caseId;
                     }
 
-                    // Robotlara G_CASE_ID yaz
+                    // Robot 1'e G_CASE_ID yaz — Robot 2 CASE bilgisini kullanmıyor, sadece tabla offset alıyor
+                    // Mimari: Robot 1 hem klima tipi programını çalıştırır hem tabla caseine göre işlem yapar
                     string caseIdStr = caseId.ToString();
-                    if (robots != null)
+                    if (robots != null && robots.Count >= 1 && robots[0].IsConnected)
                     {
-                        foreach (var robot in robots)
-                        {
-                            if (robot.IsConnected)
-                            {
-                                _ = robot.WriteVariableAsync("G_CASE_ID", caseIdStr);
-                            }
-                        }
+                        _ = robots[0].WriteVariableAsync("G_CASE_ID", caseIdStr);
                     }
-                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelCaseId = {caseId} (robotlara yazıldı)");
+                    System.Diagnostics.Debug.WriteLine($"[GlobalData] AktuelCaseId = {caseId} (sadece Robot 1'e yazıldı)");
 
                     // ═══ RFID değişince mevcut G_JOB_INDEX için job ön-yükle ═══
                     // (0→0 değişim tetiklenmez, bu yüzden RFID değişiminde zorla tetikle)
@@ -460,34 +493,65 @@ namespace App4.Utilities
 
         private static double GetRobotSignalValue(KukaRobotInstance robot, string signalName)
         {
-            if (robot == null || string.IsNullOrEmpty(signalName)) return 0;
+            if (string.IsNullOrEmpty(signalName)) return 0;
 
-            // 1. Sabit property'ler
-            var val = signalName switch
+            if (robot != null)
             {
-                "E1" => robot.E1, "E2" => robot.E2, "E3" => robot.E3,
-                "E4" => robot.E4, "E5" => robot.E5, "E6" => robot.E6,
-                "PosX" => robot.PosX, "PosY" => robot.PosY, "PosZ" => robot.PosZ,
-                "A1" => robot.A1, "A2" => robot.A2, "A3" => robot.A3,
-                "A4" => robot.A4, "A5" => robot.A5, "A6" => robot.A6,
-                "OverridePro" => robot.OverridePro,
-                "OverrideJog" => robot.OverrideJog,
-                "OperationMode" => robot.OperationMode,
-                "ProgramState" => robot.ProgramState,
-                "ToolNo" => robot.ToolNo,
-                "BaseNo" => robot.BaseNo,
-                _ => double.NaN
-            };
-            if (!double.IsNaN(val)) return val;
+                // 1. Sabit property'ler
+                var val = signalName switch
+                {
+                    "E1" => robot.E1, "E2" => robot.E2, "E3" => robot.E3,
+                    "E4" => robot.E4, "E5" => robot.E5, "E6" => robot.E6,
+                    "PosX" => robot.PosX, "PosY" => robot.PosY, "PosZ" => robot.PosZ,
+                    "A1" => robot.A1, "A2" => robot.A2, "A3" => robot.A3,
+                    "A4" => robot.A4, "A5" => robot.A5, "A6" => robot.A6,
+                    "OverridePro" => robot.OverridePro,
+                    "OverrideJog" => robot.OverrideJog,
+                    "OperationMode" => robot.OperationMode,
+                    "ProgramState" => robot.ProgramState,
+                    "ToolNo" => robot.ToolNo,
+                    "BaseNo" => robot.BaseNo,
+                    _ => double.NaN
+                };
+                if (!double.IsNaN(val)) return val;
 
-            // 2. Robot InputVars/OutputVars'dan dinamik sinyal oku
-            var inputVar = robot.InputVars?.FirstOrDefault(v => v.Name == signalName);
-            if (inputVar?.CurrentValue != null && double.TryParse(inputVar.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double iv))
-                return iv;
+                // 2. Robot InputVars/OutputVars'dan dinamik sinyal oku
+                var inputVar = robot.InputVars?.FirstOrDefault(v => v.Name == signalName);
+                if (inputVar?.CurrentValue != null && double.TryParse(inputVar.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double iv))
+                    return iv;
 
-            var outputVar = robot.OutputVars?.FirstOrDefault(v => v.Name == signalName);
-            if (outputVar?.CurrentValue != null && double.TryParse(outputVar.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ov))
-                return ov;
+                var outputVar = robot.OutputVars?.FirstOrDefault(v => v.Name == signalName);
+                if (outputVar?.CurrentValue != null && double.TryParse(outputVar.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double ov))
+                    return ov;
+            }
+
+            // 3. PLC GeneralInputVars/GeneralOutputVars fallback
+            return GetPlcSignalValue(signalName);
+        }
+
+        /// <summary>
+        /// PlcService Input/Output değişkenlerinden sinyal değeri okur
+        /// </summary>
+        private static double GetPlcSignalValue(string varName)
+        {
+            if (string.IsNullOrEmpty(varName)) return 0;
+
+            var plc = PlcService.Instance;
+            if (plc == null) return 0;
+
+            var plcVar = plc.InputVariables.FirstOrDefault(v => v.Name == varName)
+                      ?? plc.OutputVariables.FirstOrDefault(v => v.Name == varName);
+            if (plcVar != null)
+            {
+                string raw = plcVar.CurrentValue?.ToString() ?? plcVar.Value;
+                if (!string.IsNullOrEmpty(raw))
+                {
+                    if (raw.Equals("True", StringComparison.OrdinalIgnoreCase)) return 1;
+                    if (raw.Equals("False", StringComparison.OrdinalIgnoreCase)) return 0;
+                    if (double.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double v))
+                        return v;
+                }
+            }
 
             return 0;
         }
@@ -1228,6 +1292,22 @@ namespace App4.Utilities
                 }
             }
 
+            // PLC Değişkenleri (PlcService — PLC Entegrasyon sayfasındaki Input/Output)
+            var plc = PlcService.Instance;
+            if (plc != null)
+            {
+                foreach (var v in plc.InputVariables)
+                {
+                    if (!string.IsNullOrEmpty(v.Name) && !signals.Contains(v.Name))
+                        signals.Add(v.Name);
+                }
+                foreach (var v in plc.OutputVariables)
+                {
+                    if (!string.IsNullOrEmpty(v.Name) && !signals.Contains(v.Name))
+                        signals.Add(v.Name);
+                }
+            }
+
             return signals;
         }
 
@@ -1236,7 +1316,7 @@ namespace App4.Utilities
             try
             {
                 AvailableModels.Clear();
-                string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                string modelsFolder = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 if (Directory.Exists(modelsFolder))
                 {
                     var files = Directory.GetFiles(modelsFolder, "*.glb");
@@ -2302,6 +2382,188 @@ namespace App4.Utilities
 
             // Robot InputVars sinyal izlemeyi de başlat (G_OLCUM_TETIK, G_SNIFFER_OLCUM_TETIK)
             StartRobotSignalMonitoring();
+
+            // ═══ PLC HEDEF İSTASYON DİNLEYİCİ ═══
+            // PLC Profinet üzerinden doğrudan robotlara G_HEDEF_ISTASYON gönderiyor.
+            // App yazmayacak — sadece okuyup TargetSliderStation'ı güncelleyecek.
+            // Bu sayede RFID chain (UpdateAktuelRfidFromStation → AktuelKlimaIndex →
+            // G_KLIMA_TIP/G_CASE_ID robotlara) otomatik tetiklenir.
+            InitializeHedefIstasyonPlcBridge();
+        }
+
+        // ═══ İstasyon Sinyali → TargetSliderStation köprüsü ═══
+        // Kullanıcı "Slider Pozisyon Eşleştirme" panelinde kaynak robot + sinyal seçer
+        // (tipik: Robot 1 + G_HEDEF_ISTASYON_PLC — Profinet ile PLC'den robota yansıyan değer).
+        // Bu değişken değiştiğinde TargetSliderStation setter tetiklenir → OnTargetSliderStationChanged
+        // → Auto_Page chain: UpdateAktuelRfidFromStation → AktuelKlimaIndex setter →
+        //   - G_KLIMA_TIP her iki robota
+        //   - G_CASE_ID sadece Robot 1'e
+        //
+        // Kaynak robot veya sinyal adı runtime'da değişirse bridge otomatik re-subscribe olur.
+        private static PlcVariable _hedefIstasyonPlcVar;
+        private static int _hedefIstasyonBridgeSourceRobotIdx = -1;
+        private static string _hedefIstasyonBridgeSignalName = null;
+
+        private static void InitializeHedefIstasyonPlcBridge()
+        {
+            try
+            {
+                // İlk kurulum + her re-entry'de kaynağa göre abone ol
+                SubscribeHedefIstasyonSource();
+
+                // Kullanıcı robot/sinyal seçimini değiştirirse yeniden abone ol
+                // (SliderSourceRobotIndex/SliderSourceSignalName setterları SaveRobotSliderMappings çağırır
+                //  ama direkt event'leri yok — bu yüzden periyodik olarak abone kontrolü yap)
+                if (_hedefIstasyonBridgeWatchTimer == null)
+                {
+                    _hedefIstasyonBridgeWatchTimer = new System.Threading.Timer(_ =>
+                    {
+                        if (_hedefIstasyonBridgeSourceRobotIdx != SliderSourceRobotIndex ||
+                            !string.Equals(_hedefIstasyonBridgeSignalName, SliderSourceSignalName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SubscribeHedefIstasyonSource();
+                        }
+                    }, null, 2000, 2000);
+                }
+
+                OnAutomationLog?.Invoke($"Hedef istasyon köprüsü aktif: Robot{SliderSourceRobotIndex + 1}.{SliderSourceSignalName} → TargetSliderStation.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HedefIstasyonBridge] Kurulum hatası: {ex.Message}");
+            }
+        }
+
+        private static System.Threading.Timer _hedefIstasyonBridgeWatchTimer;
+
+        private static void SubscribeHedefIstasyonSource()
+        {
+            try
+            {
+                // Önceki aboneliği temizle (idempotent)
+                if (_hedefIstasyonPlcVar != null)
+                {
+                    _hedefIstasyonPlcVar.PropertyChanged -= HedefIstasyonPlcVar_PropertyChanged;
+                    _hedefIstasyonPlcVar = null;
+                }
+
+                int robotIdx = SliderSourceRobotIndex;
+                string sigName = SliderSourceSignalName;
+                _hedefIstasyonBridgeSourceRobotIdx = robotIdx;
+                _hedefIstasyonBridgeSignalName = sigName;
+
+                if (string.IsNullOrEmpty(sigName)) return;
+
+                PlcVariable v = null;
+
+                // ★ Öncelik 1: Seçilen robotun InputVars/OutputVars'ında ara
+                //   (G_HEDEF_ISTASYON_PLC Robot 1'in KRL değişkeni — Profinet'ten PLC değerini yansıtıyor)
+                var robots = KukaRobotManager.Instance?.Robots;
+                if (robots != null && robotIdx >= 0 && robotIdx < robots.Count)
+                {
+                    var robot = robots[robotIdx];
+                    v = robot.InputVars?.FirstOrDefault(x =>
+                            string.Equals(x.Name, sigName, StringComparison.OrdinalIgnoreCase))
+                     ?? robot.OutputVars?.FirstOrDefault(x =>
+                            string.Equals(x.Name, sigName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // ★ Öncelik 2: PLC InputVariables/OutputVariables fallback
+                //   (E1/E2 gibi built-in robot property'ler için bu yol çalışmaz — o durumda periyodik watch kullan)
+                if (v == null)
+                {
+                    var plc = PlcService.Instance;
+                    if (plc != null)
+                    {
+                        v = plc.InputVariables?.FirstOrDefault(x =>
+                                string.Equals(x.Name, sigName, StringComparison.OrdinalIgnoreCase))
+                         ?? plc.OutputVariables?.FirstOrDefault(x =>
+                                string.Equals(x.Name, sigName, StringComparison.OrdinalIgnoreCase));
+                    }
+                }
+
+                if (v == null)
+                {
+                    // Değişken bulunamadı — sinyal built-in property olabilir (E1, PosX vs.)
+                    // Bu durumda bridge çalışmaz; fallback watch timer devreye girer (aşağıda).
+                    System.Diagnostics.Debug.WriteLine($"[HedefIstasyonBridge] '{sigName}' Robot{robotIdx + 1}/PLC InputVars'ta yok — built-in property fallback kullanılacak.");
+                    EnsureBuiltInFallbackTimer();
+                    return;
+                }
+
+                _hedefIstasyonPlcVar = v;
+                _hedefIstasyonPlcVar.PropertyChanged += HedefIstasyonPlcVar_PropertyChanged;
+
+                // Mevcut değeri hemen senkronize et
+                ApplyHedefIstasyonFromPlc(v);
+
+                System.Diagnostics.Debug.WriteLine($"[HedefIstasyonBridge] Subscribe OK: Robot{robotIdx + 1}.{sigName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HedefIstasyonBridge] Subscribe hatası: {ex.Message}");
+            }
+        }
+
+        // ★ Built-in property fallback (E1/E2 vb. için — PropertyChanged yok, periyodik oku)
+        private static System.Threading.Timer _hedefIstasyonBuiltInTimer;
+        private static void EnsureBuiltInFallbackTimer()
+        {
+            if (_hedefIstasyonBuiltInTimer != null) return;
+            _hedefIstasyonBuiltInTimer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    double val = GetSliderPositionValue();
+                    int parsed = (int)Math.Round(val);
+                    if (parsed >= 1 && parsed <= 3 && TargetSliderStation != parsed)
+                    {
+                        TargetSliderStation = parsed;
+                    }
+                }
+                catch { }
+            }, null, 200, 200); // 200ms — built-in property'ler için yeterli hız
+        }
+
+        private static void HedefIstasyonPlcVar_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            // Sadece değer değişince tepki ver — CurrentValue veya Value
+            if (e.PropertyName != nameof(PlcVariable.CurrentValue) &&
+                e.PropertyName != nameof(PlcVariable.Value)) return;
+
+            if (sender is PlcVariable v) ApplyHedefIstasyonFromPlc(v);
+        }
+
+        private static void ApplyHedefIstasyonFromPlc(PlcVariable v)
+        {
+            try
+            {
+                // Value (string) ve CurrentValue (object) ikisinden de okumayı dene
+                int parsed = 0;
+                if (!string.IsNullOrEmpty(v.Value) && int.TryParse(v.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out parsed))
+                { /* parsed set */ }
+                else if (v.CurrentValue != null)
+                {
+                    // REAL gelirse (ör. 2.0) — round edip kullan
+                    if (double.TryParse(v.CurrentValue.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dv))
+                        parsed = (int)Math.Round(dv);
+                }
+
+                // Geçerli aralık: 1-3 (4=BAKIM da kabul edilebilir ama slider istasyonu değil)
+                if (parsed >= 1 && parsed <= 3)
+                {
+                    // Setter OnTargetSliderStationChanged'i tetikler → chain başlar
+                    if (TargetSliderStation != parsed)
+                    {
+                        TargetSliderStation = parsed;
+                        System.Diagnostics.Debug.WriteLine($"[HedefIstasyonBridge] {v.Name}={parsed} → TargetSliderStation güncellendi.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HedefIstasyonBridge] Apply hatası: {ex.Message}");
+            }
         }
 
         // ─── ROBOT GERİ YAZMA (3 KATMANLI: GlobalData + PLC + Robots) ───
@@ -2430,10 +2692,13 @@ namespace App4.Utilities
         /// </summary>
         private static void UpdateStationTablaOffsets(List<GocatorMeasurement> results)
         {
-            // Hedef istasyonu bul
-            var hedefVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON");
-            int hedefIdx = 0;
-            if (hedefVar != null) int.TryParse(hedefVar.Value, out hedefIdx);
+            // Hedef istasyonu bul — önce TargetSliderStation (en güncel), sonra RobotOutputVars (fallback)
+            int hedefIdx = TargetSliderStation;
+            if (hedefIdx < 1 || hedefIdx > 3)
+            {
+                var hedefVar = RobotOutputVars.FirstOrDefault(v => v.Name == "G_HEDEF_ISTASYON");
+                if (hedefVar != null) int.TryParse(hedefVar.Value, out hedefIdx);
+            }
             if (hedefIdx < 1 || hedefIdx > 3 || hedefIdx - 1 >= Stations.Count) return;
 
             var station = Stations[hedefIdx - 1];
@@ -2559,8 +2824,11 @@ namespace App4.Utilities
                     var robots = Utilities.KukaRobotManager.Instance?.Robots;
                     if (robots == null) return;
 
-                    foreach (var r in robots)
+                    // G_KLIMA_TIP → her iki robota (ikisi de klima tipini biliyor olmalı)
+                    // G_CASE_ID → sadece Robot 1'e (Robot 2 case bilgisini kullanmıyor)
+                    for (int ri = 0; ri < robots.Count; ri++)
                     {
+                        var r = robots[ri];
                         if (!r.IsConnected) continue;
 
                         // Sadece robotun değeri farklıysa yaz (gereksiz trafik önlenir)
@@ -2570,7 +2838,9 @@ namespace App4.Utilities
                         try
                         {
                             await r.WriteVariableAsync("G_KLIMA_TIP", klimaStr);
-                            await r.WriteVariableAsync("G_CASE_ID", caseId.ToString());
+                            // G_CASE_ID sadece Robot 1'e (ri==0)
+                            if (ri == 0)
+                                await r.WriteVariableAsync("G_CASE_ID", caseId.ToString());
                         }
                         catch { }
                     }
@@ -2678,8 +2948,13 @@ namespace App4.Utilities
                         {
                             await Task.Delay(1000); // Robot restart tamamlansın
                             await WriteToAllRobotsAsync("G_KLIMA_TIP", klimaStr);
-                            await WriteToAllRobotsAsync("G_CASE_ID", caseId.ToString());
-                            OnAutomationLog?.Invoke($"[Robot {robotNo}] G_KLIMA_TIP=0 algılandı → tekrar yazıldı: TIP={klimaStr}, CASE={caseId}");
+                            // G_CASE_ID sadece Robot 1'e — Robot 2 case bilgisini kullanmıyor
+                            var rbts = Utilities.KukaRobotManager.Instance?.Robots;
+                            if (rbts != null && rbts.Count >= 1 && rbts[0].IsConnected)
+                            {
+                                try { await rbts[0].WriteVariableAsync("G_CASE_ID", caseId.ToString()); } catch { }
+                            }
+                            OnAutomationLog?.Invoke($"[Robot {robotNo}] G_KLIMA_TIP=0 algılandı → tekrar yazıldı: TIP={klimaStr} (tüm robot), CASE={caseId} (yalnız Robot 1)");
                         });
                     }
                 }
@@ -3982,6 +4257,8 @@ namespace App4.Utilities
         /// Seçili job index'inin sniffer ölçüm süresini SNIFFER_OLCUM_SURE output değişkenine yazar.
         /// GeneralOutputVars + PlcTag/PlcTag2 üzerinden doğrudan robota/PLC'ye yazılır.
         /// </summary>
+        private static double _lastWrittenSnifferDuration = double.NaN;
+
         private static void UpdateSnifferDurationOutput(RfidDef recipe, int jobIndex)
         {
             double snifferMs = 0;
@@ -3989,6 +4266,10 @@ namespace App4.Utilities
             {
                 snifferMs = recipe.SnifferDurations[jobIndex];
             }
+
+            // ★ Write-once: Aynı değeri tekrar tekrar yazma — robot kendi yönetsin
+            if (snifferMs == _lastWrittenSnifferDuration)
+                return;
 
             var snifferVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "SNIFFER_OLCUM_SURE");
             if (snifferVar != null)
@@ -3999,6 +4280,8 @@ namespace App4.Utilities
                 // Doğrudan PlcTag/PlcTag2 üzerinden robota yaz.
                 WriteOutputVarToTarget(snifferVar.PlcTag, snifferMs);
                 WriteOutputVarToTarget(snifferVar.PlcTag2, snifferMs);
+                _lastWrittenSnifferDuration = snifferMs;
+                System.Diagnostics.Debug.WriteLine($"[GlobalData] SNIFFER_OLCUM_SURE yazıldı: {snifferMs:F0} ms (job={jobIndex})");
             }
         }
 
@@ -4092,6 +4375,8 @@ namespace App4.Utilities
         /// Küp güvenlik kontrolü için robot tarafına aktarılır (G_HEDEF_NOKTA_LIMIT).
         /// GeneralOutputVars + PlcTag/PlcTag2 üzerinden doğrudan robota/PLC'ye yazılır.
         /// </summary>
+        private static double _lastWrittenDeviationLimit = double.NaN;
+
         private static void UpdateDeviationLimitOutput(RfidDef recipe, int jobIndex)
         {
             double limitMm = 50.0;
@@ -4099,6 +4384,10 @@ namespace App4.Utilities
             {
                 limitMm = recipe.DeviationLimits[jobIndex];
             }
+
+            // ★ Write-once: Aynı değeri tekrar tekrar yazma — robot kendi yönetsin
+            if (limitMm == _lastWrittenDeviationLimit)
+                return;
 
             var limitVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "NOKTA_SAPMA_LIMIT");
             if (limitVar != null)
@@ -4109,6 +4398,8 @@ namespace App4.Utilities
                 // Doğrudan PlcTag/PlcTag2 üzerinden robota yaz.
                 WriteOutputVarToTarget(limitVar.PlcTag, limitMm);
                 WriteOutputVarToTarget(limitVar.PlcTag2, limitMm);
+                _lastWrittenDeviationLimit = limitMm;
+                System.Diagnostics.Debug.WriteLine($"[GlobalData] NOKTA_SAPMA_LIMIT yazıldı: {limitMm:F1} mm (job={jobIndex})");
             }
         }
 
@@ -4657,16 +4948,21 @@ namespace App4.Utilities
                     {
                         offsets = new[] { "G_TABLA_OFFSET_X", "G_TABLA_OFFSET_Y", "G_TABLA_OFFSET_Z",
                                           "G_TABLA_OFFSET_A", "G_TABLA_OFFSET_B", "G_TABLA_OFFSET_C" };
-                        // AKTARIM tablosundaki değerleri yaz (CODESYS FARK hesabı dahil)
-                        for (int i = 0; i < Math.Min(valuesToWrite.Count, offsets.Length); i++)
+                        // ★ PARALEL YAZMA — XYZ offset + ABC sıfır aynı anda gönder
                         {
-                            double v = valuesToWrite[i] is double dv ? dv : Convert.ToDouble(valuesToWrite[i]);
-                            await WriteToAllRobotsAsync(offsets[i], v.ToString("F3"));
+                            var offsetTasks = new List<Task>();
+                            // XYZ: valuesToWrite'dan al (max 3)
+                            for (int i = 0; i < Math.Min(valuesToWrite.Count, 3); i++)
+                            {
+                                double v = valuesToWrite[i] is double dv ? dv : Convert.ToDouble(valuesToWrite[i]);
+                                offsetTasks.Add(WriteToAllRobotsAsync(offsets[i], v.ToString("F3")));
+                            }
+                            // ABC her zaman sıfır (tabla ölçümde açısal offset kullanılmıyor)
+                            offsetTasks.Add(WriteToAllRobotsAsync("G_TABLA_OFFSET_A", "0.000"));
+                            offsetTasks.Add(WriteToAllRobotsAsync("G_TABLA_OFFSET_B", "0.000"));
+                            offsetTasks.Add(WriteToAllRobotsAsync("G_TABLA_OFFSET_C", "0.000"));
+                            await Task.WhenAll(offsetTasks);
                         }
-                        // ABC her zaman sıfır (tabla ölçümde açısal offset kullanılmıyor)
-                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_A", "0.000");
-                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_B", "0.000");
-                        await WriteToAllRobotsAsync("G_TABLA_OFFSET_C", "0.000");
 
                         await WriteToAllRobotsAsync("G_TABLA_OFFSET_HAZIR", "TRUE");
 
@@ -4686,9 +4982,11 @@ namespace App4.Utilities
 
                         if (codesysTargetValues != null)
                         {
-                            // CODESYS hesaplanmış hedef değerleri robota yaz
+                            // ★ PARALEL YAZMA — tüm offset değerlerini aynı anda gönder
+                            var boruOffsetTasks = new List<Task>();
                             for (int i = 0; i < Math.Min(codesysTargetValues.Length, offsets.Length); i++)
-                                await WriteToAllRobotsAsync(offsets[i], codesysTargetValues[i].ToString("F3"));
+                                boruOffsetTasks.Add(WriteToAllRobotsAsync(offsets[i], codesysTargetValues[i].ToString("F3")));
+                            await Task.WhenAll(boruOffsetTasks);
 
                             OnAutomationLog?.Invoke($"Boru ölçüm OK (Job {idx}) - CODESYS hedef yazıldı: " +
                                 $"X={codesysTargetValues[0]:F2} Y={codesysTargetValues[1]:F2} Z={codesysTargetValues[2]:F2}");
@@ -4714,10 +5012,13 @@ namespace App4.Utilities
                                 // UI'da dönüştürülmüş verileri göster
                                 try { await PlcService.Instance.RunOnUiAsync(() => PopulateTransformedMeasurements(basePose)); } catch { }
 
+                                // ★ PARALEL YAZMA
                                 double[] baseVals = { basePose.X, basePose.Y, basePose.Z,
                                                       basePose.A, basePose.B, basePose.C };
+                                var heTasks = new List<Task>();
                                 for (int i = 0; i < 6; i++)
-                                    await WriteToAllRobotsAsync(offsets[i], baseVals[i].ToString("F3"));
+                                    heTasks.Add(WriteToAllRobotsAsync(offsets[i], baseVals[i].ToString("F3")));
+                                await Task.WhenAll(heTasks);
 
                                 OnAutomationLog?.Invoke($"HandEye dönüşüm: X={basePose.X:F2} Y={basePose.Y:F2} Z={basePose.Z:F2} " +
                                     $"A={basePose.A:F2} B={basePose.B:F2} C={basePose.C:F2}");
@@ -4725,14 +5026,19 @@ namespace App4.Utilities
                             else
                             {
                                 OnAutomationLog?.Invoke("UYARI: HandEye dönüşüm başarısız, ham değerler yazılıyor");
+                                var fallbackTasks = new List<Task>();
                                 for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
-                                    await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                                    fallbackTasks.Add(WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3")));
+                                await Task.WhenAll(fallbackTasks);
                             }
                         }
                         else
                         {
+                            // ★ PARALEL YAZMA — ham ölçüm değerleri
+                            var rawTasks = new List<Task>();
                             for (int i = 0; i < Math.Min(measurements.Count, offsets.Length); i++)
-                                await WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3"));
+                                rawTasks.Add(WriteToAllRobotsAsync(offsets[i], measurements[i].Value.ToString("F3")));
+                            await Task.WhenAll(rawTasks);
                         }
                     }
 

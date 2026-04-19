@@ -397,7 +397,7 @@
             const maxDim = Math.max(size.x, size.y, size.z);
             const fov = camera.fov * (Math.PI / 180);
             let cameraDist = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-            cameraDist *= 2.0;
+            cameraDist *= 1.5; // Zoom factor (standardized across stations — daha yakın görünüm)
 
             const direction = camera.position.clone().sub(controls.target).normalize();
             const newPos = direction.multiplyScalar(cameraDist).add(center);

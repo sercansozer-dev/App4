@@ -218,13 +218,19 @@ namespace App4.Utilities
         /// </summary>
         public void InvalidateOutputCache()
         {
-            // Handshake sinyallerini koruyarak cache'i temizle
-            // Bu sinyaller robot tarafından FALSE'a çekilir, App ezmemeli
+            // Handshake + Write-Once sinyallerini koruyarak cache'i temizle
+            // Bu sinyaller robot tarafından yönetilir, App periyodik sync ile ezmemeli
             var preserved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var hs in _handshakeSignals)
             {
                 if (_lastWrittenOutputs.TryGetValue(hs, out string val))
                     preserved[hs] = val;
+            }
+            // ★ Write-Once sinyallerini de koru — PC bir kere yazar, periyodik sync ezmez
+            foreach (var wo in _writeOnceSignals)
+            {
+                if (_lastWrittenOutputs.TryGetValue(wo, out string val))
+                    preserved[wo] = val;
             }
             _lastWrittenOutputs.Clear();
             foreach (var kv in preserved)
@@ -745,6 +751,22 @@ namespace App4.Utilities
             "G_IST1_IS_BITTI", "G_IST2_IS_BITTI", "G_IST3_IS_BITTI"
         };
 
+        // ★ Write-Once sinyalleri: PC bir kere yazar, sonra DOKUNMAZ.
+        // Robot kendi KRL programında bu değerleri değiştirebilir, PC ezmez.
+        // CommunicationLoop periyodik sync bu sinyalleri ATLAR.
+        // Sadece açık komutla yazılır (WriteToAllRobotsAsync / WriteVariableAsync).
+        internal static readonly HashSet<string> _writeOnceSignals = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "G_HEDEF_ISTASYON",     // Hedef istasyon — PC bir kere yazar, robot yönetir
+            "G_IS_BITTI",           // İş bitti — PC bir kere yazar, robot değiştirir
+            "G_BASLAT",             // Başlat — PC bir kere TRUE yapar, robot FALSE'a çeker
+            "G_RESET",              // Reset — PC bir kere TRUE yapar, robot FALSE'a çeker
+            "G_DUR",                // Dur — PC bir kere TRUE yapar, robot FALSE'a çeker
+            "G_SLIDER_HAREKET",     // Slider hareket — PC bir kere TRUE yapar, robot FALSE'a çeker
+            "G_KLIMA_TIP",          // Klima tipi — PC bir kere yazar, robot kullanır
+            "G_CASE_ID",            // Case ID — PC bir kere yazar, robot kullanır
+        };
+
         private async Task FlushPriorityOutputs(List<PlcVariable> priorityOutputs)
         {
             foreach (var variable in priorityOutputs)
@@ -752,6 +774,25 @@ namespace App4.Utilities
                 if (!_isRunning || !IsConnected) break;
                 try
                 {
+                    // ★ Write-Once sinyalleri: PC bir kere yazdıktan sonra DOKUNMA
+                    // Robot kendi KRL programında bu değerleri değiştirebilir
+                    if (_writeOnceSignals.Contains(variable.PlcTag))
+                    {
+                        // Sadece değer değiştiyse (açık komutla) yaz, periyodik sync atla
+                        string woCurrentVal = NormalizeBoolValue(variable, variable.Value ?? "");
+                        _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string woLastVal);
+                        if (woCurrentVal != (woLastVal ?? ""))
+                        {
+                            bool ok = await WriteVariableAsync(variable.PlcTag, woCurrentVal);
+                            if (ok)
+                            {
+                                _lastWrittenOutputs[variable.PlcTag] = woCurrentVal;
+                                OnLog?.Invoke($"[{Name}] 📌 Write-Once yazıldı: {variable.PlcTag} = {woCurrentVal}");
+                            }
+                        }
+                        continue; // periyodik tekrar yazma YOK
+                    }
+
                     // ★ Handshake sinyalleri: Robot FALSE'a çektiyse geri okumadan senkronize et
                     if (_handshakeSignals.Contains(variable.PlcTag))
                     {
@@ -784,7 +825,7 @@ namespace App4.Utilities
                     }
                 }
                 catch { }
-                await Task.Delay(2); // ★ Minimum delay — flush sırasında hız kritik
+                await Task.Delay(1); // ★ Minimum delay — flush sırasında hız kritik
             }
         }
 
@@ -863,7 +904,7 @@ namespace App4.Utilities
                                 if (doLog)
                                     System.Diagnostics.Debug.WriteLine($"[{Name}]   PRI-HATA {variable.PlcTag}: {ex.Message}");
                             }
-                            await Task.Delay(3);
+                            await Task.Delay(1); // ★ 3ms → 1ms: Tetik sinyalleri maksimum hızda okunmalı
                         }
 
                         // ╔══════════════════════════════════════════════════════════════╗
@@ -891,7 +932,7 @@ namespace App4.Utilities
                                 }
                             }
                             catch { }
-                            await Task.Delay(3); // ★ Safety sinyalleri 3ms — alarm hızı
+                            await Task.Delay(1); // ★ Safety sinyalleri 1ms — alarm hızı
                         }
 
                         // Priority output flush — safety okuma sonrası
@@ -973,6 +1014,9 @@ namespace App4.Utilities
                             {
                                 // ★ Handshake sinyalleri: CommunicationLoop YAZMAZ, sadece ÇALIŞ/DURDUR yazar
                                 if (_handshakeSignals.Contains(variable.PlcTag)) continue;
+
+                                // ★ Write-Once sinyalleri: Periyodik sync YAZMAZ, sadece açık komutla yazılır
+                                if (_writeOnceSignals.Contains(variable.PlcTag)) continue;
 
                                 string currentVal = NormalizeBoolValue(variable, variable.Value ?? "");
                                 _lastWrittenOutputs.TryGetValue(variable.PlcTag, out string lastVal);
@@ -2112,6 +2156,14 @@ namespace App4.Utilities
 
                     if (sourceRobot.IsConnected && targetRobot.IsConnected && targetVar.Value != currentValue)
                     {
+                        // ★ Write-once sinyallerini bridge ezmez — PC yazdıysa robot yönetir
+                        if (KukaRobotInstance._writeOnceSignals.Contains(targetVar.PlcTag))
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[Bridge] ⛔ Write-once sinyal ATLANDI: {mapping.SourceRobotName}.{sourceVar.PlcTag}={currentValue} → {mapping.TargetRobotName}.{targetVar.PlcTag} (korunuyor)");
+                            continue;
+                        }
+
                         await targetRobot.WriteVariableAsync(targetVar.PlcTag, currentValue);
                         targetVar.Value = currentValue;
                     }

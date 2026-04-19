@@ -13,10 +13,10 @@ namespace App4.Utilities
 {
     public static class RecipeManager
     {
-        // Reçete kayýt klasörü (Belgelerim/Simbiosis/Recipes)
+        // Reï¿½ete kayï¿½t klasï¿½rï¿½ (Belgelerim/Simbiosis/Recipes)
         private static readonly string FolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Simbiosis", "Recipes");
 
-        // --- REÇETE YÖNETÝMÝ ---
+        // --- REï¿½ETE Yï¿½NETï¿½Mï¿½ ---
 
         public static async Task SaveRecipeAsync(ProductRecipe recipe)
         {
@@ -45,7 +45,7 @@ namespace App4.Utilities
                     var recipe = JsonSerializer.Deserialize<ProductRecipe>(jsonString);
                     if (recipe != null) list.Add(recipe);
                 }
-                catch (Exception ex) { Debug.WriteLine($"Reçete yükleme hatasý: {ex.Message}"); }
+                catch (Exception ex) { Debug.WriteLine($"Reï¿½ete yï¿½kleme hatasï¿½: {ex.Message}"); }
             }
             return list;
         }
@@ -56,29 +56,30 @@ namespace App4.Utilities
             if (File.Exists(fullPath)) File.Delete(fullPath);
         }
 
-        // --- MODEL KÜTÜPHANESÝ YÖNETÝMÝ ---
+        // --- MODEL Kï¿½Tï¿½PHANESï¿½ Yï¿½NETï¿½Mï¿½ ---
 
         /// <summary>
-        /// Utilities/Models klasöründeki .glb dosyalarýný tarar ve kütüphaneye ekler.
+        /// Utilities/Models klasï¿½rï¿½ndeki .glb dosyalarï¿½nï¿½ tarar ve kï¿½tï¿½phaneye ekler.
         /// </summary>
         public static async Task RefreshModelLibraryAsync()
         {
-            string modelsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+            // YazÄ±labilir kullanÄ±cÄ± klasÃ¶rÃ¼ (MSIX kurulumunda install dir read-only olduÄŸu iÃ§in)
+            string modelsPath = ModelsPathHelper.GetModelsFolder();
 
-            // Klasör yoksa oluþtur
+            // GetModelsFolder zaten klasÃ¶rÃ¼ oluÅŸturur; yine de gÃ¼vence:
             if (!Directory.Exists(modelsPath))
             {
                 Directory.CreateDirectory(modelsPath);
                 return;
             }
 
-            // Listeyi her taramada temizle ki mükerrer veya silinmiþ kayýtlar kalmasýn
+            // Listeyi her taramada temizle ki mï¿½kerrer veya silinmiï¿½ kayï¿½tlar kalmasï¿½n
             if (GlobalSettings.AppState.ModelLibrary == null)
                 GlobalSettings.AppState.ModelLibrary = new ObservableCollection<ModelLibraryItem>();
 
             GlobalSettings.AppState.ModelLibrary.Clear();
 
-            // Sadece .glb dosyalarýný bul (Alt klasörler dahil)
+            // Sadece .glb dosyalarï¿½nï¿½ bul (Alt klasï¿½rler dahil)
             var glbFiles = Directory.GetFiles(modelsPath, "*.glb", SearchOption.AllDirectories);
 
             foreach (var filePath in glbFiles)
@@ -86,21 +87,21 @@ namespace App4.Utilities
                 RegisterToLibrary(filePath);
             }
 
-            await Task.CompletedTask; // Async yapýsýný bozmamak için
+            await Task.CompletedTask; // Async yapï¿½sï¿½nï¿½ bozmamak iï¿½in
         }
 
         private static void RegisterToLibrary(string glbPath)
         {
             var modelName = Path.GetFileNameWithoutExtension(glbPath);
 
-            // Mükerrer kontrolü yap ve listeye ekle
+            // Mï¿½kerrer kontrolï¿½ yap ve listeye ekle
             if (!GlobalSettings.AppState.ModelLibrary.Any(m => m.ModelName == modelName))
             {
                 GlobalSettings.AppState.ModelLibrary.Add(new ModelLibraryItem
                 {
                     ModelName = modelName,
                     FilePath = glbPath,
-                    IsConverted = true // Manuel yüklendiði için hazýr kabul ediyoruz
+                    IsConverted = true // Manuel yï¿½klendiï¿½i iï¿½in hazï¿½r kabul ediyoruz
                 });
             }
         }

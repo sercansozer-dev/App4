@@ -28,7 +28,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" VerticalAlignment="Center">
-                    <Button Content="Model Yükle" Background="#2D2D30" Foreground="White" Padding="15,8" CornerRadius="4"/>
+                    <Button x:Name="ModelYukleButton" Click="ModelYukleButton_Click" Content="Model Yükle" Background="#2D2D30" Foreground="White" Padding="15,8" CornerRadius="4"/>
                     <Button Content="Kaydet" Background="#0078D4" Foreground="White" Padding="15,8" CornerRadius="4"/>
                 </StackPanel>
             </Grid>
@@ -54,30 +54,9 @@
                         <TextBlock Text="MODEL KÜTÜPHANESİ" FontSize="11" FontWeight="SemiBold" Foreground="#888" VerticalAlignment="Center"/>
                     </Border>
 
-                    <ListView Grid.Row="1" Background="Transparent" Padding="10">
-                        <ListViewItem Background="#1E1E20" CornerRadius="6" Margin="0,4" Padding="12">
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Border Background="#252528" CornerRadius="6" Width="40" Height="40">
-                                    <FontIcon Glyph="&#xF158;" Foreground="#0078D4" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="Sensira 50" Foreground="White" FontSize="13" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Outdoor Unit" Foreground="#666" FontSize="10"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </ListViewItem>
-                        <ListViewItem Background="#1E1E20" CornerRadius="6" Margin="0,4" Padding="12">
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <Border Background="#252528" CornerRadius="6" Width="40" Height="40">
-                                    <FontIcon Glyph="&#xF158;" Foreground="#666" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="Stylish BML-H" Foreground="White" FontSize="13" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Indoor Unit" Foreground="#666" FontSize="10"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </ListViewItem>
-                    </ListView>
+                    <!-- Liste Page_Loaded'da ModelsPathHelper.GetModelsFolder() taranarak doldurulur
+                         (Hardcoded placeholder öğeler kaldırıldı — gerçek .glb dosyaları gösteriliyor.) -->
+                    <ListView x:Name="ModelKutuphanesiList" Grid.Row="1" Background="Transparent" Padding="10"/>
                 </Grid>
             </Border>
 

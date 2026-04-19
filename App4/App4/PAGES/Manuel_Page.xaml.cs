@@ -242,24 +242,30 @@ namespace App4
 
                 // --- R1 SİNYALLERİ (Robot 1 InputVars) ---
                 bool r1IsBitti = IsRobotSignalTrue(r1, "G_IS_BITTI");
+                bool r1IsBasladi = IsRobotSignalTrue(r1, "G_IS_BASLADI");
                 bool r1Home = IsRobotSignalTrue(r1, "G_R1_HOME");
 
                 SetLed($"Led_IST{st}_R1_IsBitti", r1IsBitti, blue, gray);
+                SetLed($"Led_IST{st}_R1_IsBasladi", r1IsBasladi, blue, gray);
                 SetLed($"Led_IST{st}_R1_Home", r1Home, blue, gray);
                 SetLedText($"TxtLed_IST{st}_R1_IsBitti_Val", r1IsBitti);
+                SetLedText($"TxtLed_IST{st}_R1_IsBasladi_Val", r1IsBasladi);
                 SetLedText($"TxtLed_IST{st}_R1_Home_Val", r1Home);
 
                 // --- R2 SİNYALLERİ (Robot 2 InputVars) ---
                 bool r2IsBitti = IsRobotSignalTrue(r2, "G_IS_BITTI");
+                bool r2IsBasladi = IsRobotSignalTrue(r2, "G_IS_BASLADI");
                 bool r2Slider = IsRobotSignalTrue(r2, "G_SLIDER_TAMAM");
                 bool r2Home = IsRobotSignalTrue(r2, "G_R2_HOME");
                 bool r2IsHedef = (r2Hedef == st);
 
                 SetLed($"Led_IST{st}_R2_IsBitti", r2IsBitti, orange, gray);
+                SetLed($"Led_IST{st}_R2_IsBasladi", r2IsBasladi, orange, gray);
                 SetLed($"Led_IST{st}_R2_Slider", r2Slider, orange, gray);
                 SetLed($"Led_IST{st}_R2_Home", r2Home, orange, gray);
                 SetLed($"Led_IST{st}_R2_Hedef", r2IsHedef, orange, gray);
                 SetLedText($"TxtLed_IST{st}_R2_IsBitti_Val", r2IsBitti);
+                SetLedText($"TxtLed_IST{st}_R2_IsBasladi_Val", r2IsBasladi);
                 SetLedText($"TxtLed_IST{st}_R2_Slider_Val", r2Slider);
                 SetLedText($"TxtLed_IST{st}_R2_Home_Val", r2Home);
                 // HEDEF: sayı göster (TRUE/FALSE yerine)
@@ -379,7 +385,8 @@ namespace App4
                         GlobalData.AktuelRfid = rfidDef.Id;
                         GlobalData.AktuelKlimaIndex = klimaIdx;
                         await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
-                        await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
+                        // G_CASE_ID sadece Robot 1'e — Robot 2 case kullanmıyor, sadece tabla offset alıyor
+                        await WriteToRobot1AndLocal("G_CASE_ID", caseId.ToString());
                     }
                 }
             }
@@ -447,6 +454,9 @@ namespace App4
             // Hedef istasyon — her iki robota
             await WriteToRobotsAndLocal("G_HEDEF_ISTASYON", stNum.ToString());
 
+            // ★ TargetSliderStation senkronize et — Auto_Page monitoring'i eski değerle ezmesin
+            GlobalData.TargetSliderStation = stNum;
+
             // Tabla + Boru ölçüm sıfırla
             await WriteToRobotsAndLocal("G_TABLA_OLCUM_TAMAM", "FALSE");
             await WriteToRobotsAndLocal("G_BORU_OLCUM_TAMAM", "FALSE");
@@ -484,6 +494,32 @@ namespace App4
             // Doğrulama: Yazıldıktan sonra hala doğru mu?
             var verify = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == varName);
             System.Diagnostics.Debug.WriteLine($"[MANUEL] DOĞRULAMA: {varName} = '{verify?.Value}' (beklenen: {value})");
+        }
+
+        /// <summary>
+        /// Sadece Robot 1'e yazar — G_CASE_ID gibi yalnız tek robotun kullandığı değişkenler için.
+        /// Robot 2 case bilgisini kullanmıyor, sadece tabla offset alıyor.
+        /// </summary>
+        private async Task WriteToRobot1AndLocal(string varName, string value)
+        {
+            var gVar = GlobalData.RobotOutputVars.FirstOrDefault(v => v.Name == varName);
+            if (gVar != null) gVar.Value = value;
+
+            // PLC bridge varsa oraya da yaz (UI tabloları senkron kalsın)
+            var plcVar = App4.Utilities.PlcService.Instance?.OutputVariables?.FirstOrDefault(v => v.Name == varName);
+            if (plcVar != null)
+            {
+                plcVar.Value = value;
+                try { await App4.Utilities.PlcService.Instance.WriteAsync(plcVar, value); } catch { }
+            }
+
+            // Sadece Robot 1
+            var robots = App4.Utilities.KukaRobotManager.Instance?.Robots;
+            if (robots != null && robots.Count >= 1 && robots[0].IsConnected)
+            {
+                try { await robots[0].WriteVariableAsync(varName, value); } catch { }
+            }
+            System.Diagnostics.Debug.WriteLine($"[MANUEL] Robot 1'e yazıldı: {varName} = {value}");
         }
 
         // ================================================================
@@ -536,7 +572,8 @@ namespace App4
                         GlobalData.AktuelRfid = rfidDef.Id;
                         GlobalData.AktuelKlimaIndex = klimaIdx;
                         await WriteToRobotsAndLocal("G_KLIMA_TIP", klimaIdx.ToString());
-                        await WriteToRobotsAndLocal("G_CASE_ID", caseId.ToString());
+                        // G_CASE_ID sadece Robot 1'e — Robot 2 case kullanmıyor
+                        await WriteToRobot1AndLocal("G_CASE_ID", caseId.ToString());
                         break; // İlk geçerli istasyonun tipini yaz
                     }
                 }

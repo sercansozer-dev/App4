@@ -689,7 +689,7 @@ namespace App4.Utilities
             set { _ignoreRfidMatch = value; UpdateVisuals(); }
         }
 
-        public bool IsRfidMatch => IgnoreRfidMatch || (!string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid.Trim() == CurrentRfid.Trim());
+        public virtual bool IsRfidMatch => IgnoreRfidMatch || (!string.IsNullOrEmpty(AllowedRfid) && !string.IsNullOrEmpty(CurrentRfid) && AllowedRfid.Trim() == CurrentRfid.Trim());
         public string RfidMatchIcon => IsRfidMatch ? "\uE73E" : "\uE711";
         public SolidColorBrush RfidMatchColor => IsRfidMatch ? new SolidColorBrush(Color.FromArgb(255, 46, 204, 113)) : new SolidColorBrush(Color.FromArgb(255, 231, 76, 60));
         public string BypassButtonText => Mode == StationMode.Bypass ? "ETKİNLEŞTİR" : "BYPASS ET";
@@ -857,8 +857,32 @@ namespace App4.Utilities
 
         public Visibility IsSpecificRfidVisible => RfidOpMode == RfidOperationMode.Specific ? Visibility.Visible : Visibility.Collapsed;
 
+        // Mode-aware RFID match:
+        //   MIX      → herhangi bir okunan RFID = geçerli ürün (✓ yeşil)
+        //   SPECIFIC → CurrentRfid, TargetRfid/AllowedRfid ile eşleşmeli
+        public override bool IsRfidMatch
+        {
+            get
+            {
+                if (IgnoreRfidMatch) return true;
+                if (RfidOpMode == RfidOperationMode.Mixed)
+                {
+                    // Mixed: okunan herhangi bir RFID uygun; ama henüz RFID okunmadıysa uyarı olarak kırmızı göster
+                    return !string.IsNullOrEmpty(CurrentRfid);
+                }
+                // Specific
+                return !string.IsNullOrEmpty(AllowedRfid)
+                    && !string.IsNullOrEmpty(CurrentRfid)
+                    && AllowedRfid.Trim() == CurrentRfid.Trim();
+            }
+        }
+
         public ExtendedStationViewModel()
         {
+            // Default mode Mixed olduğu için IgnoreRfidMatch'i doğrudan senkronla
+            // (RfidOpMode setter sadece değişimde tetiklenir — default için manuel init)
+            IgnoreRfidMatch = (_rfidOpMode == RfidOperationMode.Mixed);
+
             // React to mode changes (existing behavior) and to RFID/robot presence changes
             this.PropertyChanged += (s, e) =>
             {
@@ -869,9 +893,12 @@ namespace App4.Utilities
                     OnPropertyChanged(nameof(ManualBtnBg)); OnPropertyChanged(nameof(ManualBtnFg));
                 }
 
-                // When RFID, target or robot presence changes, try to update the global current klima index
+                // When RFID, target, mode or robot presence changes, refresh RFID match visuals
                 if (e.PropertyName == nameof(CurrentRfid) || e.PropertyName == nameof(TargetRfid) || e.PropertyName == nameof(RfidOpMode) || e.PropertyName == nameof(IsRobotPresent))
                 {
+                    OnPropertyChanged(nameof(IsRfidMatch));
+                    OnPropertyChanged(nameof(RfidMatchIcon));
+                    OnPropertyChanged(nameof(RfidMatchColor));
                     TryUpdateAktuelKlimaIndex();
                 }
             };

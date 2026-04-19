@@ -166,13 +166,16 @@
                                         <TextBlock Text="R1 (SOL)" Foreground="#42A5F5" FontSize="9" FontWeight="Bold"/>
                                         <Grid ColumnSpacing="3" RowSpacing="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                             <Ellipse x:Name="Led_IST1_R1_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
                                             <TextBlock x:Name="TxtLed_IST1_R1_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST1_R1_Home" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST1_R1_Home_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R1_IsBasladi" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BASLADI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R1_IsBasladi_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R1_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R1_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -181,19 +184,22 @@
                                         <TextBlock Text="R2 (SAG)" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
                                         <Grid ColumnSpacing="3" RowSpacing="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                             <Ellipse x:Name="Led_IST1_R2_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
                                             <TextBlock x:Name="TxtLed_IST1_R2_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST1_R2_Slider" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST1_R2_Slider_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST1_R2_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST1_R2_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST1_R2_Hedef" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST1_R2_Hedef_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_IsBasladi" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BASLADI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_IsBasladi_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_Slider" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_Slider_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_Home" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_Home_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST1_R2_Hedef" Grid.Row="4" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST1_R2_Hedef_Val" Grid.Row="4" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -244,13 +250,16 @@
                                         <TextBlock Text="R1 (SOL)" Foreground="#42A5F5" FontSize="9" FontWeight="Bold"/>
                                         <Grid ColumnSpacing="3" RowSpacing="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                             <Ellipse x:Name="Led_IST2_R1_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
                                             <TextBlock x:Name="TxtLed_IST2_R1_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST2_R1_Home" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST2_R1_Home_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R1_IsBasladi" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BASLADI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R1_IsBasladi_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R1_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R1_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -259,19 +268,22 @@
                                         <TextBlock Text="R2 (SAG)" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
                                         <Grid ColumnSpacing="3" RowSpacing="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                             <Ellipse x:Name="Led_IST2_R2_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
                                             <TextBlock x:Name="TxtLed_IST2_R2_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST2_R2_Slider" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST2_R2_Slider_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST2_R2_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST2_R2_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST2_R2_Hedef" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST2_R2_Hedef_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_IsBasladi" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BASLADI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_IsBasladi_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_Slider" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_Slider_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_Home" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_Home_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST2_R2_Hedef" Grid.Row="4" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST2_R2_Hedef_Val" Grid.Row="4" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -322,13 +334,16 @@
                                         <TextBlock Text="R1 (SOL)" Foreground="#42A5F5" FontSize="9" FontWeight="Bold"/>
                                         <Grid ColumnSpacing="3" RowSpacing="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                             <Ellipse x:Name="Led_IST3_R1_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
                                             <TextBlock x:Name="TxtLed_IST3_R1_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST3_R1_Home" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST3_R1_Home_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R1_IsBasladi" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BASLADI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R1_IsBasladi_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R1_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R1_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -337,19 +352,22 @@
                                         <TextBlock Text="R2 (SAG)" Foreground="#FF9800" FontSize="9" FontWeight="Bold"/>
                                         <Grid ColumnSpacing="3" RowSpacing="1">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                             <Ellipse x:Name="Led_IST3_R2_IsBitti" Grid.Row="0" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
                                             <TextBlock Grid.Row="0" Grid.Column="1" Text="IS BITTI" Foreground="#999" FontSize="9"/>
                                             <TextBlock x:Name="TxtLed_IST3_R2_IsBitti_Val" Grid.Row="0" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST3_R2_Slider" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST3_R2_Slider_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST3_R2_Home" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST3_R2_Home_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
-                                            <Ellipse x:Name="Led_IST3_R2_Hedef" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
-                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
-                                            <TextBlock x:Name="TxtLed_IST3_R2_Hedef_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_IsBasladi" Grid.Row="1" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="IS BASLADI" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_IsBasladi_Val" Grid.Row="1" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_Slider" Grid.Row="2" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="SLIDER" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_Slider_Val" Grid.Row="2" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_Home" Grid.Row="3" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="HOME" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_Home_Val" Grid.Row="3" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
+                                            <Ellipse x:Name="Led_IST3_R2_Hedef" Grid.Row="4" Grid.Column="0" Width="8" Height="8" Fill="#555"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="HEDEF" Foreground="#999" FontSize="9"/>
+                                            <TextBlock x:Name="TxtLed_IST3_R2_Hedef_Val" Grid.Row="4" Grid.Column="2" Text="--" Foreground="#888" FontSize="9"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>

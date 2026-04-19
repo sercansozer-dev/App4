@@ -160,6 +160,12 @@ namespace App4.Utilities
         private MelsecMcNet _melsecNet;
         public bool IsConnected { get; private set; } = false;
 
+        // ═══ Kalıcı bağlantı ayarları (PLC_Config.json içinde saklanır) ═══
+        // Başka bir bilgisayara kurulduğunda varsayılan değerlerle başlar,
+        // kullanıcı değiştirip Connect'e bastığında dosyaya yazılır.
+        public string PlcIpAddress { get; set; } = "192.168.251.100";
+        public int PlcPort { get; set; } = 5007;
+
         public ObservableCollection<PlcVariable> InputVariables { get; private set; } = new();
         public ObservableCollection<PlcVariable> OutputVariables { get; private set; } = new();
 
@@ -883,6 +889,12 @@ namespace App4.Utilities
                     return;
                 }
 
+                // Bağlantı ayarları — boş ya da null değilse uygula
+                if (!string.IsNullOrWhiteSpace(data.PlcIpAddress))
+                    PlcIpAddress = data.PlcIpAddress.Trim();
+                if (data.PlcPort.HasValue && data.PlcPort.Value > 0 && data.PlcPort.Value <= 65535)
+                    PlcPort = data.PlcPort.Value;
+
                 InputVariables.Clear();
                 if (data.Inputs != null)
                     foreach (var item in data.Inputs) InputVariables.Add(item);
@@ -892,7 +904,7 @@ namespace App4.Utilities
                     foreach (var item in data.Outputs) OutputVariables.Add(item);
 
                 _readListDirty = true;
-                System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] Basarili: {InputVariables.Count} input, {OutputVariables.Count} output yuklendi ({_configFilePath})");
+                System.Diagnostics.Debug.WriteLine($"[PLC_LOAD] Basarili: IP={PlcIpAddress}:{PlcPort} — {InputVariables.Count} input, {OutputVariables.Count} output yuklendi ({_configFilePath})");
             }
             catch (Exception ex)
             {
@@ -912,6 +924,8 @@ namespace App4.Utilities
 
                 var data = new PlcConfigData
                 {
+                    PlcIpAddress = PlcIpAddress,
+                    PlcPort = PlcPort,
                     Inputs = InputVariables.ToList(),
                     Outputs = OutputVariables.ToList()
                 };
@@ -920,7 +934,7 @@ namespace App4.Utilities
                 string json = JsonSerializer.Serialize(data, options);
 
                 File.WriteAllText(_configFilePath, json);
-                System.Diagnostics.Debug.WriteLine($"[PLC_SAVE] {_configFilePath} → {data.Inputs.Count} input, {data.Outputs.Count} output kaydedildi");
+                System.Diagnostics.Debug.WriteLine($"[PLC_SAVE] {_configFilePath} → IP={data.PlcIpAddress}:{data.PlcPort}, {data.Inputs.Count} input, {data.Outputs.Count} output kaydedildi");
             }
             catch (Exception ex)
             {
@@ -1111,6 +1125,13 @@ namespace App4.Utilities
         // JSON Serileştirme için yardımcı sınıf (PlcService sınıfının dışında veya içinde olabilir)
         public class PlcConfigData
         {
+            // Bağlantı ayarları — başka bilgisayara kurulduğunda kalıcı kalsın
+            [JsonPropertyName("plcIpAddress")]
+            public string PlcIpAddress { get; set; }
+
+            [JsonPropertyName("plcPort")]
+            public int? PlcPort { get; set; }
+
             public List<PlcVariable> Inputs { get; set; } = new();
             public List<PlcVariable> Outputs { get; set; } = new();
         }

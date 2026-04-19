@@ -35,6 +35,20 @@ namespace App4.PAGES
         {
             this.InitializeComponent();
 
+            // ═══ KALICI IP/PORT YÜKLEME ═══
+            // PlcService.LoadVariables() zaten app başlangıcında çağrıldı.
+            // Textbox'ları kayıtlı değerlerle doldur (yoksa varsayılanlar kalır).
+            if (!string.IsNullOrWhiteSpace(PlcService.Instance.PlcIpAddress))
+                PLCIPAddressBox.Text = PlcService.Instance.PlcIpAddress;
+            if (PlcService.Instance.PlcPort > 0)
+                PLCPortBox.Text = PlcService.Instance.PlcPort.ToString();
+
+            // IP/Port değişikliklerinde anında kaydet (odak kaybedince veya Enter'da)
+            PLCIPAddressBox.LostFocus += PlcConnectionField_LostFocus;
+            PLCIPAddressBox.KeyDown += PlcConnectionField_KeyDown;
+            PLCPortBox.LostFocus += PlcConnectionField_LostFocus;
+            PLCPortBox.KeyDown += PlcConnectionField_KeyDown;
+
             // Mevcut bağlantı durumunu kontrol et ve butonu güncelle
             UpdateConnectionStatus(PlcService.Instance.IsConnected);
 
@@ -44,6 +58,41 @@ namespace App4.PAGES
 
             // Inficon tag eşleştirme tablolarını doldur
             PopulateInficonTagRows();
+        }
+
+        /// <summary>
+        /// IP/Port textbox'ı değişince kalıcı olarak PLC_Config.json'a yazar.
+        /// Böylece başka bilgisayara kurulunca kullanıcı bir kez girer,
+        /// sonraki açılışlarda otomatik yüklenir.
+        /// </summary>
+        private void PersistPlcConnectionFields()
+        {
+            string ip = PLCIPAddressBox.Text?.Trim();
+            string portStr = PLCPortBox.Text?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(ip))
+                PlcService.Instance.PlcIpAddress = ip;
+
+            if (!string.IsNullOrWhiteSpace(portStr) &&
+                int.TryParse(portStr, out int port) && port > 0 && port <= 65535)
+                PlcService.Instance.PlcPort = port;
+
+            PlcService.Instance.SaveVariables();
+        }
+
+        private void PlcConnectionField_LostFocus(object sender, RoutedEventArgs e)
+        {
+            PersistPlcConnectionFields();
+        }
+
+        private void PlcConnectionField_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key == VirtualKey.Enter)
+            {
+                // Binding/focus kontrolünden bağımsız doğrudan oku
+                PersistPlcConnectionFields();
+                this.Focus(FocusState.Programmatic);
+            }
         }
 
         // ════════════════════════════════════════════════════════════
@@ -207,15 +256,32 @@ namespace App4.PAGES
             }
             else
             {
-                string ip = string.IsNullOrWhiteSpace(PLCIPAddressBox.Text) ? "192.168.251.100" : PLCIPAddressBox.Text;
-                string portStr = string.IsNullOrWhiteSpace(PLCPortBox.Text) ? "5007" : PLCPortBox.Text;
+                string ip = string.IsNullOrWhiteSpace(PLCIPAddressBox.Text)
+                    ? PlcService.Instance.PlcIpAddress
+                    : PLCIPAddressBox.Text.Trim();
+                string portStr = string.IsNullOrWhiteSpace(PLCPortBox.Text)
+                    ? PlcService.Instance.PlcPort.ToString()
+                    : PLCPortBox.Text.Trim();
 
-                AddLog($"[INFO] Bağlanılıyor: {ip}:{portStr}...");
+                if (!int.TryParse(portStr, out int port) || port <= 0 || port > 65535)
+                {
+                    AddLog($"[ERROR] Geçersiz port: '{portStr}'. 1-65535 arası olmalı.");
+                    return;
+                }
+
+                // ═══ KALICI KAYIT ═══
+                // Başarısız bağlantı olsa bile kullanıcının girdiği IP/Port kaydolsun,
+                // tekrar uygulama açıldığında hazır olsun.
+                PlcService.Instance.PlcIpAddress = ip;
+                PlcService.Instance.PlcPort = port;
+                PlcService.Instance.SaveVariables();
+
+                AddLog($"[INFO] Bağlanılıyor: {ip}:{port}...");
 
                 // UiRunner olmadan değerler tabloya yansımaz
                 PlcService.Instance.Initialize(action => DispatcherQueue.TryEnqueue(() => action()));
 
-                bool success = await PlcService.Instance.ConnectAsync(ip, int.Parse(portStr));
+                bool success = await PlcService.Instance.ConnectAsync(ip, port);
 
                 if (success) AddLog("[SUCCESS] PLC'ye başarıyla bağlanıldı!");
                 else AddLog("[ERROR] Bağlantı başarısız. IP ve Portu kontrol edin.");

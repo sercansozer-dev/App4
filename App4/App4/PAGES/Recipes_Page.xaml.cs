@@ -32,15 +32,15 @@ namespace App4.Pages
 
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine(">>> [RECIPES] Sayfa Yükleniyor...");
+            System.Diagnostics.Debug.WriteLine(">>> [RECIPES] Sayfa Yï¿½kleniyor...");
 
             try
             {
-                // 1. LÝSTELERÝ HAZIRLA
+                // 1. Lï¿½STELERï¿½ HAZIRLA
                 AllRecipes = new ObservableCollection<ProductRecipe>();
                 RecipesList.ItemsSource = AllRecipes;
 
-                // 2. REÇETELERÝ YÜKLE
+                // 2. REï¿½ETELERï¿½ Yï¿½KLE
                 try
                 {
                     var list = await RecipeManager.LoadAllRecipesAsync();
@@ -55,10 +55,10 @@ namespace App4.Pages
                         }
                     }
                 }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Reçete yükleme hatasý: " + ex.Message); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Reï¿½ete yï¿½kleme hatasï¿½: " + ex.Message); }
 
-                // 3. WEBVIEW2 BAÞLATMA
-                System.Diagnostics.Debug.WriteLine(">>> [RECIPES] WebView2 Hazýrlanýyor...");
+                // 3. WEBVIEW2 BAï¿½LATMA
+                System.Diagnostics.Debug.WriteLine(">>> [RECIPES] WebView2 Hazï¿½rlanï¿½yor...");
 
                 string userDataFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_WebView2_Cache");
                 
@@ -68,15 +68,15 @@ namespace App4.Pages
                 
                 await PreviewWebView.EnsureCoreWebView2Async(env);
 
-                // A. HTML Klasörü (Temp)
+                // A. HTML Klasï¿½rï¿½ (Temp)
                 string htmlFolder = Path.Combine(Path.GetTempPath(), "Simbiosis_HTML");
                 if (!Directory.Exists(htmlFolder)) Directory.CreateDirectory(htmlFolder);
 
-                // B. Modeller Klasörü (App BaseDir)
-                string modelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                // B. Modeller KlasÃ¶rÃ¼ (YazÄ±labilir kullanÄ±cÄ± klasÃ¶rÃ¼ â€” MSIX install dir yerine)
+                string modelsFolder = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 if (!Directory.Exists(modelsFolder)) Directory.CreateDirectory(modelsFolder);
 
-                // HTML Dosyasýný Oluþtur (Temp içine)
+                // HTML Dosyasï¿½nï¿½ Oluï¿½tur (Temp iï¿½ine)
                 await CreateRecipeViewerHtml(htmlFolder, "Recipe_Viewer.html", "Recipe 3D Preview");
 
                 // Mappings
@@ -101,7 +101,7 @@ namespace App4.Pages
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"!!! [RECIPES KRÝTÝK HATA] : {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"!!! [RECIPES KRï¿½Tï¿½K HATA] : {ex.Message}");
             }
         }
 
@@ -131,7 +131,7 @@ namespace App4.Pages
 <body>
     <div id='info'>Recipe Viewer</div>
     <div id='debug'></div>
-    <div id='loading'>Yükleniyor...</div>
+    <div id='loading'>Yï¿½kleniyor...</div>
     <div id='error'></div>
     <script>
         let scene, camera, renderer, controls, currentModel;
@@ -164,7 +164,7 @@ namespace App4.Pages
             }} else if (attempt < 100) {{
                 setTimeout(() => waitForTHREE(callback, attempt + 1), 100);
             }} else {{
-                showError('THREE.js kütüphaneleri yüklenemedi');
+                showError('THREE.js kï¿½tï¿½phaneleri yï¿½klenemedi');
             }}
         }}
 
@@ -298,7 +298,7 @@ namespace App4.Pages
                     model.position.x = -center.x;
                     model.position.z = -center.z;
                     
-                    // Klima üniteleri dike almak için (X ekseni etrafýnda 90 derece)
+                    // Klima ï¿½niteleri dike almak iï¿½in (X ekseni etrafï¿½nda 90 derece)
                     model.rotation.x = Math.PI / 2;
                     
                     // Y ekseninde aynalamak (mirror)
@@ -345,7 +345,7 @@ namespace App4.Pages
             }
         }
 
-        // --- HTML YÜKLENDIKÇE MODELI ÇAÐIR ---
+        // --- HTML Yï¿½KLENDIKï¿½E MODELI ï¿½Aï¿½IR ---
         private async void PreviewWebView_NavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
         {
             if (args.IsSuccess && SelectedRecipe != null && !string.IsNullOrEmpty(SelectedRecipe.StepFilePath))
@@ -356,7 +356,7 @@ namespace App4.Pages
             }
         }
 
-        // --- MODELI GÜNCELLE ---
+        // --- MODELI Gï¿½NCELLE ---
         private async Task Update3DPreview(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) 
@@ -373,7 +373,7 @@ namespace App4.Pages
                     return;
                 }
                 
-                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                string modelsRoot = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 string fullPath = Path.Combine(modelsRoot, fileName.Replace("\\", "/"));
                 
                 System.Diagnostics.Debug.WriteLine($">>> [3D PREVIEW] Trying: {fullPath}");
@@ -421,7 +421,7 @@ namespace App4.Pages
             }
         }
 
-        // --- DÝÐER FONKSIYONLAR (Ayný Kalýyor) ---
+        // --- Dï¿½ï¿½ER FONKSIYONLAR (Aynï¿½ Kalï¿½yor) ---
         private void CoreWebView2_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
         {
             this.DispatcherQueue.TryEnqueue(() =>
@@ -439,7 +439,7 @@ namespace App4.Pages
                         var newPoint = new TargetPoint
                         {
                             PointName = $"Nokta {SelectedRecipe.TargetPoints.Count + 1}",
-                            Description = "3D Editörden Seçildi",
+                            Description = "3D Editï¿½rden Seï¿½ildi",
                             RefX = pointData.data.x,
                             RefY = pointData.data.y,
                             RefZ = pointData.data.z,
@@ -497,10 +497,10 @@ namespace App4.Pages
             }
 
             await RecipeManager.SaveRecipeAsync(SelectedRecipe);
-            await ShowMessage("Baþarýlý", $"{SelectedRecipe.RecipeName} kaydedildi.");
+            await ShowMessage("Baï¿½arï¿½lï¿½", $"{SelectedRecipe.RecipeName} kaydedildi.");
         }
 
-        // --- KÜTÜPHANE VE DOSYA SEÇÝMÝ ---
+        // --- Kï¿½Tï¿½PHANE VE DOSYA SEï¿½ï¿½Mï¿½ ---
         private async Task RefreshLibraryList()
         {
             await RecipeManager.RefreshModelLibraryAsync();
@@ -511,8 +511,8 @@ namespace App4.Pages
         {
             if (LibraryModelList.SelectedItem is ModelLibraryItem selectedModel)
             {
-                // Get relative path from Utilities/Models to the selected file
-                string modelsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                // Get relative path from Models writable folder to the selected file
+                string modelsRoot = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 string relativePath = Path.GetRelativePath(modelsRoot, selectedModel.FilePath).Replace("\\", "/");
                 
                 TxtStepPath.Text = relativePath;
@@ -524,7 +524,7 @@ namespace App4.Pages
             }
         }
 
-        // --- BUTTON HANDLERS (Boþ veya basit olanlar) ---
+        // --- BUTTON HANDLERS (Boï¿½ veya basit olanlar) ---
         private void BtnNew_Click(object sender, RoutedEventArgs e)
         {
             if (AllRecipes == null) { AllRecipes = new ObservableCollection<ProductRecipe>(); RecipesList.ItemsSource = AllRecipes; }
@@ -547,8 +547,8 @@ namespace App4.Pages
             var files = await picker.PickMultipleFilesAsync();
             if (files.Count > 0)
             {
-                // Doðru yol: Uygulama dizini içindeki Utilities/Models
-                string targetFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
+                // YazÄ±labilir kullanÄ±cÄ± klasÃ¶rÃ¼ (MSIX install dir read-only olduÄŸu iÃ§in)
+                string targetFolder = App4.Utilities.ModelsPathHelper.GetModelsFolder();
                 if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
 
                 foreach (var f in files)
