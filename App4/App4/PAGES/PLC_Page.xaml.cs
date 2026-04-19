@@ -58,6 +58,35 @@ namespace App4.PAGES
 
             // Inficon tag eşleştirme tablolarını doldur
             PopulateInficonTagRows();
+
+            // ═══ DEĞİŞKEN TABLOLARI GATING ═══
+            // Admin (PIN 3535) giriş yapmadıysa PLC değişken + Helyum tag tablolarını gizle.
+            // Event ile MainWindow'daki login değişikliklerine reaksiyon verir.
+            this.Loaded += PLC_Page_AdminGating_Loaded;
+            this.Unloaded += PLC_Page_AdminGating_Unloaded;
+        }
+
+        private void PLC_Page_AdminGating_Loaded(object sender, RoutedEventArgs e)
+        {
+            ApplyAdminVisibility();
+            GlobalData.AdminAccessChanged += OnAdminAccessChanged_Plc;
+        }
+
+        private void PLC_Page_AdminGating_Unloaded(object sender, RoutedEventArgs e)
+        {
+            GlobalData.AdminAccessChanged -= OnAdminAccessChanged_Plc;
+        }
+
+        private void OnAdminAccessChanged_Plc(object sender, EventArgs e)
+        {
+            try { DispatcherQueue.TryEnqueue(ApplyAdminVisibility); } catch { }
+        }
+
+        private void ApplyAdminVisibility()
+        {
+            var vis = GlobalData.IsAdminUnlocked ? Visibility.Visible : Visibility.Collapsed;
+            if (MainVariablesPanel != null) MainVariablesPanel.Visibility = vis;
+            if (HelyumKacakPanel  != null) HelyumKacakPanel.Visibility  = vis;
         }
 
         /// <summary>
@@ -382,9 +411,23 @@ namespace App4.PAGES
             catch { }
         }
 
+        // _logBuilder sınırsız büyüyordu -> belleği doldurabilirdi.
+        // Üst sınır: 100 KB. Aşınca en eski %50'lik kısım kırpılır.
+        private const int _logMaxLength = 100_000;
+
         private void AddLog(string message)
         {
             _logBuilder.AppendLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+
+            // Bellek sızıntısı koruması: büyüdüyse ortadan kırp
+            if (_logBuilder.Length > _logMaxLength)
+            {
+                int trimTo = _logMaxLength / 2;
+                string tail = _logBuilder.ToString(_logBuilder.Length - trimTo, trimTo);
+                _logBuilder.Clear();
+                _logBuilder.Append("[...eski loglar kırpıldı...]\n");
+                _logBuilder.Append(tail);
+            }
 
             // UI Thread kontrolü (WinUI 3)
             if (this.DispatcherQueue.HasThreadAccess)

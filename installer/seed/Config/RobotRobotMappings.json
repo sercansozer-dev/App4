@@ -1,0 +1,100 @@
+[
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_TABLA_OFFSET_X (G_TABLA_OFFSET_X)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_TABLA_OFFSET_X (G_TABLA_OFFSET_X)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_TABLA_OFFSET_Y (G_TABLA_OFFSET_Y)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_TABLA_OFFSET_Y (G_TABLA_OFFSET_Y)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_TABLA_OFFSET_Z (G_TABLA_OFFSET_Z)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_TABLA_OFFSET_Z (G_TABLA_OFFSET_Z)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_TABLA_OFFSET_A (G_TABLA_OFFSET_A)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_TABLA_OFFSET_A (G_TABLA_OFFSET_A)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_TABLA_OFFSET_B (G_TABLA_OFFSET_B)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_TABLA_OFFSET_B (G_TABLA_OFFSET_B)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_TABLA_OFFSET_C (G_TABLA_OFFSET_C)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_TABLA_OFFSET_C (G_TABLA_OFFSET_C)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_R1_HOME (G_R1_HOME)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_R1_HOME (G_R1_HOME)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 2",
+    "SourceTag": "G_SLIDER_AKTUEL_POZ (G_SLIDER_AKTUEL_POZ)",
+    "TargetRobotName": "ROBOT 1",
+    "TargetTag": "G_R2_SLIDER_POZ (G_R2_SLIDER_POZ)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 2",
+    "SourceTag": "HEDEF_ISTASYON (HEDEF_ISTASYON)",
+    "TargetRobotName": "ROBOT 1",
+    "TargetTag": "G_HEDEF_ISTASYON (G_HEDEF_ISTASYON)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 2",
+    "SourceTag": "G_R2_HOME (G_R2_HOME)",
+    "TargetRobotName": "ROBOT 1",
+    "TargetTag": "G_R2_HOME (G_R2_HOME)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 2",
+    "SourceTag": "G_SLIDER_TAMAM (G_SLIDER_TAMAM)",
+    "TargetRobotName": "ROBOT 1",
+    "TargetTag": "G_R2_SLIDER_TAMAM (G_R2_SLIDER_TAMAM)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 2",
+    "SourceTag": "G_SLIDER_HOME (G_SLIDER_HOME)",
+    "TargetRobotName": "ROBOT 1",
+    "TargetTag": "G_R2_SLIDER_HOME (G_R2_SLIDER_HOME)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 1",
+    "SourceTag": "G_IS_BASLADI (G_IS_BASLADI)",
+    "TargetRobotName": "ROBOT 2",
+    "TargetTag": "G_R1_IS_BASLADI (G_R1_IS_BASLADI)",
+    "IsActive": true
+  },
+  {
+    "SourceRobotName": "ROBOT 2",
+    "SourceTag": "G_IS_BASLADI (G_IS_BASLADI)",
+    "TargetRobotName": "ROBOT 1",
+    "TargetTag": "G_R2_IS_BASLADI (G_R2_IS_BASLADI)",
+    "IsActive": true
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "RobotName": "ROBOT 1",
+    "PlcTag": "G_KLIMA_TIP",
+    "Type": "INT",
+    "DefaultValue": "0",
+    "IsActive": true
+  },
+  {
+    "RobotName": "ROBOT 1",
+    "PlcTag": "G_OTO_MOD",
+    "Type": "BOOL",
+    "DefaultValue": "FALSE",
+    "IsActive": true
+  },
+  {
+    "RobotName": "ROBOT 2",
+    "PlcTag": "G_KLIMA_TIP",
+    "Type": "INT",
+    "DefaultValue": "0",
+    "IsActive": true
+  },
+  {
+    "RobotName": "ROBOT 2",
+    "PlcTag": "G_OTO_MOD",
+    "Type": "BOOL",
+    "DefaultValue": "FALSE",
+    "IsActive": true
+  }
+]

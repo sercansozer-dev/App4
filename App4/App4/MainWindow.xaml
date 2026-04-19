@@ -87,12 +87,18 @@
                         <FontIcon Glyph="&#xE99A;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <!-- Helyum Kaçak sayfası geçici olarak gizlendi (uygulama crash nedeniyle).
+                     Sayfa stabil hale getirildikten sonra tekrar açılacak.
                 <NavigationViewItem Content="Helyum Kaçak" Tag="inficon" Margin="0,5,0,0">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE9CE;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Klima Editörü" Tag="Klima_Editor_Page" Margin="0,5,0,0">
+                -->
+                <!-- NOT: Page routing (inficon → InficonPage) MainWindow.xaml.cs içinde hala aktif olabilir —
+                     ama nav öğesi olmadığı için kullanıcı oraya ulaşamaz. İleride açarken buradaki comment'i
+                     kaldırmak yeterli. -->
+                <NavigationViewItem x:Name="NavItem_KlimaEditor" Content="Klima Editörü" Tag="Klima_Editor_Page" Margin="0,5,0,0" Visibility="Collapsed">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE70F;" />
                     </NavigationViewItem.Icon>

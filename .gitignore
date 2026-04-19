@@ -1,5 +1,30 @@
-﻿App4/App4/NUL
+﻿# ═══ Build çıktıları ═══
+bin/
+obj/
+App4/App4/NUL
 /nul
+
+# ═══ Setup üretimi ═══
+# Publish klasörü (dotnet publish çıktısı — büyük, yeniden üretilebilir)
+/publish/
+# Setup .exe çıktı klasörü
+/dist/
+# İndirilen redistributables (otomatik indirilir)
+installer/redist/*.exe
+
+# ═══ Visual Studio ═══
+.vs/
+*.user
+*.suo
+*.csproj.Backup.tmp
+
+# ═══ Claude / editörler ═══
 /.claude/settings.local.json
-/.gitignore
-/.gitignore
+
+# ═══ Kod imzalama ═══
+*.pfx
+*.snk
+
+# ═══ Log dosyaları ═══
+*.log
+logs/

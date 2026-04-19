@@ -878,7 +878,7 @@
                 <!-- ═══════════════════════════════════════════════════════════════════════════ -->
                 <!-- ROBOT SLİDER POZİSYON EŞLEŞTİRME (Basitleştirilmiş) -->
                 <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-                <Expander Header="Slider Pozisyon Eşleştirme" IsExpanded="True" Margin="0,15,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
+                <Expander x:Name="AdminGate_SliderPozisyon" Header="Slider Pozisyon Eşleştirme" IsExpanded="True" Margin="0,15,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
                     <StackPanel Padding="15" Spacing="12">
 
                         <!-- Robot Seçimi -->
@@ -997,7 +997,7 @@
                 </Expander>
 
 
-                <Expander Header="RFID ve Model Eşleştirme" IsExpanded="True" Margin="0,5,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
+                <Expander x:Name="AdminGate_RfidModel" Header="RFID ve Model Eşleştirme" IsExpanded="True" Margin="0,5,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
                     <Grid Height="250" Padding="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -1195,7 +1195,7 @@
                         </Grid>
                     </Border>
 
-                    <Grid Margin="0,15,0,0" ColumnSpacing="15" RowSpacing="15">
+                    <Grid x:Name="AdminGate_StationTags" Margin="0,15,0,0" ColumnSpacing="15" RowSpacing="15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
@@ -1544,7 +1544,7 @@
 
                         <StackPanel Grid.Column="2" Spacing="10">
                             <!-- SİSTEM START KOŞULLARI -->
-                            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0" VerticalAlignment="Top">
+                            <Border x:Name="AdminGate_SystemStart" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0" VerticalAlignment="Top">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -1605,7 +1605,7 @@
                             </Border>
 
                             <!-- SAFETY ÇALIŞMA KOŞULLARI -->
-                            <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0">
+                            <Border x:Name="AdminGate_Safety" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Padding="0">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>

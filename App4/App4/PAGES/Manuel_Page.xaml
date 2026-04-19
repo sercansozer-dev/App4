@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="App4.Manuel_Page"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -36,7 +36,6 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <Grid Padding="15" RowSpacing="15">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -129,7 +128,7 @@
                             <Button x:Name="BtnTumIstasyonCalis" Click="BtnTumIstasyonCalis_Click" CornerRadius="6" Padding="0" HorizontalAlignment="Stretch" Height="44" Background="#1565C0" BorderBrush="#42A5F5" BorderThickness="1">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xE8B7;" FontSize="14" Foreground="#42A5F5"/>
-                                    <TextBlock Text="3 IST ÇALIŞ" FontWeight="Bold" Foreground="White" FontSize="10"/>
+                                    <TextBlock Text="3 IST Ã‡ALIÅ" FontWeight="Bold" Foreground="White" FontSize="10"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -206,7 +205,7 @@
                             </Grid>
                             <Rectangle Height="1" Fill="#333"/>
                             <Border Background="#1A1A2E" CornerRadius="4" Padding="8,3" BorderBrush="#333" BorderThickness="1" Height="24">
-                                <TextBlock x:Name="TxtKlima_IST1_Name" Text="Seçilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtKlima_IST1_Name" Text="SeÃ§ilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock x:Name="TxtKlima_IST1_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="9"/>
                             <Grid ColumnSpacing="6">
@@ -290,7 +289,7 @@
                             </Grid>
                             <Rectangle Height="1" Fill="#333"/>
                             <Border Background="#1A1A2E" CornerRadius="4" Padding="8,3" BorderBrush="#333" BorderThickness="1" Height="24">
-                                <TextBlock x:Name="TxtKlima_IST2_Name" Text="Seçilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtKlima_IST2_Name" Text="SeÃ§ilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock x:Name="TxtKlima_IST2_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="9"/>
                             <Grid ColumnSpacing="6">
@@ -374,7 +373,7 @@
                             </Grid>
                             <Rectangle Height="1" Fill="#333"/>
                             <Border Background="#1A1A2E" CornerRadius="4" Padding="8,3" BorderBrush="#333" BorderThickness="1" Height="24">
-                                <TextBlock x:Name="TxtKlima_IST3_Name" Text="Seçilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtKlima_IST3_Name" Text="SeÃ§ilmedi" Foreground="#E0E0E0" FontSize="10" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock x:Name="TxtKlima_IST3_Info" Text="Tip: - | Case: -" Foreground="#666" FontSize="9"/>
                             <Grid ColumnSpacing="6">
@@ -390,282 +389,8 @@
                     </Border>
                 </Grid>
 
-                <!-- ROW 1: KL100 SLIDER VISUAL -->
-                <Border Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="20,15">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="140"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- Slider Header -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" Margin="0,0,0,10">
-                            <Border Background="#333" CornerRadius="6" Padding="12,6">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE71D;" Foreground="#0078D4" FontSize="14"/>
-                                    <TextBlock Text="KL100 LINEER SLIDER" FontSize="12" FontWeight="Bold" Foreground="#0078D4"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#252528" CornerRadius="6" Padding="12,6">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="Aktuel Poz:" FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ManuelSliderActualPosText" Text="---" FontSize="12" FontWeight="Bold" Foreground="#FF9800" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#252528" CornerRadius="6" Padding="12,6">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="Istasyon:" FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ManuelSliderStationText" Text="---" FontSize="12" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#252528" CornerRadius="6" Padding="12,6">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE81D;" Foreground="#E91E63" FontSize="12" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Hedef:" FontSize="11" Foreground="#888" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ManuelSliderHedefStationText" Text="---" FontSize="12" FontWeight="Bold" Foreground="#E91E63" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Slider Rail and Robots -->
-                        <Grid Grid.Row="1" Background="#151518">
-                            <!-- Slider Rail Background (Metallic) -->
-                            <Border Height="20" CornerRadius="10" VerticalAlignment="Center" Margin="80,0" BorderBrush="#666" BorderThickness="1">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                        <GradientStop Color="#707070" Offset="0"/>
-                                        <GradientStop Color="#404040" Offset="0.5"/>
-                                        <GradientStop Color="#505050" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.Background>
-                            </Border>
-
-                            <!-- Slider Rail Line (Top) -->
-                            <Border Height="4" CornerRadius="2" VerticalAlignment="Center" Margin="80,-8,80,0">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                        <GradientStop Color="#888888" Offset="0"/>
-                                        <GradientStop Color="#AAAAAA" Offset="0.5"/>
-                                        <GradientStop Color="#888888" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.Background>
-                            </Border>
-
-                            <!-- Station Markers on Slider -->
-                            <Grid VerticalAlignment="Center" Margin="80,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="8" Height="36" Background="#9E9E9E" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
-                                <Border Grid.Column="1" Width="8" Height="36" Background="#FF5722" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
-                                <Border Grid.Column="2" Width="8" Height="36" Background="#FF9800" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
-                                <Border Grid.Column="3" Width="8" Height="36" Background="#4CAF50" CornerRadius="4" HorizontalAlignment="Center" Opacity="0.9"/>
-                            </Grid>
-
-                            <!-- Robot Platform Canvas -->
-                            <Canvas x:Name="ManuelSliderCanvas" Margin="80,0">
-                                <Grid x:Name="ManuelRobotPlatform" Canvas.Left="20" Canvas.Top="20" Width="140">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <!-- Two Robots Side by Side -->
-                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
-                                        <!-- Robot 1 (Gocator + Helyum) -->
-                                        <Grid Width="60">
-                                            <Grid HorizontalAlignment="Center">
-                                                <Ellipse x:Name="ManuelR1RobotEllipse" Width="50" Height="50" StrokeThickness="3">
-                                                    <Ellipse.Fill>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#2A2A2A" Offset="0"/>
-                                                            <GradientStop Color="#1A1A1A" Offset="1"/>
-                                                        </LinearGradientBrush>
-                                                    </Ellipse.Fill>
-                                                    <Ellipse.Stroke>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#4CAF50" Offset="0"/>
-                                                            <GradientStop Color="#2E7D32" Offset="1"/>
-                                                        </LinearGradientBrush>
-                                                    </Ellipse.Stroke>
-                                                </Ellipse>
-                                                <FontIcon x:Name="ManuelR1RobotIcon" Glyph="&#xE99A;" FontSize="20" Foreground="#4CAF50"/>
-                                                <!-- Gocator Icon -->
-                                                <Border Background="#FF9800" CornerRadius="3" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
-                                                    <FontIcon Glyph="&#xE945;" FontSize="7" Foreground="White"/>
-                                                </Border>
-                                                <!-- Helyum Icon -->
-                                                <Border Background="#9C27B0" CornerRadius="3" Padding="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-2,-2,0,0">
-                                                    <TextBlock Text="He" FontSize="6" FontWeight="Bold" Foreground="White"/>
-                                                </Border>
-                                            </Grid>
-                                            <Border Background="#4CAF50" CornerRadius="3" Padding="4,1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,-10,0,0">
-                                                <TextBlock Text="R1" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                            </Border>
-                                        </Grid>
-
-                                        <!-- Robot 2 (Helyum only) -->
-                                        <Grid Width="60">
-                                            <Grid HorizontalAlignment="Center">
-                                                <Ellipse x:Name="ManuelR2RobotEllipse" Width="50" Height="50" StrokeThickness="3">
-                                                    <Ellipse.Fill>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#2A2A2A" Offset="0"/>
-                                                            <GradientStop Color="#1A1A1A" Offset="1"/>
-                                                        </LinearGradientBrush>
-                                                    </Ellipse.Fill>
-                                                    <Ellipse.Stroke>
-                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                            <GradientStop Color="#0078D4" Offset="0"/>
-                                                            <GradientStop Color="#005A9E" Offset="1"/>
-                                                        </LinearGradientBrush>
-                                                    </Ellipse.Stroke>
-                                                </Ellipse>
-                                                <FontIcon x:Name="ManuelR2RobotIcon" Glyph="&#xE99A;" FontSize="20" Foreground="#0078D4"/>
-                                                <!-- Helyum Icon -->
-                                                <Border Background="#9C27B0" CornerRadius="3" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0">
-                                                    <TextBlock Text="He" FontSize="6" FontWeight="Bold" Foreground="White"/>
-                                                </Border>
-                                            </Grid>
-                                            <Border Background="#0078D4" CornerRadius="3" Padding="4,1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,-10,0,0">
-                                                <TextBlock Text="R2" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                            </Border>
-                                        </Grid>
-                                    </StackPanel>
-
-                                    <!-- Platform Connection Bar -->
-                                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,-3,0,0">
-                                        <Border Width="100" Height="6" CornerRadius="3">
-                                            <Border.Background>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                    <GradientStop Color="#4CAF50" Offset="0"/>
-                                                    <GradientStop Color="#0078D4" Offset="1"/>
-                                                </LinearGradientBrush>
-                                            </Border.Background>
-                                        </Border>
-                                        <Rectangle Width="8" Height="10" Fill="#555" RadiusX="2" RadiusY="2" HorizontalAlignment="Center"/>
-                                        <Border Width="120" Height="10" CornerRadius="5">
-                                            <Border.Background>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                    <GradientStop Color="#666666" Offset="0"/>
-                                                    <GradientStop Color="#444444" Offset="1"/>
-                                                </LinearGradientBrush>
-                                            </Border.Background>
-                                        </Border>
-                                    </StackPanel>
-                                </Grid>
-                            </Canvas>
-                        </Grid>
-
-                        <!-- Robot Status Cards -->
-                        <Grid Grid.Row="2" Margin="10,8,10,0" ColumnSpacing="10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Robot 1 Mini Status Card -->
-                            <Border Grid.Column="0" x:Name="ManuelRobot1StatusCard" Background="#151518"
-                                    CornerRadius="6" Padding="10,6" BorderBrush="#333" BorderThickness="1">
-                                <Grid ColumnSpacing="8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
-                                        <Border x:Name="ManuelRobot1StatusDot" Background="#555" CornerRadius="6"
-                                                Width="12" Height="12" VerticalAlignment="Center"/>
-                                        <TextBlock Text="R1" FontSize="11" FontWeight="Bold"
-                                                   Foreground="#4CAF50" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                        <TextBlock x:Name="ManuelRobot1DurumText" Text="---" FontSize="10"
-                                                   FontWeight="SemiBold" Foreground="#888"/>
-                                        <TextBlock x:Name="ManuelRobot1MesajText" Text="---" FontSize="9"
-                                                   Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                    <Border Grid.Column="2" x:Name="ManuelRobot1HataBadge" Background="#1A2A1A"
-                                            CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                        <TextBlock x:Name="ManuelRobot1HataText" Text="Hata: Yok" FontSize="9"
-                                                   FontWeight="Bold" Foreground="#4CAF50"/>
-                                    </Border>
-                                </Grid>
-                            </Border>
-
-                            <!-- Robot 2 Mini Status Card -->
-                            <Border Grid.Column="1" x:Name="ManuelRobot2StatusCard" Background="#151518"
-                                    CornerRadius="6" Padding="10,6" BorderBrush="#333" BorderThickness="1">
-                                <Grid ColumnSpacing="8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
-                                        <Border x:Name="ManuelRobot2StatusDot" Background="#555" CornerRadius="6"
-                                                Width="12" Height="12" VerticalAlignment="Center"/>
-                                        <TextBlock Text="R2" FontSize="11" FontWeight="Bold"
-                                                   Foreground="#0078D4" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-                                        <TextBlock x:Name="ManuelRobot2DurumText" Text="---" FontSize="10"
-                                                   FontWeight="SemiBold" Foreground="#888"/>
-                                        <TextBlock x:Name="ManuelRobot2MesajText" Text="---" FontSize="9"
-                                                   Foreground="#666" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                    <Border Grid.Column="2" x:Name="ManuelRobot2HataBadge" Background="#1A1A2A"
-                                            CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
-                                        <TextBlock x:Name="ManuelRobot2HataText" Text="Hata: Yok" FontSize="9"
-                                                   FontWeight="Bold" Foreground="#4CAF50"/>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </Grid>
-
-                        <!-- Station Labels -->
-                        <Grid Grid.Row="3" Margin="80,10,80,5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Background="#9E9E9E" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="BAKIM" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="0 mm" FontSize="9" Foreground="#DDD" HorizontalAlignment="Center" Opacity="0.7"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="1" Background="#FF5722" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="ISTASYON 1" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ManuelSliderSt1PosLabel" Text="0 mm" FontSize="9" Foreground="#FFE0B2" HorizontalAlignment="Center" Opacity="0.9"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="2" Background="#FF9800" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="ISTASYON 2" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ManuelSliderSt2PosLabel" Text="0 mm" FontSize="9" Foreground="#FFF3E0" HorizontalAlignment="Center" Opacity="0.9"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="3" Background="#4CAF50" CornerRadius="4" Padding="8,3" HorizontalAlignment="Center">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="ISTASYON 3" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-                                    <TextBlock x:Name="ManuelSliderSt3PosLabel" Text="0 mm" FontSize="9" Foreground="#C8E6C9" HorizontalAlignment="Center" Opacity="0.9"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </Grid>
-                </Border>
-
-                <!-- ROW 2: KL100 SLIDER KONTROL (existing expander kept) -->
-                <Border Grid.Row="2" Background="#1A1A1C" CornerRadius="8" Padding="15">
+                <!-- ROW 1: KL100 SLIDER KONTROL (existing expander kept) -->
+                <Border Grid.Row="1" Background="#1A1A1C" CornerRadius="8" Padding="15">
                     <StackPanel Spacing="10">
                         <!-- Title + Status -->
                         <Grid>

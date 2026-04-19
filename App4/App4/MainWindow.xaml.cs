@@ -413,7 +413,8 @@ namespace App4
                 string pin = PasswordInput.Password;
 
                 bool authorized = false;
-                if (role == "Admin" && pin == "1234") authorized = true;
+                // Admin PIN: 3535 — Admin olarak girince sayfalardaki değişken tabloları açılır.
+                if (role == "Admin" && pin == "3535") authorized = true;
                 else if (role == "Expert" && pin == "0000") authorized = true;
                 else if (role == "Operatör") authorized = true;
 
@@ -439,6 +440,17 @@ namespace App4
             CurrentRoleText.Text = role == "Admin" ? "Tam Yetkili Erişim" : "Sınırlı Erişim";
             UserStatusLed.Fill = new SolidColorBrush(Microsoft.UI.Colors.LimeGreen);
             MainNav.IsSettingsVisible = (role == "Admin" || role == "Expert");
+
+            // SAYFALARDAKİ DEĞİŞKEN TABLOLARI için global erişim flag'i.
+            // Sadece Admin (PIN 3535) giriş yapınca true olur. Event Pages'e
+            // yayılır ve tablolar Visibility'lerini günceller.
+            Utilities.GlobalData.IsAdminUnlocked = (role == "Admin");
+
+            // Klima Editörü nav item de admin-gated.
+            if (NavItem_KlimaEditor != null)
+                NavItem_KlimaEditor.Visibility = Utilities.GlobalData.IsAdminUnlocked
+                    ? Microsoft.UI.Xaml.Visibility.Visible
+                    : Microsoft.UI.Xaml.Visibility.Collapsed;
         }
 
         private void Numpad_Click(object sender, RoutedEventArgs e)

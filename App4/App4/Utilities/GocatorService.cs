@@ -192,8 +192,13 @@ namespace App4.Utilities
         private static int CONTROL_PORT => GlobalData.Gocator_Port;
 
         // Software trigger endpoint — SDK: SCANNER_PATH + "/actions/trigger"
-        // ENGINE_ID = LMIFringeSnapshot (G3), SCANNER_ID = scanner-0
-        private const string SOFTWARE_TRIGGER_PATH = "/scan/engines/LMIFringeSnapshot/scanners/scanner-0/actions/trigger";
+        // ENGINE_ID = LMIFringeSnapshot (G3 snapshot sensor), SCANNER_ID = scanner-0
+        //
+        // NOT: Trigger source (Software/Time/DigitalInput) job içinde ayarlı;
+        //      GoPxL üzerinde manuel olarak "Software" yapılıyor. Dolayısıyla
+        //      her tetik öncesi Update ile zorlamaya gerek yok → kod net.
+        private const string SCANNER_PATH               = "/scan/engines/LMIFringeSnapshot/scanners/scanner-0";
+        private const string SOFTWARE_TRIGGER_PATH      = SCANNER_PATH + "/actions/trigger";
 
         // ▼▼▼ PERSISTENT CONNECTION STATE ▼▼▼
         private static GoSystem _persistentSystem;

@@ -70,17 +70,35 @@ namespace App4.PAGES
             // Log tablosunu yükle (Page_Loaded'da, XAML hazır olduktan sonra)
             RefreshLogTable();
 
-            // Sniffer nokta tabloları — CollectionChanged ile otomatik güncelle
-            GlobalData.Robot1SnifferPoints.CollectionChanged += (s, args) => DispatcherQueue.TryEnqueue(() => RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount));
-            GlobalData.Robot2SnifferPoints.CollectionChanged += (s, args) => DispatcherQueue.TryEnqueue(() => RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount));
+            // Sniffer nokta tabloları — CollectionChanged ile otomatik güncelle.
+            // Handler'ları field olarak tut — Page_Unloaded'da -= yapıp sızıntıyı önle.
+            _r1SnifferChanged = (s, args) => DispatcherQueue?.TryEnqueue(() => RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount));
+            _r2SnifferChanged = (s, args) => DispatcherQueue?.TryEnqueue(() => RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount));
+            GlobalData.Robot1SnifferPoints.CollectionChanged += _r1SnifferChanged;
+            GlobalData.Robot2SnifferPoints.CollectionChanged += _r2SnifferChanged;
             RefreshSnifferTable(Robot1SnifferPanel, GlobalData.Robot1SnifferPoints, TxtR1SnifferCount);
             RefreshSnifferTable(Robot2SnifferPanel, GlobalData.Robot2SnifferPoints, TxtR2SnifferCount);
         }
+
+        // Bellek sızıntısı koruması: subscription'ı Page_Unloaded'da temizlemek için field.
+        private System.Collections.Specialized.NotifyCollectionChangedEventHandler _r1SnifferChanged;
+        private System.Collections.Specialized.NotifyCollectionChangedEventHandler _r2SnifferChanged;
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
             if (_refreshTimer != null) { _refreshTimer.Stop(); _refreshTimer.Tick -= RefreshTimer_Tick; _refreshTimer = null; }
             if (_trendTimer != null) { _trendTimer.Stop(); _trendTimer.Tick -= TrendTimer_Tick; _trendTimer = null; }
+
+            // CollectionChanged aboneliklerini çıkar — aksi halde static GlobalData listeleri
+            // Inficon_Page referansını tutmaya devam eder ve GC çalışmaz.
+            try
+            {
+                if (_r1SnifferChanged != null)
+                    GlobalData.Robot1SnifferPoints.CollectionChanged -= _r1SnifferChanged;
+                if (_r2SnifferChanged != null)
+                    GlobalData.Robot2SnifferPoints.CollectionChanged -= _r2SnifferChanged;
+            }
+            catch { }
         }
 
         private async Task InitWebViewAsync()

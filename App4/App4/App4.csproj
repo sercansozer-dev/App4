@@ -10,6 +10,8 @@
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <Nullable>enable</Nullable>
+    <!-- App4.exe icin Windows exe ikonunu goom (masaustu kisayoll, gorev cubugu, Alt+Tab) -->
+    <ApplicationIcon>Assets\SBS_Logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Content Remove="Assets\1_StationProductViewer.html" />
@@ -50,27 +52,40 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
+  <!--
+    GoPxL SDK native DLL referansları — YEREL klasöre bağlı (taşınabilir).
+    Bu sayede repo başka bir PC'ye klonlandığında HintPath dosya sistemine
+    dayanmadan derleme başarılı olur. DLL'ler repo içinde:
+      App4\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\
+  -->
   <ItemGroup>
     <Reference Include="GoPxLSdkNet">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\GoPxLSdkNet.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\GoPxLSdkNet.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="MessagePack">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\MessagePack.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\MessagePack.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="MessagePack.Annotations">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\MessagePack.Annotations.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\MessagePack.Annotations.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="Microsoft.NET.StringTools">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Microsoft.NET.StringTools.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Microsoft.NET.StringTools.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Newtonsoft.Json.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
     </Reference>
     <Reference Include="System.Collections.Immutable">
-      <HintPath>..\..\..\..\Desktop\Project\App2\App2\App2\Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\System.Collections.Immutable.dll</HintPath>
+      <HintPath>Utilities\14630-1.3.7.26_SOFTWARE_GoPxL_SDK\GoPxL_SDK_dotNet\bin\win64\System.Collections.Immutable.dll</HintPath>
+      <Private>true</Private>
     </Reference>
   </ItemGroup>
 
@@ -132,24 +147,20 @@
 		<Content Include="Assets\RobotArmViewer.html">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="Models\ARXM71A5V1B.glb">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<!-- UI logosu (MainWindow sol ust kose + login overlay).
+		     Unpackaged WinUI 3'te ms-appx:// URI'si publish klasorunde
+		     fiziken dosya arar. Explicit Content olmadan publish'e kopyalanmiyor. -->
+		<Content Include="Assets\SBS_Logo.png">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="Models\cad04379-sf2-zeta-odu-all-top-assy.glb">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<Content Include="Assets\SBS_Logo.ico">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Include="Models\cad04778-stylish-bml-h-outdoor-top.glb">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Models\cad04811-mini-skyair-bml-h-outdoor-top.glb">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Models\cad05046-sensira50-all-assy-piping.glb">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
-		<Content Include="Models\RXM71A5V1B.glb">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
+		<!-- 3D modeller (.glb) artik installer/seed/Models/ altindan
+		     C:\Simbiosis\SimbiosisLeakTestApp\Models'e seed ediliyor.
+		     Publish klasorune kopyalamaya gerek yok - bu ~100MB tasarruf
+		     ve duplikasyonu onler. ModelsPathHelper C:\Simbiosis...
+		     lokasyonunu kullanir. -->
 	</ItemGroup>
 	
 	<ItemGroup>
@@ -169,11 +180,47 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
 	</ItemGroup>
-    <!-- Publish Properties -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Publish Properties (SETUP üretimi için)
+         - PublishTrimmed = False: WinUI 3'te XAML reflection'ı kırar, KAPALI!
+         - PublishSingleFile = False: XAML resource paketleme sorunu yaratır
+         - PublishReadyToRun = True: Release'de hızlı başlatma için OK
+         - WindowsPackageType = None: Unpackaged mod (MSIX değil)
+         - SelfContained = True: Hedef PC'de .NET 8 Runtime gerekmez (Inno kurar)
+    ═══════════════════════════════════════════════════════════════════ -->
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <PublishTrimmed>False</PublishTrimmed>
+    <PublishSingleFile>False</PublishSingleFile>
+    <WindowsPackageType>None</WindowsPackageType>
+    <SelfContained Condition="'$(Configuration)' != 'Debug'">true</SelfContained>
+    <WindowsAppSDKSelfContained Condition="'$(Configuration)' != 'Debug'">true</WindowsAppSDKSelfContained>
   </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       UNPACKAGED WinUI 3 için App4.pri publish kopyalama düzeltmesi.
+       `dotnet publish` WindowsPackageType=None modunda uygulamanın kendi
+       resources.pri dosyasını (App4.pri) publish klasörüne taşımıyor.
+       Bu dosya olmadan MainWindow.xaml yüklenemiyor ve başlangıçta
+       XamlParseException (0x802B000A) atıyor. Aşağıdaki hedef bu bug'ı
+       telafi ediyor — bin klasöründen publish klasörüne kopyalıyor.
+       Referans: https://github.com/microsoft/WindowsAppSDK/issues/
+  ═══════════════════════════════════════════════════════════════════ -->
+  <Target Name="_CopyAppPriToPublishDir"
+          AfterTargets="Publish"
+          Condition="'$(WindowsPackageType)' == 'None'">
+    <ItemGroup>
+      <_AppPriToPublish Include="$(OutputPath)$(AssemblyName).pri" />
+    </ItemGroup>
+    <Message Importance="high"
+             Text="[App4.pri FIX] Kopyalaniyor: %(_AppPriToPublish.FullPath) -> $(PublishDir)"
+             Condition="Exists('%(_AppPriToPublish.FullPath)')" />
+    <Copy SourceFiles="@(_AppPriToPublish)"
+          DestinationFolder="$(PublishDir)"
+          Condition="Exists('%(_AppPriToPublish.FullPath)')"
+          SkipUnchangedFiles="true" />
+    <Warning Text="[App4.pri FIX] $(OutputPath)$(AssemblyName).pri bulunamadi - publish eksik olabilir!"
+             Condition="!Exists('$(OutputPath)$(AssemblyName).pri')" />
+  </Target>
 </Project>

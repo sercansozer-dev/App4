@@ -28,6 +28,31 @@ namespace App4.Utilities
         // --- DOSYA YOLLARI ---
         public static readonly string ConfigBaseDir = @"C:\Simbiosis\SimbiosisLeakTestApp\Config";
 
+        // ═══════════════════════════════════════════════════════════════════
+        //  ADMIN ERİŞİM FLAG'İ — sayfalardaki "değişken tabloları" gating
+        //  ───────────────────────────────────────────────────────────────
+        //  Login ekranında PIN 3535 ile Admin olarak giriş yapılınca true olur.
+        //  Pages bu flag'e Loaded ve AdminAccessChanged event'iyle reaksiyon
+        //  verip değişken tablolarını göster/gizle yapıyor.
+        //  Default = false → Operatör (sınırlı erişim) kimliğinde tablolar gizli.
+        // ═══════════════════════════════════════════════════════════════════
+        private static bool _isAdminUnlocked = false;
+        public static bool IsAdminUnlocked
+        {
+            get => _isAdminUnlocked;
+            set
+            {
+                if (_isAdminUnlocked == value) return;
+                _isAdminUnlocked = value;
+                try { AdminAccessChanged?.Invoke(null, EventArgs.Empty); } catch { }
+            }
+        }
+        /// <summary>
+        /// IsAdminUnlocked değeri değiştiğinde tetiklenir. Pages bu event'i
+        /// dinleyip değişken tablolarının Visibility'sini günceller.
+        /// </summary>
+        public static event EventHandler AdminAccessChanged;
+
         /// <summary>
         /// ConfigBaseDir klasörü yoksa oluşturur. Tüm servislerin/sınıfların ortak
         /// referans noktası — başka bir PC'ye kurulduğunda config dizini burada
@@ -65,6 +90,127 @@ namespace App4.Utilities
         private static readonly string _safetyWarningsFilePath = Path.Combine(ConfigBaseDir, "Safety_Warnings.json");
         private static readonly string _inficonLogsFilePath = Path.Combine(ConfigBaseDir, "Inficon_Leak_Logs.json");
         private static readonly string _casingTypesFilePath = Path.Combine(ConfigBaseDir, "Casing_Types.json");
+
+        // ═══ OTOMASYON AYARLARI DEPOSU (UNPACKAGED-SAFE) ═══════════════════════
+        // Eski: Windows.Storage.ApplicationData.Current.LocalSettings (sadece MSIX paketli)
+        // Yeni: Dosya tabanlı JSON (tüm unpackaged WinUI 3 dağıtımlarında çalışır)
+        //
+        // Bu değişken eski LocalSettings.Values'un yerini alır. Dictionary<string, object?>
+        // tabanlı olduğu için ContainsKey/indexer/Remove/Keys aynı şekilde çalışır.
+        // ═══════════════════════════════════════════════════════════════════════
+        private static readonly string _automationSettingsFilePath =
+            Path.Combine(ConfigBaseDir, "Automation_Settings.json");
+        private static Dictionary<string, object?>? _automationSettingsCache;
+        private static readonly object _automationSettingsLock = new object();
+
+        /// <summary>
+        /// Otomasyon ayarları sözlüğünü döndürür (lazy load). Dosya yoksa boş sözlük döner;
+        /// ayrıca ilk açılışta eski ApplicationData.Current.LocalSettings'ten migration dener
+        /// (VS dev ortamında identity olduğu için oradan okunabilir; production'da sessizce atlar).
+        /// </summary>
+        private static Dictionary<string, object?> GetAutomationSettings()
+        {
+            lock (_automationSettingsLock)
+            {
+                if (_automationSettingsCache != null) return _automationSettingsCache;
+
+                var dict = new Dictionary<string, object?>();
+
+                // 1) Öncelik: JSON dosyası
+                try
+                {
+                    if (File.Exists(_automationSettingsFilePath))
+                    {
+                        var json = File.ReadAllText(_automationSettingsFilePath);
+                        var parsed = System.Text.Json.JsonSerializer
+                            .Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json);
+                        if (parsed != null)
+                        {
+                            foreach (var kvp in parsed)
+                                dict[kvp.Key] = JsonElementToObject(kvp.Value);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AutoSettings] JSON load error: {ex.Message}");
+                }
+
+                // 2) JSON boşsa: eski LocalSettings'ten migration dene (dev PC first-run)
+                if (dict.Count == 0)
+                {
+                    try
+                    {
+                        var legacy = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+                        foreach (var key in legacy.Keys)
+                        {
+                            var v = legacy[key];
+                            if (v != null) dict[key] = v;
+                        }
+                        if (dict.Count > 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[AutoSettings] Migrated {dict.Count} keys from LocalSettings → JSON");
+                        }
+                    }
+                    catch
+                    {
+                        // Unpackaged production: identity yok, legacy ayar yok. Boş sözlük kalır.
+                    }
+                }
+
+                _automationSettingsCache = dict;
+
+                // Migration yapıldıysa hemen diske yaz (bir sonraki açılışa)
+                if (dict.Count > 0 && !File.Exists(_automationSettingsFilePath))
+                    PersistAutomationSettingsUnsafe();
+
+                return dict;
+            }
+        }
+
+        /// <summary>JSON element'i native .NET tipine çevirir.</summary>
+        private static object? JsonElementToObject(System.Text.Json.JsonElement e)
+        {
+            switch (e.ValueKind)
+            {
+                case System.Text.Json.JsonValueKind.String: return e.GetString();
+                case System.Text.Json.JsonValueKind.Number:
+                    if (e.TryGetInt32(out int i)) return i;
+                    if (e.TryGetInt64(out long l)) return l;
+                    return e.GetDouble();
+                case System.Text.Json.JsonValueKind.True: return true;
+                case System.Text.Json.JsonValueKind.False: return false;
+                case System.Text.Json.JsonValueKind.Null: return null;
+                default: return e.GetRawText();
+            }
+        }
+
+        /// <summary>Cache'i JSON dosyasına yazar (thread-safe).</summary>
+        private static void PersistAutomationSettings()
+        {
+            lock (_automationSettingsLock) { PersistAutomationSettingsUnsafe(); }
+        }
+
+        /// <summary>Cache'i JSON dosyasına yazar (lock'suz — çağıran lock tutmalı).</summary>
+        private static void PersistAutomationSettingsUnsafe()
+        {
+            try
+            {
+                if (_automationSettingsCache == null) return;
+                var dir = System.IO.Path.GetDirectoryName(_automationSettingsFilePath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+                var json = System.Text.Json.JsonSerializer.Serialize(
+                    _automationSettingsCache,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_automationSettingsFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AutoSettings] Save error: {ex.Message}");
+            }
+        }
 
         // --- GLOBAL LİSTELER ---
         public static ObservableCollection<RfidDef> KnownRfids { get; private set; } = new();
@@ -852,7 +998,11 @@ namespace App4.Utilities
         }
 
         // --- GOCATOR BAĞLANTI AYARLARI ---
-        private static string _gocatorIpAddress = "192.168.251.30";
+        // DEFAULT: 127.0.0.1 (loopback) — GoPxL AYNI PC'DE çalışıyor.
+        //   • NIC + firewall + driver bypass edilir → latency ~µs (Ethernet'te ~ms).
+        //   • Snapshot trigger ve GDP veri dönüşü hissedilir ölçüde hızlanır.
+        //   • Eğer Gocator uzak bir PC'de ise Settings sayfasından IP değiştirilebilir.
+        private static string _gocatorIpAddress = "127.0.0.1";
         public static string Gocator_IpAddress
         {
             get => _gocatorIpAddress;
@@ -2032,9 +2182,11 @@ namespace App4.Utilities
             }
         }
 
-        private static void LoadAutomationSettings() 
-        { 
-            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values; 
+        private static void LoadAutomationSettings()
+        {
+            // Eski: Windows.Storage.ApplicationData.Current.LocalSettings.Values (packaged-only)
+            // Yeni: JSON dosya tabanlı sözlük (unpackaged-safe)
+            var settings = GetAutomationSettings();
             
             // ▼▼▼ KRİTİK: SETTER DEĞİL BACKING FIELD KULLAN ▼▼▼
             // Setter kullanırsak her biri SaveAutomationSettings çağırır ve 
@@ -2189,10 +2341,12 @@ namespace App4.Utilities
             // Debug log
             System.Diagnostics.Debug.WriteLine($"[GlobalData] Ayarlar yüklendi: RFID={_autoRfidTag}, Trigger={_autoTriggerTag}, RobotIP={_robotIpAddress}, PlcIP={_plcIpAddress}:{_plcPort}, GocatorIP={_gocatorIpAddress}:{_gocatorPort}, ReadSpeed={_robotReadSpeed}ms");
         }
-        public static void SaveAutomationSettings() 
-        { 
-            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values; 
-            settings["Auto_RfidTag"] = Auto_RfidTag ?? ""; 
+        public static void SaveAutomationSettings()
+        {
+            // Eski: Windows.Storage.ApplicationData.Current.LocalSettings.Values (packaged-only)
+            // Yeni: JSON dosya tabanlı sözlük (unpackaged-safe)
+            var settings = GetAutomationSettings();
+            settings["Auto_RfidTag"] = Auto_RfidTag ?? "";
             settings["Auto_IndexTag"] = Auto_IndexTag ?? ""; 
             settings["Auto_TriggerTag"] = Auto_TriggerTag ?? "";
             settings["Auto_TriggerTag2"] = Auto_TriggerTag2 ?? "";
@@ -2234,7 +2388,10 @@ namespace App4.Utilities
             settings["SafetyAlarmR1OutputTag"] = SafetyAlarmR1OutputTag ?? "";
             settings["SafetyAlarmR2OutputTag"] = SafetyAlarmR2OutputTag ?? "";
 
-            StartAutomationListener(); 
+            // JSON dosyasına yaz (eski LocalSettings otomatik persist idi; burada biz yapıyoruz)
+            PersistAutomationSettings();
+
+            StartAutomationListener();
         }
 
         // --- PLC DİNLEYİCİSİ (Çift Trigger) ---
@@ -5122,17 +5279,14 @@ namespace App4.Utilities
                             File.Copy(file, Path.Combine(tempDir, Path.GetFileName(file)), true);
                     }
 
-                    // 2. LocalSettings (Otomasyon, Robot ayarları) — JSON olarak dışa aktar
-                    var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-                    var settingsDict = new Dictionary<string, object>();
-                    foreach (var key in settings.Keys)
+                    // 2. Automation ayarları — artık Automation_Settings.json dosyasında tutuluyor
+                    //    Step 1 zaten kopyaladı; ek olarak eski backup ZIP'leriyle uyumluluk için
+                    //    _LocalSettings.json adıyla da kopyalıyoruz
+                    string autoSettingsSrc = Path.Combine(_appDataFolder, "Automation_Settings.json");
+                    if (File.Exists(autoSettingsSrc))
                     {
-                        var val = settings[key];
-                        if (val != null)
-                            settingsDict[key] = val;
+                        File.Copy(autoSettingsSrc, Path.Combine(tempDir, "_LocalSettings.json"), true);
                     }
-                    string settingsJson = System.Text.Json.JsonSerializer.Serialize(settingsDict, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                    File.WriteAllText(Path.Combine(tempDir, "_LocalSettings.json"), settingsJson);
 
                     // 3. PLC Config dosyasını kopyala (zaten _appDataFolder içinde JSON olarak kopyalandı)
                     // PLC_Config.json yukarıdaki GetFiles("*.json") ile zaten dahil ediliyor
@@ -5177,37 +5331,13 @@ namespace App4.Utilities
                         File.Copy(file, Path.Combine(_appDataFolder, fileName), true);
                     }
 
-                    // 2. LocalSettings'i geri yükle
-                    string localSettingsPath = Path.Combine(tempDir, "_LocalSettings.json");
-                    if (File.Exists(localSettingsPath))
+                    // 2. Legacy _LocalSettings.json varsa Automation_Settings.json'a dönüştür
+                    //    (yeni format zaten step 1'de kopyalandı; _LocalSettings.json sadece eski backup'lar için)
+                    string legacyPath = Path.Combine(tempDir, "_LocalSettings.json");
+                    string targetAutoSettings = Path.Combine(_appDataFolder, "Automation_Settings.json");
+                    if (File.Exists(legacyPath) && !File.Exists(targetAutoSettings))
                     {
-                        var json = File.ReadAllText(localSettingsPath);
-                        var settingsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(json);
-                        if (settingsDict != null)
-                        {
-                            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-                            foreach (var kvp in settingsDict)
-                            {
-                                switch (kvp.Value.ValueKind)
-                                {
-                                    case System.Text.Json.JsonValueKind.String:
-                                        settings[kvp.Key] = kvp.Value.GetString();
-                                        break;
-                                    case System.Text.Json.JsonValueKind.Number:
-                                        if (kvp.Value.TryGetInt32(out int intVal))
-                                            settings[kvp.Key] = intVal;
-                                        else
-                                            settings[kvp.Key] = kvp.Value.GetDouble();
-                                        break;
-                                    case System.Text.Json.JsonValueKind.True:
-                                        settings[kvp.Key] = true;
-                                        break;
-                                    case System.Text.Json.JsonValueKind.False:
-                                        settings[kvp.Key] = false;
-                                        break;
-                                }
-                            }
-                        }
+                        File.Copy(legacyPath, targetAutoSettings, true);
                     }
 
                     // Geçici klasörü temizle

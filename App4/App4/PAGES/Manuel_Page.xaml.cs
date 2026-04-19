@@ -719,11 +719,6 @@ namespace App4
 
                 // Update selected station pos display
                 UpdateSelectedStationPosDisplay();
-
-                // Update slider visual position labels
-                if (ManuelSliderSt1PosLabel != null) ManuelSliderSt1PosLabel.Text = $"{GlobalData.KL100_Station1Pos:F0} mm";
-                if (ManuelSliderSt2PosLabel != null) ManuelSliderSt2PosLabel.Text = $"{GlobalData.KL100_Station2Pos:F0} mm";
-                if (ManuelSliderSt3PosLabel != null) ManuelSliderSt3PosLabel.Text = $"{GlobalData.KL100_Station3Pos:F0} mm";
             }
             catch { }
         }

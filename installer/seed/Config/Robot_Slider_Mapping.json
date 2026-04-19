@@ -1,0 +1,25 @@
+{
+  "Robot1": {
+    "StationNumberSignal": "",
+    "SliderPositionSignal": "E1",
+    "OverrideSignal": "OverridePro",
+    "OperationModeSignal": "OperationMode",
+    "RobotStatusSignal": "",
+    "Station1Position": 0.0,
+    "Station2Position": 1500.0,
+    "Station3Position": 3000.0
+  },
+  "Robot2": {
+    "StationNumberSignal": "",
+    "SliderPositionSignal": "E1",
+    "OverrideSignal": "OverridePro",
+    "OperationModeSignal": "OperationMode",
+    "RobotStatusSignal": "",
+    "Station1Position": 0.0,
+    "Station2Position": 1500.0,
+    "Station3Position": 3000.0
+  },
+  "SliderSourceRobotIndex": 0,
+  "SliderSourceSignalName": "G_HEDEF_ISTASYON_PLC",
+  "SliderActualPosSignalName": "AXIS_E1"
+}

@@ -123,8 +123,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- HEADER -->
@@ -179,7 +177,7 @@
 				</StackPanel>
 
 				<!-- ═══ ROBOT ↔ ROBOT HABERLEŞME TABLOSU ═══ -->
-				<Border Background="#1E1E20" Margin="0,5,0,20" CornerRadius="8" MaxHeight="350">
+				<Border x:Name="RobotRobotPanel" Background="#1E1E20" Margin="0,5,0,20" CornerRadius="8" MaxHeight="350">
 					<Grid>
 						<Grid.RowDefinitions>
 							<RowDefinition Height="40"/>
@@ -228,7 +226,7 @@
 				</Border>
 
 				<!-- ═══ HANDSHAKE DEĞİŞKENLERİ TABLOSU ═══ -->
-				<Border Background="#1E1E20" Margin="0,5,0,10" CornerRadius="8" MaxHeight="350">
+				<Border x:Name="HandshakePanel" Background="#1E1E20" Margin="0,5,0,10" CornerRadius="8" MaxHeight="350">
 					<Grid>
 						<Grid.RowDefinitions>
 							<RowDefinition Height="40"/>
@@ -281,7 +279,7 @@
 				</Border>
 
 				<!-- ═══ ROBOT STATUS KOD REFERANS TABLOSU ═══ -->
-				<Border Background="#1E1E20" Margin="0,5,0,20" CornerRadius="8">
+				<Border x:Name="StatusReferencePanel" Background="#1E1E20" Margin="0,5,0,20" CornerRadius="8">
 					<Grid>
 						<Grid.RowDefinitions>
 							<RowDefinition Height="40"/>
@@ -547,7 +545,7 @@
 				</Border>
 
 				<!-- ═══ ROBOT SAFETY SİNYALLERİ GÖZLEM TABLOSU ═══ -->
-				<Border Background="#1E1E20" CornerRadius="8" Padding="0" Margin="0,8,0,0">
+				<Border x:Name="SafetyObservationPanel" Background="#1E1E20" CornerRadius="8" Padding="0" Margin="0,8,0,0">
 					<Grid>
 						<Grid.RowDefinitions>
 							<RowDefinition Height="40"/>
@@ -730,24 +728,6 @@
 			</StackPanel>
 		</ScrollViewer>
 
-        <!-- LOG -->
-        <Border Grid.Row="3" Background="#1E1E20" Margin="20,15,20,20" CornerRadius="8" MaxHeight="140">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="40"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border Grid.Row="0" Background="#252528" CornerRadius="8,8,0,0" Padding="15,0">
-                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <FontIcon Glyph="&#xE71E;" Foreground="#0078D4" FontSize="14"/>
-                        <TextBlock Text="ROBOT LOG" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
-                    </StackPanel>
-                </Border>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Background="#1A1A1C">
-                    <TextBlock x:Name="RobotLogTextBlock" Text="[INFO] Robot Entegrasyonu Hazır..." Foreground="#4CAF50" FontSize="10" FontFamily="Consolas" TextWrapping="Wrap" Padding="15"/>
-                </ScrollViewer>
-            </Grid>
-        </Border>
     </Grid>
 
 </Page>

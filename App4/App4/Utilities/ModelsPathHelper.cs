@@ -6,17 +6,21 @@ namespace App4.Utilities
     /// <summary>
     /// 3D model (.glb) dosyalarının saklanacağı YAZILABİLİR klasörü döndürür.
     ///
-    /// - Paketlenmiş WinUI 3 kurulumunda (MSIX):
-    ///   %LOCALAPPDATA%\Packages\&lt;PackageName&gt;\LocalState\Utilities\Models
-    ///   (ApplicationData.Current.LocalFolder — her kullanıcı için izole, update sonrası kalıcı)
+    /// HEDEF (kurulum sonrası):
+    ///   C:\Simbiosis\SimbiosisLeakTestApp\Models
+    ///   — Config klasörüyle AYNI mantık (kullanıcı tarafından kolayca bulunur,
+    ///     Klima Editörü'nden yeni model eklenirken yazılabilir, update/reinstall'da
+    ///     korunur — .iss 'onlyifdoesntexist' flag'i sayesinde).
     ///
-    /// - Unpackaged/dev modda:
-    ///   %LOCALAPPDATA%\Simbiosis\App4\Utilities\Models
+    /// FALLBACK (paket/MSIX modu veya C:\ yazma izni yoksa):
+    ///   ApplicationData.Current.LocalFolder\Utilities\Models
+    ///   — veya %LOCALAPPDATA%\Simbiosis\App4\Utilities\Models
     ///
-    /// İlk çağrıda, kurulum dizinindeki (AppDomain.BaseDirectory\Utilities\Models) mevcut
-    /// .glb dosyaları tek seferlik yazılabilir klasöre tohumlanır. Bu sayede:
+    /// İlk çağrıda, kurulum dizinindeki (AppDomain.BaseDirectory) {app}\Models
+    /// veya {app}\Utilities\Models altındaki .glb dosyaları yazılabilir klasöre
+    /// tohumlanır. Bu sayede:
     ///   1) Kurulum paketiyle gelen varsayılan modeller ilk açılışta erişilebilir olur,
-    ///   2) Geliştirme ortamında bin\...\Utilities\Models içine konmuş dosyalar kaybolmaz,
+    ///   2) Geliştirme ortamında bin\...\Models içine konmuş dosyalar kaybolmaz,
     ///   3) Kullanıcı Klima Editörü'nden yeni model yüklediğinde yazma izin sorunu yaşanmaz.
     /// </summary>
     public static class ModelsPathHelper
@@ -55,7 +59,28 @@ namespace App4.Utilities
 
         private static string ResolveWritableRoot()
         {
-            // Öncelik: WinUI 3 paketlenmiş LocalFolder (paket kimliği yoksa istisna fırlatır)
+            // ÖNCELİK 1 (ASIL): C:\Simbiosis\SimbiosisLeakTestApp\Models
+            //   — Config klasörüyle aynı pattern. Installer bu klasörü oluşturuyor
+            //     ve "users-modify" izni veriyor; ayrıca model seed'i de buraya kopyalıyor.
+            //   — Kullanıcı için görünür ve yönetilebilir tek yer.
+            const string primaryPath = @"C:\Simbiosis\SimbiosisLeakTestApp\Models";
+            try
+            {
+                if (!Directory.Exists(primaryPath))
+                    Directory.CreateDirectory(primaryPath);
+
+                // Yazma testi — permission sorunlarını erkenden yakala
+                string testFile = Path.Combine(primaryPath, ".write_test");
+                File.WriteAllText(testFile, "");
+                File.Delete(testFile);
+                return primaryPath;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ModelsPathHelper] C:\\Simbiosis erişilemedi, fallback: {ex.Message}");
+            }
+
+            // ÖNCELİK 2: WinUI 3 paketlenmiş LocalFolder (MSIX senaryosu)
             try
             {
                 var local = Windows.Storage.ApplicationData.Current.LocalFolder;
@@ -66,41 +91,56 @@ namespace App4.Utilities
             }
             catch
             {
-                // Paket kimliği yok → unpackaged fallback
+                // Paket kimliği yok -> LocalAppData fallback
             }
 
+            // ÖNCELİK 3: LocalAppData (unpackaged, C:\ yazılamaz)
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             return Path.Combine(localAppData, "Simbiosis", "App4", "Utilities", "Models");
         }
 
         private static void SeedFromInstallFolder(string target)
         {
-            string installModelsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utilities", "Models");
-            if (!Directory.Exists(installModelsFolder)) return;
-
-            // Eğer install klasörü ile hedef klasör aynıysa (dev çalışmasında olabilir) tohumlamaya gerek yok
-            if (Path.GetFullPath(installModelsFolder).Equals(Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
-                return;
-
-            foreach (var src in Directory.GetFiles(installModelsFolder, "*.glb", SearchOption.AllDirectories))
+            // Modellerin kurulum klasöründe bulunabileceği iki yol:
+            //   1) {app}\Models          <- csproj Content Include ile publish'e çıkan yer (ASIL)
+            //   2) {app}\Utilities\Models <- eski layout (geriye dönük uyumluluk)
+            // Her iki klasörü de tara; hangisinde .glb varsa onları kullan.
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var candidates = new[]
             {
-                try
-                {
-                    string rel = Path.GetRelativePath(installModelsFolder, src);
-                    string dst = Path.Combine(target, rel);
-                    string? dstDir = Path.GetDirectoryName(dst);
-                    if (!string.IsNullOrEmpty(dstDir) && !Directory.Exists(dstDir))
-                        Directory.CreateDirectory(dstDir);
+                Path.Combine(baseDir, "Models"),
+                Path.Combine(baseDir, "Utilities", "Models")
+            };
 
-                    // Sadece yoksa kopyala — kullanıcının düzenlediği/sildiği dosyaları ezme
-                    if (!File.Exists(dst))
-                    {
-                        File.Copy(src, dst, false);
-                    }
-                }
-                catch (Exception ex)
+            foreach (var installModelsFolder in candidates)
+            {
+                if (!Directory.Exists(installModelsFolder)) continue;
+
+                // Eğer install klasörü ile hedef klasör aynıysa (dev çalışmasında olabilir) tohumlamaya gerek yok
+                if (Path.GetFullPath(installModelsFolder).Equals(Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                foreach (var src in Directory.GetFiles(installModelsFolder, "*.glb", SearchOption.AllDirectories))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ModelsPathHelper] Seed kopyalama hatası ({src}): {ex.Message}");
+                    try
+                    {
+                        string rel = Path.GetRelativePath(installModelsFolder, src);
+                        string dst = Path.Combine(target, rel);
+                        string? dstDir = Path.GetDirectoryName(dst);
+                        if (!string.IsNullOrEmpty(dstDir) && !Directory.Exists(dstDir))
+                            Directory.CreateDirectory(dstDir);
+
+                        // Sadece yoksa kopyala — kullanıcının düzenlediği/sildiği dosyaları ezme
+                        if (!File.Exists(dst))
+                        {
+                            File.Copy(src, dst, false);
+                            System.Diagnostics.Debug.WriteLine($"[ModelsPathHelper] Seed: {rel}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ModelsPathHelper] Seed kopyalama hatası ({src}): {ex.Message}");
+                    }
                 }
             }
         }

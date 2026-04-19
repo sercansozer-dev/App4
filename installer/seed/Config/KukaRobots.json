@@ -1,0 +1,12 @@
+[
+  {
+    "Name": "ROBOT 1",
+    "IpAddress": "192.168.251.71",
+    "Port": 7000
+  },
+  {
+    "Name": "ROBOT 2",
+    "IpAddress": "192.168.251.72",
+    "Port": 7000
+  }
+]

@@ -1,0 +1,71 @@
+{
+  "Inputs": [
+    {
+      "name": "ISTASYON1_RFID",
+      "type": "STRING",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "D15200",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": "RXA35A5V1B8",
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "ISTASYON2_RFID",
+      "type": "STRING",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "D15300",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": "RXA35A5V1B8",
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "ISTASYON3_RFID",
+      "type": "STRING",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "D15400",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": "RXA35A5V1B8",
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "G_HEDEF_ISTASYON_PLC",
+      "type": "INT",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "D1031",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    }
+  ],
+  "Outputs": [
+    {
+      "name": "Output_1",
+      "type": "BOOL",
+      "direction": "Output",
+      "SourceFile": null,
+      "Description": "",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    }
+  ]
+}

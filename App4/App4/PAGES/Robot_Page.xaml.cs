@@ -59,6 +59,45 @@ namespace App4.Pages
             _statusTimer.Interval = TimeSpan.FromSeconds(1);
             _statusTimer.Tick += StatusTimer_Tick;
             _statusTimer.Start();
+
+            // ═══ DEĞİŞKEN TABLOLARI GATING ═══
+            // Admin (PIN 3535) giriş yapmadıysa Handshake + Robot-Robot + Robot-PLC
+            // köprü tablolarını gizle. Event ile login değişikliklerine reaksiyon verir.
+            this.Loaded += Robot_Page_AdminGating_Loaded;
+            this.Unloaded += Robot_Page_AdminGating_Unloaded;
+        }
+
+        private void Robot_Page_AdminGating_Loaded(object sender, RoutedEventArgs e)
+        {
+            ApplyAdminVisibility();
+            GlobalData.AdminAccessChanged += OnAdminAccessChanged_Robot;
+        }
+
+        private void Robot_Page_AdminGating_Unloaded(object sender, RoutedEventArgs e)
+        {
+            GlobalData.AdminAccessChanged -= OnAdminAccessChanged_Robot;
+        }
+
+        private void OnAdminAccessChanged_Robot(object sender, EventArgs e)
+        {
+            try { DispatcherQueue.TryEnqueue(ApplyAdminVisibility); } catch { }
+        }
+
+        private void ApplyAdminVisibility()
+        {
+            var vis = GlobalData.IsAdminUnlocked ? Visibility.Visible : Visibility.Collapsed;
+            // Dinamik robot değişken panelleri (her robot için Input/Output)
+            if (RobotPanelsContainer    != null) RobotPanelsContainer.Visibility    = vis;
+            // Robot ↔ PLC köprü tabloları
+            if (BridgeTablesContainer   != null) BridgeTablesContainer.Visibility   = vis;
+            // Robot ↔ Robot haberleşme
+            if (RobotRobotPanel         != null) RobotRobotPanel.Visibility         = vis;
+            // El sıkışma (handshake) paneli
+            if (HandshakePanel          != null) HandshakePanel.Visibility          = vis;
+            // Status Kod Referans Tablosu
+            if (StatusReferencePanel    != null) StatusReferencePanel.Visibility    = vis;
+            // Safety Sinyalleri Gözlem Tablosu
+            if (SafetyObservationPanel  != null) SafetyObservationPanel.Visibility  = vis;
         }
 
         private void RefreshRobotPanels()
@@ -544,12 +583,8 @@ namespace App4.Pages
 
         private void LogMessage(string msg)
         {
-            this.DispatcherQueue.TryEnqueue(() =>
-            {
-                RobotLogTextBlock.Text = $"[{DateTime.Now:HH:mm:ss}] {msg}\n" + RobotLogTextBlock.Text;
-                if (RobotLogTextBlock.Text.Length > 5000)
-                    RobotLogTextBlock.Text = RobotLogTextBlock.Text.Substring(0, 5000);
-            });
+            // ROBOT LOG panel removed - log to debug only
+            System.Diagnostics.Debug.WriteLine($"[Robot_Page] [{DateTime.Now:HH:mm:ss}] {msg}");
         }
 
         private Windows.UI.Color ParseColor(string hex)

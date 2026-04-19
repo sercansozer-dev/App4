@@ -763,8 +763,25 @@ namespace App4.PAGES
             this.Loaded += Camera_Page_Loaded;
             this.Unloaded += Camera_Page_Unloaded;
 
+            // Admin-gated: Tabla Referans Noktalari sadece admin (PIN 3535) erişiminde görünür.
+            App4.Utilities.GlobalData.AdminAccessChanged += OnAdminAccessChanged;
+            ApplyAdminVisibility();
+
             // CODESYS ayarlarını GlobalData'dan yükle
             LoadCodesysSettings();
+        }
+
+        private void OnAdminAccessChanged(object? sender, EventArgs e)
+        {
+            try { DispatcherQueue?.TryEnqueue(ApplyAdminVisibility); } catch { }
+        }
+
+        private void ApplyAdminVisibility()
+        {
+            var vis = App4.Utilities.GlobalData.IsAdminUnlocked
+                ? Microsoft.UI.Xaml.Visibility.Visible
+                : Microsoft.UI.Xaml.Visibility.Collapsed;
+            try { if (AdminGate_TablaRefPoints != null) AdminGate_TablaRefPoints.Visibility = vis; } catch { }
         }
 
         private void Camera_Page_Unloaded(object sender, RoutedEventArgs e)
@@ -3213,6 +3230,9 @@ namespace App4.PAGES
 
         private async void Camera_Page_Loaded(object sender, RoutedEventArgs e)
         {
+            // 0. Admin durumu sayfa her açıldığında güncellenir
+            ApplyAdminVisibility();
+
             // 1. Tag listelerini doldur
             LoadPlcTags();
 
@@ -4701,6 +4721,10 @@ namespace App4.PAGES
         private static string SENSOR_IP => App4.Utilities.GlobalData.Gocator_IpAddress;
         private static int CONTROL_PORT => App4.Utilities.GlobalData.Gocator_Port;
 
+        // Software trigger endpoint — SCANNER_PATH + "/actions/trigger"
+        // Job'da Source=Software ise bu çağrı zorunlu; Continuous ise no-op olur ama zarar vermez.
+        private const string SOFTWARE_TRIGGER_PATH = SCANNER_PATH + "/actions/trigger";
+
         public static async Task<(int status, string pointCloudJson)> ReceiveSurfacePointCloudNet(Action<string>? log = null)
         {
             IPAddress ipAddress = IPAddress.Parse(SENSOR_IP);
@@ -4708,12 +4732,25 @@ namespace App4.PAGES
             {
                 using (GoSystem system = new GoSystem(ipAddress, (ushort)CONTROL_PORT))
                 {
+                    bool started = false;
                     try
                     {
                         log?.Invoke("Sensöre bağlanılıyor...");
                         system.Connect();
                         if (VerifyConnection(system) == ERROR_STATUS)
                             return (ERROR_STATUS, "");
+
+                        // ▼▼▼ KRİTİK: Başlangıçta Stop — önceki başarısız çağrıdan Running kalmış olabilir.
+                        //      Running iken parametre Update "Cannot modify while running" fırlatır.
+                        try
+                        {
+                            if (system.RunningState() != GoSystem.State.Ready)
+                            {
+                                system.Stop();
+                                log?.Invoke("Sensör durduruldu (eski state temizlendi)");
+                            }
+                        }
+                        catch (Exception exStop) { log?.Invoke($"⚠ Başlangıç Stop uyarısı: {exStop.Message}"); }
 
                         JObject response = system.Client().Read(REPLAY_PATH).GetResponse().Payload;
                         bool replayDataEnabled = (bool)response.GetValue("enabled")!;
@@ -4726,21 +4763,14 @@ namespace App4.PAGES
                                 log?.Invoke("Mod değiştiriliyor: SURFACE");
                                 JObject payload = new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["scanMode"] = SURFACE_MODE } } };
                                 system.Client().Update(SCANNER_PATH, payload).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                                
                             }
                         }
 
                         system.Client().Update(SCANNER_PATH, new JObject { ["parameters"] = new JObject { ["scanModeSettings"] = new JObject { ["intensityEnabled"] = true } } }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
 
                         system.Client().Update(GOCATOR_CONTROL_PATH, new JObject { ["enabled"] = true }).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
-                        
 
-                        if (system.RunningState() == GoSystem.State.Ready)
-                        {
-                            system.Start();
-                           
-                        }
-
+                        // Output'u Start'tan ÖNCE ekle — aksi halde yeni output bir sonraki Start'a kadar akmaz
                         string dataSourceKey = "UniformSurface";
                         string uniformSurfaceDataSourceId = $"scan:{ENGINE_ID}:{SCANNER_ID}:top{dataSourceKey}0";
                         bool outputExists = false;
@@ -4761,6 +4791,25 @@ namespace App4.PAGES
                         using (GoGdpClient gdpClient = new GoGdpClient())
                         {
                             gdpClient.Connect(system.Address, system.GdpPort());
+                            try { gdpClient.ClearData(); } catch { }
+
+                            // Start (kesin Ready durumunda, başlangıçta Stop yaptık)
+                            system.Start();
+                            started = true;
+                            log?.Invoke("Sensör başlatıldı");
+
+                            // Software trigger — job'da Source=Software ise zorunlu. Continuous ise sensör
+                            //   zaten tarıyor olur; trigger çağrısı harmless (bazen REST hatası dönebilir).
+                            try
+                            {
+                                system.Client().Call(SOFTWARE_TRIGGER_PATH).CheckResponse(REST_COMMAND_TIMEOUT_MSEC);
+                                log?.Invoke("Software trigger gönderildi");
+                            }
+                            catch (Exception exTrig)
+                            {
+                                log?.Invoke($"ℹ Trigger info: {exTrig.Message} (Continuous mod ise normal)");
+                            }
+
                             log?.Invoke("Veri bekleniyor...");
                             gdpClient.ReceiveDataSync(RECEIVE_DATA_TIMEOUT_MSEC);
 
@@ -4771,30 +4820,44 @@ namespace App4.PAGES
                             {
                                 for (int i = 0; i < count; i++)
                                 {
-                                    if (gdpClient.DataSet.GdpMsgAt(i) is GoGdpSurfaceUniform uMsg)
+                                    var msg = gdpClient.DataSet.GdpMsgAt(i);
+                                    if (msg is GoGdpSurfaceUniform uMsg)
                                     {
-                                        log?.Invoke("Uniform Surface işleniyor...");
+                                        log?.Invoke($"[{i}] Uniform Surface işleniyor...");
                                         resultJson = ProcessUniformSurface(uMsg);
                                         if (!string.IsNullOrEmpty(resultJson)) break;
                                     }
-                                    else if (gdpClient.DataSet.GdpMsgAt(i) is GoGdpSurfacePointCloud pMsg)
+                                    else if (msg is GoGdpSurfacePointCloud pMsg)
                                     {
-                                        log?.Invoke("Point Cloud işleniyor...");
+                                        log?.Invoke($"[{i}] Point Cloud işleniyor...");
                                         resultJson = ProcessSurfacePointCloud(pMsg);
                                         if (!string.IsNullOrEmpty(resultJson)) break;
+                                    }
+                                    else
+                                    {
+                                        log?.Invoke($"[{i}] atlandı — tip: {msg?.GetType().Name ?? "null"}");
                                     }
                                 }
                             }
                             gdpClient.Close();
                         }
 
-                        system.Stop();
                         return string.IsNullOrEmpty(resultJson) ? (ERROR_STATUS, "") : (OK_STATUS, resultJson);
                     }
                     catch (Exception ex)
                     {
                         log?.Invoke($"Surface Alma Hatası: {ex.Message}");
                         return (ERROR_STATUS, "");
+                    }
+                    finally
+                    {
+                        // ▼▼▼ KRİTİK: Stop her halükârda çalışsın (başarı/hata/timeout farketmez).
+                        //      Aksi halde sensör Running kalır → sonraki çağrıda parametre Update patlar → sonsuz hata döngüsü.
+                        if (started)
+                        {
+                            try { system.Stop(); log?.Invoke("Sensör durduruldu (finally)"); }
+                            catch (Exception exStop) { log?.Invoke($"⚠ Finally Stop hatası: {exStop.Message}"); }
+                        }
                     }
                 }
             });

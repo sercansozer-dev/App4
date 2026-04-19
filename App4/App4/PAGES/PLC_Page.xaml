@@ -173,7 +173,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="2" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+            <Border x:Name="MainVariablesPanel" Grid.Row="2" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>
@@ -302,7 +302,7 @@
             </Border>
 
             <!-- ═══════════════ HELYUM KAÇAK TAG EŞLEŞTİRME ═══════════════ -->
-            <Border Grid.Row="3" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
+            <Border x:Name="HelyumKacakPanel" Grid.Row="3" Background="#1A1A1C" Margin="20,0,20,20" BorderThickness="2" BorderBrush="#00A4EF" CornerRadius="10" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="40"/>

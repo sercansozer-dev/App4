@@ -1,0 +1,44 @@
+[
+  {
+    "Index": 1,
+    "SelectedTag": "G_TABLA_OFFSET_X",
+    "Value": "-1,671",
+    "Status": "WAIT",
+    "PointIndex": 0
+  },
+  {
+    "Index": 2,
+    "SelectedTag": "G_TABLA_OFFSET_Y",
+    "Value": "-1,358",
+    "Status": "WAIT",
+    "PointIndex": 0
+  },
+  {
+    "Index": 3,
+    "SelectedTag": "G_TABLA_OFFSET_Z",
+    "Value": "0,421",
+    "Status": "WAIT",
+    "PointIndex": 0
+  },
+  {
+    "Index": 4,
+    "SelectedTag": "G_TABLA_OFFSET_A",
+    "Value": "0,000",
+    "Status": "WAIT",
+    "PointIndex": 0
+  },
+  {
+    "Index": 5,
+    "SelectedTag": "G_TABLA_OFFSET_B",
+    "Value": "0,000",
+    "Status": "WAIT",
+    "PointIndex": 0
+  },
+  {
+    "Index": 6,
+    "SelectedTag": "G_TABLA_OFFSET_C",
+    "Value": "0,000",
+    "Status": "WAIT",
+    "PointIndex": 0
+  }
+]

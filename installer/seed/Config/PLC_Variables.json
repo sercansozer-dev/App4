@@ -1,0 +1,366 @@
+{
+  "Input": [
+    {
+      "name": "D50000 - Ba\u015Flat Sinyali",
+      "type": "STRING",
+      "direction": "Input",
+      "currentValue": 70,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "W600 - \u0130\u015Fletim Modu",
+      "type": "WORD",
+      "direction": "Input",
+      "currentValue": 4,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M9 - Yeni Input",
+      "type": "WORD",
+      "direction": "Input",
+      "currentValue": 0,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M10 - Yeni Input",
+      "type": "REAL",
+      "direction": "Input",
+      "currentValue": 0,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M11 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M12 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M13 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M14 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M15 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M9 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M10 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M11 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M12 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M13 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M14 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M15 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M16 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "M17 - Yeni Input",
+      "type": "BOOL",
+      "direction": "Input",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    }
+  ],
+  "Output": [
+    {
+      "name": "D12000 - Ba\u015Flat Sinyali",
+      "type": "WORD",
+      "direction": "Output",
+      "currentValue": 300,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "W600 - \u0130\u015Fletim Modu",
+      "type": "WORD",
+      "direction": "Output",
+      "currentValue": 3,
+      "minValue": 0,
+      "maxValue": 3
+    },
+    {
+      "name": "D2 - Robot H\u0131z\u0131",
+      "type": "INT",
+      "direction": "Output",
+      "currentValue": 0,
+      "minValue": 0,
+      "maxValue": 100
+    },
+    {
+      "name": "D3 - S\u0131cakl\u0131k Setpoint",
+      "type": "REAL",
+      "direction": "Output",
+      "currentValue": 0,
+      "minValue": 20,
+      "maxValue": 80
+    },
+    {
+      "name": "D4 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D5 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D6 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D7 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D8 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D9 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D10 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D11 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D12 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D13 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D14 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D15 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D16 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D17 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D18 - test deneme",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D19 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D20 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D21 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D22 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D23 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D24 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D25 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": false,
+      "maxValue": true
+    },
+    {
+      "name": "D26 - Yeni Output",
+      "type": "BOOL",
+      "direction": "Output",
+      "currentValue": false,
+      "minValue": null,
+      "maxValue": null
+    }
+  ]
+}

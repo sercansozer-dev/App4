@@ -172,6 +172,27 @@ namespace App4
             // Olayları dinlemeye başla (Sayfa her açıldığında tekrar bağlanır)
             this.Loaded += Page_Loaded;
             this.Unloaded += Page_Unloaded;
+
+            // Admin-gated paneller (config alanları): admin PIN girilince görünür.
+            GlobalData.AdminAccessChanged += OnAdminAccessChanged;
+            ApplyAdminVisibility();
+        }
+
+        private void OnAdminAccessChanged(object? sender, EventArgs e)
+        {
+            try { DispatcherQueue?.TryEnqueue(ApplyAdminVisibility); } catch { }
+        }
+
+        private void ApplyAdminVisibility()
+        {
+            var vis = GlobalData.IsAdminUnlocked
+                ? Microsoft.UI.Xaml.Visibility.Visible
+                : Microsoft.UI.Xaml.Visibility.Collapsed;
+            try { if (AdminGate_SliderPozisyon != null) AdminGate_SliderPozisyon.Visibility = vis; } catch { }
+            try { if (AdminGate_RfidModel     != null) AdminGate_RfidModel.Visibility     = vis; } catch { }
+            try { if (AdminGate_StationTags   != null) AdminGate_StationTags.Visibility   = vis; } catch { }
+            try { if (AdminGate_SystemStart   != null) AdminGate_SystemStart.Visibility   = vis; } catch { }
+            try { if (AdminGate_Safety        != null) AdminGate_Safety.Visibility        = vis; } catch { }
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
@@ -224,6 +245,9 @@ namespace App4
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            // Admin durumu sayfa her açıldığında güncellenir (logout sonrası dahil)
+            ApplyAdminVisibility();
+
             // 0. Model kütüphanesini yenile (Klima Editörü'nden yeni yüklenen modelleri yakala)
             //    Sayfa NavigationCacheMode="Required" olduğu için ctor tekrar çalışmaz,
             //    bu yüzden her navigasyonda dropdown'ları tazelemek gerekir.
@@ -2331,7 +2355,12 @@ namespace App4
 
         private void BtnClearLogs_Click(object sender, RoutedEventArgs e) => SystemLogs.Clear();
 
-        private void AddLog(string msg, string clr) => SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
+        private void AddLog(string msg, string clr)
+        {
+            SystemLogs.Insert(0, new App4.Utilities.LogEntry { TimeStr = DateTime.Now.ToString("HH:mm:ss"), Message = msg, ColorCode = clr });
+            // Bellek koruması: 200 satırdan fazla birikmesin (AddAutoLog ile aynı pattern)
+            while (SystemLogs.Count > 200) SystemLogs.RemoveAt(SystemLogs.Count - 1);
+        }
         private void UpdatePlcVar(ObservableCollection<PlcVariable> c, string n, string v) { var i = c.FirstOrDefault(x => x.Name == n); if (i != null && i.Value != v) i.Value = v; }
         private void UpdateSliderPosition(string v)
         {

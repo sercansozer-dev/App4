@@ -1844,8 +1844,8 @@
                         </Grid>
                     </Border>
 
-                    <!-- ═══ TABLA REFERANS NOKTALARI ═══ -->
-                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="#1A1A1C" BorderThickness="1" BorderBrush="#444" CornerRadius="10" Padding="0">
+                    <!-- ═══ TABLA REFERANS NOKTALARI ═══ (admin-gated) -->
+                    <Border x:Name="AdminGate_TablaRefPoints" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="#1A1A1C" BorderThickness="1" BorderBrush="#444" CornerRadius="10" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
