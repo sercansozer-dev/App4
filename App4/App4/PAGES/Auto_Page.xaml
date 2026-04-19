@@ -1095,7 +1095,7 @@
 
                     <TextBlock Text="Aşağıdaki tablodan simülasyon veya manual ayar değerleri girebilirsiniz." FontSize="12" Foreground="#888888"/>
 
-                    <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333" Margin="0,10,0,0">
+                    <Border x:Name="AdminGate_GeneralVars" Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333333" Margin="0,10,0,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>

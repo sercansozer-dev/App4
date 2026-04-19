@@ -193,6 +193,7 @@ namespace App4
             try { if (AdminGate_StationTags   != null) AdminGate_StationTags.Visibility   = vis; } catch { }
             try { if (AdminGate_SystemStart   != null) AdminGate_SystemStart.Visibility   = vis; } catch { }
             try { if (AdminGate_Safety        != null) AdminGate_Safety.Visibility        = vis; } catch { }
+            try { if (AdminGate_GeneralVars   != null) AdminGate_GeneralVars.Visibility   = vis; } catch { }
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)

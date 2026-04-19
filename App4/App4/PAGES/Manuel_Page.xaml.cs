@@ -142,6 +142,10 @@ namespace App4
         // ================================================================
         private void UpdateControlPanelBadges()
         {
+            // KONTROL paneli Manuel_Page.xaml içinde yorum altına alındı.
+            // Bu metod derleme hatası vermemesi için boş bırakıldı; panel geri açıldığında aşağıdaki blok da geri açılmalıdır.
+            return;
+            /*
             try
             {
                 var robots = KukaRobotManager.Instance?.Robots;
@@ -197,6 +201,7 @@ namespace App4
                 }
             }
             catch { }
+            */
         }
 
         // ================================================================
