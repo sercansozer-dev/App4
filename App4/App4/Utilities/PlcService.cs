@@ -173,6 +173,45 @@ namespace App4.Utilities
         private DispatcherQueue _dispatcherQueue;
         public Action<Action> UiRunner { get; private set; }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // HEARTBEAT + BAĞLANTI İZLEME SİSTEMİ
+        // ═══════════════════════════════════════════════════════════════════════
+        // PLC→App: PLC bir WORD register'ı her scan cycle'da artırır. App okur.
+        //          Değer değişmiyorsa PLC donmuş veya yeniden başlamış demektir.
+        // App→PLC: App bir WORD register'ı her okuma cycle'ında artırır. PLC okur.
+        //          Değer değişmiyorsa App kapanmış demektir.
+        // Ardışık okuma hatası: TCP okuma başarısız → bağlantı kopmuş.
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private int _consecutiveFailCount = 0;
+        private const int FAIL_THRESHOLD = 5;              // 5 × ReadInterval = ~250ms → bağlantı koptu
+
+        private ushort _lastPlcHeartbeat = 0;
+        private int _heartbeatStaleCount = 0;
+        private const int HEARTBEAT_STALE_THRESHOLD = 60;  // 60 × 50ms = 3sn → PLC donmuş/yeniden başlamış
+        private bool _heartbeatFirstRead = true;
+
+        private ushort _appHeartbeatCounter = 0;
+
+        private System.Threading.Timer _reconnectTimer;
+        private bool _isReconnecting = false;
+        private bool _manualDisconnect = false;
+
+        /// <summary>PLC→App heartbeat register adresi (ör: "D9999"). PLC bu register'ı sürekli artırır.</summary>
+        public string HeartbeatReadTag { get; set; }
+
+        /// <summary>App→PLC heartbeat register adresi (ör: "D9998"). App bu register'ı sürekli artırır.</summary>
+        public string HeartbeatWriteTag { get; set; }
+
+        /// <summary>Son kopukluk nedeni (UI'da gösterilir)</summary>
+        public string LastDisconnectReason { get; private set; }
+
+        /// <summary>PLC bağlantısı koptuğunda tetiklenir. Parametre: kopukluk nedeni.</summary>
+        public event Action<string> OnConnectionLost;
+
+        /// <summary>PLC otomatik yeniden bağlandığında tetiklenir.</summary>
+        public event Action OnConnectionRestored;
+
         private readonly string _configFilePath = Path.Combine(
     GlobalData.ConfigBaseDir, "PLC_Config.json");
 
@@ -312,6 +351,11 @@ namespace App4.Utilities
             {
                 if (IsConnected) return true;
 
+                // Otomatik yeniden bağlanma timer'ını durdur (varsa)
+                _reconnectTimer?.Dispose();
+                _reconnectTimer = null;
+                _isReconnecting = false;
+
                 // Mitsubishi MC Protokolü (Binary)
                 _melsecNet = new MelsecMcNet(ip, port);
                 var result = await _melsecNet.ConnectServerAsync();
@@ -320,6 +364,18 @@ namespace App4.Utilities
                 {
                     IsConnected = true;
                     GlobalData.PlcConnected = true;
+                    _manualDisconnect = false;
+
+                    // ═══ Heartbeat sayaçlarını sıfırla ═══
+                    _consecutiveFailCount = 0;
+                    _heartbeatStaleCount = 0;
+                    _heartbeatFirstRead = true;
+                    _appHeartbeatCounter = 0;
+                    LastDisconnectReason = null;
+
+                    // Bağlantı bilgilerini kalıcı sakla (auto-reconnect için)
+                    PlcIpAddress = ip;
+                    PlcPort = port;
 
                     // ═══ GÜVENLİ BAŞLANGIÇ: Output değişkenlerini PLC'ye yaz ═══
                     // PLC belleğinde eski TRUE değerleri kalabiliyor (STOP, RESET vb.)
@@ -330,6 +386,8 @@ namespace App4.Utilities
 
                     // Okuma hızı GlobalData'dan alınır (default 50ms, Limiter ile güvenli hız)
                     _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, GlobalData.Plc_ReadInterval);
+
+                    System.Diagnostics.Debug.WriteLine($"[PLC_HB] Bağlantı kuruldu: {ip}:{port} | HB_Read={HeartbeatReadTag ?? "(yok)"} HB_Write={HeartbeatWriteTag ?? "(yok)"}");
                     return true;
                 }
             }
@@ -391,10 +449,18 @@ namespace App4.Utilities
 
         public void Disconnect()
         {
+            _manualDisconnect = true;  // Otomatik yeniden bağlanmayı engelle
             _refreshTimer?.Dispose();
+            _refreshTimer = null;
+            _reconnectTimer?.Dispose();
+            _reconnectTimer = null;
             _melsecNet?.ConnectClose();
             IsConnected = false;
             GlobalData.PlcConnected = false;
+            _consecutiveFailCount = 0;
+            _heartbeatStaleCount = 0;
+            _heartbeatFirstRead = true;
+            System.Diagnostics.Debug.WriteLine("[PLC_HB] Manuel bağlantı kesme.");
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -648,7 +714,7 @@ namespace App4.Utilities
             return -1;
         }
 
-        // ═══ ANA OKUMA DÖNGÜSÜ (BLOK TABANLI) ═══
+        // ═══ ANA OKUMA DÖNGÜSÜ (BLOK TABANLI + HEARTBEAT) ═══
         private async void TimerCallback(object state)
         {
             if (!IsConnected || _melsecNet == null || _isScanning) return;
@@ -656,6 +722,28 @@ namespace App4.Utilities
             _isScanning = true;
             try
             {
+                // ══════════════════════════════════════════════════════
+                // 1. BAĞLANTI PROBE — Heartbeat register veya ilk input
+                //    Bu okuma başarısızsa TCP bağlantısı kopmuş demektir.
+                // ══════════════════════════════════════════════════════
+                bool probeOk = await ProbeConnection();
+
+                if (!probeOk)
+                {
+                    _consecutiveFailCount++;
+                    if (_consecutiveFailCount >= FAIL_THRESHOLD)
+                    {
+                        HandleConnectionLost("PLC iletişim hatası — ardışık okuma başarısız");
+                    }
+                    return;  // Bu cycle'ı atla — okuma anlamsız
+                }
+
+                // Probe başarılı → fail sayacını sıfırla
+                _consecutiveFailCount = 0;
+
+                // ══════════════════════════════════════════════════════
+                // 2. NORMAL OKUMA DÖNGÜSÜ (mevcut blok okuma sistemi)
+                // ══════════════════════════════════════════════════════
                 if (_readListDirty || _cachedReadGroups == null) UpdateReadList();
                 var readGroups = _cachedReadGroups;
                 if (readGroups == null || readGroups.Count == 0) return;
@@ -684,11 +772,237 @@ namespace App4.Utilities
                     }
                     catch { }
                 }
+
+                // ══════════════════════════════════════════════════════
+                // 3. APP → PLC HEARTBEAT WRITE
+                //    App'in canlı olduğunu PLC'ye bildirir.
+                // ══════════════════════════════════════════════════════
+                await WriteAppHeartbeat();
             }
             finally
             {
                 _isScanning = false;
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // HEARTBEAT YARDIMCI METOTLARI
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Bağlantı probe'u: Heartbeat register'ını okumayı dener.
+        /// HeartbeatReadTag tanımlıysa → o register'ı okur + değer değişimi kontrol eder.
+        /// Tanımlı değilse → ilk input değişkeninin adresini okur (salt bağlantı testi).
+        /// Başarılıysa true, TCP hatası varsa false döner.
+        /// </summary>
+        private async Task<bool> ProbeConnection()
+        {
+            try
+            {
+                // ── 1. Heartbeat tag tanımlıysa → PLC canlılık kontrolü ──
+                if (!string.IsNullOrEmpty(HeartbeatReadTag))
+                {
+                    var result = await _melsecNet.ReadUInt16Async(HeartbeatReadTag);
+                    if (!result.IsSuccess) return false;
+
+                    ushort newVal = result.Content;
+
+                    if (_heartbeatFirstRead)
+                    {
+                        // İlk okuma — referans değerini kaydet
+                        _lastPlcHeartbeat = newVal;
+                        _heartbeatFirstRead = false;
+                        _heartbeatStaleCount = 0;
+                        return true;
+                    }
+
+                    if (newVal != _lastPlcHeartbeat)
+                    {
+                        // PLC canlı — counter değişiyor
+                        _lastPlcHeartbeat = newVal;
+                        _heartbeatStaleCount = 0;
+                    }
+                    else
+                    {
+                        // Değer aynı — PLC donmuş olabilir
+                        _heartbeatStaleCount++;
+                        if (_heartbeatStaleCount >= HEARTBEAT_STALE_THRESHOLD)
+                        {
+                            HandleConnectionLost("PLC heartbeat donmuş — PLC programı çalışmıyor olabilir");
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+
+                // ── 2. Heartbeat yok → basit TCP bağlantı testi ──
+                // İlk input değişkenini okumayı dene (sadece bağlantı kontrolü)
+                var firstInput = InputVariables.FirstOrDefault();
+                if (firstInput != null && !string.IsNullOrEmpty(firstInput.Address))
+                {
+                    var res = await _melsecNet.ReadInt16Async(firstInput.Address);
+                    return res.IsSuccess;
+                }
+
+                // Hiç değişken yok → test yapılamıyor, OK varsay
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// App→PLC heartbeat: Her cycle'da artan bir counter'ı PLC'ye yazar.
+        /// PLC bu değeri izleyerek App'in canlı olup olmadığını bilir.
+        /// </summary>
+        private async Task WriteAppHeartbeat()
+        {
+            if (string.IsNullOrEmpty(HeartbeatWriteTag) || _melsecNet == null) return;
+
+            try
+            {
+                unchecked { _appHeartbeatCounter++; }
+                await _melsecNet.WriteAsync(HeartbeatWriteTag, _appHeartbeatCounter);
+            }
+            catch
+            {
+                // Yazma hatası → probe zaten yakalayacak, burada sessizce devam
+            }
+        }
+
+        /// <summary>
+        /// Bağlantı kaybı algılandığında çağrılır:
+        /// 1. Okuma timer'ını durdurur
+        /// 2. Tüm input değerlerini sıfırlar (bayat veri temizliği)
+        /// 3. Otomatik yeniden bağlanmayı başlatır
+        /// </summary>
+        private void HandleConnectionLost(string reason)
+        {
+            if (!IsConnected) return;  // Zaten kopuk
+
+            System.Diagnostics.Debug.WriteLine($"[PLC_HB] *** BAĞLANTI KOPTU: {reason} ***");
+
+            // Timer'ı durdur
+            _refreshTimer?.Dispose();
+            _refreshTimer = null;
+
+            // Durumu güncelle
+            IsConnected = false;
+            GlobalData.PlcConnected = false;
+            LastDisconnectReason = reason;
+
+            // ═══ BAYAT VERİ TEMİZLİĞİ ═══
+            // Tüm Input değişkenlerinin CurrentValue'sunu sıfırla.
+            // Eski/donmuş RFID verileri dahil her şey temizlenir.
+            // Timer tekrar başladığında taze veriler PLC'den okunur.
+            InvalidateInputValues();
+
+            // TCP bağlantısını kapat (temiz kapanış)
+            try { _melsecNet?.ConnectClose(); } catch { }
+
+            // Event tetikle (GlobalData ve UI dinleyicileri için)
+            try { OnConnectionLost?.Invoke(reason); } catch { }
+
+            // Otomatik yeniden bağlanmayı başlat (manuel disconnect değilse)
+            if (!_manualDisconnect)
+            {
+                StartAutoReconnect();
+            }
+        }
+
+        /// <summary>
+        /// Tüm PLC Input değişkenlerinin CurrentValue'sunu sıfırlar.
+        /// PLC bağlantısı koptuğunda bayat verilerin ekranda kalmasını engeller.
+        /// RFID, status, sensor verileri dahil tüm input'lar etkilenir.
+        /// </summary>
+        private void InvalidateInputValues()
+        {
+            try
+            {
+                UiRunner?.Invoke(() =>
+                {
+                    foreach (var v in InputVariables)
+                    {
+                        if (v.CurrentValue != null)
+                        {
+                            v.CurrentValue = null;
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[PLC_HB] {InputVariables.Count} input değişkeni sıfırlandı (bayat veri temizliği)");
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PLC_HB] Input temizleme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Her 3 saniyede bir PLC'ye yeniden bağlanmayı dener.
+        /// Başarılı olursa timer'ı durdurup normal okuma döngüsünü yeniden başlatır.
+        /// </summary>
+        private void StartAutoReconnect()
+        {
+            if (_reconnectTimer != null || _manualDisconnect) return;
+
+            System.Diagnostics.Debug.WriteLine($"[PLC_HB] Otomatik yeniden bağlanma başlatıldı ({PlcIpAddress}:{PlcPort} — her 3sn)");
+
+            _reconnectTimer = new System.Threading.Timer(async (state) =>
+            {
+                if (_isReconnecting || IsConnected || _manualDisconnect) return;
+                _isReconnecting = true;
+
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("[PLC_HB] Yeniden bağlanma deneniyor...");
+
+                    _melsecNet = new MelsecMcNet(PlcIpAddress, PlcPort);
+                    var result = await _melsecNet.ConnectServerAsync();
+
+                    if (result.IsSuccess)
+                    {
+                        // ═══ BAĞLANTI YENİDEN KURULDU ═══
+                        _reconnectTimer?.Dispose();
+                        _reconnectTimer = null;
+
+                        IsConnected = true;
+                        GlobalData.PlcConnected = true;
+                        LastDisconnectReason = null;
+
+                        // Sayaçları sıfırla
+                        _consecutiveFailCount = 0;
+                        _heartbeatStaleCount = 0;
+                        _heartbeatFirstRead = true;
+                        _appHeartbeatCounter = 0;
+
+                        // Output'ları güvenli başlangıç değerleriyle yaz
+                        await InitializeOutputsAsync();
+
+                        // Okuma timer'ını yeniden başlat
+                        _refreshTimer = new System.Threading.Timer(TimerCallback, null, 0, GlobalData.Plc_ReadInterval);
+
+                        System.Diagnostics.Debug.WriteLine("[PLC_HB] ✓ PLC yeniden bağlandı!");
+
+                        // Event tetikle
+                        try { OnConnectionRestored?.Invoke(); } catch { }
+                    }
+                    else
+                    {
+                        try { _melsecNet?.ConnectClose(); } catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PLC_HB] Yeniden bağlanma hatası: {ex.Message}");
+                }
+                finally
+                {
+                    _isReconnecting = false;
+                }
+            }, null, 1000, 3000);  // İlk deneme 1sn sonra, sonra her 3sn
         }
 
         /// <summary>1 WORD oku → 16 bit'e ayır → BOOL değişkenlere dağıt</summary>
@@ -895,6 +1209,10 @@ namespace App4.Utilities
                 if (data.PlcPort.HasValue && data.PlcPort.Value > 0 && data.PlcPort.Value <= 65535)
                     PlcPort = data.PlcPort.Value;
 
+                // Heartbeat tag adresleri
+                HeartbeatReadTag = data.HeartbeatReadTag;
+                HeartbeatWriteTag = data.HeartbeatWriteTag;
+
                 InputVariables.Clear();
                 if (data.Inputs != null)
                     foreach (var item in data.Inputs) InputVariables.Add(item);
@@ -926,6 +1244,8 @@ namespace App4.Utilities
                 {
                     PlcIpAddress = PlcIpAddress,
                     PlcPort = PlcPort,
+                    HeartbeatReadTag = HeartbeatReadTag,
+                    HeartbeatWriteTag = HeartbeatWriteTag,
                     Inputs = InputVariables.ToList(),
                     Outputs = OutputVariables.ToList()
                 };
@@ -1131,6 +1451,15 @@ namespace App4.Utilities
 
             [JsonPropertyName("plcPort")]
             public int? PlcPort { get; set; }
+
+            // ═══ Heartbeat tag adresleri ═══
+            // PLC→App: PLC'nin sürekli artırdığı WORD register (ör: "D9999")
+            [JsonPropertyName("heartbeatReadTag")]
+            public string HeartbeatReadTag { get; set; }
+
+            // App→PLC: App'in sürekli artırdığı WORD register (ör: "D9998")
+            [JsonPropertyName("heartbeatWriteTag")]
+            public string HeartbeatWriteTag { get; set; }
 
             public List<PlcVariable> Inputs { get; set; } = new();
             public List<PlcVariable> Outputs { get; set; } = new();
