@@ -131,6 +131,20 @@ namespace App4.Utilities
         [JsonPropertyName("maxValue")]
         public object MaxValue { get; set; }
 
+        // UI etiketinde Name yanında gösterilecek ek not (örn. "(1000ms)").
+        // Tag eşleştirme/lookup hep Name ile yapılır; bu sadece görseldir, JSON'a yazılmaz.
+        private string _labelNote;
+        [JsonIgnore]
+        public string LabelNote
+        {
+            get => _labelNote;
+            set { if (_labelNote != value) { _labelNote = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayName)); } }
+        }
+
+        /// <summary>Tablolarda gösterilecek etiket: Name + (varsa) LabelNote.</summary>
+        [JsonIgnore]
+        public string DisplayName => string.IsNullOrEmpty(LabelNote) ? Name : $"{Name} {LabelNote}";
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

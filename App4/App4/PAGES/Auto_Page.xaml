@@ -232,6 +232,10 @@
                                             <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
                                             <TextBlock Text="{x:Bind Stations[0].ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                         </StackPanel>
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="Çevrim Süresi" FontSize="10" Foreground="#FF5252" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{x:Bind Stations[0].CycleTimeText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="#FF5252" HorizontalAlignment="Center"/>
+                                        </StackPanel>
                                         <StackPanel Spacing="2" HorizontalAlignment="Right">
                                             <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
                                             <TextBlock Text="{x:Bind Stations[0].Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
@@ -361,6 +365,10 @@
                                             <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
                                             <TextBlock Text="{x:Bind Stations[1].ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
                                         </StackPanel>
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="Çevrim Süresi" FontSize="10" Foreground="#FF5252" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{x:Bind Stations[1].CycleTimeText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="#FF5252" HorizontalAlignment="Center"/>
+                                        </StackPanel>
                                         <StackPanel Spacing="2" HorizontalAlignment="Right">
                                             <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
                                             <TextBlock Text="{x:Bind Stations[1].Efficiency, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="#4CAF50" HorizontalAlignment="Right"/>
@@ -489,6 +497,10 @@
                                         <StackPanel Spacing="2">
                                             <TextBlock Text="Üretim Adedi" FontSize="10" Foreground="#888888"/>
                                             <TextBlock Text="{x:Bind Stations[2].ProductionCount, Mode=OneWay}" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                                        </StackPanel>
+                                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="Çevrim Süresi" FontSize="10" Foreground="#FF5252" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{x:Bind Stations[2].CycleTimeText, Mode=OneWay}" FontSize="16" FontWeight="Bold" Foreground="#FF5252" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                         <StackPanel Spacing="2" HorizontalAlignment="Right">
                                             <TextBlock Text="Verimlilik" FontSize="10" Foreground="#888888" HorizontalAlignment="Right"/>
@@ -1166,7 +1178,7 @@
                                                     <StackPanel Spacing="5" Padding="10" BorderBrush="#222" BorderThickness="0,0,0,1">
                                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                                             <FontIcon Glyph="&#xE9D2;" FontSize="11" Foreground="#E67E22"/>
-                                                            <TextBlock Text="{x:Bind Name}" Foreground="#E67E22" FontWeight="Bold" FontSize="11"/>
+                                                            <TextBlock Text="{x:Bind DisplayName}" Foreground="#E67E22" FontWeight="Bold" FontSize="11"/>
                                                         </StackPanel>
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>

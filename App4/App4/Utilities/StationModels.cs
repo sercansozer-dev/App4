@@ -531,6 +531,9 @@ namespace App4.Utilities
         public string ProductionCountTag { get; set; }
         public string EfficiencyTag { get; set; }
         public string CurrentRfidTag { get; set; }
+        // Cycle-time (çevrim süresi) sinyalleri: IS_BASLADI başlatır, ISLEM_BITTI durdurur
+        public string IsBasladiTag { get; set; }
+        public string IslemBittiTag { get; set; }
 
         private string _allowedRfid;
         public string AllowedRfid { get => _allowedRfid; set { if (_allowedRfid != value) { _allowedRfid = value; OnPropertyChanged(); UpdateVisuals(); } } }
@@ -558,6 +561,20 @@ namespace App4.Utilities
 
         private string _efficiency = "0";
         public string Efficiency { get => _efficiency; set { _efficiency = value; OnPropertyChanged(); } }
+
+        // ═══ CYCLE TIME (ÇEVRİM SÜRESİ) ═══
+        // IS_BASLADI sinyali geldiğinde sayaç başlar, ISLEM_BITTI gelince donar.
+        // CycleTimeText ekranda gösterilir (mm:ss). Diğer alanlar iç durum.
+        private string _cycleTimeText = "00:00";
+        public string CycleTimeText { get => _cycleTimeText; set { if (_cycleTimeText != value) { _cycleTimeText = value; OnPropertyChanged(); } } }
+
+        private bool _cycleRunning;
+        public bool CycleRunning { get => _cycleRunning; set { if (_cycleRunning != value) { _cycleRunning = value; OnPropertyChanged(); } } }
+
+        // İç durum (binding değil) — sayaç başlangıcı ve sinyal kenar tespiti
+        public DateTime? CycleStartTime { get; set; }
+        public bool LastIsBasladi { get; set; }
+        public bool LastIslemBitti { get; set; }
 
         // Robot HOME durumu
         private bool _isRobotHome;

@@ -405,6 +405,7 @@ namespace App4
                     UpdateSafetySignalLeds();
                     UpdateLineStatusVisuals();
                     UpdateActivePoints();
+                    UpdateCycleTimers();   // Cycle-time canlı kronometre güncelle
                 };
             }
             _safetySignalTimer.Start();
@@ -2470,8 +2471,133 @@ namespace App4
         private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
-                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
+                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v;
+                else if (s.IsBasladiTag == n) HandleCycleIsBasladi(s, IsTrue(v));
+                else if (s.IslemBittiTag == n) HandleCycleIslemBitti(s, IsTrue(v)); } }
         private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // CYCLE TIME (ÇEVRİM SÜRESİ) — IS_BASLADI başlatır, ISLEM_BITTI durdurur
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>IS_BASLADI sinyali — yükselen kenarda (false→true) sayacı başlatır.</summary>
+        private void HandleCycleIsBasladi(StationViewModel s, bool val)
+        {
+            if (val && !s.LastIsBasladi)
+            {
+                // Yükselen kenar: yeni çevrim başladı
+                s.CycleStartTime = DateTime.Now;
+                s.CycleRunning = true;
+                s.LastIslemBitti = false;   // yeni çevrim → bitti bayrağını sıfırla
+                s.CycleTimeText = "00:00";
+            }
+            s.LastIsBasladi = val;
+        }
+
+        /// <summary>ISLEM_BITTI sinyali — yükselen kenarda sayacı durdurur, son süreyi dondurur.</summary>
+        private void HandleCycleIslemBitti(StationViewModel s, bool val)
+        {
+            if (val && !s.LastIslemBitti && s.CycleRunning && s.CycleStartTime.HasValue)
+            {
+                // Yükselen kenar: çevrim bitti → süreyi dondur
+                var elapsed = DateTime.Now - s.CycleStartTime.Value;
+                s.CycleTimeText = FormatCycle(elapsed);
+                s.CycleRunning = false;
+
+                // ═══ ÜRETİM KAYDI (Trend/Rapor sayfası için) ═══
+                RecordProduction(s, elapsed);
+            }
+            s.LastIslemBitti = val;
+        }
+
+        /// <summary>
+        /// Çevrim bitince (ISLEM_BITTI) bir üretim kaydı oluşturup TrendDataService'e ekler.
+        /// Kayıt: istasyon, ürün/RFID, çevrim süresi, sonuç (RESULT_OK/RESULT_NG), zaman damgası.
+        /// </summary>
+        private void RecordProduction(StationViewModel s, TimeSpan elapsed)
+        {
+            try
+            {
+                int stationNo = Stations.IndexOf(s) + 1;
+                if (stationNo < 1) return;
+
+                // Sonuç: RESULT_NG açıkça TRUE ise NOK, aksi halde OK (NG istisna olarak bildirilir)
+                var vars = stationNo switch
+                {
+                    1 => GlobalData.Station1Vars,
+                    2 => GlobalData.Station2Vars,
+                    3 => GlobalData.Station3Vars,
+                    _ => null
+                };
+                bool ng = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
+                string result = ng ? "NOK" : "OK";
+
+                // Ürün/RFID bilgisi (aktif kartta okunan RFID → reçete adı)
+                string rfid = s.CurrentRfid ?? "";
+                var recipe = GlobalData.KnownRfids.FirstOrDefault(
+                    r => string.Equals(r.Id, rfid, StringComparison.OrdinalIgnoreCase));
+
+                var record = new TrendRecord
+                {
+                    Timestamp = DateTime.Now,
+                    StationNo = stationNo,
+                    StationName = s.Name,
+                    RfidTag = rfid,
+                    ProductName = recipe?.Description ?? "",
+                    KlimaTip = recipe?.Id ?? "",
+                    KlimaId = recipe?.IndexDisplay ?? 0,
+                    CycleTime = Math.Round(elapsed.TotalSeconds, 1),
+                    OverallResult = result,
+                    // ═══ TABLA KAÇIKLIK (üründe tespit edilen offset değerleri) ═══
+                    OffsetX = ParseOffset(s.TablaOffsetX),
+                    OffsetY = ParseOffset(s.TablaOffsetY),
+                    OffsetZ = ParseOffset(s.TablaOffsetZ),
+                    OffsetA = ParseOffset(s.TablaOffsetA),
+                    OffsetB = ParseOffset(s.TablaOffsetB),
+                    OffsetC = ParseOffset(s.TablaOffsetC)
+                };
+
+                TrendDataService.Instance.AddRecord(record);
+                System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı: ST{stationNo} {result} {rfid} {record.CycleTime}sn | Kaçıklık X={record.OffsetX} Y={record.OffsetY} Z={record.OffsetZ}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>Tabla kaçıklık string değerini (örn. "1.234" veya "1,234") double'a çevirir.</summary>
+        private static double ParseOffset(string v)
+        {
+            if (string.IsNullOrWhiteSpace(v)) return 0;
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var styles = System.Globalization.NumberStyles.Any;
+            if (double.TryParse(v, styles, inv, out double d)) return d;
+            if (double.TryParse(v.Replace(',', '.'), styles, inv, out d)) return d;
+            return 0;
+        }
+
+        /// <summary>Çalışan istasyonların canlı kronometresini günceller (timer'dan periyodik çağrılır).</summary>
+        private void UpdateCycleTimers()
+        {
+            foreach (var s in Stations)
+            {
+                if (s.CycleRunning && s.CycleStartTime.HasValue)
+                {
+                    var elapsed = DateTime.Now - s.CycleStartTime.Value;
+                    s.CycleTimeText = FormatCycle(elapsed);
+                }
+            }
+        }
+
+        /// <summary>Süreyi mm:ss formatına çevirir (1 saati aşarsa hh:mm:ss).</summary>
+        private static string FormatCycle(TimeSpan t)
+        {
+            if (t.TotalSeconds < 0) t = TimeSpan.Zero;
+            if (t.TotalHours >= 1)
+                return $"{(int)t.TotalHours:D2}:{t.Minutes:D2}:{t.Seconds:D2}";
+            return $"{t.Minutes:D2}:{t.Seconds:D2}";
+        }
 
         /// <summary>
         /// Robot 2 HOME sinyaline göre hedef istasyonun ev ikonunu günceller.

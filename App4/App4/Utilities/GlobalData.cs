@@ -1373,10 +1373,10 @@ namespace App4.Utilities
         // ───────────────────────────────────────────────────────────────────────────
         // HEARTBEAT_OUT değişkeni Otomasyon sayfası "Genel Değişkenler" tablosunda
         // OUTPUT sütununda görünür; kullanıcı dropdown'dan bir PLC tag'i eşleştirir.
-        // App her saniye bu tag'e artan bir sayaç yazar (1..30000 döngü):
-        //   • Değer artıyorsa → App canlı, App↔PLC bağlantısı sağlam
-        //   • Değer donduysa  → App kapandı / bağlantı koptu → PLC ladder alarm verebilir
-        // PLC tarafı: bu register'ı izleyip "son N saniyede değişmedi" mantığı kurar.
+        // App her saniye bu tag'i 0 ↔ 1 arasında toggle eder (watchdog blink):
+        //   • Bit değişiyorsa → App canlı, App↔PLC bağlantısı sağlam
+        //   • Bit donduysa    → App kapandı / bağlantı koptu → PLC ladder alarm verebilir
+        // PLC tarafı: bu biti izleyip "son N saniyede değişmedi" mantığı kurar.
         // ═══════════════════════════════════════════════════════════════════════════
         private static System.Threading.Timer _heartbeatTimer;
         private static int _heartbeatCounter;
@@ -1397,8 +1397,8 @@ namespace App4.Utilities
             _heartbeatBusy = true;
             try
             {
-                // Sayaç 1..30000 arası döner (hem INT hem WORD tipine güvenli sığar)
-                _heartbeatCounter = (_heartbeatCounter % 30000) + 1;
+                // 0 ↔ 1 toggle (watchdog blink). PLC: "bit X sn değişmedi → app öldü".
+                _heartbeatCounter = (_heartbeatCounter == 0) ? 1 : 0;
                 int val = _heartbeatCounter;
 
                 var hbVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "HEARTBEAT_OUT");
@@ -1839,9 +1839,9 @@ namespace App4.Utilities
 
         private static void InitializeStations()
         {
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 3", Description = "Boş İstasyon", Mode = StationMode.Manual, StatusTag = "ST3_STATUS", AlarmTag = "ST3_ALARM", ProducingTag = "ST3_PRODUCING", ProductionCountTag = "ST3_PROD_COUNT", EfficiencyTag = "ST3_EFFICIENCY", CurrentRfidTag = "ST3_RFID_ACT", AllowedRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", IsBasladiTag = "ST1_IS_BASLADI", IslemBittiTag = "ST1_ISLEM_BITTI", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", IsBasladiTag = "ST2_IS_BASLADI", IslemBittiTag = "ST2_ISLEM_BITTI", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 3", Description = "Boş İstasyon", Mode = StationMode.Manual, StatusTag = "ST3_STATUS", AlarmTag = "ST3_ALARM", ProducingTag = "ST3_PRODUCING", ProductionCountTag = "ST3_PROD_COUNT", EfficiencyTag = "ST3_EFFICIENCY", CurrentRfidTag = "ST3_RFID_ACT", IsBasladiTag = "ST3_IS_BASLADI", IslemBittiTag = "ST3_ISLEM_BITTI", AllowedRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
         }
         public static void SaveStationStates() { try { var states = Stations.Select(s => { var ext = s as ExtendedStationViewModel; return new { Name = s.Name, Mode = (int)s.Mode, RfidOpMode = ext != null ? (int)ext.RfidOpMode : 0, TargetRfid = ext != null ? ext.TargetRfid : "" }; }).ToList(); File.WriteAllText(_stationStateFilePath, System.Text.Json.JsonSerializer.Serialize(states, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
         private static void LoadStationStates() { try { if (File.Exists(_stationStateFilePath)) { var savedStates = System.Text.Json.JsonSerializer.Deserialize<List<JsonElement>>(File.ReadAllText(_stationStateFilePath)); foreach (var item in savedStates) { if (item.TryGetProperty("Name", out var nameProp)) { var station = Stations.FirstOrDefault(s => s.Name == nameProp.GetString()); if (station != null) { if (item.TryGetProperty("Mode", out var modeProp)) station.Mode = (StationMode)modeProp.GetInt32(); if (station is ExtendedStationViewModel ext) { if (item.TryGetProperty("RfidOpMode", out var rfid)) ext.RfidOpMode = (RfidOperationMode)rfid.GetInt32(); if (item.TryGetProperty("TargetRfid", out var target)) ext.TargetRfid = target.GetString(); } } } } } } catch { } }
@@ -1851,7 +1851,7 @@ namespace App4.Utilities
             PlcVariable Create(string name, string type, string dir, object val) => new PlcVariable { Name = name, Type = type, Direction = dir, CurrentValue = val, IsEditable = true };
             // DÜZELTİLDİ: ST{id}_ALARM başlangıç değeri true (fail-safe: 1=normal, 0=alarm)
             // Böylece PLC bağlanmadan önce istasyonlar "alarm yok" durumunda başlar
-            void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); c.Add(Create($"ST{id}_YENI_URUN", "BOOL", "Input", false)); c.Add(Create($"ST{id}_ISLEM_BITTI", "BOOL", "Input", false)); }
+            void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); c.Add(Create($"ST{id}_YENI_URUN", "BOOL", "Input", false)); c.Add(Create($"ST{id}_IS_BASLADI", "BOOL", "Input", false)); c.Add(Create($"ST{id}_ISLEM_BITTI", "BOOL", "Input", false)); c.Add(Create($"ST{id}_RESULT_OK", "BOOL", "Input", false)); c.Add(Create($"ST{id}_RESULT_NG", "BOOL", "Input", false)); }
             void AddOutputs(ObservableCollection<PlcVariable> c, int id) { c.Add(new PlcVariable { Name = $"ST{id}_RFID_MODE", Value = "0", Description = "RFID Mod", PlcTag = $"DB10.W{(id - 1) * 20}.0" }); c.Add(new PlcVariable { Name = $"ST{id}_RFID_TARGET", Value = "", Type="STRING", Description = "Hedef RFID", PlcTag = $"DB10.S{(id - 1) * 20}.4" }); c.Add(new PlcVariable { Name = $"ST{id}_ID_MATCHED", Value = "0", Description = "ID Eşleşti", PlcTag = $"DB10.W{(id - 1) * 20}.20" }); c.Add(new PlcVariable { Name = $"ST{id}_PROCESS_RESULT", Value = "0", Description = "Sonuç", PlcTag = $"DB10.W{(id - 1) * 20}.22" }); c.Add(new PlcVariable { Name = $"ST{id}_CONVEYOR_PERM", Value = "0", Description = "Konveyör", PlcTag = $"DB10.W{(id - 1) * 20}.24" }); c.Add(new PlcVariable { Name = $"ST{id}_MODE_CMD", Value = "1", Description = "Mod Cmd", PlcTag = $"DB10.W{(id - 1) * 20}.26" }); }
             // ═══════════════════════════════════════════════════════════════════════════
             // GeneralInputVars / GeneralOutputVars: PLC ↔ PC (Robot DEĞİL)
@@ -1879,11 +1879,11 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
             // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
             GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
-            // ▼▼▼ APP → PLC HEARTBEAT (Canlılık sinyali) ▼▼▼
-            // App her saniye bu tag'e artan bir sayaç yazar (1..30000 döngü).
-            // PLC bu değeri izler: artıyorsa App canlı, donduysa App/bağlantı koptu.
+            // ▼▼▼ APP → PLC HEARTBEAT (Canlılık biti) ▼▼▼
+            // App her saniye bu tag'i 0 ↔ 1 arasında toggle eder (watchdog blink).
+            // PLC bu biti izler: değişiyorsa App canlı, X sn değişmediyse App/bağlantı koptu.
             // Kullanıcı Otomasyon sayfasında dropdown'dan PLC tag'ini eşleştirir.
-            GeneralOutputVars.Add(Create("HEARTBEAT_OUT", "WORD", "Output", "0"));            // App→PLC canlılık sayacı
+            var hbOutVar = Create("HEARTBEAT_OUT", "BOOL", "Output", false); hbOutVar.LabelNote = "(1000ms)"; GeneralOutputVars.Add(hbOutVar);  // App→PLC canlılık biti (0↔1 toggle, 1sn periyot)
             // ▼▼▼ AKTÜEL KLİMA INDEX VE RFID ▼▼▼
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
             GeneralOutputVars.Add(Create("AKTUEL_CASE_ID", "INT", "Output", "0"));           // Aktüel kasa tipi indexi (1=ALPHA, 2=SF2, 3=BML-H, 4=BMS)

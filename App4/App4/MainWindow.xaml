@@ -87,6 +87,11 @@
                         <FontIcon Glyph="&#xE99A;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Trend ve Rapor" Tag="trend" Margin="0,5,0,0">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D2;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <!-- Helyum Kaçak sayfası geçici olarak gizlendi (uygulama crash nedeniyle).
                      Sayfa stabil hale getirildikten sonra tekrar açılacak.
                 <NavigationViewItem Content="Helyum Kaçak" Tag="inficon" Margin="0,5,0,0">
