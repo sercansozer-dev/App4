@@ -15,8 +15,8 @@
 #define AppName         "Simbiosis Leak Test App"
 #define AppPublisher    "Simbiosis Mekatronik"
 #define AppURL          "https://simbiosismekatronik.com"
-#define AppExeName      "App4.exe"
-#define AppVersion "1.0.9"
+#define AppExeName      "SimbiosisLeakTestApp.exe"
+#define AppVersion "1.0.10"
 #define AppId           "{{8B4F8A2E-5C1B-4A3D-9E7F-2F6A1D3B8C9A}"
 
 ; Projenin kÃ¶k dizini (bu .iss dosyasÄ±nÄ±n olduÄŸu klasÃ¶rÃ¼n Ã¼stÃ¼)
@@ -111,8 +111,13 @@ Source: "redist\MicrosoftEdgeWebView2RuntimeInstaller.exe"; DestDir: "{tmp}"; Fl
 ;   - Yeni PC'ye kurulumda â†’ dosyalar kopyalanÄ±r (fabrika default)
 ;   - Mevcut kuruluma re-install/upgrade â†’ kullanÄ±cÄ± verisi EZILMEZ
 ;   - KullanÄ±cÄ± "sÄ±fÄ±rlama" isterse Config klasÃ¶rÃ¼nÃ¼ silip tekrar kurabilir
+; KORUMA MODU (varsayilan): sadece eksik dosyalar eklenir, mevcut ayar JSON'lari EZILMEZ.
 Source: "seed\Config\*"; DestDir: "C:\Simbiosis\SimbiosisLeakTestApp\Config"; \
-    Flags: onlyifdoesntexist uninsneveruninstall; Permissions: users-modify
+    Flags: onlyifdoesntexist uninsneveruninstall; Permissions: users-modify; Check: KeepExistingConfig
+; SIFIRLAMA MODU (kullanici acikca secerse): tum seed dosyalari uzerine yazilir (fabrika ayarlari).
+; CurStepChanged icinde Config klasoru once silinir, sonra bu satir fabrika ayarlarini yukler.
+Source: "seed\Config\*"; DestDir: "C:\Simbiosis\SimbiosisLeakTestApp\Config"; \
+    Flags: uninsneveruninstall; Permissions: users-modify; Check: ResetConfigToDefaults
 
 ; 3D model dosyalari (.glb) - Klima Editoru ve RobotArmViewer bunlari okuyor.
 ; ModelsPathHelper.cs C:\Simbiosis\SimbiosisLeakTestApp\Models lokasyonunu kullanir.
@@ -192,6 +197,70 @@ end;
 function WebView2RuntimeMissing(): Boolean;
 begin
   Result := not WebView2RuntimeInstalled();
+end;
+
+{ ─────────────────────────────────────────────────────────────────────────────
+  AYAR KORUMA SECIMI
+  Kurulum sirasinda kullaniciya sorar:
+    Secenek 0 = Mevcut ayarlari KORU (onerilen) -> C:\Simbiosis ayar JSON EZILMEZ
+    Secenek 1 = VARSAYILAN ayarlarla kur -> Config klasoru silinip fabrika ayari yuklenir
+  Ilk kurulumda (mevcut Config klasoru yoksa) bu sayfa atlanir ve seed dogrudan yuklenir.
+  ───────────────────────────────────────────────────────────────────────────── }
+var
+  ConfigChoicePage: TInputOptionWizardPage;
+
+procedure InitializeWizard();
+begin
+  ConfigChoicePage := CreateInputOptionPage(wpSelectDir,
+    'Uygulama Ayarlari',
+    'Mevcut ayarlar nasil islensin?',
+    'Bu bilgisayarda daha once yapilandirilmis ayarlar (PLC, RFID, robot, recete vb.) bulunabilir.' + #13#10 +
+    'Yeni surumu nasil kurmak istersiniz?',
+    True, False);
+  ConfigChoicePage.Add('Mevcut ayarlari KORU (onerilen)  -  C:\Simbiosis ayarlariniz aynen kalir');
+  ConfigChoicePage.Add('VARSAYILAN ayarlarla kur  -  mevcut ayarlar silinip fabrika degerlerine doner');
+  ConfigChoicePage.SelectedValueIndex := 0;  { Varsayilan secim: KORU }
+end;
+
+function ConfigDirExists(): Boolean;
+begin
+  Result := DirExists('C:\Simbiosis\SimbiosisLeakTestApp\Config');
+end;
+
+{ Mevcut config yoksa (ilk kurulum) secim sayfasini gizle }
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if PageID = ConfigChoicePage.ID then
+    Result := not ConfigDirExists();
+end;
+
+{ KORUMA MODU: ilk kurulumda DA true (seed eksikleri doldurur) }
+function KeepExistingConfig(): Boolean;
+begin
+  if not ConfigDirExists() then
+    Result := True
+  else
+    Result := (ConfigChoicePage.SelectedValueIndex = 0);
+end;
+
+{ SIFIRLAMA MODU: yalnizca mevcut config varken ve kullanici acikca secince true }
+function ResetConfigToDefaults(): Boolean;
+begin
+  if not ConfigDirExists() then
+    Result := False
+  else
+    Result := (ConfigChoicePage.SelectedValueIndex = 1);
+end;
+
+{ SIFIRLAMA secildiyse, dosyalar kopyalanmadan ONCE Config klasorunu tamamen temizle }
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if (CurStep = ssInstall) and ResetConfigToDefaults() then
+  begin
+    if ConfigDirExists() then
+      DelTree('C:\Simbiosis\SimbiosisLeakTestApp\Config', True, True, True);
+  end;
 end;
 
 { â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

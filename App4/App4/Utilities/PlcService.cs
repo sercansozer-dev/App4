@@ -356,6 +356,12 @@ namespace App4.Utilities
                 _reconnectTimer = null;
                 _isReconnecting = false;
 
+                // ═══ Bağlantı bilgilerini HEMEN sakla (auto-reconnect için) ═══
+                // İlk bağlantı başarısız olsa bile ip/port saklı kalmalı ki
+                // StartAutoReconnect() doğru adrese yeniden bağlanmayı deneyebilsin.
+                PlcIpAddress = ip;
+                PlcPort = port;
+
                 // Mitsubishi MC Protokolü (Binary)
                 _melsecNet = new MelsecMcNet(ip, port);
                 var result = await _melsecNet.ConnectServerAsync();
@@ -372,10 +378,6 @@ namespace App4.Utilities
                     _heartbeatFirstRead = true;
                     _appHeartbeatCounter = 0;
                     LastDisconnectReason = null;
-
-                    // Bağlantı bilgilerini kalıcı sakla (auto-reconnect için)
-                    PlcIpAddress = ip;
-                    PlcPort = port;
 
                     // ═══ GÜVENLİ BAŞLANGIÇ: Output değişkenlerini PLC'ye yaz ═══
                     // PLC belleğinde eski TRUE değerleri kalabiliyor (STOP, RESET vb.)
@@ -944,9 +946,10 @@ namespace App4.Utilities
         /// Her 3 saniyede bir PLC'ye yeniden bağlanmayı dener.
         /// Başarılı olursa timer'ı durdurup normal okuma döngüsünü yeniden başlatır.
         /// </summary>
-        private void StartAutoReconnect()
+        public void StartAutoReconnect()
         {
-            if (_reconnectTimer != null || _manualDisconnect) return;
+            if (_reconnectTimer != null || _manualDisconnect || IsConnected) return;
+            _manualDisconnect = false; // Dışarıdan çağrıldığında reconnect'e izin ver
 
             System.Diagnostics.Debug.WriteLine($"[PLC_HB] Otomatik yeniden bağlanma başlatıldı ({PlcIpAddress}:{PlcPort} — her 3sn)");
 

@@ -8,7 +8,6 @@
        Uygulama WindowsPackageType=None (unpackaged) modda çalışıyor.
        MSIX paketleme projesine gerek yok — Setup Inno Setup ile üretiliyor. -->
   <Project Path="App4/App4.csproj">
-    <Deploy />
     <Platform Solution="*|ARM64" Project="ARM64" />
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />

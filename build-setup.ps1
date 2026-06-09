@@ -172,9 +172,9 @@ if (-not $SkipPublish) {
     Write-Ok ("Publish tamamlandi ({0:N1} sn)" -f $publishDuration)
 
     # Publish ciktisi dogrulama
-    $publishedExe = Join-Path $PublishDir "App4.exe"
+    $publishedExe = Join-Path $PublishDir "SimbiosisLeakTestApp.exe"
     if (-not (Test-Path -LiteralPath $publishedExe)) {
-        Write-Err "App4.exe publish cikti klasorunde bulunamadi: $publishedExe"
+        Write-Err "SimbiosisLeakTestApp.exe publish cikti klasorunde bulunamadi: $publishedExe"
         exit 1
     }
     $sizeBytes = (Get-ChildItem -LiteralPath $PublishDir -Recurse -File |
@@ -184,8 +184,8 @@ if (-not $SkipPublish) {
     Write-Ok "Publish boyutu : $sizeMB MB ($fileCount dosya)"
 } else {
     Write-Warn "Publish atlandi (-SkipPublish)"
-    if (-not (Test-Path -LiteralPath (Join-Path $PublishDir "App4.exe"))) {
-        Write-Err "Publish klasorunde App4.exe yok. -SkipPublish parametresini kaldirin."
+    if (-not (Test-Path -LiteralPath (Join-Path $PublishDir "SimbiosisLeakTestApp.exe"))) {
+        Write-Err "Publish klasorunde SimbiosisLeakTestApp.exe yok. -SkipPublish parametresini kaldirin."
         exit 1
     }
 }

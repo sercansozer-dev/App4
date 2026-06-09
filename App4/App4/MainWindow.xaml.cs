@@ -60,8 +60,67 @@ namespace App4
                 this.DispatcherQueue.TryEnqueue(() => action());
             });
 
+            // ═══ PLC BAĞLANTI KOPMASI → EKRAN UYARISI ═══
+            // PlcService bağlantı kopmasını/yeniden bağlanmayı algıladığında
+            // ekrana popup çıkar / kapatır. Event'ler arka plan thread'inden
+            // gelir → DispatcherQueue ile UI thread'ine taşınır.
+            PlcService.Instance.OnConnectionLost += OnPlcConnectionLost;
+            PlcService.Instance.OnConnectionRestored += OnPlcConnectionRestored;
 
+        }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // PLC BAĞLANTI HATASI POPUP YÖNETİMİ
+        // ═══════════════════════════════════════════════════════════════════════
+        private ContentDialog _plcConnDialog;
+        private bool _plcConnDialogOpen;
+
+        private void OnPlcConnectionLost(string reason)
+        {
+            this.DispatcherQueue?.TryEnqueue(() => ShowPlcConnectionLostPopup(reason));
+        }
+
+        private void OnPlcConnectionRestored()
+        {
+            this.DispatcherQueue?.TryEnqueue(() => HidePlcConnectionLostPopup());
+        }
+
+        /// <summary>PLC bağlantı hatası popup'ını gösterir (zaten açıksa tekrar açmaz).</summary>
+        private async void ShowPlcConnectionLostPopup(string reason)
+        {
+            if (_plcConnDialogOpen) return;            // Zaten açık → tekrar açma
+            if (this.Content?.XamlRoot == null) return; // UI henüz hazır değil
+
+            try
+            {
+                _plcConnDialogOpen = true;
+                _plcConnDialog = new ContentDialog
+                {
+                    Title = "⚠ PLC Bağlantı Hatası",
+                    Content = "Uygulama ile PLC arasındaki bağlantı kesildi.\n\n" +
+                              (string.IsNullOrEmpty(reason) ? "" : $"Sebep: {reason}\n\n") +
+                              $"Adres: {GlobalData.Plc_IpAddress}:{GlobalData.Plc_Port}\n\n" +
+                              "Otomatik olarak yeniden bağlanılmaya çalışılıyor...",
+                    CloseButtonText = "Tamam",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.Content.XamlRoot
+                };
+                await _plcConnDialog.ShowAsync();
+            }
+            catch { /* Başka bir ContentDialog açıksa ShowAsync hata verebilir → yut */ }
+            finally
+            {
+                _plcConnDialogOpen = false;
+                _plcConnDialog = null;
+            }
+        }
+
+        /// <summary>PLC yeniden bağlandığında popup'ı otomatik kapatır.</summary>
+        private void HidePlcConnectionLostPopup()
+        {
+            try { _plcConnDialog?.Hide(); } catch { }
+            _plcConnDialogOpen = false;
+            _plcConnDialog = null;
         }
 
         private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -148,6 +207,10 @@ namespace App4
                     FailStep(Step2Panel, Step2Icon);
                     SplashStatusText.Text = "⚠ PLC Bağlantısı Başarısız! (Offline Mod)";
                     SplashStatusText.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
+
+                    // İlk bağlantı başarısız → arka planda yeniden bağlanmayı sürekli dene.
+                    // PLC ayağa kalktığında otomatik bağlanır (OnConnectionRestored tetiklenir).
+                    try { PlcService.Instance.StartAutoReconnect(); } catch { }
                 }
 
                 await Task.Delay(1500); // Kullanıcı sonucu okuyabilsin diye bekleme

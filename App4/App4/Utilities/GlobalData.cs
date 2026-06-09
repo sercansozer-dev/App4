@@ -1359,8 +1359,77 @@ namespace App4.Utilities
 
             LoadAutomationSettings();
             StartAutomationListener();
+
+            // App → PLC heartbeat (canlılık sinyali) — PLC bağlantısından bağımsız çalışır,
+            // sadece bağlıyken ve tag eşleşmişken yazar.
+            StartHeartbeatOutput();
+
             _isInitialized = true;
 
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // APP → PLC HEARTBEAT (Canlılık sinyali)
+        // ───────────────────────────────────────────────────────────────────────────
+        // HEARTBEAT_OUT değişkeni Otomasyon sayfası "Genel Değişkenler" tablosunda
+        // OUTPUT sütununda görünür; kullanıcı dropdown'dan bir PLC tag'i eşleştirir.
+        // App her saniye bu tag'e artan bir sayaç yazar (1..30000 döngü):
+        //   • Değer artıyorsa → App canlı, App↔PLC bağlantısı sağlam
+        //   • Değer donduysa  → App kapandı / bağlantı koptu → PLC ladder alarm verebilir
+        // PLC tarafı: bu register'ı izleyip "son N saniyede değişmedi" mantığı kurar.
+        // ═══════════════════════════════════════════════════════════════════════════
+        private static System.Threading.Timer _heartbeatTimer;
+        private static int _heartbeatCounter;
+        private static bool _heartbeatBusy;
+
+        /// <summary>App→PLC heartbeat timer'ını başlatır (1 saniye periyot). Tek sefer.</summary>
+        public static void StartHeartbeatOutput()
+        {
+            if (_heartbeatTimer != null) return; // zaten çalışıyor
+            // İlk yazma 2sn sonra (PLC bağlantısı otursun), sonra her 1sn
+            _heartbeatTimer = new System.Threading.Timer(HeartbeatTick, null, 2000, 1000);
+            System.Diagnostics.Debug.WriteLine("[HEARTBEAT] App→PLC heartbeat timer başlatıldı (1sn periyot)");
+        }
+
+        private static async void HeartbeatTick(object state)
+        {
+            if (_heartbeatBusy) return;
+            _heartbeatBusy = true;
+            try
+            {
+                // Sayaç 1..30000 arası döner (hem INT hem WORD tipine güvenli sığar)
+                _heartbeatCounter = (_heartbeatCounter % 30000) + 1;
+                int val = _heartbeatCounter;
+
+                var hbVar = GeneralOutputVars.FirstOrDefault(v => v.Name == "HEARTBEAT_OUT");
+                if (hbVar == null) return;
+
+                // UI göstergesini güncelle (tabloda canlı sayaç görünür → heartbeat çalışıyor)
+                var uiRunner = PlcService.Instance?.UiRunner;
+                if (uiRunner != null) uiRunner.Invoke(() => hbVar.CurrentValue = val);
+                else hbVar.CurrentValue = val;
+
+                // PLC bağlı değilse veya tag eşleşmemişse PLC'ye yazma (UI sayaç yine döner)
+                if (PlcService.Instance == null || !PlcService.Instance.IsConnected) return;
+                string mappedTag = hbVar.PlcTag;
+                if (string.IsNullOrEmpty(mappedTag)) return;
+
+                // Eşleşen PLC değişkenini bul (önce Output, sonra Input)
+                var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(v => v.Name == mappedTag)
+                          ?? PlcService.Instance.InputVariables.FirstOrDefault(v => v.Name == mappedTag);
+                if (plcVar == null) return;
+
+                plcVar.Value = val.ToString();
+                await PlcService.Instance.WriteAsync(plcVar, val);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HEARTBEAT] Yazma hatası: {ex.Message}");
+            }
+            finally
+            {
+                _heartbeatBusy = false;
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1810,6 +1879,11 @@ namespace App4.Utilities
             GeneralOutputVars.Add(Create("MEASUREMENT_TRIGGER_OUT", "BOOL", "Output", false));
             // ▼▼▼ MAKİNA OTO/MANUEL SWITCH ▼▼▼
             GeneralOutputVars.Add(Create("LINE_AUTO_MANUAL_CMD", "BOOL", "Output", false));  // true=Oto, false=Manuel - Tüm hat oto/manuel switch
+            // ▼▼▼ APP → PLC HEARTBEAT (Canlılık sinyali) ▼▼▼
+            // App her saniye bu tag'e artan bir sayaç yazar (1..30000 döngü).
+            // PLC bu değeri izler: artıyorsa App canlı, donduysa App/bağlantı koptu.
+            // Kullanıcı Otomasyon sayfasında dropdown'dan PLC tag'ini eşleştirir.
+            GeneralOutputVars.Add(Create("HEARTBEAT_OUT", "WORD", "Output", "0"));            // App→PLC canlılık sayacı
             // ▼▼▼ AKTÜEL KLİMA INDEX VE RFID ▼▼▼
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
             GeneralOutputVars.Add(Create("AKTUEL_CASE_ID", "INT", "Output", "0"));           // Aktüel kasa tipi indexi (1=ALPHA, 2=SF2, 3=BML-H, 4=BMS)
