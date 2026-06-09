@@ -28,3 +28,9 @@ installer/redist/*.exe
 # ═══ Log dosyaları ═══
 *.log
 logs/
+
+# ═══ Geçici / scratch çalışma dosyaları (repo kökünde) ═══
+# Robot/PLC deneme script'leri, diyagram üretimi, doc taslakları — git'te tutulmaz.
+/_*
+/img_*.png
+/*.docx
