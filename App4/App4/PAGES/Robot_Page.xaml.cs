@@ -546,27 +546,32 @@ namespace App4.Pages
             catch { }
         }
 
-        private static string DecodeDurum(int durum) => durum switch
+        // Robot durum kodu \u2192 mesaj art\u0131k d\u00fczenlenebilir referans tablosundan okunur (GlobalData.RobotStatusCodes).
+        private static string DecodeDurum(int durum) => App4.Utilities.GlobalData.GetRobotStatusMessage(durum);
+
+        // \u2550\u2550\u2550 D\u00dcZENLENEB\u0130L\u0130R DURUM KODU TABLOSU (XAML x:Bind + handler'lar) \u2550\u2550\u2550
+        public ObservableCollection<RobotStatusCodeEntry> RobotStatusCodes => GlobalData.RobotStatusCodes;
+
+        private void RobotStatusMsg_LostFocus(object sender, RoutedEventArgs e) => GlobalData.SaveRobotStatusCodes();
+
+        private void SaveRobotStatusCodes_Click(object sender, RoutedEventArgs e) => GlobalData.SaveRobotStatusCodes();
+
+        private void AddRobotStatusCode_Click(object sender, RoutedEventArgs e)
         {
-            0 => "Bosta",
-            1 => "Calisiyor",
-            2 => "HATA",
-            10 => "Gocator Bekleniyor",
-            11 => "Gocator OK",
-            12 => "Gocator NOK",
-            20 => "Sniffer Bekleniyor",
-            21 => "Sniffer OK",
-            22 => "Sniffer NOK",
-            30 => "Slider Hareket",
-            31 => "Slider Tamam",
-            50 => "Tabla Bekleniyor",
-            51 => "Tabla OK",
-            60 => "Diger Robot Bekleniyor",
-            61 => "Diger Robot Hatasi",
-            62 => "Robot 1 Home Bekleniyor",
-            63 => "Ge\u00e7ersiz \u0130stasyon No",
-            _ => $"Kod:{durum}"
-        };
+            int next = 0;
+            foreach (var en in GlobalData.RobotStatusCodes) if (en.Code >= next) next = en.Code + 1;
+            GlobalData.RobotStatusCodes.Add(new RobotStatusCodeEntry { Code = next, Message = "Yeni mesaj" });
+            GlobalData.SaveRobotStatusCodes();
+        }
+
+        private void DeleteRobotStatusCode_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is RobotStatusCodeEntry en)
+            {
+                GlobalData.RobotStatusCodes.Remove(en);
+                GlobalData.SaveRobotStatusCodes();
+            }
+        }
 
         private void SetRefText(TextBlock tb, string text, string color)
         {

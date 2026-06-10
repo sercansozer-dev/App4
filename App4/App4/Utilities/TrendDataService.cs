@@ -162,6 +162,36 @@ namespace App4.Utilities
             }
         }
 
+        /// <summary>Tek bir trend kaydını siler (Id ile; bulunamazsa zaman+istasyon+RFID ile). Başarılıysa true.</summary>
+        public bool DeleteRecord(TrendRecord record)
+        {
+            if (record == null) return false;
+            try
+            {
+                string filePath = GetMonthlyFilePath(record.Timestamp);
+                lock (_fileLock)
+                {
+                    var records = LoadFromFile(filePath);
+                    int removed = !string.IsNullOrEmpty(record.Id)
+                        ? records.RemoveAll(r => r.Id == record.Id)
+                        : 0;
+                    if (removed == 0)
+                        removed = records.RemoveAll(r =>
+                            r.Timestamp == record.Timestamp &&
+                            r.StationNo == record.StationNo &&
+                            r.RfidTag == record.RfidTag);
+                    if (removed > 0) SaveToFile(filePath, records);
+                    System.Diagnostics.Debug.WriteLine($"[TREND] Kayıt silindi: {removed} adet (ST{record.StationNo} {record.RfidTag})");
+                    return removed > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TREND] Kayıt silme hatası: {ex.Message}");
+                return false;
+            }
+        }
+
         /// <summary>TÜM trend kayıtlarını siler (tüm aylık Trend_*.json dosyaları). Geri alınamaz. Silinen dosya sayısını döner.</summary>
         public int ClearAllRecords()
         {

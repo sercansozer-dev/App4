@@ -281,7 +281,7 @@
                         <TextBlock Grid.Column="10" Text="OFS Y" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
                         <TextBlock Grid.Column="11" Text="OFS Z" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
                         <TextBlock Grid.Column="12" Text="SURE" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="13" Text="DETAY" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="13" Text="SİL" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
                     </Grid>
                 </Border>
 
@@ -372,7 +372,12 @@
                                 <TextBlock Grid.Column="10" Text="{Binding OffsetY}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
                                 <TextBlock Grid.Column="11" Text="{Binding OffsetZ}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
                                 <TextBlock Grid.Column="12" Text="{Binding CycleTime}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <FontIcon Grid.Column="13" Glyph="&#xE76C;" FontSize="12" Foreground="Gray" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <Button Grid.Column="13" Click="DeleteTrendRecord_Click" Tag="{Binding}"
+                                        Background="Transparent" BorderThickness="0" Padding="2"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        ToolTipService.ToolTip="Bu kaydı sil (yanlış/manuel veri)">
+                                    <FontIcon Glyph="&#xE74D;" FontSize="12" Foreground="#FF5252"/>
+                                </Button>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

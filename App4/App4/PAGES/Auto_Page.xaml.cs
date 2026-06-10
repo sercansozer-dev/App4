@@ -2494,13 +2494,31 @@ namespace App4
         // Ortak IS_BASLADI ile başlayan aktif çevrim istasyonu (ISLEM_BITTI'de aynı istasyonu kullanmak için latch)
         private StationViewModel _cycleStation;
 
-        /// <summary>Ortak çevrim sinyalleri için aktif istasyonu AKTUEL_ISTASYON üzerinden çözer. Yedek: üretimdeki ilk istasyon.</summary>
+        /// <summary>Ortak çevrim sinyalleri için aktif istasyonu çözer.
+        /// Öncelik: TargetSliderStation (robotun bulunduğu istasyon — slider köprüsü günceller, app her yerde bunu kullanır)
+        /// → AKTUEL_ISTASYON (PLC'den okunuyorsa) → üretimde görünen istasyon.</summary>
         private StationViewModel ResolveActiveStation()
         {
+            // Slider'ın "İstasyon: İSTASYON N" gösterdiği mantığın AYNISI — ekranda ne yazıyorsa o istasyona kayıt düşer.
+            // 1) TargetSliderStation (robotun bulunduğu istasyon — slider köprüsü günceller)
+            int tss = GlobalData.TargetSliderStation;
+            if (tss >= 1 && tss <= Stations.Count) return Stations[tss - 1];
+
+            // 2) KL100_HEDEF_ISTASYON (slider göstergesinin fallback'i — output ya da input)
+            var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON")
+                        ?? GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
+            if (int.TryParse(hedefVar?.Value?.Trim(), out int hno) && hno >= 1 && hno <= Stations.Count) return Stations[hno - 1];
+
+            // 3) AKTUEL_ISTASYON (PLC'den okunuyorsa — eşlenmiş olmalı)
             var av = GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == "AKTUEL_ISTASYON");
-            if (int.TryParse(av?.Value?.Trim(), out int no) && no >= 1 && no <= Stations.Count)
-                return Stations[no - 1];
-            return Stations.FirstOrDefault(s => s.IsProducing);
+            if (int.TryParse(av?.Value?.Trim(), out int no) && no >= 1 && no <= Stations.Count) return Stations[no - 1];
+
+            // 4) Üretimde görünen ilk istasyon
+            var prod = Stations.FirstOrDefault(s => s.IsProducing);
+            if (prod == null)
+                System.Diagnostics.Debug.WriteLine("[CYCLE] ResolveActiveStation: aktif istasyon belirlenemedi " +
+                    $"(TargetSliderStation={tss}, KL100_HEDEF='{hedefVar?.Value}', AKTUEL_ISTASYON='{av?.Value}', üretimde istasyon yok) → IS_BASLADI/ISLEM_BITTI yok sayıldı.");
+            return prod;
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -2724,6 +2742,7 @@ namespace App4
         /// <summary>Çalışan istasyonların canlı kronometresini günceller (timer'dan periyodik çağrılır).</summary>
         private void UpdateCycleTimers()
         {
+            PollCycleSignals(); // güvenlik ağı: ortak IS_BASLADI/ISLEM_BITTI'yi aktif istasyona uygula (kaçan kenarları yakalar)
             foreach (var s in Stations)
             {
                 if (s.CycleRunning && s.CycleStartTime.HasValue)
@@ -2732,6 +2751,22 @@ namespace App4
                     s.CycleTimeText = FormatCycle(elapsed);
                 }
             }
+        }
+
+        /// <summary>Güvenlik ağı: ortak IS_BASLADI / ISLEM_BITTI değerlerini periyodik (her tick) okur ve aktif istasyona uygular.
+        /// Olay-bazlı yönlendirme aktif istasyon geç çözüldüğü için (örn. IS_BASLADI app açılmadan önce 1 olmuşsa) kaçırırsa burada yakalanır.
+        /// HandleCycle* metodları kenar-tabanlı (LastIsBasladi/LastIslemBitti) olduğundan olay yolu ile çift işlem olmaz.</summary>
+        private void PollCycleSignals()
+        {
+            var st = ResolveActiveStation();
+            if (st == null) return;
+            var isb = GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "IS_BASLADI");
+            var ibt = GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "ISLEM_BITTI");
+            bool isBasladi = IsTrue(isb?.Value);
+            bool islemBitti = IsTrue(ibt?.Value);
+            if (isBasladi && !st.LastIsBasladi) _cycleStation = st;
+            HandleCycleIsBasladi(st, isBasladi);
+            HandleCycleIslemBitti(_cycleStation ?? st, islemBitti);
         }
 
         /// <summary>Süreyi mm:ss formatına çevirir (1 saati aşarsa hh:mm:ss).</summary>

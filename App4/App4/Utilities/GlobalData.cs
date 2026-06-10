@@ -90,6 +90,20 @@ namespace App4.Utilities
         private static readonly string _safetyWarningsFilePath = Path.Combine(ConfigBaseDir, "Safety_Warnings.json");
         private static readonly string _inficonLogsFilePath = Path.Combine(ConfigBaseDir, "Inficon_Leak_Logs.json");
         private static readonly string _casingTypesFilePath = Path.Combine(ConfigBaseDir, "Casing_Types.json");
+        private static readonly string _robotStatusCodesFilePath = Path.Combine(ConfigBaseDir, "RobotStatusCodes.json");
+
+        // Robot durum kodu → mesaj referans tablosu (uygulama içinden düzenlenebilir, kalıcı)
+        public static ObservableCollection<RobotStatusCodeEntry> RobotStatusCodes { get; } = new();
+        private static readonly System.Collections.Generic.Dictionary<int, string> _robotStatusDefaults = new()
+        {
+            {0,"Bosta"}, {1,"Calisiyor"}, {2,"HATA"},
+            {10,"Gocator Bekleniyor"}, {11,"Gocator OK"}, {12,"Gocator NOK"},
+            {20,"Sniffer Bekleniyor"}, {21,"Sniffer OK"}, {22,"Sniffer NOK"},
+            {30,"Slider Hareket"}, {31,"Slider Tamam"},
+            {50,"Tabla Bekleniyor"}, {51,"Tabla OK"},
+            {60,"Diger Robot Bekleniyor"}, {61,"Diger Robot Hatasi"},
+            {62,"Robot 1 Home Bekleniyor"}, {63,"Gecersiz Istasyon No"},
+        };
 
         // ═══ OTOMASYON AYARLARI DEPOSU (UNPACKAGED-SAFE) ═══════════════════════
         // Eski: Windows.Storage.ApplicationData.Current.LocalSettings (sadece MSIX paketli)
@@ -1352,6 +1366,7 @@ namespace App4.Utilities
             LoadTablaTransferRows();
             LoadTablaReferences();
             LoadInficonLogs();
+            LoadRobotStatusCodes(); // Robot durum kodu referans tablosu (düzenlenebilir)
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
             SyncStationPosToRobots();   // İstasyon E1 pozisyonlarını robotlara yaz
@@ -1563,6 +1578,48 @@ namespace App4.Utilities
         // --- INFICON KAÇAK LOG KAYIT ---
         public static void SaveInficonLogs() { try { string json = System.Text.Json.JsonSerializer.Serialize(InficonLeakLogs, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_inficonLogsFilePath, json); } catch { } }
         public static void LoadInficonLogs() { try { if (File.Exists(_inficonLogsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<App4.Models.InficonLeakLogEntry>>(File.ReadAllText(_inficonLogsFilePath)); if (list != null) { InficonLeakLogs.Clear(); foreach (var item in list) InficonLeakLogs.Add(item); } } } catch { } }
+
+        // ═══ ROBOT DURUM KODU REFERANS TABLOSU (düzenlenebilir) ═══
+        /// <summary>Varsayılanları taban alır, RobotStatusCodes.json'daki mesajları üzerine yazar, dosyaya özel kodları ekler.</summary>
+        public static void LoadRobotStatusCodes()
+        {
+            try
+            {
+                var merged = new SortedDictionary<int, string>(_robotStatusDefaults);
+                if (File.Exists(_robotStatusCodesFilePath))
+                {
+                    var loaded = System.Text.Json.JsonSerializer.Deserialize<Dictionary<int, string>>(File.ReadAllText(_robotStatusCodesFilePath));
+                    if (loaded != null) foreach (var kv in loaded) merged[kv.Key] = kv.Value;
+                }
+                RobotStatusCodes.Clear();
+                foreach (var kv in merged) RobotStatusCodes.Add(new RobotStatusCodeEntry { Code = kv.Key, Message = kv.Value });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ROBOT_STATUS] yükleme hatası: {ex.Message}");
+                if (RobotStatusCodes.Count == 0)
+                    foreach (var kv in _robotStatusDefaults) RobotStatusCodes.Add(new RobotStatusCodeEntry { Code = kv.Key, Message = kv.Value });
+            }
+        }
+
+        public static void SaveRobotStatusCodes()
+        {
+            try
+            {
+                var dict = new SortedDictionary<int, string>();
+                foreach (var e in RobotStatusCodes) if (e != null) dict[e.Code] = e.Message ?? "";
+                Directory.CreateDirectory(Path.GetDirectoryName(_robotStatusCodesFilePath));
+                File.WriteAllText(_robotStatusCodesFilePath, System.Text.Json.JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ROBOT_STATUS] kayıt hatası: {ex.Message}"); }
+        }
+
+        /// <summary>Robot durum kodunun mesajını döner (tablodan); yoksa "Kod:N".</summary>
+        public static string GetRobotStatusMessage(int code)
+        {
+            foreach (var e in RobotStatusCodes) if (e != null && e.Code == code) return e.Message;
+            return $"Kod:{code}";
+        }
 
         public static void SaveMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_measurementsFilePath, json); } catch { } }
         private static void LoadMeasurements() { try { if (File.Exists(_measurementsFilePath)) { var list = System.Text.Json.JsonSerializer.Deserialize<List<GocatorMeasurement>>(File.ReadAllText(_measurementsFilePath)); if (list != null) { LastMeasurements.Clear(); foreach (var item in list) LastMeasurements.Add(item); } } } catch { } }

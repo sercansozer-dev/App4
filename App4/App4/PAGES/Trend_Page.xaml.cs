@@ -351,6 +351,28 @@ namespace App4.PAGES
             }
         }
 
+        // ─── TEK KAYIT SİL (yanlış/manuel veriyi temizle) ───
+        private async void DeleteTrendRecord_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.Tag is not TrendRecord record) return;
+            var dialog = new ContentDialog
+            {
+                Title = "Kaydı Sil",
+                Content = $"Bu kayıt silinecek:\n\n{record.DateStr} {record.TimeStr}  ·  {record.StationName}\nRFID: {record.RfidTag}  ·  {record.OverallResult}  ·  {record.CycleTime:F1} sn\n\nEmin misiniz?",
+                PrimaryButtonText = "Sil",
+                CloseButtonText = "İptal",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot,
+                RequestedTheme = ElementTheme.Dark
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                bool ok = _trendService.DeleteRecord(record);
+                RefreshData();
+                if (TxtStatusInfo != null) TxtStatusInfo.Text = ok ? "✅ Kayıt silindi." : "⚠ Kayıt silinemedi.";
+            }
+        }
+
         // ─── CSV DIŞA AKTAR ───
         private async void BtnExport_Click(object sender, RoutedEventArgs e)
         {
