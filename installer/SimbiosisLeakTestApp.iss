@@ -16,7 +16,7 @@
 #define AppPublisher    "Simbiosis Mekatronik"
 #define AppURL          "https://simbiosismekatronik.com"
 #define AppExeName      "SimbiosisLeakTestApp.exe"
-#define AppVersion "1.0.11"
+#define AppVersion "1.0.12"
 #define AppId           "{{8B4F8A2E-5C1B-4A3D-9E7F-2F6A1D3B8C9A}"
 
 ; Projenin kÃ¶k dizini (bu .iss dosyasÄ±nÄ±n olduÄŸu klasÃ¶rÃ¼n Ã¼stÃ¼)

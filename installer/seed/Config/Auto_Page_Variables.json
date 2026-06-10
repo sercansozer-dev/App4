@@ -310,7 +310,7 @@
       "name": "AKTUEL_KLIMA_INDEX",
       "plcTag": "R1:G_KLIMA_TIP",
       "plcTag2": "R2:G_KLIMA_TIP",
-      "value": "21",
+      "value": "29",
       "type": "WORD",
       "direction": "Output"
     },
@@ -318,7 +318,7 @@
       "name": "AKTUEL_RFID",
       "plcTag": null,
       "plcTag2": null,
-      "value": "RXM50A5V1B8",
+      "value": "RZAG35B5V1B",
       "type": "STRING",
       "direction": "Output"
     },
@@ -326,7 +326,7 @@
       "name": "SNIFFER_OLCUM_SURE",
       "plcTag": null,
       "plcTag2": null,
-      "value": "5000",
+      "value": "0",
       "type": "REAL",
       "direction": "Output"
     },
@@ -494,7 +494,7 @@
       "name": "AKTUEL_CASE_ID",
       "plcTag": "R1:G_CASE_ID",
       "plcTag2": "R2:G_CASE_ID",
-      "value": "2",
+      "value": "3",
       "type": "INT",
       "direction": "Output"
     },
@@ -502,7 +502,7 @@
       "name": "HEARTBEAT_OUT",
       "plcTag": "HEARTBEAT",
       "plcTag2": "HEARTBEAT",
-      "value": "0",
+      "value": "1",
       "type": "BOOL",
       "direction": "Output"
     }
@@ -560,7 +560,7 @@
       "name": "ST1_RFID_ACT",
       "plcTag": "ISTASYON1_RFID",
       "plcTag2": null,
-      "value": "RXM50A5V1B8",
+      "value": "RZAG35B5V1B",
       "type": "STRING",
       "direction": "Input"
     },
@@ -692,7 +692,7 @@
       "name": "ST2_RFID_ACT",
       "plcTag": "ISTASYON2_RFID",
       "plcTag2": null,
-      "value": "ARXF50F5V1B",
+      "value": "ARXF71A5V1B9",
       "type": "STRING",
       "direction": "Input"
     },
@@ -824,7 +824,7 @@
       "name": "ST3_RFID_ACT",
       "plcTag": "ISTASYON3_RFID",
       "plcTag2": null,
-      "value": "ARXF50F5V1B",
+      "value": "ARXF71A5V1B9",
       "type": "STRING",
       "direction": "Input"
     },
@@ -1068,7 +1068,7 @@
       "name": "G_TABLA_OLCUM_TAMAM",
       "plcTag": null,
       "plcTag2": null,
-      "value": "TRUE",
+      "value": "FALSE",
       "type": "BOOL",
       "direction": "Input"
     },
@@ -1358,7 +1358,7 @@
       "name": "G_TABLA_OLCUM_TAMAM",
       "plcTag": null,
       "plcTag2": null,
-      "value": "TRUE",
+      "value": "FALSE",
       "type": "BOOL",
       "direction": "Output"
     },

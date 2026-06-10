@@ -13,7 +13,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXM50A5V1B8",
+      "currentValue": "RZAG35B5V1B",
       "minValue": null,
       "maxValue": null
     },
@@ -26,7 +26,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "ARXF50F5V1B",
+      "currentValue": "ARXF71A5V1B9",
       "minValue": null,
       "maxValue": null
     },
@@ -39,7 +39,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "ARXF50F5V1B",
+      "currentValue": "ARXF71A5V1B9",
       "minValue": null,
       "maxValue": null
     },
@@ -52,7 +52,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": 0,
+      "currentValue": 1,
       "minValue": null,
       "maxValue": null
     },
@@ -104,7 +104,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": 0,
+      "currentValue": 1,
       "minValue": null,
       "maxValue": null
     },
@@ -236,7 +236,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "1",
+      "currentValue": 0,
       "minValue": null,
       "maxValue": null
     }
