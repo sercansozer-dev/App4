@@ -119,118 +119,6 @@
       "value": "False",
       "type": "BOOL",
       "direction": "Input"
-    },
-    {
-      "name": "INFICON1_READY",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON1_STABLE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON1_LEAK",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON1_ERROR",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON1_LEAKRATE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "0.0",
-      "type": "REAL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON1_PE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "0.0",
-      "type": "REAL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON1_FLOW",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "0.0",
-      "type": "REAL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_READY",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_STABLE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_LEAK",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_ERROR",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_LEAKRATE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "0.0",
-      "type": "REAL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_PE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "0.0",
-      "type": "REAL",
-      "direction": "Input"
-    },
-    {
-      "name": "INFICON2_FLOW",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "0.0",
-      "type": "REAL",
-      "direction": "Input"
     }
   ],
   "GeneralOutputVars": [
@@ -316,134 +204,6 @@
     },
     {
       "name": "KL100_HEDEF_GIT",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_START",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_CAL",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_CAL_ABORT",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_ZERO",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_ERRCLEAR",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_STANDBY",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_RESET",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON1_ENABLE",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_START",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_CAL",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_CAL_ABORT",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_ZERO",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_ERRCLEAR",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_STANDBY",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_RESET",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Output"
-    },
-    {
-      "name": "INFICON2_ENABLE",
       "plcTag": null,
       "plcTag2": null,
       "value": "False",
@@ -541,22 +301,6 @@
       "direction": "Input"
     },
     {
-      "name": "ST1_ISLEM_BITTI",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "ST1_IS_BASLADI",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
       "name": "ST1_RESULT_OK",
       "plcTag": null,
       "plcTag2": null,
@@ -570,22 +314,6 @@
       "plcTag2": null,
       "value": "False",
       "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "ST1_NG_NOKTALAR_R1",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "",
-      "type": "STRING",
-      "direction": "Input"
-    },
-    {
-      "name": "ST1_NG_NOKTALAR_R2",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "",
-      "type": "STRING",
       "direction": "Input"
     }
   ],
@@ -705,22 +433,6 @@
       "direction": "Input"
     },
     {
-      "name": "ST2_ISLEM_BITTI",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "ST2_IS_BASLADI",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
       "name": "ST2_RESULT_OK",
       "plcTag": null,
       "plcTag2": null,
@@ -734,22 +446,6 @@
       "plcTag2": null,
       "value": "False",
       "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "ST2_NG_NOKTALAR_R1",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "",
-      "type": "STRING",
-      "direction": "Input"
-    },
-    {
-      "name": "ST2_NG_NOKTALAR_R2",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "",
-      "type": "STRING",
       "direction": "Input"
     }
   ],
@@ -869,22 +565,6 @@
       "direction": "Input"
     },
     {
-      "name": "ST3_ISLEM_BITTI",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "ST3_IS_BASLADI",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "False",
-      "type": "BOOL",
-      "direction": "Input"
-    },
-    {
       "name": "ST3_RESULT_OK",
       "plcTag": null,
       "plcTag2": null,
@@ -898,22 +578,6 @@
       "plcTag2": null,
       "value": "False",
       "type": "BOOL",
-      "direction": "Input"
-    },
-    {
-      "name": "ST3_NG_NOKTALAR_R1",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "",
-      "type": "STRING",
-      "direction": "Input"
-    },
-    {
-      "name": "ST3_NG_NOKTALAR_R2",
-      "plcTag": null,
-      "plcTag2": null,
-      "value": "",
-      "type": "STRING",
       "direction": "Input"
     }
   ],

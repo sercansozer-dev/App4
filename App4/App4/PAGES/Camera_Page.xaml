@@ -2132,11 +2132,29 @@
                             </Grid.RowDefinitions>
 
                             <Border Grid.Row="0" Background="#252526" Padding="15,0" BorderThickness="0,1,0,1" BorderBrush="#333">
-                                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                                    <FontIcon Glyph="&#xE9D5;" Foreground="#00FF88" FontSize="16"/>
-                                    <TextBlock Text="REÇETE YÖNETİMİ (KART GÖRÜNÜMÜ)" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                    <TextBlock Text="Klima tipleri ve işlem adımları." FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="15,0,0,0"/>
-                                </StackPanel>
+                                <Grid VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                        <FontIcon Glyph="&#xE9D5;" Foreground="#00FF88" FontSize="16"/>
+                                        <TextBlock Text="REÇETE YÖNETİMİ (KART GÖRÜNÜMÜ)" FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Text="Klima tipleri ve işlem adımları." FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                        <Button Click="BtnExportRecipes_Click" Background="#1B3A2A" BorderBrush="#00FF88" BorderThickness="1" Padding="10,5"
+                                                ToolTipService.ToolTip="Tüm reçeteleri JSON dosyasına dışa aktar">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE898;" FontSize="13" Foreground="#00FF88"/>
+                                                <TextBlock Text="Dışa Aktar" FontSize="11" Foreground="White"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Click="BtnImportRecipes_Click" Background="#1A2A3A" BorderBrush="#00A4EF" BorderThickness="1" Padding="10,5"
+                                                ToolTipService.ToolTip="JSON dosyasından reçeteleri içe aktar (mevcutlar değişir)">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE896;" FontSize="13" Foreground="#00A4EF"/>
+                                                <TextBlock Text="İçe Aktar" FontSize="11" Foreground="White"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
                             </Border>
 
                             <GridView Grid.Row="1" Padding="10" 

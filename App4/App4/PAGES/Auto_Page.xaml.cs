@@ -1519,7 +1519,10 @@ namespace App4
         }
 
         // PC tarafından yönetilen bridge değişkenler (PLC'den geri okuma yapılmaz, sadece yazılır)
-        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX", "SNIFFER_OLCUM_SURE", "NOKTA_SAPMA_LIMIT" };
+        // PC tarafından yönetilen (PC→PLC sadece-yaz) değişkenler. Bunlar için PLC'den geri-okuma
+        // senkronu KURULMAZ — aksi halde blok-okuma değeri ezer. HEARTBEAT_OUT toggle'ı bu yüzden burada:
+        // PLC'den M5178 geri okunup 0/1 toggle'ı ezilmesin (sinyal çakışması fix).
+        private static readonly HashSet<string> _pcManagedVars = new() { "AKTUEL_RFID", "AKTUEL_KLIMA_INDEX", "SNIFFER_OLCUM_SURE", "NOKTA_SAPMA_LIMIT", "HEARTBEAT_OUT" };
 
         /// <summary>
         /// Tag adına göre PlcVariable'ı bulur.
@@ -1557,11 +1560,16 @@ namespace App4
 
             if (sourceRealVar != null)
             {
-                bool isPcManaged = _pcManagedVars.Contains(localVar.Name);
+                // PC-managed = sadece-yaz (PLC'den geri-okuma köprüsü KURULMAZ).
+                // Çıkış (Output) yönlü HER değişken buna dahildir: PC çıkışın sahibidir,
+                // PLC'den geri okuyup ezmek toggle/komut değerini bozar (sinyal çakışması fix).
+                bool isPcManaged = _pcManagedVars.Contains(localVar.Name)
+                    || string.Equals(localVar.Direction, "Output", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(sourceRealVar.Direction, "Output", StringComparison.OrdinalIgnoreCase);
 
                 if (!isPcManaged)
                 {
-                    // Normal değişken: PLC'den oku (initial sync + polling)
+                    // Normal (INPUT) değişken: PLC'den oku (initial sync + polling)
                     localVar.Value = sourceRealVar.CurrentValue?.ToString();
                     sourceRealVar.PropertyChanged += (s, e) => { if (e.PropertyName == "CurrentValue") this.DispatcherQueue.TryEnqueue(() => localVar.Value = sourceRealVar.CurrentValue?.ToString()); };
                 }
@@ -2468,13 +2476,27 @@ namespace App4
             });
         }
 
-        private void UpdateStationStatus(string n, string v) { foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
+        private void UpdateStationStatus(string n, string v) {
+            // ═══ ORTAK ÇEVRİM SİNYALLERİ (per-station DEĞİL, tek tag → aktüel istasyona yönlenir) ═══
+            if (n == "IS_BASLADI")  { var st = ResolveActiveStation(); if (st != null) { _cycleStation = st; HandleCycleIsBasladi(st, IsTrue(v)); } return; }
+            if (n == "ISLEM_BITTI") { var st = _cycleStation ?? ResolveActiveStation(); if (st != null) HandleCycleIslemBitti(st, IsTrue(v)); return; }
+            foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
-                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v;
-                else if (s.IsBasladiTag == n) HandleCycleIsBasladi(s, IsTrue(v));
-                else if (s.IslemBittiTag == n) HandleCycleIslemBitti(s, IsTrue(v)); } }
+                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
         private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
+
+        // Ortak IS_BASLADI ile başlayan aktif çevrim istasyonu (ISLEM_BITTI'de aynı istasyonu kullanmak için latch)
+        private StationViewModel _cycleStation;
+
+        /// <summary>Ortak çevrim sinyalleri için aktif istasyonu AKTUEL_ISTASYON üzerinden çözer. Yedek: üretimdeki ilk istasyon.</summary>
+        private StationViewModel ResolveActiveStation()
+        {
+            var av = GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == "AKTUEL_ISTASYON");
+            if (int.TryParse(av?.Value?.Trim(), out int no) && no >= 1 && no <= Stations.Count)
+                return Stations[no - 1];
+            return Stations.FirstOrDefault(s => s.IsProducing);
+        }
 
         // ═══════════════════════════════════════════════════════════════════════
         // CYCLE TIME (ÇEVRİM SÜRESİ) — IS_BASLADI başlatır, ISLEM_BITTI durdurur
@@ -2532,6 +2554,11 @@ namespace App4
                 bool ng = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
                 string result = ng ? "NOK" : "OK";
 
+                // ═══ KAÇAK (NG) NOKTALAR — Robot 1/2 için AYRI int array, ORTAK değişkenden (sistem geneli) ═══
+                var gen = GlobalData.GeneralInputVars;
+                var ngR1 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
+                var ngR2 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
+
                 // Ürün/RFID bilgisi (aktif kartta okunan RFID → reçete adı)
                 string rfid = s.CurrentRfid ?? "";
                 var recipe = GlobalData.KnownRfids.FirstOrDefault(
@@ -2548,6 +2575,9 @@ namespace App4
                     KlimaId = recipe?.IndexDisplay ?? 0,
                     CycleTime = Math.Round(elapsed.TotalSeconds, 1),
                     OverallResult = result,
+                    NgPointsR1 = ngR1,
+                    NgPointsR2 = ngR2,
+                    NokCount = ngR1.Count + ngR2.Count,
                     // ═══ TABLA KAÇIKLIK (üründe tespit edilen offset değerleri) ═══
                     OffsetX = ParseOffset(s.TablaOffsetX),
                     OffsetY = ParseOffset(s.TablaOffsetY),
@@ -2564,6 +2594,24 @@ namespace App4
             {
                 System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı hatası: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// PLC'den gelen NG nokta listesini parse eder. Desteklenen formatlar:
+        /// "3,7,12" / "3;7;12" / "3 7 12" — virgül, noktalı virgül veya boşluk ayraçlı.
+        /// PLC int array'i bu şekilde bir string register'a yazarsa burada okunur.
+        /// </summary>
+        private static System.Collections.Generic.List<int> ParseNgPoints(string v)
+        {
+            var list = new System.Collections.Generic.List<int>();
+            if (string.IsNullOrWhiteSpace(v)) return list;
+            var parts = v.Split(new[] { ',', ';', ' ', '\t', '|' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var p in parts)
+            {
+                if (int.TryParse(p.Trim(), out int n) && n > 0 && !list.Contains(n))
+                    list.Add(n);
+            }
+            return list;
         }
 
         /// <summary>Tabla kaçıklık string değerini (örn. "1.234" veya "1,234") double'a çevirir.</summary>

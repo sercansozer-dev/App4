@@ -115,6 +115,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Background="#1A1A2E" CornerRadius="8" Padding="14,10" Margin="4">
@@ -177,6 +178,35 @@
                         <TextBlock Text="mm sapma" FontSize="10" Foreground="#666"/>
                     </StackPanel>
                 </Border>
+
+                <!-- ÜRÜN ÇEŞİDİ — filtrelenen gruptaki ürün tipi sayısı + tıklayınca kırılım -->
+                <Border Grid.Column="6" Background="#241A2E" CornerRadius="8" Padding="14,10" Margin="4"
+                        Tapped="ProductCard_Tapped" ToolTipService.ToolTip="Ürün kırılımını göster">
+                    <FlyoutBase.AttachedFlyout>
+                        <Flyout>
+                            <ScrollViewer MaxHeight="460">
+                                <StackPanel MinWidth="400" Spacing="6">
+                                    <TextBlock Text="RFID BAZINDA RAPOR (filtrelenen gruba göre)" FontSize="11" FontWeight="Bold" Foreground="#BA68C8"/>
+                                    <StackPanel x:Name="ProductBreakdownPanel" Spacing="2"/>
+                                    <Border Height="1" Background="#333" Margin="0,4"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE7BA;" FontSize="13" Foreground="#E74C3C"/>
+                                        <TextBlock Text="EN SIK KAÇAK NOKTALAR" FontSize="11" FontWeight="Bold" Foreground="#E74C3C" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel x:Name="TopNgPointsPanel" Spacing="2"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Flyout>
+                    </FlyoutBase.AttachedFlyout>
+                    <StackPanel>
+                        <TextBlock Text="RFID ÇEŞİDİ" FontSize="9" Foreground="#BA68C8" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock x:Name="StatProductCount" Text="0" FontSize="26" FontWeight="Bold" Foreground="#BA68C8"/>
+                            <TextBlock Text="adet" FontSize="12" Foreground="#BA68C8" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        </StackPanel>
+                        <TextBlock Text="tıkla → RFID raporu" FontSize="10" Foreground="#666"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
@@ -191,6 +221,7 @@
                 <Border Grid.Row="0" Background="#1E1E1E" CornerRadius="10,10,0,0" Padding="12,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="45"/>
                             <ColumnDefinition Width="130"/>
                             <ColumnDefinition Width="70"/>
                             <ColumnDefinition Width="100"/>
@@ -205,19 +236,20 @@
                             <ColumnDefinition Width="80"/>
                             <ColumnDefinition Width="70"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="TARIH / SAAT" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="1" Text="SONUC" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="2" Text="ISTASYON" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="3" Text="RFID" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="4" Text="URUN" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="5" Text="OK" FontSize="10" Foreground="#4CAF50" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="6" Text="NOK" FontSize="10" Foreground="#E74C3C" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="7" Text="BASARI" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="8" Text="OFS X" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="9" Text="OFS Y" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="10" Text="OFS Z" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="11" Text="SURE" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
-                        <TextBlock Grid.Column="12" Text="DETAY" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="#" FontSize="10" Foreground="#E67E22" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="TARIH / SAAT" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="2" Text="SONUC" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="3" Text="ISTASYON" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="4" Text="RFID" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="5" Text="URUN" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="6" Text="OK" FontSize="10" Foreground="#4CAF50" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="7" Text="NOK" FontSize="10" Foreground="#E74C3C" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="8" Text="BASARI" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="9" Text="OFS X" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="10" Text="OFS Y" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="11" Text="OFS Z" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="12" Text="SURE" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
+                        <TextBlock Grid.Column="13" Text="DETAY" FontSize="10" Foreground="Gray" FontWeight="Bold" HorizontalTextAlignment="Center"/>
                     </Grid>
                 </Border>
 
@@ -235,6 +267,7 @@
                         <DataTemplate>
                             <Grid Padding="12,6" Background="Transparent">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="45"/>
                                     <ColumnDefinition Width="130"/>
                                     <ColumnDefinition Width="70"/>
                                     <ColumnDefinition Width="100"/>
@@ -250,28 +283,64 @@
                                     <ColumnDefinition Width="70"/>
                                 </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="0">
+                                <TextBlock Grid.Column="0" Text="{Binding SiraNo}" FontSize="12" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+
+                                <StackPanel Grid.Column="1">
                                     <TextBlock Text="{Binding DateStr}" FontSize="11" Foreground="White"/>
                                     <TextBlock Text="{Binding TimeStr}" FontSize="10" Foreground="Gray"/>
                                 </StackPanel>
 
-                                <Border Grid.Column="1" CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                <Border Grid.Column="2" CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center"
                                         Background="{Binding OverallResult, Converter={StaticResource ResultBgConverter}}">
                                     <TextBlock Text="{Binding OverallResult}" FontSize="11" FontWeight="Bold"
                                                Foreground="{Binding OverallResult, Converter={StaticResource ResultFgConverter}}"/>
                                 </Border>
 
-                                <TextBlock Grid.Column="2" Text="{Binding StationName}" FontSize="11" Foreground="White" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="3" Text="{Binding RfidTag}" FontSize="11" Foreground="#00A4EF" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="4" Text="{Binding ProductName}" FontSize="11" Foreground="White" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Column="5" Text="{Binding OkCount}" FontSize="11" Foreground="#4CAF50" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <TextBlock Grid.Column="6" Text="{Binding NokCount}" FontSize="11" Foreground="#E74C3C" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <TextBlock Grid.Column="7" Text="{Binding SuccessRate}" FontSize="11" Foreground="White" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <TextBlock Grid.Column="8" Text="{Binding OffsetX}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <TextBlock Grid.Column="9" Text="{Binding OffsetY}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <TextBlock Grid.Column="10" Text="{Binding OffsetZ}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <TextBlock Grid.Column="11" Text="{Binding CycleTime}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
-                                <FontIcon Grid.Column="12" Glyph="&#xE76C;" FontSize="12" Foreground="Gray" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="{Binding StationName}" FontSize="11" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="{Binding RfidTag}" FontSize="11" Foreground="#00A4EF" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="{Binding ProductName}" FontSize="11" Foreground="White" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="6" Text="{Binding OkCount}" FontSize="11" Foreground="#4CAF50" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+                                <Grid Grid.Column="7" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <!-- OK ürün: düz sayı -->
+                                    <TextBlock Text="{Binding NokCount}" Visibility="{Binding NokTextVisibility}" FontSize="11" Foreground="#E74C3C" HorizontalTextAlignment="Center"/>
+                                    <!-- NG ürün: tıklanınca kaçak noktaları popup'ı -->
+                                    <Button Visibility="{Binding NgButtonVisibility}" Background="#3A1212" BorderBrush="#E74C3C" BorderThickness="1"
+                                            CornerRadius="4" Padding="6,1" MinWidth="0" MinHeight="0"
+                                            ToolTipService.ToolTip="Kaçak tespit noktalarını göster">
+                                        <TextBlock Text="{Binding NgPointsCountText}" FontSize="10" FontWeight="Bold" Foreground="#E74C3C"/>
+                                        <Button.Flyout>
+                                            <Flyout>
+                                                <StackPanel MinWidth="200" Spacing="8">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <FontIcon Glyph="&#xE7BA;" FontSize="14" Foreground="#E74C3C"/>
+                                                        <TextBlock Text="KAÇAK TESPİT NOKTALARI" FontSize="11" FontWeight="Bold" Foreground="#E74C3C" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <!-- ROBOT 1 -->
+                                                    <StackPanel Spacing="3">
+                                                        <TextBlock Text="ROBOT 1" FontSize="10" FontWeight="Bold" Foreground="#00A4EF"/>
+                                                        <Border Background="#101A2A" CornerRadius="4" Padding="10,6" BorderBrush="#00A4EF" BorderThickness="1">
+                                                            <TextBlock Text="{Binding NgPointsR1Text}" FontSize="14" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <!-- ROBOT 2 -->
+                                                    <StackPanel Spacing="3">
+                                                        <TextBlock Text="ROBOT 2" FontSize="10" FontWeight="Bold" Foreground="#FF9800"/>
+                                                        <Border Background="#2A1F10" CornerRadius="4" Padding="10,6" BorderBrush="#FF9800" BorderThickness="1">
+                                                            <TextBlock Text="{Binding NgPointsR2Text}" FontSize="14" FontWeight="Bold" Foreground="White" TextWrapping="Wrap"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="NG olarak işaretlenen nokta numaraları" FontSize="9" Foreground="Gray"/>
+                                                </StackPanel>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Grid.Column="8" Text="{Binding SuccessRate}" FontSize="11" Foreground="White" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+                                <TextBlock Grid.Column="9" Text="{Binding OffsetX}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+                                <TextBlock Grid.Column="10" Text="{Binding OffsetY}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+                                <TextBlock Grid.Column="11" Text="{Binding OffsetZ}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+                                <TextBlock Grid.Column="12" Text="{Binding CycleTime}" FontSize="10" Foreground="Gray" VerticalAlignment="Center" HorizontalTextAlignment="Center"/>
+                                <FontIcon Grid.Column="13" Glyph="&#xE76C;" FontSize="12" Foreground="Gray" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

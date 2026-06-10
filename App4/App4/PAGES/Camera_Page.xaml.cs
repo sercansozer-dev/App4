@@ -2376,6 +2376,93 @@ namespace App4.PAGES
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════
+        // REÇETE DIŞA / İÇE AKTARMA (KnownRfids → JSON dosyası)
+        // ═══════════════════════════════════════════════════════════════════
+        private async void BtnExportRecipes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileSavePicker();
+                picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop;
+                picker.FileTypeChoices.Add("JSON Dosyası", new List<string> { ".json" });
+                picker.SuggestedFileName = $"Receteler_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+                var window = (Application.Current as App)?.MainWindow;
+                if (window != null)
+                    WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+
+                var file = await picker.PickSaveFileAsync();
+                if (file == null) return;
+
+                await Windows.Storage.FileIO.WriteTextAsync(file, GlobalData.ExportRfidsToJson());
+
+                int n = GlobalData.KnownRfids.Count;
+                AddLog($"✅ {n} reçete dışa aktarıldı → {file.Path}");
+                await new ContentDialog
+                {
+                    Title = "Dışa Aktarma Başarılı",
+                    Content = $"Toplam {n} reçete dışa aktarıldı.\n\nDosya: {file.Path}",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.XamlRoot
+                }.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ Reçete dışa aktarma hatası: {ex.Message}");
+            }
+        }
+
+        private async void BtnImportRecipes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileOpenPicker();
+                picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop;
+                picker.FileTypeFilter.Add(".json");
+
+                var window = (Application.Current as App)?.MainWindow;
+                if (window != null)
+                    WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+
+                var file = await picker.PickSingleFileAsync();
+                if (file == null) return;
+
+                string json = await Windows.Storage.FileIO.ReadTextAsync(file);
+
+                var confirm = new ContentDialog
+                {
+                    Title = "İçe Aktarma Onayı",
+                    Content = $"'{file.Name}' dosyasındaki reçeteler yüklenecek.\n\n⚠ Mevcut TÜM reçeteler bu dosyadakilerle DEĞİŞTİRİLECEK.\n\nDevam edilsin mi?",
+                    PrimaryButtonText = "Evet, İçe Aktar",
+                    CloseButtonText = "İptal",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+                if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+
+                int count = GlobalData.ImportRfidsFromJson(json);
+                if (count <= 0)
+                {
+                    await new ContentDialog { Title = "İçe Aktarma", Content = "Dosyada geçerli reçete bulunamadı.", CloseButtonText = "Tamam", XamlRoot = this.XamlRoot }.ShowAsync();
+                    return;
+                }
+
+                AddLog($"✅ {count} reçete içe aktarıldı ← {file.Name}");
+                await new ContentDialog
+                {
+                    Title = "İçe Aktarma Başarılı",
+                    Content = $"Toplam {count} reçete yüklendi ve kaydedildi.",
+                    CloseButtonText = "Tamam",
+                    XamlRoot = this.XamlRoot
+                }.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                AddLog($"❌ Reçete içe aktarma hatası: {ex.Message}");
+            }
+        }
+
         // 6. PC'DEN JOB YÜKLEME (UPLOAD)
         private async void BtnUploadNewJob_Click(object sender, RoutedEventArgs e)
         {

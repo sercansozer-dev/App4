@@ -92,16 +92,26 @@ namespace App4.PAGES
                 if (CmbStation.SelectedItem is ComboBoxItem stItem && stItem.Tag is string tagStr && int.TryParse(tagStr, out int stNo) && stNo > 0)
                     stationFilter = stNo;
 
-                // Sonuç filtresi
+                // Sonuç filtresi — SADECE "OK" veya "NOK" seçilince filtrele.
+                // "Tumu" (hepsi) seçiliyse null bırak (eskiden "Tumu" stringi filtreye gidip
+                //  GetRecords'taki "Tümü" kontrolüyle uyuşmadığı için TÜM kayıtları eliyordu).
                 string resultFilter = null;
                 if (CmbResult.SelectedItem is ComboBoxItem resItem)
-                    resultFilter = resItem.Content?.ToString();
+                {
+                    string rc = resItem.Content?.ToString();
+                    if (rc == "OK" || rc == "NOK") resultFilter = rc;
+                }
 
                 // RFID filtresi
                 string rfidFilter = string.IsNullOrWhiteSpace(TxtRfidFilter.Text) ? null : TxtRfidFilter.Text.Trim();
 
-                // Verileri çek
+                // Verileri çek (zaten tarihe göre AZALAN sıralı — en yeni en üstte)
                 _currentRecords = _trendService.GetRecords(startDate, endDate, stationFilter, rfidFilter, resultFilter);
+
+                // SIRA NO: en üstteki (en son işlenen ürün) en büyük numara, aşağı doğru azalır
+                int _total = _currentRecords.Count;
+                for (int _i = 0; _i < _total; _i++)
+                    _currentRecords[_i].SiraNo = _total - _i;
 
                 // ListView güncelle
                 TrendListView.ItemsSource = _currentRecords;
@@ -147,6 +157,132 @@ namespace App4.PAGES
             StatOffsetX.Text = $"X:{stats.AvgOffsetX:F2}";
             StatOffsetY.Text = $"Y:{stats.AvgOffsetY:F2}";
             StatOffsetZ.Text = $"Z:{stats.AvgOffsetZ:F2}";
+
+            // ─── ÜRÜN ÇEŞİTLİLİĞİ (filtrelenen gruptaki ürün tipleri) ───
+            UpdateProductBreakdown();
+        }
+
+        /// <summary>Filtrelenen kayıtlarda ürün tipi başına Adet / OK / NOK / Ort.Süre / NG detayı.</summary>
+        private void UpdateProductBreakdown()
+        {
+            if (ProductBreakdownPanel == null) return;
+
+            var groups = _currentRecords
+                .GroupBy(r => string.IsNullOrWhiteSpace(r.RfidTag) ? "Tanımsız" : r.RfidTag)
+                .Select(g => new
+                {
+                    Urun = g.Key,
+                    Toplam = g.Count(),
+                    Ok = g.Count(x => x.OverallResult == "OK"),
+                    Nok = g.Count(x => x.OverallResult == "NOK"),
+                    OrtSure = g.Average(x => x.CycleTime),
+                    NgNokta = g.Sum(x => (x.NgPointsR1?.Count ?? 0) + (x.NgPointsR2?.Count ?? 0))
+                })
+                .OrderByDescending(x => x.Toplam)
+                .ToList();
+
+            StatProductCount.Text = groups.Count.ToString();
+            UpdateTopNgPoints();
+            ProductBreakdownPanel.Children.Clear();
+
+            if (groups.Count == 0)
+            {
+                ProductBreakdownPanel.Children.Add(new TextBlock { Text = "Kayıt yok", FontSize = 11, Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+                return;
+            }
+
+            var gray = new SolidColorBrush(Microsoft.UI.Colors.Gray);
+            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
+            var green = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x4C, 0xAF, 0x50));
+            var red = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE7, 0x4C, 0x3C));
+            var blue = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x00, 0xA4, 0xEF));
+            var orange = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xF3, 0x9C, 0x12));
+            var bold = Microsoft.UI.Text.FontWeights.Bold;
+            var norm = Microsoft.UI.Text.FontWeights.Normal;
+            double[] W = { 0, 42, 34, 34, 54, 38 }; // 0 = esnek (ürün adı)
+
+            Grid MakeRow(string[] vals, Microsoft.UI.Xaml.Media.Brush[] brushes, bool header)
+            {
+                var g = new Grid { Margin = new Thickness(0, header ? 0 : 1, 0, header ? 3 : 1) };
+                for (int i = 0; i < 6; i++)
+                    g.ColumnDefinitions.Add(new ColumnDefinition { Width = W[i] == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(W[i]) });
+                for (int i = 0; i < 6; i++)
+                {
+                    var tb = new TextBlock
+                    {
+                        Text = vals[i],
+                        FontSize = header ? 9 : 11,
+                        Foreground = header ? gray : brushes[i],
+                        FontWeight = (header || i == 1) ? bold : norm,
+                        HorizontalTextAlignment = i == 0 ? TextAlignment.Left : TextAlignment.Center,
+                        TextTrimming = TextTrimming.CharacterEllipsis
+                    };
+                    Grid.SetColumn(tb, i);
+                    g.Children.Add(tb);
+                }
+                return g;
+            }
+
+            var hb = new[] { gray, gray, gray, gray, gray, gray };
+            ProductBreakdownPanel.Children.Add(MakeRow(new[] { "RFID", "ADET", "OK", "NOK", "SÜRE", "NG" }, hb, true));
+            var rb = new[] { white, white, green, red, blue, orange };
+            foreach (var g in groups)
+                ProductBreakdownPanel.Children.Add(MakeRow(
+                    new[] { g.Urun, g.Toplam.ToString(), g.Ok.ToString(), g.Nok.ToString(), g.OrtSure.ToString("F0") + "sn", g.NgNokta.ToString() },
+                    rb, false));
+        }
+
+        /// <summary>Filtrelenen kayıtlarda en sık NG tespit edilen nokta numaraları (R1+R2 birleşik, frekansa göre).</summary>
+        private void UpdateTopNgPoints()
+        {
+            if (TopNgPointsPanel == null) return;
+            TopNgPointsPanel.Children.Clear();
+
+            var freq = _currentRecords
+                .SelectMany(r => (r.NgPointsR1 ?? new List<int>()).Concat(r.NgPointsR2 ?? new List<int>()))
+                .GroupBy(p => p)
+                .Select(g => new { Nokta = g.Key, Adet = g.Count() })
+                .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta)
+                .Take(8)
+                .ToList();
+
+            if (freq.Count == 0)
+            {
+                TopNgPointsPanel.Children.Add(new TextBlock { Text = "Kaçak nokta yok", FontSize = 11, Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
+                return;
+            }
+
+            int max = freq.Max(x => x.Adet);
+            var red = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE7, 0x4C, 0x3C));
+            var redBg = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x3A, 0x12, 0x12));
+            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
+
+            foreach (var f in freq)
+            {
+                var row = new Grid();
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(66) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
+
+                var lbl = new TextBlock { Text = $"Nokta {f.Nokta}", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = white, VerticalAlignment = VerticalAlignment.Center };
+
+                var barHost = new Grid { Margin = new Thickness(4, 0, 4, 0) };
+                var barBg = new Border { Background = redBg, CornerRadius = new CornerRadius(3), Height = 14, HorizontalAlignment = HorizontalAlignment.Stretch };
+                var bar = new Border { Background = red, CornerRadius = new CornerRadius(3), Height = 14, HorizontalAlignment = HorizontalAlignment.Left, Width = Math.Max(8, 240.0 * f.Adet / max) };
+                barHost.Children.Add(barBg); barHost.Children.Add(bar);
+
+                var cnt = new TextBlock { Text = $"{f.Adet}x", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = red, HorizontalTextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+
+                Grid.SetColumn(barHost, 1); Grid.SetColumn(cnt, 2);
+                row.Children.Add(lbl); row.Children.Add(barHost); row.Children.Add(cnt);
+                TopNgPointsPanel.Children.Add(row);
+            }
+        }
+
+        private void ProductCard_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe)
+                Microsoft.UI.Xaml.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(fe);
         }
 
         // ─── FİLTRE DEĞİŞİKLİKLERİ ───

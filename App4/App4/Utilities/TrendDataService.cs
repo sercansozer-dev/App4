@@ -39,10 +39,19 @@ namespace App4.Utilities
         public int NokCount { get; set; }           // Başarısız sayısı
         public List<PointResult> PointResults { get; set; } = new();
 
+        // Kaçak (NG) tespit edilen nokta numaraları — PLC'den Robot 1 ve Robot 2 için AYRI int array
+        public List<int> NgPointsR1 { get; set; } = new();
+        public List<int> NgPointsR2 { get; set; } = new();
+
         // Genel Sonuç
         public string OverallResult { get; set; }   // "OK" / "NOK"
         public double CycleTime { get; set; }       // Toplam süre (sn)
         public string Notes { get; set; }           // Ek not
+
+        // Sıra No (listede gösterim için — en üstte en büyük, aşağı doğru azalır)
+        private int _siraNo;
+        [JsonIgnore]
+        public int SiraNo { get => _siraNo; set { if (_siraNo != value) { _siraNo = value; OnPropertyChanged(); } } }
 
         // Hesaplanan Alanlar
         [JsonIgnore]
@@ -53,6 +62,26 @@ namespace App4.Utilities
         public string ResultIcon => OverallResult == "OK" ? "✓" : "✗";
         [JsonIgnore]
         public string SuccessRate => TotalPoints > 0 ? $"%{(OkCount * 100.0 / TotalPoints):F0}" : "-";
+
+        // ─── KAÇAK (NG) NOKTA GÖSTERİMİ (popup için) — Robot 1 & Robot 2 ayrı ───
+        [JsonIgnore]
+        public int NgTotalCount => (NgPointsR1?.Count ?? 0) + (NgPointsR2?.Count ?? 0);
+        [JsonIgnore]
+        public bool HasNgPoints => NgTotalCount > 0;
+        [JsonIgnore]
+        public Microsoft.UI.Xaml.Visibility NgButtonVisibility =>
+            (OverallResult == "NOK") ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        [JsonIgnore]
+        public Microsoft.UI.Xaml.Visibility NokTextVisibility =>
+            (OverallResult == "NOK") ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        [JsonIgnore]
+        public string NgPointsR1Text =>
+            (NgPointsR1 != null && NgPointsR1.Count > 0) ? string.Join(", ", NgPointsR1) : "-";
+        [JsonIgnore]
+        public string NgPointsR2Text =>
+            (NgPointsR2 != null && NgPointsR2.Count > 0) ? string.Join(", ", NgPointsR2) : "-";
+        [JsonIgnore]
+        public string NgPointsCountText => $"⚠ {NgTotalCount}";
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null)
@@ -184,7 +213,7 @@ namespace App4.Utilities
                 AvgOffsetX = records.Count > 0 ? records.Average(r => r.OffsetX) : 0,
                 AvgOffsetY = records.Count > 0 ? records.Average(r => r.OffsetY) : 0,
                 AvgOffsetZ = records.Count > 0 ? records.Average(r => r.OffsetZ) : 0,
-                TotalNokPoints = records.SelectMany(r => r.PointResults).Count(p => p.Result == "NOK")
+                TotalNokPoints = records.Sum(r => (r.NgPointsR1?.Count ?? 0) + (r.NgPointsR2?.Count ?? 0))
             };
 
             // İstasyona göre NOK dağılımı

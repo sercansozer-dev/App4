@@ -1744,6 +1744,29 @@ namespace App4.Utilities
 
         public static void SaveRfids() { try { File.WriteAllText(_rfidFilePath, JsonConvert.SerializeObject(KnownRfids, Formatting.Indented)); } catch { } }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // REÇETE (RFID) DIŞA / İÇE AKTARMA
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>Tüm reçeteleri (KnownRfids) JSON string'e çevirir (dışa aktarma için).</summary>
+        public static string ExportRfidsToJson()
+            => JsonConvert.SerializeObject(KnownRfids, Formatting.Indented);
+
+        /// <summary>
+        /// JSON'dan reçeteleri yükler. Mevcut KnownRfids tamamen değiştirilir.
+        /// Index'ler yenilenir, dosyaya kaydedilir. Yüklenen reçete sayısını döner.
+        /// </summary>
+        public static int ImportRfidsFromJson(string json)
+        {
+            var list = JsonConvert.DeserializeObject<List<RfidDef>>(json);
+            if (list == null) return 0;
+            KnownRfids.Clear();
+            foreach (var item in list) KnownRfids.Add(item);
+            RefreshRfidIndexes();
+            SaveRfids();
+            return list.Count;
+        }
+
         /// <summary>PointSequence boş olan RFID kartlarına Excel'deki default noktaları seed eder</summary>
         public static void SeedDefaultPoints()
         {
@@ -1841,9 +1864,9 @@ namespace App4.Utilities
 
         private static void InitializeStations()
         {
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", IsBasladiTag = "ST1_IS_BASLADI", IslemBittiTag = "ST1_ISLEM_BITTI", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", IsBasladiTag = "ST2_IS_BASLADI", IslemBittiTag = "ST2_ISLEM_BITTI", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
-            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 3", Description = "Boş İstasyon", Mode = StationMode.Manual, StatusTag = "ST3_STATUS", AlarmTag = "ST3_ALARM", ProducingTag = "ST3_PRODUCING", ProductionCountTag = "ST3_PROD_COUNT", EfficiencyTag = "ST3_EFFICIENCY", CurrentRfidTag = "ST3_RFID_ACT", IsBasladiTag = "ST3_IS_BASLADI", IslemBittiTag = "ST3_ISLEM_BITTI", AllowedRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 1", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST1_STATUS", AlarmTag = "ST1_ALARM", ProducingTag = "ST1_PRODUCING", ProductionCountTag = "ST1_PROD_COUNT", EfficiencyTag = "ST1_EFFICIENCY", CurrentRfidTag = "ST1_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 2", Description = "Klima Dış Ünite", Mode = StationMode.Manual, StatusTag = "ST2_STATUS", AlarmTag = "ST2_ALARM", ProducingTag = "ST2_PRODUCING", ProductionCountTag = "ST2_PROD_COUNT", EfficiencyTag = "ST2_EFFICIENCY", CurrentRfidTag = "ST2_RFID_ACT", AllowedRfid = "RF123", CurrentRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
+            Stations.Add(new ExtendedStationViewModel { Name = "İSTASYON 3", Description = "Boş İstasyon", Mode = StationMode.Manual, StatusTag = "ST3_STATUS", AlarmTag = "ST3_ALARM", ProducingTag = "ST3_PRODUCING", ProductionCountTag = "ST3_PROD_COUNT", EfficiencyTag = "ST3_EFFICIENCY", CurrentRfidTag = "ST3_RFID_ACT", AllowedRfid = "RF123", RfidOpMode = RfidOperationMode.Mixed });
         }
         public static void SaveStationStates() { try { var states = Stations.Select(s => { var ext = s as ExtendedStationViewModel; return new { Name = s.Name, Mode = (int)s.Mode, RfidOpMode = ext != null ? (int)ext.RfidOpMode : 0, TargetRfid = ext != null ? ext.TargetRfid : "" }; }).ToList(); File.WriteAllText(_stationStateFilePath, System.Text.Json.JsonSerializer.Serialize(states, new JsonSerializerOptions { WriteIndented = true })); } catch { } }
         private static void LoadStationStates() { try { if (File.Exists(_stationStateFilePath)) { var savedStates = System.Text.Json.JsonSerializer.Deserialize<List<JsonElement>>(File.ReadAllText(_stationStateFilePath)); foreach (var item in savedStates) { if (item.TryGetProperty("Name", out var nameProp)) { var station = Stations.FirstOrDefault(s => s.Name == nameProp.GetString()); if (station != null) { if (item.TryGetProperty("Mode", out var modeProp)) station.Mode = (StationMode)modeProp.GetInt32(); if (station is ExtendedStationViewModel ext) { if (item.TryGetProperty("RfidOpMode", out var rfid)) ext.RfidOpMode = (RfidOperationMode)rfid.GetInt32(); if (item.TryGetProperty("TargetRfid", out var target)) ext.TargetRfid = target.GetString(); } } } } } } catch { } }
@@ -1853,7 +1876,7 @@ namespace App4.Utilities
             PlcVariable Create(string name, string type, string dir, object val) => new PlcVariable { Name = name, Type = type, Direction = dir, CurrentValue = val, IsEditable = true };
             // DÜZELTİLDİ: ST{id}_ALARM başlangıç değeri true (fail-safe: 1=normal, 0=alarm)
             // Böylece PLC bağlanmadan önce istasyonlar "alarm yok" durumunda başlar
-            void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); c.Add(Create($"ST{id}_YENI_URUN", "BOOL", "Input", false)); c.Add(Create($"ST{id}_IS_BASLADI", "BOOL", "Input", false)); c.Add(Create($"ST{id}_ISLEM_BITTI", "BOOL", "Input", false)); c.Add(Create($"ST{id}_RESULT_OK", "BOOL", "Input", false)); c.Add(Create($"ST{id}_RESULT_NG", "BOOL", "Input", false)); }
+            void AddVars(ObservableCollection<PlcVariable> c, int id) { c.Add(Create($"ST{id}_STATUS", "STRING", "Input", "Unknown")); c.Add(Create($"ST{id}_ALARM", "BOOL", "Input", true)); c.Add(Create($"ST{id}_MODE", "STRING", "Input", "Manual")); c.Add(Create($"ST{id}_PRODUCING", "BOOL", "Input", false)); c.Add(Create($"ST{id}_PROD_COUNT", "WORD", "Input", "0")); c.Add(Create($"ST{id}_EFFICIENCY", "WORD", "Input", "0")); c.Add(Create($"ST{id}_RFID_ACT", "STRING", "Input", "")); c.Add(Create($"ST{id}_YENI_URUN", "BOOL", "Input", false)); c.Add(Create($"ST{id}_RESULT_OK", "BOOL", "Input", false)); c.Add(Create($"ST{id}_RESULT_NG", "BOOL", "Input", false)); }
             void AddOutputs(ObservableCollection<PlcVariable> c, int id) { c.Add(new PlcVariable { Name = $"ST{id}_RFID_MODE", Value = "0", Description = "RFID Mod", PlcTag = $"DB10.W{(id - 1) * 20}.0" }); c.Add(new PlcVariable { Name = $"ST{id}_RFID_TARGET", Value = "", Type="STRING", Description = "Hedef RFID", PlcTag = $"DB10.S{(id - 1) * 20}.4" }); c.Add(new PlcVariable { Name = $"ST{id}_ID_MATCHED", Value = "0", Description = "ID Eşleşti", PlcTag = $"DB10.W{(id - 1) * 20}.20" }); c.Add(new PlcVariable { Name = $"ST{id}_PROCESS_RESULT", Value = "0", Description = "Sonuç", PlcTag = $"DB10.W{(id - 1) * 20}.22" }); c.Add(new PlcVariable { Name = $"ST{id}_CONVEYOR_PERM", Value = "0", Description = "Konveyör", PlcTag = $"DB10.W{(id - 1) * 20}.24" }); c.Add(new PlcVariable { Name = $"ST{id}_MODE_CMD", Value = "1", Description = "Mod Cmd", PlcTag = $"DB10.W{(id - 1) * 20}.26" }); }
             // ═══════════════════════════════════════════════════════════════════════════
             // GeneralInputVars / GeneralOutputVars: PLC ↔ PC (Robot DEĞİL)
@@ -1874,6 +1897,13 @@ namespace App4.Utilities
             // ▼▼▼ AKTÜEL İSTASYON VE KLİMA INDEX ▼▼▼
             GeneralInputVars.Add(Create("AKTUEL_ISTASYON", "WORD", "Input", "0"));           // Robotun aktüel olduğu istasyon numarası
             GeneralInputVars.Add(Create("ROBOT_HOME", "BOOL", "Input", false));              // Robot HOME pozisyonunda mı
+            // ▼▼▼ ORTAK ÇEVRİM SİNYALLERİ (tüm istasyonlar için TEK) — sinyal çakışmasını önler ▼▼▼
+            // Fiziksel olarak tek robot/proses olduğu için bu sinyaller per-station değil, ortak.
+            // Aktif istasyon AKTUEL_ISTASYON ile belirlenir; sonuç ise ST{n}_RESULT_OK/NG (istasyona özel).
+            GeneralInputVars.Add(Create("IS_BASLADI", "BOOL", "Input", false));              // Çevrim başladı (ortak) → aktüel istasyon sayacını başlatır
+            GeneralInputVars.Add(Create("ISLEM_BITTI", "BOOL", "Input", false));             // Çevrim bitti (ortak) → aktüel istasyon sayacını durdurur + üretim kaydı
+            GeneralInputVars.Add(Create("NG_NOKTALAR_R1", "STRING", "Input", ""));           // Robot 1 kaçak nokta listesi (ortak)
+            GeneralInputVars.Add(Create("NG_NOKTALAR_R2", "STRING", "Input", ""));           // Robot 2 kaçak nokta listesi (ortak)
             GeneralOutputVars.Add(Create("CMD_LINE_START", "BOOL", "Output", false));
             GeneralOutputVars.Add(Create("CMD_LINE_STOP", "BOOL", "Output", false));
             GeneralOutputVars.Add(Create("CMD_LINE_RESET", "BOOL", "Output", false));
@@ -1918,42 +1948,6 @@ namespace App4.Utilities
                 }
                 catch { }
             }
-
-            // ▼▼▼ INFICON P3000XL SNIFFER DEĞİŞKENLERİ (PLC ↔ Sniffer) ▼▼▼
-            // Inficon 1 (Robot 1) — INPUT (PLC'den okunan)
-            GeneralInputVars.Add(Create("INFICON1_READY", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON1_STABLE", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON1_LEAK", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON1_ERROR", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON1_LEAKRATE", "REAL", "Input", "0.0"));
-            GeneralInputVars.Add(Create("INFICON1_PE", "REAL", "Input", "0.0"));
-            GeneralInputVars.Add(Create("INFICON1_FLOW", "REAL", "Input", "0.0"));
-            // Inficon 1 (Robot 1) — OUTPUT (PLC'ye yazılan)
-            GeneralOutputVars.Add(Create("INFICON1_START", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_CAL", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_CAL_ABORT", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_ZERO", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_ERRCLEAR", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_STANDBY", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_RESET", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON1_ENABLE", "BOOL", "Output", false));
-            // Inficon 2 (Robot 2) — INPUT (PLC'den okunan)
-            GeneralInputVars.Add(Create("INFICON2_READY", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON2_STABLE", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON2_LEAK", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON2_ERROR", "BOOL", "Input", false));
-            GeneralInputVars.Add(Create("INFICON2_LEAKRATE", "REAL", "Input", "0.0"));
-            GeneralInputVars.Add(Create("INFICON2_PE", "REAL", "Input", "0.0"));
-            GeneralInputVars.Add(Create("INFICON2_FLOW", "REAL", "Input", "0.0"));
-            // Inficon 2 (Robot 2) — OUTPUT (PLC'ye yazılan)
-            GeneralOutputVars.Add(Create("INFICON2_START", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_CAL", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_CAL_ABORT", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_ZERO", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_ERRCLEAR", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_STANDBY", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_RESET", "BOOL", "Output", false));
-            GeneralOutputVars.Add(Create("INFICON2_ENABLE", "BOOL", "Output", false));
 
             // ▼▼▼ Temizlik: Eski dosyada kalmış RB1/RB2 robot değişkenlerini GeneralOutputVars'tan kaldır ▼▼▼
             // (Bu değişkenler artık sadece PlcService.EnsureRobotBridgeVariables'da yönetiliyor)
