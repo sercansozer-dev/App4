@@ -7,30 +7,24 @@
   "TablaOutputTag": "G_TABLA_OLCUM_TAMAM",
   "TablaOutputTag2": "G_TABLA_OLCUM_TAMAM",
   "TablaAlarmLimit": 0.5,
-
   "Robot_IpAddress": "127.0.0.1",
   "Robot_Port": 7000,
   "Robot_ReadSpeed": 100,
   "Robot_TcpTimeout": 5000,
-
   "Plc_IpAddress": "192.168.251.100",
   "Plc_Port": 5007,
   "Plc_ReadInterval": 100,
-
   "Gocator_IpAddress": "127.0.0.1",
   "Gocator_Port": 3600,
   "Gocator_RestTimeout": 30000,
-
   "KL100_R1Home": "",
   "KL100_R2Home": "",
   "SafetyAlarmR1OutputTag": "",
   "SafetyAlarmR2OutputTag": "",
-
   "TriggerMonitor_Interval": 500,
   "Inficon_RefreshInterval": 200,
   "Inficon_TrendInterval": 1000,
   "Safety_CheckInterval": 1000,
-
-  "DataSourceMode": "Gocator",
+  "DataSourceMode": "CODESYS",
   "ToolRelativeOffsets": ""
 }

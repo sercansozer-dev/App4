@@ -2,43 +2,43 @@
   {
     "Index": 1,
     "SelectedTag": "G_TABLA_OFFSET_X",
-    "Value": "-1,671",
-    "Status": "WAIT",
+    "Value": "0.306",
+    "Status": "SENT",
     "PointIndex": 0
   },
   {
     "Index": 2,
     "SelectedTag": "G_TABLA_OFFSET_Y",
-    "Value": "-1,358",
-    "Status": "WAIT",
+    "Value": "-3.087",
+    "Status": "SENT",
     "PointIndex": 0
   },
   {
     "Index": 3,
     "SelectedTag": "G_TABLA_OFFSET_Z",
-    "Value": "0,421",
-    "Status": "WAIT",
+    "Value": "1.983",
+    "Status": "SENT",
     "PointIndex": 0
   },
   {
     "Index": 4,
     "SelectedTag": "G_TABLA_OFFSET_A",
-    "Value": "0,000",
-    "Status": "WAIT",
+    "Value": "0.000",
+    "Status": "SENT",
     "PointIndex": 0
   },
   {
     "Index": 5,
     "SelectedTag": "G_TABLA_OFFSET_B",
-    "Value": "0,000",
-    "Status": "WAIT",
+    "Value": "0.000",
+    "Status": "SENT",
     "PointIndex": 0
   },
   {
     "Index": 6,
     "SelectedTag": "G_TABLA_OFFSET_C",
-    "Value": "0,000",
-    "Status": "WAIT",
+    "Value": "0.000",
+    "Status": "SENT",
     "PointIndex": 0
   }
 ]

@@ -8,9 +8,9 @@
   },
   {
     "RobotName": "ROBOT 1",
-    "PlcTag": "G_OTO_MOD",
-    "Type": "BOOL",
-    "DefaultValue": "FALSE",
+    "PlcTag": "G_CASE_ID",
+    "Type": "INT",
+    "DefaultValue": "0",
     "IsActive": true
   },
   {
@@ -18,6 +18,27 @@
     "PlcTag": "G_KLIMA_TIP",
     "Type": "INT",
     "DefaultValue": "0",
+    "IsActive": true
+  },
+  {
+    "RobotName": "ROBOT 2",
+    "PlcTag": "G_CASE_ID",
+    "Type": "INT",
+    "DefaultValue": "0",
+    "IsActive": true
+  },
+  {
+    "RobotName": "ROBOT 1",
+    "PlcTag": "G_HEDEF_NOKTA_LIMIT",
+    "Type": "REAL",
+    "DefaultValue": "0",
+    "IsActive": true
+  },
+  {
+    "RobotName": "ROBOT 1",
+    "PlcTag": "G_OTO_MOD",
+    "Type": "BOOL",
+    "DefaultValue": "FALSE",
     "IsActive": true
   },
   {

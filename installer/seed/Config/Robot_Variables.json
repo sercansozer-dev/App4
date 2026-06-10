@@ -6,84 +6,84 @@
         "name": "TCP_X",
         "type": "REAL",
         "plcTag": "$POS_ACT.X",
-        "value": "391.657928",
+        "value": "657.137085",
         "direction": "Input"
       },
       {
         "name": "TCP_Y",
         "type": "REAL",
         "plcTag": "$POS_ACT.Y",
-        "value": "375.894714",
+        "value": "171.996460",
         "direction": "Input"
       },
       {
         "name": "TCP_Z",
         "type": "REAL",
         "plcTag": "$POS_ACT.Z",
-        "value": "271.153900",
+        "value": "408.512054",
         "direction": "Input"
       },
       {
         "name": "TCP_A",
         "type": "REAL",
         "plcTag": "$POS_ACT.A",
-        "value": "-157.858261",
+        "value": "-86.3965225",
         "direction": "Input"
       },
       {
         "name": "TCP_B",
         "type": "REAL",
         "plcTag": "$POS_ACT.B",
-        "value": "66.6604767",
+        "value": "77.9421387",
         "direction": "Input"
       },
       {
         "name": "TCP_C",
         "type": "REAL",
         "plcTag": "$POS_ACT.C",
-        "value": "-153.723541",
+        "value": "-85.9686584",
         "direction": "Input"
       },
       {
         "name": "AXIS_A1",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A1",
-        "value": "-53.5949287",
+        "value": "2.28773737",
         "direction": "Input"
       },
       {
         "name": "AXIS_A2",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A2",
-        "value": "-120.169174",
+        "value": "-122.369720",
         "direction": "Input"
       },
       {
         "name": "AXIS_A3",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A3",
-        "value": "126.226875",
+        "value": "128.670303",
         "direction": "Input"
       },
       {
         "name": "AXIS_A4",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A4",
-        "value": "-15.3074636",
+        "value": "-8.19741821",
         "direction": "Input"
       },
       {
         "name": "AXIS_A5",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A5",
-        "value": "82.9411240",
+        "value": "74.0805206",
         "direction": "Input"
       },
       {
         "name": "AXIS_A6",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A6",
-        "value": "122.557693",
+        "value": "182.991852",
         "direction": "Input"
       },
       {
@@ -132,14 +132,14 @@
         "name": "OV_PRO",
         "type": "INT",
         "plcTag": "$OV_PRO",
-        "value": "100",
+        "value": "50",
         "direction": "Input"
       },
       {
         "name": "OV_JOG",
         "type": "INT",
         "plcTag": "$OV_JOG",
-        "value": "58",
+        "value": "81",
         "direction": "Input"
       },
       {
@@ -153,63 +153,63 @@
         "name": "G_HATA_VAR",
         "type": "BOOL",
         "plcTag": "G_HATA_VAR",
-        "value": "FALSE",
+        "value": "TRUE",
         "direction": "Input"
       },
       {
         "name": "G_HATA_KODU",
         "type": "INT",
         "plcTag": "G_HATA_KODU",
-        "value": "0",
+        "value": "12",
         "direction": "Input"
       },
       {
         "name": "G_ROBOT_DURUM",
         "type": "INT",
         "plcTag": "G_ROBOT_DURUM",
-        "value": "0",
+        "value": "51",
         "direction": "Input"
       },
       {
         "name": "G_AKTIF_NOKTA",
         "type": "INT",
         "plcTag": "G_AKTIF_NOKTA",
-        "value": "0",
+        "value": "2",
         "direction": "Input"
       },
       {
         "name": "G_JOB_INDEX",
         "type": "INT",
         "plcTag": "G_JOB_INDEX",
-        "value": "1",
+        "value": "0",
         "direction": "Input"
       },
       {
         "name": "G_DURUM_MESAJ",
         "type": "INT",
         "plcTag": "G_DURUM_MESAJ",
-        "value": "70",
+        "value": "3800",
         "direction": "Input"
       },
       {
         "name": "G_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_OFFSET_X",
-        "value": "255.846",
+        "value": "184.732",
         "direction": "Input"
       },
       {
         "name": "G_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_OFFSET_Y",
-        "value": "334.643",
+        "value": "293.243",
         "direction": "Input"
       },
       {
         "name": "G_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_OFFSET_Z",
-        "value": "158.735",
+        "value": "195.208",
         "direction": "Input"
       },
       {
@@ -244,28 +244,28 @@
         "name": "G_TABLA_OLCUM_TAMAM",
         "type": "BOOL",
         "plcTag": "G_TABLA_OLCUM_TAMAM",
-        "value": "FALSE",
+        "value": "TRUE",
         "direction": "Input"
       },
       {
         "name": "G_TABLA_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_X",
-        "value": "-1.67100",
+        "value": "23.7390",
         "direction": "Input"
       },
       {
         "name": "G_TABLA_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Y",
-        "value": "-1.35800",
+        "value": "-3.55400",
         "direction": "Input"
       },
       {
         "name": "G_TABLA_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Z",
-        "value": "0.421000",
+        "value": "0.246000",
         "direction": "Input"
       },
       {
@@ -293,14 +293,14 @@
         "name": "G_KLIMA_TIP",
         "type": "INT",
         "plcTag": "G_KLIMA_TIP",
-        "value": "16",
+        "value": "38",
         "direction": "Input"
       },
       {
         "name": "G_R1_HOME",
         "type": "BOOL",
         "plcTag": "G_R1_HOME",
-        "value": "TRUE",
+        "value": "FALSE",
         "direction": "Input"
       },
       {
@@ -342,49 +342,49 @@
         "name": "BORU_HEDEF.X",
         "type": "REAL",
         "plcTag": "BORU_HEDEF.X",
-        "value": "255.846",
+        "value": "194.732",
         "direction": "Input"
       },
       {
         "name": "BORU_HEDEF.Y",
         "type": "REAL",
         "plcTag": "BORU_HEDEF.Y",
-        "value": "336.643",
+        "value": "293.243",
         "direction": "Input"
       },
       {
         "name": "BORU_HEDEF.Z",
         "type": "REAL",
         "plcTag": "BORU_HEDEF.Z",
-        "value": "158.735",
+        "value": "195.208",
         "direction": "Input"
       },
       {
         "name": "BORU_HEDEF.A",
         "type": "REAL",
         "plcTag": "BORU_HEDEF.A",
-        "value": "30.8366699",
+        "value": "17.2114258",
         "direction": "Input"
       },
       {
         "name": "BORU_HEDEF.B",
         "type": "REAL",
         "plcTag": "BORU_HEDEF.B",
-        "value": "48.3911400",
+        "value": "40.2402039",
         "direction": "Input"
       },
       {
         "name": "BORU_HEDEF.C",
         "type": "REAL",
         "plcTag": "BORU_HEDEF.C",
-        "value": "-144.252274",
+        "value": "-163.845963",
         "direction": "Input"
       },
       {
         "name": "\u0130_G_R1_IS_BASLADI",
         "type": "BOOL",
         "plcTag": "G_IS_BASLADI",
-        "value": "FALSE",
+        "value": "TRUE",
         "direction": "Input"
       }
     ],
@@ -393,105 +393,105 @@
         "name": "G_KLIMA_TIP",
         "type": "INT",
         "plcTag": "G_KLIMA_TIP",
-        "value": null,
+        "value": "38",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_OFFSET_X",
-        "value": null,
+        "value": "184.732",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_OFFSET_Y",
-        "value": null,
+        "value": "293.243",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_OFFSET_Z",
-        "value": null,
+        "value": "195.208",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_A",
         "type": "REAL",
         "plcTag": "G_OFFSET_A",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_B",
         "type": "REAL",
         "plcTag": "G_OFFSET_B",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_C",
         "type": "REAL",
         "plcTag": "G_OFFSET_C",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_BORU_OLCUM_TAMAM",
         "type": "BOOL",
         "plcTag": "G_BORU_OLCUM_TAMAM",
-        "value": null,
+        "value": "FALSE",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OLCUM_TAMAM",
         "type": "BOOL",
         "plcTag": "G_TABLA_OLCUM_TAMAM",
-        "value": null,
+        "value": "TRUE",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_X",
-        "value": null,
+        "value": "23.739",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Y",
-        "value": null,
+        "value": "-3.554",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Z",
-        "value": null,
+        "value": "0.246",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_A",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_A",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_B",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_B",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_C",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_C",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
@@ -519,7 +519,7 @@
         "name": "G_CASE_ID",
         "type": "INT",
         "plcTag": "G_CASE_ID",
-        "value": "2",
+        "value": "3",
         "direction": "Output"
       },
       {
@@ -545,91 +545,91 @@
         "name": "TCP_X",
         "type": "REAL",
         "plcTag": "$POS_ACT.X",
-        "value": "203.366592",
+        "value": "133.750381",
         "direction": "Input"
       },
       {
         "name": "TCP_Y",
         "type": "REAL",
         "plcTag": "$POS_ACT.Y",
-        "value": "-2154.51636",
+        "value": "30.3566494",
         "direction": "Input"
       },
       {
         "name": "TCP_Z",
         "type": "REAL",
         "plcTag": "$POS_ACT.Z",
-        "value": "-80.4676056",
+        "value": "76.4839859",
         "direction": "Input"
       },
       {
         "name": "TCP_A",
         "type": "REAL",
         "plcTag": "$POS_ACT.A",
-        "value": "-0.281426668",
+        "value": "-58.6074486",
         "direction": "Input"
       },
       {
         "name": "TCP_B",
         "type": "REAL",
         "plcTag": "$POS_ACT.B",
-        "value": "1.82427096",
+        "value": "19.1931324",
         "direction": "Input"
       },
       {
         "name": "TCP_C",
         "type": "REAL",
         "plcTag": "$POS_ACT.C",
-        "value": "-176.515808",
+        "value": "-166.565475",
         "direction": "Input"
       },
       {
         "name": "AXIS_A1",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A1",
-        "value": "1.99621582",
+        "value": "-12.9722328",
         "direction": "Input"
       },
       {
         "name": "AXIS_A2",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A2",
-        "value": "-118.536819",
+        "value": "-42.4767685",
         "direction": "Input"
       },
       {
         "name": "AXIS_A3",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A3",
-        "value": "144.039047",
+        "value": "89.4321747",
         "direction": "Input"
       },
       {
         "name": "AXIS_A4",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A4",
-        "value": "4.89578247",
+        "value": "-25.8468647",
         "direction": "Input"
       },
       {
         "name": "AXIS_A5",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A5",
-        "value": "68.3872604",
+        "value": "41.6144218",
         "direction": "Input"
       },
       {
         "name": "AXIS_A6",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.A6",
-        "value": "90.0074",
+        "value": "36.2374611",
         "direction": "Input"
       },
       {
         "name": "AXIS_E1",
         "type": "REAL",
         "plcTag": "$AXIS_ACT.E1",
-        "value": "2106.37036",
+        "value": "3723.00",
         "direction": "Input"
       },
       {
@@ -671,7 +671,7 @@
         "name": "OV_PRO",
         "type": "INT",
         "plcTag": "$OV_PRO",
-        "value": "100",
+        "value": "75",
         "direction": "Input"
       },
       {
@@ -706,14 +706,14 @@
         "name": "G_ROBOT_DURUM",
         "type": "INT",
         "plcTag": "G_ROBOT_DURUM",
-        "value": "0",
+        "value": "1",
         "direction": "Input"
       },
       {
         "name": "G_DURUM_MESAJ",
         "type": "INT",
         "plcTag": "G_DURUM_MESAJ",
-        "value": "0",
+        "value": "11",
         "direction": "Input"
       },
       {
@@ -776,21 +776,21 @@
         "name": "G_TABLA_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_X",
-        "value": "-1.67100",
+        "value": "23.7390",
         "direction": "Input"
       },
       {
         "name": "G_TABLA_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Y",
-        "value": "-1.35800",
+        "value": "-3.55400",
         "direction": "Input"
       },
       {
         "name": "G_TABLA_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Z",
-        "value": "0.421000",
+        "value": "0.246000",
         "direction": "Input"
       },
       {
@@ -818,14 +818,14 @@
         "name": "G_KLIMA_TIP_RD",
         "type": "INT",
         "plcTag": "G_KLIMA_TIP",
-        "value": "16",
+        "value": "38",
         "direction": "Input"
       },
       {
         "name": "G_R1_HOME",
         "type": "BOOL",
         "plcTag": "G_R1_HOME",
-        "value": "TRUE",
+        "value": "FALSE",
         "direction": "Input"
       },
       {
@@ -839,7 +839,7 @@
         "name": "HEDEF_ISTASYON",
         "type": "INT",
         "plcTag": "HEDEF_ISTASYON",
-        "value": "1",
+        "value": "3",
         "direction": "Input"
       },
       {
@@ -855,112 +855,112 @@
         "name": "G_KLIMA_TIP",
         "type": "INT",
         "plcTag": "G_KLIMA_TIP",
-        "value": "16",
+        "value": "38",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_OFFSET_X",
-        "value": null,
+        "value": "184.732",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_OFFSET_Y",
-        "value": null,
+        "value": "293.243",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_OFFSET_Z",
-        "value": null,
+        "value": "195.208",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_A",
         "type": "REAL",
         "plcTag": "G_OFFSET_A",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_B",
         "type": "REAL",
         "plcTag": "G_OFFSET_B",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_OFFSET_C",
         "type": "REAL",
         "plcTag": "G_OFFSET_C",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_BORU_OLCUM_TAMAM",
         "type": "BOOL",
         "plcTag": "G_BORU_OLCUM_TAMAM",
-        "value": null,
+        "value": "FALSE",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OLCUM_TAMAM",
         "type": "BOOL",
         "plcTag": "G_TABLA_OLCUM_TAMAM",
-        "value": null,
+        "value": "FALSE",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_X",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_X",
-        "value": null,
+        "value": "23.739",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_Y",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Y",
-        "value": null,
+        "value": "-3.554",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_Z",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_Z",
-        "value": null,
+        "value": "0.246",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_A",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_A",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_B",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_B",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_C",
         "type": "REAL",
         "plcTag": "G_TABLA_OFFSET_C",
-        "value": null,
+        "value": "0.000",
         "direction": "Output"
       },
       {
         "name": "G_TABLA_OFFSET_HAZIR",
         "type": "BOOL",
         "plcTag": "G_TABLA_OFFSET_HAZIR",
-        "value": null,
+        "value": "TRUE",
         "direction": "Output"
       },
       {
@@ -981,7 +981,7 @@
         "name": "G_CASE_ID",
         "type": "INT",
         "plcTag": "G_CASE_ID",
-        "value": "2",
+        "value": "3",
         "direction": "Output"
       }
     ]

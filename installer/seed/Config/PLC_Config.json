@@ -1,4 +1,6 @@
 {
+  "plcIpAddress": "192.168.251.103",
+  "plcPort": 5007,
   "Inputs": [
     {
       "name": "ISTASYON1_RFID",
@@ -9,7 +11,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXA35A5V1B8",
+      "currentValue": "RXM71A5V1B",
       "minValue": null,
       "maxValue": null
     },
@@ -22,7 +24,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXA35A5V1B8",
+      "currentValue": "RXM71A5V1B",
       "minValue": null,
       "maxValue": null
     },
@@ -35,7 +37,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXA35A5V1B8",
+      "currentValue": "RXM71A5V1B",
       "minValue": null,
       "maxValue": null
     },
@@ -56,6 +58,19 @@
   "Outputs": [
     {
       "name": "Output_1",
+      "type": "BOOL",
+      "direction": "Output",
+      "SourceFile": null,
+      "Description": "",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "HEARTBEAT",
       "type": "BOOL",
       "direction": "Output",
       "SourceFile": null,
