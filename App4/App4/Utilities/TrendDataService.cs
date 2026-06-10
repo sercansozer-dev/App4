@@ -162,6 +162,28 @@ namespace App4.Utilities
             }
         }
 
+        /// <summary>TÜM trend kayıtlarını siler (tüm aylık Trend_*.json dosyaları). Geri alınamaz. Silinen dosya sayısını döner.</summary>
+        public int ClearAllRecords()
+        {
+            int deleted = 0;
+            try
+            {
+                lock (_fileLock)
+                {
+                    foreach (var file in Directory.GetFiles(_dataFolder, "Trend_*.json"))
+                    {
+                        try { File.Delete(file); deleted++; } catch { }
+                    }
+                }
+                System.Diagnostics.Debug.WriteLine($"[TREND] Tüm kayıtlar silindi ({deleted} dosya).");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TREND] Temizleme hatası: {ex.Message}");
+            }
+            return deleted;
+        }
+
         // ─── VERİ SORGULAMA ───
         public List<TrendRecord> GetRecords(DateTime startDate, DateTime endDate,
             int? stationNo = null, string rfidTag = null, string result = null)

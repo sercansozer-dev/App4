@@ -56,6 +56,13 @@
                             <TextBlock Text="Nokta Kütüphanesi" Foreground="#00A4EF"/>
                         </StackPanel>
                     </Button>
+                    <Button x:Name="BtnClearTrend" Click="BtnClearTrend_Click" Background="#3A1212" BorderBrush="#E74C3C" BorderThickness="1" Foreground="White"
+                            CornerRadius="6" Padding="12,6" FontSize="12" ToolTipService.ToolTip="Tüm trend üretim kayıtlarını siler (geri alınamaz)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="#E74C3C"/>
+                            <TextBlock Text="Kayıtları Temizle" Foreground="#E74C3C"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

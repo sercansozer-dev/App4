@@ -409,6 +409,7 @@ namespace App4
                     UpdateLineStatusVisuals();
                     UpdateActivePoints();
                     UpdateCycleTimers();   // Cycle-time canlı kronometre güncelle
+                    UpdateLineCycle();     // Tam tur (3 istasyon) çevrim süresi
                 };
             }
             _safetySignalTimer.Start();
@@ -2516,6 +2517,9 @@ namespace App4
                 s.CycleRunning = true;
                 s.LastIslemBitti = false;   // yeni çevrim → bitti bayrağını sıfırla
                 s.CycleTimeText = "00:00";
+
+                // Tam tur (3 istasyon) çevrimi: hat boştayken ilk başlama → tur başlar
+                if (!_lineRunning) { _lineRunning = true; _lineStart = DateTime.Now; _lineLastBitti = DateTime.MinValue; _lineTourCount = 0; }
             }
             s.LastIsBasladi = val;
         }
@@ -2532,8 +2536,64 @@ namespace App4
 
                 // ═══ ÜRETİM KAYDI (Trend/Rapor sayfası için) ═══
                 RecordProduction(s, elapsed);
+
+                // Tam tur çevrimi: bu istasyon bitti → son bitti anını işaretle + tur içi üretim say
+                _lineLastBitti = DateTime.Now;
+                if (_lineRunning) _lineTourCount++;
             }
             s.LastIslemBitti = val;
+        }
+
+        // ── TAM TUR (3 İSTASYON) ÇEVRİM SÜRESİ ──
+        // Hat boştayken ilk IS_BASLADI ile başlar; istasyonlar arası geçişlerde devam eder;
+        // son ISLEM_BITTI'den sonra hat LINE_GRACE_SEC kadar boş kalınca tur süresi dondurulur.
+        private bool _lineRunning;
+        private DateTime _lineStart;
+        private DateTime _lineLastBitti = DateTime.MinValue;
+        private TimeSpan _lineLastDuration = TimeSpan.Zero;
+        private int _lineTourCount;        // mevcut turda biten üretim sayısı
+        private int _lineLastTourCount;    // son tamamlanan turdaki üretim sayısı
+        private const double LINE_GRACE_SEC = 12;
+        private const double SHIFT_SECONDS = 8 * 3600; // 8 saatlik vardiya
+
+        private void UpdateLineCycle()
+        {
+            if (LineCycleTimeText == null) return;
+            if (_lineRunning)
+            {
+                LineCycleTimeText.Text = FormatCycle(DateTime.Now - _lineStart);
+                LineCycleTimeText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xFF, 0x9F, 0x27)); // turuncu = sürüyor
+
+                bool allIdle = Stations.All(st => !st.CycleRunning);
+                if (allIdle && _lineLastBitti != DateTime.MinValue && (DateTime.Now - _lineLastBitti).TotalSeconds >= LINE_GRACE_SEC)
+                {
+                    _lineLastDuration = _lineLastBitti - _lineStart;   // ilk başladı → son bitti
+                    _lineLastTourCount = _lineTourCount;
+                    _lineRunning = false;
+                    LineCycleTimeText.Text = FormatCycle(_lineLastDuration);
+                    LineCycleTimeText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x00, 0xA4, 0xEF)); // mavi = tamamlandı
+                    UpdateLineEstimate();
+                }
+            }
+            else if (_lineLastDuration > TimeSpan.Zero)
+            {
+                LineCycleTimeText.Text = FormatCycle(_lineLastDuration);
+            }
+        }
+
+        /// <summary>8 saatlik vardiya tahmini = (8 saat ÷ tam-tur süresi) × tur başına üretilen adet.</summary>
+        private void UpdateLineEstimate()
+        {
+            if (LineEstimateText == null) return;
+            if (_lineLastDuration.TotalSeconds > 0 && _lineLastTourCount > 0)
+            {
+                int est = (int)Math.Round(SHIFT_SECONDS / _lineLastDuration.TotalSeconds * _lineLastTourCount);
+                LineEstimateText.Text = $"~{est} adet";
+            }
+            else
+            {
+                LineEstimateText.Text = "--";
+            }
         }
 
         /// <summary>

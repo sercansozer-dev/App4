@@ -330,6 +330,27 @@ namespace App4.PAGES
             RefreshData();
         }
 
+        // ─── TÜM KAYITLARI TEMİZLE ───
+        private async void BtnClearTrend_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Tüm Kayıtları Sil",
+                Content = "Tüm trend üretim kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz!\n\nİstasyon Üretim Adedi ve Verimlilik de sıfırlanır. Emin misiniz?",
+                PrimaryButtonText = "Evet, Hepsini Sil",
+                CloseButtonText = "İptal",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot,
+                RequestedTheme = ElementTheme.Dark
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                int n = _trendService.ClearAllRecords();
+                RefreshData();
+                if (TxtStatusInfo != null) TxtStatusInfo.Text = $"✅ Tüm kayıtlar silindi ({n} dosya).";
+            }
+        }
+
         // ─── CSV DIŞA AKTAR ───
         private async void BtnExport_Click(object sender, RoutedEventArgs e)
         {
