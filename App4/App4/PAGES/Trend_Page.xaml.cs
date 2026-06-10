@@ -544,7 +544,7 @@ namespace App4.PAGES
         private Dictionary<string, Dictionary<string, PointOvr>> _typeOvr = new();
         private Dictionary<string, Dictionary<string, PointOvr>> _rfidOvr = new();
         private static readonly string _pointMapPath =
-            Path.Combine(@"C:\Simbiosis\SimbiosisLeakTestApp\Config", "LeakPointMapping.json");
+            Path.Combine(GlobalData.ConfigBaseDir, "LeakPointMapping.json");
         // Açık overlay durumu
         private TrendRecord _lmRecord;
         private string _lmTypeKey;

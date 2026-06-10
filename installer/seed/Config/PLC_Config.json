@@ -1,6 +1,8 @@
 {
   "plcIpAddress": "192.168.251.103",
   "plcPort": 5007,
+  "heartbeatReadTag": null,
+  "heartbeatWriteTag": null,
   "Inputs": [
     {
       "name": "ISTASYON1_RFID",
@@ -11,7 +13,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXM71A5V1B",
+      "currentValue": "RXM50A5V1B8",
       "minValue": null,
       "maxValue": null
     },
@@ -24,7 +26,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXM71A5V1B",
+      "currentValue": "ARXF50F5V1B",
       "minValue": null,
       "maxValue": null
     },
@@ -37,7 +39,7 @@
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
-      "currentValue": "RXM71A5V1B",
+      "currentValue": "ARXF50F5V1B",
       "minValue": null,
       "maxValue": null
     },
@@ -53,15 +55,13 @@
       "currentValue": 0,
       "minValue": null,
       "maxValue": null
-    }
-  ],
-  "Outputs": [
+    },
     {
-      "name": "Output_1",
+      "name": "IST1_PROD_OK",
       "type": "BOOL",
-      "direction": "Output",
+      "direction": "Input",
       "SourceFile": null,
-      "Description": "",
+      "Description": "M5104",
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
@@ -70,15 +70,173 @@
       "maxValue": null
     },
     {
-      "name": "HEARTBEAT",
+      "name": "IST2_PROD_OK",
       "type": "BOOL",
-      "direction": "Output",
+      "direction": "Input",
       "SourceFile": null,
-      "Description": "",
+      "Description": "M5106",
       "IsEditable": true,
       "PlcTag": null,
       "PlcTag2": null,
       "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "IST3_PROD_OK",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5108",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "IST1_PROD_NG",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5105",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "IST2_PROD_NG",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5107",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "IST3_PROD_NG",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5109",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "APP_IST1_DONE_FLAG",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5182",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "APP_IST2_DONE_FLAG",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5183",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "APP_IST3_DONE_FLAG",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5184",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "APP_IS_BASLADI",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5185",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 1,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "APP_IS_BITTI",
+      "type": "BOOL",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "M5186",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": 0,
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "JOB_LEAK_DETECT_POINTS_R1",
+      "type": "Word [Signed](0..79)",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "D16050",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": "(bo\u015F)",
+      "minValue": null,
+      "maxValue": null
+    },
+    {
+      "name": "JOB_LEAK_DETECT_POINTS_R2",
+      "type": "Word [Signed](0..79)",
+      "direction": "Input",
+      "SourceFile": null,
+      "Description": "D16131",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": "(bo\u015F)",
+      "minValue": null,
+      "maxValue": null
+    }
+  ],
+  "Outputs": [
+    {
+      "name": "HEARTBEAT",
+      "type": "BOOL",
+      "direction": "Output",
+      "SourceFile": null,
+      "Description": "M5178",
+      "IsEditable": true,
+      "PlcTag": null,
+      "PlcTag2": null,
+      "currentValue": "1",
       "minValue": null,
       "maxValue": null
     }

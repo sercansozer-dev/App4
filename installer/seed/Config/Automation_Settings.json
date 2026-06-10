@@ -11,7 +11,7 @@
   "Robot_Port": 7000,
   "Robot_ReadSpeed": 100,
   "Robot_TcpTimeout": 5000,
-  "Plc_IpAddress": "192.168.251.100",
+  "Plc_IpAddress": "192.168.251.103",
   "Plc_Port": 5007,
   "Plc_ReadInterval": 100,
   "Gocator_IpAddress": "127.0.0.1",
