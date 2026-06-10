@@ -1,0 +1,1909 @@
+{
+ "maps": {
+  "Alpha": {
+   "parts": [
+    {
+     "image": "Alpha_p0.png",
+     "w": 453,
+     "h": 490,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.9233,
+       "y": 0.9345
+      },
+      {
+       "name": "A15",
+       "robot": 1,
+       "idx": 15,
+       "x": 0.8878,
+       "y": 0.0933
+      }
+     ]
+    },
+    {
+     "image": "Alpha_p1.png",
+     "w": 408,
+     "h": 656,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.6807,
+       "y": 0.3146
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8387,
+       "y": 0.0355
+      },
+      {
+       "name": "B3-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.442,
+       "y": 0.8763
+      },
+      {
+       "name": "B3-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.1059,
+       "y": 0.1552
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.7462,
+       "y": 0.4171
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.7681,
+       "y": 0.6135
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.8118,
+       "y": 0.826
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4454,
+       "y": 0.3552
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.5967,
+       "y": 0.7789
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.5361,
+       "y": 0.3627
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.3529,
+       "y": 0.164
+      }
+     ]
+    },
+    {
+     "image": "Alpha_p2.png",
+     "w": 238,
+     "h": 492,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.6952,
+       "y": 0.3189
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.7567,
+       "y": 0.6832
+      },
+      {
+       "name": "C1-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.8079,
+       "y": 0.855
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.4417,
+       "y": 0.3202
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.4724,
+       "y": 0.4794
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.854,
+       "y": 0.4373
+      }
+     ]
+    }
+   ]
+  },
+  "SF2-1YC": {
+   "parts": [
+    {
+     "image": "SF2_1YC_p0.png",
+     "w": 432,
+     "h": 760,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5846,
+       "y": 0.8299
+      },
+      {
+       "name": "A20",
+       "robot": 1,
+       "idx": 20,
+       "x": 0.4705,
+       "y": 0.1652
+      }
+     ]
+    },
+    {
+     "image": "SF2_1YC_p1.png",
+     "w": 392,
+     "h": 718,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.6309,
+       "y": 0.2572
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.4179,
+       "y": 0.4102
+      },
+      {
+       "name": "C1-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.1704,
+       "y": 0.8882
+      },
+      {
+       "name": "C1-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.3647,
+       "y": 0.8801
+      },
+      {
+       "name": "C1-5",
+       "robot": 1,
+       "idx": 5,
+       "x": 0.4286,
+       "y": 0.7464
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.6735,
+       "y": 0.2931
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.6176,
+       "y": 0.4139
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.386,
+       "y": 0.6857
+      }
+     ]
+    },
+    {
+     "image": "SF2_1YC_p2.png",
+     "w": 500,
+     "h": 591,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.552,
+       "y": 0.3253
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8634,
+       "y": 0.2354
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.7162,
+       "y": 0.2268
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.3914,
+       "y": 0.6
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.3489,
+       "y": 0.7597
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.3972,
+       "y": 0.7759
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4534,
+       "y": 0.3241
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.1752,
+       "y": 0.3229
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.0942,
+       "y": 0.6569
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.4271,
+       "y": 0.2642
+      }
+     ]
+    }
+   ]
+  },
+  "SF2-2YC": {
+   "parts": [
+    {
+     "image": "SF2_2YC_p0.png",
+     "w": 432,
+     "h": 760,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5758,
+       "y": 0.934
+      },
+      {
+       "name": "A25",
+       "robot": 1,
+       "idx": 25,
+       "x": 0.4454,
+       "y": 0.108
+      }
+     ]
+    },
+    {
+     "image": "SF2_2YC_p1.png",
+     "w": 392,
+     "h": 718,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.6316,
+       "y": 0.2574
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.4184,
+       "y": 0.4105
+      },
+      {
+       "name": "C1-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.1706,
+       "y": 0.8889
+      },
+      {
+       "name": "C1-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.3651,
+       "y": 0.8808
+      },
+      {
+       "name": "C1-5",
+       "robot": 1,
+       "idx": 5,
+       "x": 0.4291,
+       "y": 0.747
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.6742,
+       "y": 0.2934
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.6183,
+       "y": 0.4142
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.3864,
+       "y": 0.6862
+      }
+     ]
+    },
+    {
+     "image": "SF2_2YC_p2.png",
+     "w": 526,
+     "h": 546,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4582,
+       "y": 0.3978
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6514,
+       "y": 0.1982
+      },
+      {
+       "name": "B3-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4716,
+       "y": 0.644
+      },
+      {
+       "name": "B3-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.4994,
+       "y": 0.1956
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.403,
+       "y": 0.5954
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.4254,
+       "y": 0.7596
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.3687,
+       "y": 0.4263
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.291,
+       "y": 0.535
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.1512,
+       "y": 0.7483
+      },
+      {
+       "name": "B5-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.1165,
+       "y": 0.4042
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.2529,
+       "y": 0.2449
+      }
+     ]
+    }
+   ]
+  },
+  "SF2 CD": {
+   "parts": [
+    {
+     "image": "SF2_CD_p0.png",
+     "w": 432,
+     "h": 858,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4127,
+       "y": 0.7716
+      },
+      {
+       "name": "A18",
+       "robot": 1,
+       "idx": 18,
+       "x": 0.8412,
+       "y": 0.0408
+      }
+     ]
+    },
+    {
+     "image": "SF2_CD_p1.png",
+     "w": 392,
+     "h": 718,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.6316,
+       "y": 0.2574
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.4184,
+       "y": 0.4105
+      },
+      {
+       "name": "C1-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.1706,
+       "y": 0.8889
+      },
+      {
+       "name": "C1-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.3651,
+       "y": 0.8808
+      },
+      {
+       "name": "C1-5",
+       "robot": 1,
+       "idx": 5,
+       "x": 0.4291,
+       "y": 0.747
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.6742,
+       "y": 0.2934
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.6183,
+       "y": 0.4142
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.3864,
+       "y": 0.6862
+      }
+     ]
+    },
+    {
+     "image": "SF2_CD_p2.png",
+     "w": 526,
+     "h": 546,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.3863,
+       "y": 0.3975
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6508,
+       "y": 0.1984
+      },
+      {
+       "name": "B3-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4711,
+       "y": 0.6445
+      },
+      {
+       "name": "B3-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6508,
+       "y": 0.1984
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.3986,
+       "y": 0.5882
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.425,
+       "y": 0.7602
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.3683,
+       "y": 0.4266
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.2907,
+       "y": 0.5355
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.1511,
+       "y": 0.7489
+      },
+      {
+       "name": "B5-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.1164,
+       "y": 0.4045
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.2526,
+       "y": 0.2451
+      }
+     ]
+    }
+   ]
+  },
+  "BML-H New PCB-RXM71": {
+   "parts": [
+    {
+     "image": "BML_H_New_PCB_RXM71_p0.png",
+     "w": 1115,
+     "h": 1241,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.9549,
+       "y": 0.9741
+      },
+      {
+       "name": "A25",
+       "robot": 1,
+       "idx": 25,
+       "x": 0.9185,
+       "y": 0.0771
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_RXM71_p1.png",
+     "w": 600,
+     "h": 986,
+     "title": "D Noktaları",
+     "points": [
+      {
+       "name": "D1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5386,
+       "y": 0.5464
+      },
+      {
+       "name": "D1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.7951,
+       "y": 0.3139
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_RXM71_p2.png",
+     "w": 809,
+     "h": 1304,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.7631,
+       "y": 0.5959
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.7631,
+       "y": 0.5959
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.7631,
+       "y": 0.5959
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.7631,
+       "y": 0.5959
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.7631,
+       "y": 0.5959
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_RXM71_p3.png",
+     "w": 814,
+     "h": 940,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4843,
+       "y": 0.075
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8698,
+       "y": 0.3873
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.7026,
+       "y": 0.2733
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.7033,
+       "y": 0.4478
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.7189,
+       "y": 0.6164
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5161,
+       "y": 0.2753
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.2109,
+       "y": 0.8128
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.1641,
+       "y": 0.4678
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.3283,
+       "y": 0.3376
+      }
+     ]
+    }
+   ]
+  },
+  "BML-H New PCB-RZAG": {
+   "parts": [
+    {
+     "image": "BML_H_New_PCB_RZAG_p0.png",
+     "w": 1115,
+     "h": 1241,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.955,
+       "y": 0.9474
+      },
+      {
+       "name": "A25",
+       "robot": 1,
+       "idx": 25,
+       "x": 0.9177,
+       "y": 0.0814
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_RZAG_p1.png",
+     "w": 217,
+     "h": 481,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4806,
+       "y": 0.2191
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.6393,
+       "y": 0.2172
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.6393,
+       "y": 0.3365
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.7679,
+       "y": 0.7911
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_RZAG_p2.png",
+     "w": 578,
+     "h": 646,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4199,
+       "y": 0.1538
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8165,
+       "y": 0.4393
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.5853,
+       "y": 0.2235
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5534,
+       "y": 0.3779
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.5646,
+       "y": 0.6899
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.5684,
+       "y": 0.8211
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4913,
+       "y": 0.26
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.1907,
+       "y": 0.3629
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.2433,
+       "y": 0.8891
+      },
+      {
+       "name": "B5-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.1907,
+       "y": 0.3629
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.3542,
+       "y": 0.4127
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_RZAG_p3.png",
+     "w": 397,
+     "h": 597,
+     "title": "D Noktaları",
+     "points": [
+      {
+       "name": "D1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4649,
+       "y": 0.3517
+      },
+      {
+       "name": "D1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.3403,
+       "y": 0.5212
+      },
+      {
+       "name": "D1-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.8291,
+       "y": 0.1448
+      }
+     ]
+    }
+   ]
+  },
+  "BML-H New PCB": {
+   "parts": [
+    {
+     "image": "BML_H_New_PCB_p0.png",
+     "w": 1115,
+     "h": 1241,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.9639,
+       "y": 0.9491
+      },
+      {
+       "name": "A25",
+       "robot": 1,
+       "idx": 25,
+       "x": 0.9466,
+       "y": 0.0995
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_p1.png",
+     "w": 798,
+     "h": 1031,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.6652,
+       "y": 0.569
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6652,
+       "y": 0.569
+      },
+      {
+       "name": "C1-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.6652,
+       "y": 0.569
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.6652,
+       "y": 0.569
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.6652,
+       "y": 0.569
+      },
+      {
+       "name": "C2-3",
+       "robot": 2,
+       "idx": 3,
+       "x": 0.6652,
+       "y": 0.569
+      }
+     ]
+    },
+    {
+     "image": "BML_H_New_PCB_p2.png",
+     "w": 805,
+     "h": 992,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4468,
+       "y": 0.365
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8742,
+       "y": 0.4091
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.3909,
+       "y": 0.3979
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.8742,
+       "y": 0.4091
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8742,
+       "y": 0.4091
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.8742,
+       "y": 0.4091
+      },
+      {
+       "name": "B4-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.8742,
+       "y": 0.4091
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4468,
+       "y": 0.365
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.3909,
+       "y": 0.3979
+      },
+      {
+       "name": "B5-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.3909,
+       "y": 0.3979
+      },
+      {
+       "name": "B5-4",
+       "robot": 1,
+       "idx": 4,
+       "x": 0.3909,
+       "y": 0.3979
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.4468,
+       "y": 0.365
+      }
+     ]
+    }
+   ]
+  },
+  "BMS (A)RXF20-25": {
+   "parts": [
+    {
+     "image": "BMS_A_RXF20_25_p0.png",
+     "w": 623,
+     "h": 666,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.8923,
+       "y": 0.8496
+      },
+      {
+       "name": "A15",
+       "robot": 1,
+       "idx": 15,
+       "x": 0.8976,
+       "y": 0.2037
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF20_25_p1.png",
+     "w": 685,
+     "h": 663,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A16",
+       "robot": 1,
+       "idx": 16,
+       "x": 0.9058,
+       "y": 0.7905
+      },
+      {
+       "name": "A17",
+       "robot": 1,
+       "idx": 17,
+       "x": 0.9027,
+       "y": 0.7017
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF20_25_p2.png",
+     "w": 478,
+     "h": 657,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4065,
+       "y": 0.3765
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8298,
+       "y": 0.1875
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.6553,
+       "y": 0.3041
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.7035,
+       "y": 0.49
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6665,
+       "y": 0.8194
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.2899,
+       "y": 0.8546
+      },
+      {
+       "name": "B5",
+       "robot": 1,
+       "idx": 5,
+       "x": 0.4503,
+       "y": 0.3837
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.311,
+       "y": 0.3956
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF20_25_p3.png",
+     "w": 440,
+     "h": 532,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5141,
+       "y": 0.4521
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.5994,
+       "y": 0.8234
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.3404,
+       "y": 0.4901
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.2359,
+       "y": 0.2381
+      }
+     ]
+    }
+   ]
+  },
+  "BMS (A)RXP35": {
+   "parts": [
+    {
+     "image": "BMS_A_RXP35_p0.png",
+     "w": 686,
+     "h": 687,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.9018,
+       "y": 0.8945
+      },
+      {
+       "name": "A18",
+       "robot": 1,
+       "idx": 18,
+       "x": 0.9105,
+       "y": 0.08
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXP35_p1.png",
+     "w": 697,
+     "h": 682,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A19",
+       "robot": 1,
+       "idx": 19,
+       "x": 0.9055,
+       "y": 0.8116
+      },
+      {
+       "name": "A20",
+       "robot": 1,
+       "idx": 20,
+       "x": 0.907,
+       "y": 0.6871
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXP35_p2.png",
+     "w": 478,
+     "h": 657,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4068,
+       "y": 0.3779
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8306,
+       "y": 0.1886
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.6559,
+       "y": 0.3054
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.7041,
+       "y": 0.4923
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6672,
+       "y": 0.8228
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.2924,
+       "y": 0.8582
+      },
+      {
+       "name": "B5",
+       "robot": 1,
+       "idx": 5,
+       "x": 0.4507,
+       "y": 0.3857
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.3113,
+       "y": 0.3975
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXP35_p3.png",
+     "w": 440,
+     "h": 532,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5195,
+       "y": 0.4526
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6058,
+       "y": 0.8243
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.344,
+       "y": 0.4906
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.247,
+       "y": 0.2447
+      }
+     ]
+    }
+   ]
+  },
+  "BMS (A)RXF42": {
+   "parts": [
+    {
+     "image": "BMS_A_RXF42_p0.png",
+     "w": 686,
+     "h": 687,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.9009,
+       "y": 0.8951
+      },
+      {
+       "name": "A18",
+       "robot": 1,
+       "idx": 18,
+       "x": 0.9096,
+       "y": 0.081
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF42_p1.png",
+     "w": 697,
+     "h": 682,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A19",
+       "robot": 1,
+       "idx": 19,
+       "x": 0.9125,
+       "y": 0.8098
+      },
+      {
+       "name": "A20",
+       "robot": 1,
+       "idx": 20,
+       "x": 0.9093,
+       "y": 0.7005
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF42_p2.png",
+     "w": 440,
+     "h": 532,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5141,
+       "y": 0.4521
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.5994,
+       "y": 0.8234
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.3404,
+       "y": 0.4901
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.2395,
+       "y": 0.2515
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF42_p3.png",
+     "w": 457,
+     "h": 561,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5184,
+       "y": 0.4171
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.5184,
+       "y": 0.4171
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.4161,
+       "y": 0.392
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5184,
+       "y": 0.4171
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.4861,
+       "y": 0.4481
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.5316,
+       "y": 0.8713
+      },
+      {
+       "name": "B5-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4161,
+       "y": 0.392
+      },
+      {
+       "name": "B5-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.3446,
+       "y": 0.438
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.2731,
+       "y": 0.3946
+      }
+     ]
+    }
+   ]
+  },
+  "BMS (A)RXF35-(A)RXP20-25": {
+   "parts": [
+    {
+     "image": "BMS_A_RXF35_A_RXP20_25_p0.png",
+     "w": 673,
+     "h": 690,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.8762,
+       "y": 0.8418
+      },
+      {
+       "name": "A15",
+       "robot": 1,
+       "idx": 15,
+       "x": 0.8653,
+       "y": 0.242
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF35_A_RXP20_25_p1.png",
+     "w": 719,
+     "h": 668,
+     "title": "Eşanjör / Coil (A)",
+     "points": [
+      {
+       "name": "A16",
+       "robot": 1,
+       "idx": 16,
+       "x": 0.875,
+       "y": 0.8148
+      },
+      {
+       "name": "A17",
+       "robot": 1,
+       "idx": 17,
+       "x": 0.8656,
+       "y": 0.7204
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF35_A_RXP20_25_p2.png",
+     "w": 478,
+     "h": 657,
+     "title": "4WV Brazing (B)",
+     "points": [
+      {
+       "name": "B1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.4065,
+       "y": 0.3774
+      },
+      {
+       "name": "B2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.8298,
+       "y": 0.1886
+      },
+      {
+       "name": "B3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.6553,
+       "y": 0.305
+      },
+      {
+       "name": "B4-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.7035,
+       "y": 0.4907
+      },
+      {
+       "name": "B4-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.6665,
+       "y": 0.8197
+      },
+      {
+       "name": "B4-3",
+       "robot": 1,
+       "idx": 3,
+       "x": 0.2957,
+       "y": 0.8558
+      },
+      {
+       "name": "B5",
+       "robot": 1,
+       "idx": 5,
+       "x": 0.4503,
+       "y": 0.3846
+      },
+      {
+       "name": "B6",
+       "robot": 1,
+       "idx": 6,
+       "x": 0.311,
+       "y": 0.3965
+      }
+     ]
+    },
+    {
+     "image": "BMS_A_RXF35_A_RXP20_25_p3.png",
+     "w": 440,
+     "h": 532,
+     "title": "Kaçak Devresi (C)",
+     "points": [
+      {
+       "name": "C1-1",
+       "robot": 1,
+       "idx": 1,
+       "x": 0.5141,
+       "y": 0.4521
+      },
+      {
+       "name": "C1-2",
+       "robot": 1,
+       "idx": 2,
+       "x": 0.5994,
+       "y": 0.8234
+      },
+      {
+       "name": "C2-1",
+       "robot": 2,
+       "idx": 1,
+       "x": 0.3404,
+       "y": 0.4901
+      },
+      {
+       "name": "C2-2",
+       "robot": 2,
+       "idx": 2,
+       "x": 0.2318,
+       "y": 0.244
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "models": {
+  "RXJ20A5V1B9": "T1",
+  "RXJ25A5V1B9": "T1",
+  "RXJ35A5V1B9": "T1",
+  "RXA20A5V1B8": "T1",
+  "RXA25A5V1B8": "T1",
+  "RXA35A5V1B8": "T1",
+  "RXD25A5V1B": "T1",
+  "RXD35A5V1B": "T1",
+  "ARXD25A5V1B": "T1",
+  "ARXD35A5V1B": "T1",
+  "RXM42A5V1B": "T2",
+  "RXM20A5V1B": "T3",
+  "RXM25A5V1B": "T3",
+  "RXM35A5V1B": "T3",
+  "ARXM25A5V1B": "T3",
+  "ARXM35A5V1B": "T3",
+  "RXM25A5V1B9": "T3",
+  "RXM35A5V1B9": "T3",
+  "ARXM35A5V1B9": "T3",
+  "RXP50N5V1B8": "T4",
+  "RXM50A5V1B8": "T4",
+  "ARXM50A5V1B8": "T4",
+  "RXF50F5V1B": "T5",
+  "ARXF50F5V1B": "T5",
+  "RXA42B5V1B8": "T6",
+  "RXA50B5V1B8": "T7",
+  "RXJ42A5V1B9": "T7",
+  "RXJ50A5V1B9": "T7",
+  "RZAG35B5V1B": "T8",
+  "RZAG50B5V1B": "T9",
+  "RZAG60B5V1B": "T9",
+  "RXF60D5V1B9": "T10",
+  "RXF71D5V1B9": "T10",
+  "RXP60N5V1B9": "T10",
+  "RXP71N5V1B9": "T10",
+  "RXM60A5V1B": "T10",
+  "ARXM60A5V1B": "T10",
+  "RXM71A5V1B": "T11",
+  "ARXM71A5V1B": "T12",
+  "RXP35N5V1B9": "T13",
+  "ARXP35N5V1B9": "T13",
+  "RXP20N5V1B9": "T14",
+  "RXP25N5V1B9": "T14",
+  "ARXP20N5V1B9": "T14",
+  "ARXP25N5V1B9": "T14",
+  "RXF35F5V1B": "T14",
+  "ARXF35F5V1B": "T14",
+  "RXF20F5V1B": "T15",
+  "RXF25F5V1B": "T15",
+  "ARXF20F5V1B": "T15",
+  "ARXF25F5V1B": "T15",
+  "RXF42F5V1B": "T16",
+  "ARXF42F5V1B": "T16"
+ },
+ "types": {
+  "T1": {
+   "diagram": "Alpha",
+   "name": "ALPHA • Common (Type 1)"
+  },
+  "T2": {
+   "diagram": "SF2-2YC",
+   "name": "SF2 • Seperate (Type 2)"
+  },
+  "T3": {
+   "diagram": "SF2-1YC",
+   "name": "SF2 • Common (Type 3)"
+  },
+  "T4": {
+   "diagram": "SF2-2YC",
+   "name": "SF2 • Common (Type 4)"
+  },
+  "T5": {
+   "diagram": "SF2 CD",
+   "name": "SF2 • Common (Type 5)"
+  },
+  "T6": {
+   "diagram": "BML-H New PCB",
+   "name": "BML-H New PCB • Seperate (Type 6) *"
+  },
+  "T7": {
+   "diagram": "BML-H New PCB",
+   "name": "BML-H New PCB • Common (Type 7) *"
+  },
+  "T8": {
+   "diagram": "BML-H New PCB-RZAG",
+   "name": "BML-H New PCB • Seperate (Type 8) *"
+  },
+  "T9": {
+   "diagram": "BML-H New PCB-RZAG",
+   "name": "BML-H New PCB • Common (Type 9) *"
+  },
+  "T10": {
+   "diagram": "BML-H New PCB",
+   "name": "BML-H New PCB • Common (Type 10)"
+  },
+  "T11": {
+   "diagram": "BML-H New PCB-RXM71",
+   "name": "BML-H New PCB • Seperate (Type 11)"
+  },
+  "T12": {
+   "diagram": "BML-H New PCB",
+   "name": "BML-H New PCB • Seperate (Type 12)"
+  },
+  "T13": {
+   "diagram": "BMS (A)RXP35",
+   "name": "BMS • Common (Type 13)"
+  },
+  "T14": {
+   "diagram": "BMS (A)RXF35-(A)RXP20-25",
+   "name": "BMS • Common (Type 14)"
+  },
+  "T15": {
+   "diagram": "BMS (A)RXF20-25",
+   "name": "BMS • Common (Type 15)"
+  },
+  "T16": {
+   "diagram": "BMS (A)RXF42",
+   "name": "BMS • Common (Type 16)"
+  }
+ }
+}

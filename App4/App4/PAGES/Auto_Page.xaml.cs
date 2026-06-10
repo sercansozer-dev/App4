@@ -249,6 +249,9 @@ namespace App4
             // Admin durumu sayfa her açıldığında güncellenir (logout sonrası dahil)
             ApplyAdminVisibility();
 
+            // İstasyon Üretim Adedi + Verimlilik'i bugünkü kayıtlardan hesapla (app hesaplar, PLC değil)
+            RecalcStationKpis();
+
             // 0. Model kütüphanesini yenile (Klima Editörü'nden yeni yüklenen modelleri yakala)
             //    Sayfa NavigationCacheMode="Required" olduğu için ctor tekrar çalışmaz,
             //    bu yüzden her navigasyonda dropdown'ları tazelemek gerekir.
@@ -2483,7 +2486,8 @@ namespace App4
             foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
-                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.ProductionCountTag == n) s.ProductionCount = v; else if (s.EfficiencyTag == n) s.Efficiency = v.Contains("%") ? v : "%" + v; else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
+                else if (s.AlarmTag == n) s.HasAlarm = !IsTrue(v); else if (s.ProducingTag == n) s.IsProducing = IsTrue(v); else if (s.CurrentRfidTag == n) s.CurrentRfid = v; } }
+                // NOT: Üretim Adedi ve Verimlilik artık PLC tag'inden DEĞİL, trend kayıtlarından hesaplanır (RecalcStationKpis).
         private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
 
         // Ortak IS_BASLADI ile başlayan aktif çevrim istasyonu (ISLEM_BITTI'de aynı istasyonu kullanmak için latch)
@@ -2589,6 +2593,9 @@ namespace App4
 
                 TrendDataService.Instance.AddRecord(record);
                 System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı: ST{stationNo} {result} {rfid} {record.CycleTime}sn | Kaçıklık X={record.OffsetX} Y={record.OffsetY} Z={record.OffsetZ}");
+
+                // Üretim Adedi + Verimlilik'i kayıttan yeniden hesapla (canlı güncelleme)
+                RecalcStationKpis();
             }
             catch (Exception ex)
             {
@@ -2597,15 +2604,44 @@ namespace App4
         }
 
         /// <summary>
+        /// İstasyon kartlarındaki "Üretim Adedi" ve "Verimlilik"i BUGÜNKÜ trend kayıtlarından hesaplar.
+        /// Üretim Adedi = istasyonun bugünkü kayıt sayısı; Verimlilik = OK oranı (OK / toplam %).
+        /// PLC tag'inden okunmaz; app kendi hesaplar.
+        /// </summary>
+        private void RecalcStationKpis()
+        {
+            try
+            {
+                var start = DateTime.Today;
+                var end = DateTime.Now;
+                for (int i = 0; i < Stations.Count; i++)
+                {
+                    int stNo = i + 1;
+                    var recs = TrendDataService.Instance.GetRecords(start, end, stNo, null, null);
+                    int total = recs?.Count ?? 0;
+                    int ok = recs?.Count(r => r.OverallResult == "OK") ?? 0;
+                    int eff = total > 0 ? (int)Math.Round(ok * 100.0 / total) : 0;
+                    var s = Stations[i];
+                    DispatcherQueue?.TryEnqueue(() =>
+                    {
+                        s.ProductionCount = total.ToString();
+                        s.Efficiency = $"%{eff}";
+                    });
+                }
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[KPI] Hesaplama hatası: {ex.Message}"); }
+        }
+
+        /// <summary>
         /// PLC'den gelen NG nokta listesini parse eder. Desteklenen formatlar:
-        /// "3,7,12" / "3;7;12" / "3 7 12" — virgül, noktalı virgül veya boşluk ayraçlı.
-        /// PLC int array'i bu şekilde bir string register'a yazarsa burada okunur.
+        /// "3,7,12" / "3;7;12" / "3 7 12" / "[3, 7, 12]" / "(boş)" — virgül, noktalı virgül,
+        /// boşluk, köşeli/normal parantez ayraçlı. Array özet string'i ([..]) de doğru okunur.
         /// </summary>
         private static System.Collections.Generic.List<int> ParseNgPoints(string v)
         {
             var list = new System.Collections.Generic.List<int>();
             if (string.IsNullOrWhiteSpace(v)) return list;
-            var parts = v.Split(new[] { ',', ';', ' ', '\t', '|' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = v.Split(new[] { ',', ';', ' ', '\t', '|', '[', ']', '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var p in parts)
             {
                 if (int.TryParse(p.Trim(), out int n) && n > 0 && !list.Contains(n))

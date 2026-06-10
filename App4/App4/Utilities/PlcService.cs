@@ -57,12 +57,85 @@ namespace App4.Utilities
 
         private string _type = "WORD";
         // Desteklenen Tipler: "BOOL", "INT", "WORD", "DINT", "DWORD", "REAL"
+        // Array: "INT[0..79]" veya "INT[80]" → ardışık register okunur.
         [JsonPropertyName("type")]
         public string Type
         {
             get => _type;
-            set { if (_type != value) { _type = value; OnPropertyChanged(); } }
+            set
+            {
+                if (_type != value)
+                {
+                    _type = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsArray));
+                    OnPropertyChanged(nameof(ArrayLength));
+                    OnPropertyChanged(nameof(ArrayExpandVisibility));
+                    OnPropertyChanged(nameof(ScalarValueVisibility));
+                }
+            }
         }
+
+        // ── ARRAY DESTEĞİ ──
+        // Desteklenen formatlar (köşeli VEYA parantez, aralık VEYA adet):
+        //   INT[0..79]  ·  INT[80]  ·  WORD(0..79)  ·  "Word [Signed](0..79)"  ·  "Word [Signed][80]"
+        // Eleman tipi "Word [Signed]" gibi boşluk/parantez içerebilir; okuma her durumda 16-bit (Int16).
+        private bool TryParseArray(out string elemType, out int length)
+        {
+            elemType = null; length = 0;
+            string t = _type?.Trim();
+            if (string.IsNullOrEmpty(t)) return false;
+            // Sondaki [..] veya (..) bloğunu yakala: lo..hi  ya da  tek adet
+            var m = System.Text.RegularExpressions.Regex.Match(
+                t, @"^(.*?)\s*[\[\(]\s*(\d+)\s*(?:\.\.\s*(\d+)\s*)?[\]\)]\s*$");
+            if (!m.Success) return false;
+            elemType = m.Groups[1].Value.Trim().ToUpper();
+            if (string.IsNullOrEmpty(elemType)) elemType = "INT";
+            length = m.Groups[3].Success
+                ? int.Parse(m.Groups[3].Value) - int.Parse(m.Groups[2].Value) + 1
+                : int.Parse(m.Groups[2].Value);
+            return length > 0;
+        }
+
+        [JsonIgnore] public bool IsArray => TryParseArray(out _, out _);
+        [JsonIgnore] public int ArrayLength { get { TryParseArray(out _, out int n); return n; } }
+        [JsonIgnore] public string ArrayElementType { get { TryParseArray(out string e, out _); return e ?? "INT"; } }
+
+        private int[] _arrayValues;
+        [JsonIgnore]
+        public int[] ArrayValues
+        {
+            get => _arrayValues;
+            set { _arrayValues = value; OnPropertyChanged(); OnPropertyChanged(nameof(ArrayCells)); }
+        }
+
+        [JsonIgnore]
+        public List<ArrayCell> ArrayCells
+        {
+            get
+            {
+                var list = new List<ArrayCell>();
+                if (_arrayValues != null)
+                    for (int i = 0; i < _arrayValues.Length; i++)
+                        list.Add(new ArrayCell { Index = i, Value = _arrayValues[i] });
+                return list;
+            }
+        }
+
+        /// <summary>Sıfır olmayan (aktif) array değerleri — Value sütununda özet olarak gösterilir.</summary>
+        [JsonIgnore]
+        public string ArraySummary
+        {
+            get
+            {
+                if (_arrayValues == null) return "—";
+                var active = _arrayValues.Where(x => x != 0).ToList();
+                return active.Count == 0 ? "(boş)" : $"[{string.Join(", ", active)}]";
+            }
+        }
+
+        [JsonIgnore] public Microsoft.UI.Xaml.Visibility ArrayExpandVisibility => IsArray ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        [JsonIgnore] public Microsoft.UI.Xaml.Visibility ScalarValueVisibility => IsArray ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
 
         private string _direction = "Output";
         [JsonPropertyName("direction")]
@@ -161,6 +234,16 @@ namespace App4.Utilities
             OnPropertyChanged(nameof(PlcTag));
             OnPropertyChanged(nameof(PlcTag2));
         }
+    }
+
+    /// <summary>PLC'den okunan array değişkeninin tek bir hücresi (index + değer).</summary>
+    public class ArrayCell
+    {
+        public int Index { get; set; }
+        public int Value { get; set; }
+        public string Display => $"[{Index}]  =  {Value}";
+        public Microsoft.UI.Xaml.Media.SolidColorBrush Brush =>
+            new(Value != 0 ? Windows.UI.Color.FromArgb(255, 231, 76, 60) : Windows.UI.Color.FromArgb(255, 110, 110, 110));
     }
 
     // ==========================================
@@ -1099,6 +1182,22 @@ namespace App4.Utilities
             if (variable == null) return;
             string address = variable.Address;
             if (string.IsNullOrEmpty(address)) return;
+
+            // ── ARRAY (örn. INT[0..79]) → ardışık register bloğu oku ──
+            if (variable.IsArray)
+            {
+                int len = variable.ArrayLength;
+                if (len > 0 && len <= 960) // güvenlik üst sınırı
+                {
+                    var aRes = await _melsecNet.ReadInt16Async(address, (ushort)len);
+                    if (aRes.IsSuccess && aRes.Content != null)
+                    {
+                        var arr = aRes.Content.Select(s => (int)s).ToArray();
+                        UiRunner?.Invoke(() => { variable.ArrayValues = arr; variable.CurrentValue = variable.ArraySummary; });
+                    }
+                }
+                return;
+            }
 
             object newValue = null;
             string type = variable.Type?.ToUpper() ?? "";

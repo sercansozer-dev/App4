@@ -159,6 +159,11 @@
 		<Content Include="Assets\SBS_Logo.ico">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<!-- Kacak haritasi diyagramlari + nokta koordinat JSON'u (Trend kacak gosterimi).
+		     ms-appx:///Assets/LeakMaps/... ile yuklenir; publish'e kopyalanmali. -->
+		<Content Include="Assets\LeakMaps\**\*.*">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 		<!-- 3D modeller (.glb) artik installer/seed/Models/ altindan
 		     C:\Simbiosis\SimbiosisLeakTestApp\Models'e seed ediliyor.
 		     Publish klasorune kopyalamaya gerek yok - bu ~100MB tasarruf
