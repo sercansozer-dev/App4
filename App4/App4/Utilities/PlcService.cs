@@ -1148,7 +1148,10 @@ namespace App4.Utilities
         public async Task WriteAsync(PlcVariable variable, object value)
         {
             if (!IsConnected) return;
-            string address = variable.Name.Split('-')[0].Trim();
+            // Adres çözümü: PlcTag > Description (PLC adresi) > Name. Önceden yalnızca Name kullanılıyordu;
+            // bu yüzden adı "HEARTBEAT" olup adresi (M5178) Description'da olan degiskenler PLC'ye yazilamiyordu.
+            string address = variable.Address;
+            if (string.IsNullOrWhiteSpace(address)) { System.Diagnostics.Debug.WriteLine($"[PLC_WRITE] {variable.Name}: adres bos, yazma atlandi"); return; }
             string type = variable.Type.ToUpper();
 
             try
