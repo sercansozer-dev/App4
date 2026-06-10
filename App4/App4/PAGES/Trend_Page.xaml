@@ -19,6 +19,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -115,7 +116,6 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Background="#1A1A2E" CornerRadius="8" Padding="14,10" Margin="4">
@@ -179,39 +179,57 @@
                     </StackPanel>
                 </Border>
 
-                <!-- ÜRÜN ÇEŞİDİ — filtrelenen gruptaki ürün tipi sayısı + tıklayınca kırılım -->
-                <Border Grid.Column="6" Background="#241A2E" CornerRadius="8" Padding="14,10" Margin="4"
-                        Tapped="ProductCard_Tapped" ToolTipService.ToolTip="Ürün kırılımını göster">
-                    <FlyoutBase.AttachedFlyout>
-                        <Flyout>
-                            <ScrollViewer MaxHeight="460">
-                                <StackPanel MinWidth="400" Spacing="6">
-                                    <TextBlock Text="RFID BAZINDA RAPOR (filtrelenen gruba göre)" FontSize="11" FontWeight="Bold" Foreground="#BA68C8"/>
-                                    <StackPanel x:Name="ProductBreakdownPanel" Spacing="2"/>
-                                    <Border Height="1" Background="#333" Margin="0,4"/>
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <FontIcon Glyph="&#xE7BA;" FontSize="13" Foreground="#E74C3C"/>
-                                        <TextBlock Text="EN SIK KAÇAK NOKTALAR" FontSize="11" FontWeight="Bold" Foreground="#E74C3C" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <StackPanel x:Name="TopNgPointsPanel" Spacing="2"/>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Flyout>
-                    </FlyoutBase.AttachedFlyout>
-                    <StackPanel>
-                        <TextBlock Text="RFID ÇEŞİDİ" FontSize="9" Foreground="#BA68C8" FontWeight="Bold"/>
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock x:Name="StatProductCount" Text="0" FontSize="26" FontWeight="Bold" Foreground="#BA68C8"/>
-                            <TextBlock Text="adet" FontSize="12" Foreground="#BA68C8" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
-                        </StackPanel>
-                        <TextBlock Text="tıkla → RFID raporu" FontSize="10" Foreground="#666"/>
-                    </StackPanel>
-                </Border>
             </Grid>
         </Border>
 
+        <!-- RFID BAZINDA DETAYLI RAPOR (her zaman görünür — popup yok) -->
+        <Border Grid.Row="3" Background="#141414" Padding="12,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+            <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      Background="#161616" BorderBrush="#2A2A2A" CornerRadius="8">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE8FD;" FontSize="14" Foreground="#BA68C8"/>
+                        <TextBlock Text="RFID BAZINDA DETAYLI RAPOR" FontSize="12" FontWeight="Bold" Foreground="#BA68C8" VerticalAlignment="Center"/>
+                        <Border Background="#241A2E" CornerRadius="4" Padding="8,2" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock x:Name="StatProductCount" Text="0" FontSize="12" FontWeight="Bold" Foreground="#BA68C8"/>
+                                <TextBlock Text="çeşit" FontSize="11" Foreground="#9E7BB5"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Expander.Header>
+                <Grid Margin="0,6,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- SOL: RFID bazında üretim kırılımı -->
+                    <Border Grid.Column="0" Background="#111" CornerRadius="8" Padding="10,8" Margin="0,0,6,0" BorderBrush="#222" BorderThickness="1">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="RFID BAZINDA ÜRETİM (filtrelenen gruba göre)" FontSize="10" FontWeight="Bold" Foreground="#888"/>
+                            <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ProductBreakdownPanel" Spacing="2"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                    <!-- SAĞ: En sık kaçak noktalar -->
+                    <Border Grid.Column="1" Background="#111" CornerRadius="8" Padding="10,8" Margin="6,0,0,0" BorderBrush="#222" BorderThickness="1">
+                        <StackPanel Spacing="6">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE7BA;" FontSize="12" Foreground="#E74C3C"/>
+                                <TextBlock Text="EN SIK KAÇAK NOKTALAR" FontSize="10" FontWeight="Bold" Foreground="#E74C3C" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="TopNgPointsPanel" Spacing="2"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Expander>
+        </Border>
+
         <!-- ANA VERI TABLOSU -->
-        <Border Grid.Row="3" Margin="10" Background="#161616" CornerRadius="10" BorderBrush="#252525" BorderThickness="1">
+        <Border Grid.Row="4" Margin="10" Background="#161616" CornerRadius="10" BorderBrush="#252525" BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -356,7 +374,7 @@
         </Border>
 
         <!-- ALT BAR -->
-        <Border Grid.Row="4" Background="#161616" Padding="16,8" BorderBrush="#222" BorderThickness="0,1,0,0">
+        <Border Grid.Row="5" Background="#161616" Padding="16,8" BorderBrush="#222" BorderThickness="0,1,0,0">
             <Grid>
                 <StackPanel Orientation="Horizontal" Spacing="20">
                     <TextBlock x:Name="TxtStatusInfo" Text="Hazir" FontSize="11" Foreground="Gray" VerticalAlignment="Center"/>

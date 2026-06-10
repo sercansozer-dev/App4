@@ -279,12 +279,6 @@ namespace App4.PAGES
             }
         }
 
-        private void ProductCard_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
-        {
-            if (sender is FrameworkElement fe)
-                Microsoft.UI.Xaml.Controls.Primitives.FlyoutBase.ShowAttachedFlyout(fe);
-        }
-
         // ─── FİLTRE DEĞİŞİKLİKLERİ ───
         private void Filter_Changed(object sender, object e)
         {
