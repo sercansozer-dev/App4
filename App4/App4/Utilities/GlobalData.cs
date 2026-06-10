@@ -1254,7 +1254,9 @@ namespace App4.Utilities
                 if (root.TryGetProperty("OffsetZ", out var oz)) _codesysOffsetZ = oz.GetDouble();
                 if (root.TryGetProperty("GocMappings", out var gm)) _codesysGocMappings = gm.GetString() ?? "0,1,2,3";
                 if (root.TryGetProperty("BoruAbcDahil", out var ba)) _boruAbcDahil = ba.GetBoolean();
-                if (root.TryGetProperty("TablaAbcDahil", out var ta)) _tablaAbcDahil = ta.GetBoolean();
+                // TABLA A/B/C: kayıtlı değer YÜKLENMEZ — her açılışta güvenli varsayılan (HARİÇ) ile başlar.
+                // Kullanıcı isterse oturum içinde açar; uygulama yeniden açılınca yine HARİÇ gelir.
+                _tablaAbcDahil = false;
             }
             catch { }
         }
@@ -2137,15 +2139,21 @@ namespace App4.Utilities
         {
             try
             {
-                object Map(ObservableCollection<PlcVariable> l) => l.Select(v => new
+                // ŞİŞME FIX: aynı isimden yalnızca ilkini yaz (kopya birikimini önler)
+                object Map(ObservableCollection<PlcVariable> l)
                 {
-                    name = v.Name,
-                    plcTag = v.PlcTag,
-                    plcTag2 = v.PlcTag2,
-                    value = v.Value,
-                    type = v.Type,          // ← YENİ: Tip bilgisi de kaydediliyor
-                    direction = v.Direction  // ← YENİ: Yön bilgisi de kaydediliyor
-                }).ToList();
+                    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    return l.Where(v => !string.IsNullOrWhiteSpace(v.Name) && seen.Add(v.Name.Trim()))
+                            .Select(v => new
+                            {
+                                name = v.Name,
+                                plcTag = v.PlcTag,
+                                plcTag2 = v.PlcTag2,
+                                value = v.Value,
+                                type = v.Type,          // Tip bilgisi
+                                direction = v.Direction  // Yön bilgisi
+                            }).ToList();
+                }
 
                 var data = new
                 {
@@ -2183,11 +2191,14 @@ namespace App4.Utilities
 
                     // Build new list from file but preserve runtime CurrentValue from existing items
                     var newList = new List<PlcVariable>();
+                    var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                     foreach (var i in a.EnumerateArray())
                     {
                         if (!i.TryGetProperty("name", out var n)) continue;
                         string name = n.GetString()?.Trim();
+                        // ŞİŞME FIX: dosyada aynı isim birden fazla varsa sadece ilkini al (kopyaları atla)
+                        if (string.IsNullOrEmpty(name) || !seenNames.Add(name)) continue;
                         string plcTag = i.TryGetProperty("plcTag", out var pt) ? pt.GetString()?.Trim() : null;
                         string plcTag2 = i.TryGetProperty("plcTag2", out var pt2) ? pt2.GetString()?.Trim() : null;
                         string type = i.TryGetProperty("type", out var tt) ? tt.GetString() : null;

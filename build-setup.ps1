@@ -19,6 +19,9 @@ param(
     [switch]$SkipPublish,
     [switch]$SkipInstaller,
     [switch]$KeepPublishDir,
+    # Config sync: canli ayarlari (eslestirilen tag'ler) seed'e kopyala (default: ON)
+    #   -NoConfigSync : seed'i oldugu gibi birak (canli config'i kopyalama)
+    [switch]$NoConfigSync,
     # Versiyon davranisi:
     #   -BumpVersion  : patch numarasini 1 artir (default: ON - her build yeni versiyon)
     #   -NoBump       : versiyonu oldugu gibi birak (hotfix / re-build icin)
@@ -188,6 +191,43 @@ if (-not $SkipPublish) {
         Write-Err "Publish klasorunde SimbiosisLeakTestApp.exe yok. -SkipPublish parametresini kaldirin."
         exit 1
     }
+}
+
+# =============================================================================
+# CONFIG SYNC: Gelistirici PC'sindeki CANLI config -> installer seed
+#   Boylece otomasyon sayfasinda eslestirdigin tag'ler / degiskenler
+#   (Auto_Page_Variables, Automation_Settings, PLC_Config, Robot eslesmeleri vb.)
+#   SETUP ile birlikte kurulan PC'ye gelir.
+#   Runtime/log dosyalari (olcumler, loglar, alarmlar) HARIC tutulur -
+#   boylece gelistirici test verisi setupa girmez.
+# =============================================================================
+if (-not $SkipInstaller -and -not $NoConfigSync) {
+    $LiveConfigDir = "C:\Simbiosis\SimbiosisLeakTestApp\Config"
+    $SeedConfigDir = Join-Path $InstallerDir "seed\Config"
+    # Setupa GIRMEMESI gereken runtime / log dosyalari (her kurulumda temiz baslar)
+    $ExcludeNames = @(
+        'Inficon_Leak_Logs.json', 'Saved_Measurements.json', 'Saved_Tabla_Measurements.json',
+        'Transformed_Measurements.json', 'Station_States.json', 'Safety_Alarms.json',
+        'Safety_Warnings.json', 'System_Checks.json'
+    )
+    if (Test-Path -LiteralPath $LiveConfigDir) {
+        Write-Step "Config sync: canli ayarlar (eslestirilen tag'ler) seed'e kopyalaniyor..."
+        New-Item -ItemType Directory -Force -Path $SeedConfigDir | Out-Null
+        $copied = 0; $skipped = 0
+        Get-ChildItem -LiteralPath $LiveConfigDir -Filter '*.json' -File | ForEach-Object {
+            if (($ExcludeNames -contains $_.Name) -or ($_.Name -like '*.backup*')) {
+                $skipped++
+            } else {
+                Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $SeedConfigDir $_.Name) -Force
+                $copied++
+            }
+        }
+        Write-Ok "Config sync tamamlandi: $copied dosya seed'e kopyalandi, $skipped runtime/log atlandi"
+    } else {
+        Write-Warn "Canli config klasoru yok ($LiveConfigDir) - seed oldugu gibi kullanilacak"
+    }
+} elseif ($NoConfigSync) {
+    Write-Warn "Config sync atlandi (-NoConfigSync) - seed klasoru oldugu gibi kullanilacak"
 }
 
 # --- INNO SETUP DERLEME ---
