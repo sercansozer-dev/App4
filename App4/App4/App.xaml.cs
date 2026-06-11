@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -66,6 +69,71 @@ namespace App4
             catch { /* son çare: sessiz */ }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // TEK ÖRNEK (SINGLE-INSTANCE) KORUMASI
+        // ───────────────────────────────────────────────────────────────────────
+        // Uygulama zaten açıkken ikinci kez başlatılırsa (operatör ikona iki kez
+        // tıklarsa) yeni süreç AÇILMADAN kapanır. Aksi halde iki instance aynı
+        // PLC'nin TEK MC bağlantısını paylaşmaya çalışır ve ikincisi ilkinin
+        // heartbeat'ini düşürür (saha notu: .103 PLC tek bağlantı limiti).
+        // İkinci başlatmada zaten açık olan pencere öne getirilir.
+        // Mutex isim önekisiz → oturum (session) kapsamlı; tek operatörlü endüstriyel
+        // PC için doğru kapsam (Global mutex yetki sorunlarından kaçınılır).
+        // ═══════════════════════════════════════════════════════════════════════
+        private static Mutex _singleInstanceMutex; // süreç ömrü boyunca tutulur (GC olmamalı)
+        private const string SingleInstanceMutexName =
+            "Simbiosis_SimbiosisLeakTestApp_SingleInstance_9F3C2A71-4B5E-4D2A-9C1F-7E6B0A2D8F44";
+
+        private const int SW_RESTORE = 9;
+        [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
+
+        /// <summary>
+        /// İlk/tek örnekse true döner ve uygulama normal açılır. Zaten bir örnek
+        /// çalışıyorsa mevcut pencereyi öne getirir ve bu süreci sonlandırır
+        /// (Environment.Exit — false dönüşü yalnızca savunma amaçlıdır).
+        /// </summary>
+        private bool EnsureSingleInstance()
+        {
+            bool createdNew;
+            try
+            {
+                _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out createdNew);
+            }
+            catch
+            {
+                // Mutex oluşturulamazsa kilitlenme yaratma — uygulamayı normal aç.
+                return true;
+            }
+
+            if (createdNew)
+                return true; // ilk/tek örnek → normal devam et
+
+            // Zaten çalışan bir örnek var → onu öne getir, bu süreci kapat.
+            try { BringExistingInstanceToFront(); } catch { }
+            System.Diagnostics.Debug.WriteLine("[SINGLE_INSTANCE] İkinci örnek engellendi — uygulama zaten açık.");
+            Environment.Exit(0);
+            return false;
+        }
+
+        /// <summary>Çalışan diğer örneğin ana penceresini bulur ve öne getirir.</summary>
+        private static void BringExistingInstanceToFront()
+        {
+            var current = Process.GetCurrentProcess();
+            foreach (var p in Process.GetProcessesByName(current.ProcessName))
+            {
+                if (p.Id == current.Id) continue;
+                IntPtr h = p.MainWindowHandle;
+                if (h != IntPtr.Zero)
+                {
+                    if (IsIconic(h)) ShowWindow(h, SW_RESTORE); // simge durumundaysa geri yükle
+                    SetForegroundWindow(h);
+                    return;
+                }
+            }
+        }
+
         public App()
         {
             // ═══ TÜM AppDomain-düzeyi crash'leri yakala ═══
@@ -103,6 +171,10 @@ namespace App4
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+          // ═══ TEK ÖRNEK KORUMASI: zaten açıksa ikinci örneği engelle (PLC init'ten ÖNCE) ═══
+          if (!EnsureSingleInstance())
+              return; // ikinci örnek → süreç EnsureSingleInstance içinde zaten sonlandırıldı
+
           try
           {
             App4.Utilities.GlobalData.Initialize();
