@@ -2553,7 +2553,9 @@ namespace App4
                 s.CycleRunning = false;
 
                 // ═══ ÜRETİM KAYDI (Trend/Rapor sayfası için) ═══
-                RecordProduction(s, elapsed);
+                // ISLEM_BITTI sonuç verisinden (RESULT_NG/NG_NOKTALAR) hemen önce gelebildiği için,
+                // veriyi oturtup öyle kaydet — yoksa NOK ürün OK kaydolur.
+                _ = RecordProductionDelayed(s, elapsed);
 
                 // Tam tur çevrimi: bu istasyon bitti → son bitti anını işaretle + tur içi üretim say
                 _lineLastBitti = DateTime.Now;
@@ -2615,6 +2617,37 @@ namespace App4
         }
 
         /// <summary>
+        /// ISLEM_BITTI sonrası sonuç verisini (RESULT_OK / RESULT_NG / NG_NOKTALAR) oturtup öyle kaydeder.
+        /// RESULT_OK ya da RESULT_NG set olana veya NG noktalar gelene kadar kısa bekler (maks ~1.6 sn).
+        /// Böylece ISLEM_BITTI sonuçtan önce gelse bile NOK ürün yanlışlıkla OK kaydolmaz.
+        /// </summary>
+        private async System.Threading.Tasks.Task RecordProductionDelayed(StationViewModel s, TimeSpan elapsed)
+        {
+            int stationNo = Stations.IndexOf(s) + 1;
+            if (stationNo >= 1)
+            {
+                var vars = stationNo switch
+                {
+                    1 => GlobalData.Station1Vars,
+                    2 => GlobalData.Station2Vars,
+                    3 => GlobalData.Station3Vars,
+                    _ => null
+                };
+                for (int i = 0; i < 8; i++) // 8 × 200ms = maks 1.6 sn
+                {
+                    bool rOk = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_OK")?.Value);
+                    bool rNg = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
+                    var gen0 = GlobalData.GeneralInputVars;
+                    bool anyNg = ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value).Count > 0
+                              || ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value).Count > 0;
+                    if (rOk || rNg || anyNg) break; // sonuç verisi geldi
+                    await System.Threading.Tasks.Task.Delay(200);
+                }
+            }
+            RecordProduction(s, elapsed);
+        }
+
+        /// <summary>
         /// Çevrim bitince (ISLEM_BITTI) bir üretim kaydı oluşturup TrendDataService'e ekler.
         /// Kayıt: istasyon, ürün/RFID, çevrim süresi, sonuç (RESULT_OK/RESULT_NG), zaman damgası.
         /// </summary>
@@ -2633,13 +2666,16 @@ namespace App4
                     3 => GlobalData.Station3Vars,
                     _ => null
                 };
-                bool ng = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
-                string result = ng ? "NOK" : "OK";
-
                 // ═══ KAÇAK (NG) NOKTALAR — Robot 1/2 için AYRI int array, ORTAK değişkenden (sistem geneli) ═══
                 var gen = GlobalData.GeneralInputVars;
                 var ngR1 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
                 var ngR2 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
+
+                // Sonuç: RESULT_NG TRUE *veya* herhangi bir NG noktası varsa NOK.
+                // (RESULT_NG geç gelse bile NG noktalar NOK'u garanti eder → NOK ürün OK kaydolmaz.)
+                bool ngResult = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
+                bool ng = ngResult || ngR1.Count > 0 || ngR2.Count > 0;
+                string result = ng ? "NOK" : "OK";
 
                 // Ürün/RFID bilgisi (aktif kartta okunan RFID → reçete adı)
                 string rfid = s.CurrentRfid ?? "";
