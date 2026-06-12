@@ -1367,6 +1367,9 @@ namespace App4.Utilities
             LoadTablaReferences();
             LoadInficonLogs();
             LoadRobotStatusCodes(); // Robot durum kodu referans tablosu (düzenlenebilir)
+            try { FaultLogService.Instance.PurgeOldFiles(); } catch { } // Alarm kayıtları: 1 aydan eski ay dosyalarını temizle (servisi de hazırlar)
+            LoadAlarmDefinitions();      // PLC input → alarm eşleştirme tanımları (admin)
+            StartPlcAlarmEvaluator();    // tanımları periyodik (1sn) değerlendir → alarm kaydı
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
             SyncStationPosToRobots();   // İstasyon E1 pozisyonlarını robotlara yaz
@@ -1619,6 +1622,93 @@ namespace App4.Utilities
         {
             foreach (var e in RobotStatusCodes) if (e != null && e.Code == code) return e.Message;
             return $"Kod:{code}";
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // PLC INPUT → ALARM TANIMLARI (admin düzenler — Arıza Kayıt sayfasında)
+        //   Her tanım: bir PLC input + tetik yönü (ON/OFF) + mesaj + önem.
+        //   Koşul sağlanınca FaultLogService'e alarm kaydı düşer (RaiseFault/ClearFault).
+        // ═══════════════════════════════════════════════════════════════════════
+        public static ObservableCollection<AlarmDefinition> AlarmDefinitions { get; } = new();
+        private static readonly string _alarmDefinitionsFilePath = Path.Combine(ConfigBaseDir, "AlarmDefinitions.json");
+
+        public static void LoadAlarmDefinitions()
+        {
+            try
+            {
+                if (!File.Exists(_alarmDefinitionsFilePath)) return;
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<AlarmDefinition>>(File.ReadAllText(_alarmDefinitionsFilePath));
+                AlarmDefinitions.Clear();
+                if (list != null) foreach (var d in list) if (d != null) AlarmDefinitions.Add(d);
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ALARM_DEF] yükleme hatası: {ex.Message}"); }
+        }
+
+        public static void SaveAlarmDefinitions()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_alarmDefinitionsFilePath));
+                var json = System.Text.Json.JsonSerializer.Serialize(AlarmDefinitions.ToList(),
+                    new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_alarmDefinitionsFilePath, json);
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ALARM_DEF] kayıt hatası: {ex.Message}"); }
+        }
+
+        private static System.Threading.Timer _alarmEvalTimer;
+        private static long _alarmTickCounter;
+        /// <summary>PLC input alarm tanımlarını periyodik değerlendirir (1sn) + ~saatte bir 1 aydan eski ay dosyalarını siler.</summary>
+        public static void StartPlcAlarmEvaluator()
+        {
+            if (_alarmEvalTimer != null) return;
+            _alarmEvalTimer = new System.Threading.Timer(_ =>
+            {
+                try { EvaluatePlcAlarms(); } catch { }
+                try
+                {
+                    _alarmTickCounter++;
+                    // PC sürekli açık kalsa bile aylık temizliği garanti et (~saatte bir)
+                    if (_alarmTickCounter % 3600 == 0) FaultLogService.Instance.PurgeOldFiles();
+                }
+                catch { }
+            }, null, 2500, 1000);
+        }
+
+        private static void EvaluatePlcAlarms()
+        {
+            var plc = PlcService.Instance;
+            if (plc == null || !plc.IsConnected) return; // bağlı değilken değerlendirme → yanlış OFF-alarmı önlenir
+
+            foreach (var def in AlarmDefinitions.ToList())
+            {
+                if (def == null) continue;
+
+                // Pasif tanım veya input seçilmemiş → varsa açık alarmı kapat
+                if (!def.Enabled || string.IsNullOrEmpty(def.PlcInputName))
+                {
+                    FaultLogService.Instance.ClearFault(def.Key);
+                    continue;
+                }
+
+                var v = plc.InputVariables.FirstOrDefault(x => x.Name == def.PlcInputName)
+                     ?? plc.OutputVariables.FirstOrDefault(x => x.Name == def.PlcInputName);
+                if (v == null) continue;
+
+                string cur = v.CurrentValue?.ToString()?.Trim();
+                if (string.IsNullOrEmpty(cur)) continue; // henüz okunmadı
+
+                bool isOff = cur == "0" || cur == "0.0" || cur.Equals("false", StringComparison.OrdinalIgnoreCase);
+                bool isOn = !isOff;
+                bool met = def.TriggerOnTrue ? isOn : isOff;
+
+                if (met)
+                    FaultLogService.Instance.RaiseFault(def.Key, "PLC", 0,
+                        string.IsNullOrEmpty(def.Mesaj) ? $"{def.PlcInputName} alarmı" : def.Mesaj,
+                        def.Severity, 0, 0);
+                else
+                    FaultLogService.Instance.ClearFault(def.Key);
+            }
         }
 
         public static void SaveMeasurements() { try { string json = System.Text.Json.JsonSerializer.Serialize(LastMeasurements, new JsonSerializerOptions { WriteIndented = true }); File.WriteAllText(_measurementsFilePath, json); } catch { } }
@@ -3166,8 +3256,55 @@ namespace App4.Utilities
             }, null, 3000, 3000);
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // ARIZA KAYIT YARDIMCILARI
+        // ───────────────────────────────────────────────────────────────────────
+        // Robot hata durumunu (G_HATA_VAR / G_ROBOT_DURUM=2) değerlendirir ve
+        // FaultLogService'e açık/kapalı kayıt olarak yansıtır. De-dup servis içinde
+        // (kaynak "R1"/"R2" başına tek açık kayıt) → aynı hata tekrar tekrar düşmez.
+        // ═══════════════════════════════════════════════════════════════════════
+        private static void EvaluateRobotFault(KukaRobotInstance robot, int robotNo)
+        {
+            try
+            {
+                string GetVar(string name) => robot.InputVars.FirstOrDefault(v => v.Name == name)?.Value ?? "";
+
+                bool hataVar = GetVar("G_HATA_VAR")?.ToUpper() == "TRUE" || GetVar("G_HATA_VAR") == "1";
+                int durum = int.TryParse(GetVar("G_ROBOT_DURUM"), out var d) ? d : -1;
+                int kod = int.TryParse(GetVar("G_HATA_KODU"), out var k) ? k : 0;
+                int nokta = int.TryParse(GetVar("G_AKTIF_NOKTA_NO"), out var n) ? n : 0;
+
+                bool errorActive = hataVar || durum == 2;
+                string key = $"R{robotNo}";
+
+                if (errorActive)
+                    FaultLogService.Instance.RaiseFault(key, key, kod, GetRobotHataMessage(kod), "Arıza", robotNo, nokta);
+                else
+                    FaultLogService.Instance.ClearFault(key);
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[FAULT] EvaluateRobotFault hatası: {ex.Message}"); }
+        }
+
+        /// <summary>G_HATA_KODU → mesaj (Auto_Page.CheckRobotAlarms ile birebir aynı eşleme).</summary>
+        internal static string GetRobotHataMessage(int kod) => kod switch
+        {
+            5 => "Tabla Timeout",
+            6 => "Ölçüm Timeout",
+            8 => "Diğer Robot Hatası",
+            50 => "Boru Ölçüm NOK",
+            51 => "Boru Ölçüm Timeout",
+            52 => "Hedef Nokta Limit Aşıldı",
+            99 => "Genel Hata",
+            _ => kod > 0 ? $"Hata Kodu: {kod}" : "Hata Var"
+        };
+
         private static void CheckRobotTriggerSignalGlobal(PlcVariable changedVar, KukaRobotInstance robot, int robotNo)
         {
+            // ═══ ARIZA KAYIT: robot hata sinyali (G_HATA_VAR / G_ROBOT_DURUM / G_HATA_KODU) ═══
+            // Bu üç tag aşağıdaki handler'ların HİÇBİRİNDE işlenmiyor → mevcut akış bozulmaz.
+            if (changedVar.Name == "G_HATA_VAR" || changedVar.Name == "G_ROBOT_DURUM" || changedVar.Name == "G_HATA_KODU")
+                EvaluateRobotFault(robot, robotNo);
+
             // ═══ TABLA OLCUM ALINDI (İKİLİ TEYİT) ═══
             // Robot G_TABLA_OLCUM_ALINDI=TRUE yaptığında → ölçümü aldı, TAMAM sıfırlanabilir
             if (changedVar.Name == "G_TABLA_OLCUM_ALINDI")

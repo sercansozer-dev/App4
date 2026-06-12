@@ -73,7 +73,8 @@
 
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Otomatik Mod" Tag="auto" Icon="Target" Margin="0,5,0,0"/>
-                <NavigationViewItem Content="Manuel Mod" Tag="manuel" Icon="Edit" Margin="0,5,0,0"/>
+                <!-- Manuel Mod sayfası gösterimden kaldırıldı (istek üzerine). Geri açmak için yorumdan çıkar. -->
+                <!--<NavigationViewItem Content="Manuel Mod" Tag="manuel" Icon="Edit" Margin="0,5,0,0"/>-->
                 <NavigationViewItem Icon="Camera" Content="Kamera Görüntüsü" Tag="camera" Margin="0,5,0,0"/>
                 <NavigationViewItem Content="PLC Kontrol" Tag="plc">
                     <NavigationViewItem.Icon>
@@ -90,6 +91,11 @@
                 <NavigationViewItem Content="Trend ve Rapor" Tag="trend" Margin="0,5,0,0">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE9D2;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Alarm Kayıtları" Tag="faultlog" Margin="0,5,0,0">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE7BA;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <!-- Helyum Kaçak sayfası geçici olarak gizlendi (uygulama crash nedeniyle).
