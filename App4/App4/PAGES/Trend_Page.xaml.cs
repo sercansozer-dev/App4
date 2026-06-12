@@ -969,6 +969,27 @@ namespace App4.PAGES
             return tt?.r ?? p.robot;
         }
 
+        // Etkin açıklama: RFID override > tip override > yok
+        private string EffDesc(LeakPoint p)
+        {
+            var rr = Lookup(_rfidOvr, _lmRfid, p.name);
+            if (!string.IsNullOrEmpty(rr?.d)) return rr.d;
+            var tt = Lookup(_typeOvr, _lmTypeKey, p.name);
+            return string.IsNullOrEmpty(tt?.d) ? null : tt.d;
+        }
+
+        /// <summary>Nokta açıklamasını düzenleme kapsamına yazar (boş = sil).</summary>
+        private void SetOvrDesc(string name, string d)
+        {
+            var target = (_lmRfid != null) ? _rfidOvr : _typeOvr;
+            string key = (_lmRfid != null) ? _lmRfid : _lmTypeKey;
+            if (key == null) return;
+            if (!target.TryGetValue(key, out var m)) { m = new(); target[key] = m; }
+            if (!m.TryGetValue(name, out var o)) { o = new PointOvr(); m[name] = o; }
+            o.d = string.IsNullOrWhiteSpace(d) ? null : d.Trim();
+            SaveOvr();
+        }
+
         private bool IsNgPoint(TrendRecord r, LeakPoint p)
         {
             int v = EffInt(p);
@@ -1138,6 +1159,14 @@ namespace App4.PAGES
                 Canvas.SetLeft(lbl, p.x * W + rad + 2);
                 Canvas.SetTop(lbl, p.y * H - rad - 2);
                 canvas.Children.Add(lbl);
+
+                // Açıklama tanımlıysa işaretçi + etikette tooltip olarak göster
+                string mDesc = EffDesc(p);
+                if (!string.IsNullOrEmpty(mDesc))
+                {
+                    ToolTipService.SetToolTip(ell, $"{p.name} — {mDesc}");
+                    ToolTipService.SetToolTip(lbl, $"{p.name} — {mDesc}");
+                }
             }
         }
 
@@ -1178,31 +1207,62 @@ namespace App4.PAGES
                 foreach (var p in part.points)
                 {
                     bool ng = IsNgPoint(_lmRecord, p);
-                    var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 1, 0, 1) };
-                    row.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 11, Height = 11, Stroke = ng ? red : green, StrokeThickness = 2.5, Fill = ng ? redFill : greenFill, VerticalAlignment = VerticalAlignment.Center });
-                    row.Children.Add(new TextBlock { Text = p.name, FontSize = 12, Width = 50, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = ColorFromHex("#DDDDDD"), VerticalAlignment = VerticalAlignment.Center });
+                    string desc = EffDesc(p);
 
                     if (_lmEdit)
                     {
-                        var rcombo = new ComboBox { Width = 58, Height = 32, FontSize = 11, Tag = p, VerticalAlignment = VerticalAlignment.Center };
+                        // Sabit kolonlu grid: 16 | * | 74 | 54 — 320px panele her zaman sığar
+                        var row = new Grid { ColumnSpacing = 5, Margin = new Thickness(0, 2, 0, 0) };
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(74) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(54) });
+
+                        var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 11, Height = 11, Stroke = ng ? red : green, StrokeThickness = 2.5, Fill = ng ? redFill : greenFill, VerticalAlignment = VerticalAlignment.Center };
+                        row.Children.Add(dot);
+
+                        var nameTb = new TextBlock { Text = p.name, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = ColorFromHex("#DDDDDD"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+                        ToolTipService.SetToolTip(nameTb, p.name);
+                        Grid.SetColumn(nameTb, 1); row.Children.Add(nameTb);
+
+                        var rcombo = new ComboBox { Width = 74, MinWidth = 74, Height = 32, FontSize = 11, Padding = new Thickness(8, 4, 0, 4), Tag = p, VerticalAlignment = VerticalAlignment.Center };
                         rcombo.Items.Add("R1"); rcombo.Items.Add("R2");
                         rcombo.SelectedIndex = EffRobot(p) == 2 ? 1 : 0;
                         rcombo.SelectionChanged += Robot_Changed;
-                        row.Children.Add(rcombo);
+                        Grid.SetColumn(rcombo, 2); row.Children.Add(rcombo);
 
                         var box = new TextBox
                         {
                             Text = EffInt(p).ToString(),
-                            Width = 56, Height = 32, FontSize = 12,
+                            Width = 54, Height = 32, FontSize = 12,
                             Background = ColorFromHex("#202020"), Foreground = ColorFromHex("#FFFFFF"),
                             BorderBrush = ColorFromHex("#00A4EF"), VerticalAlignment = VerticalAlignment.Center, Tag = p
                         };
                         box.LostFocus += PointInt_Commit;
                         box.KeyDown += (s, ev) => { if (ev.Key == Windows.System.VirtualKey.Enter) PointInt_Commit(s, null); };
-                        row.Children.Add(box);
+                        Grid.SetColumn(box, 3); row.Children.Add(box);
+
+                        LeakPointLegendPanel.Children.Add(row);
+
+                        // Açıklama girişi (opsiyonel) — nokta adının altında tam genişlik
+                        var descBox = new TextBox
+                        {
+                            Text = desc ?? "",
+                            PlaceholderText = "Açıklama (opsiyonel)...",
+                            FontSize = 11, Height = 30,
+                            Background = ColorFromHex("#1A1A1A"), Foreground = ColorFromHex("#CCCCCC"),
+                            BorderBrush = ColorFromHex("#333333"),
+                            Margin = new Thickness(21, 1, 0, 4), Tag = p
+                        };
+                        descBox.LostFocus += PointDesc_Commit;
+                        descBox.KeyDown += (s, ev) => { if (ev.Key == Windows.System.VirtualKey.Enter) PointDesc_Commit(s, null); };
+                        LeakPointLegendPanel.Children.Add(descBox);
                     }
                     else
                     {
+                        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 1, 0, 1) };
+                        row.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 11, Height = 11, Stroke = ng ? red : green, StrokeThickness = 2.5, Fill = ng ? redFill : greenFill, VerticalAlignment = VerticalAlignment.Center });
+                        row.Children.Add(new TextBlock { Text = p.name, FontSize = 12, Width = 50, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = ColorFromHex("#DDDDDD"), VerticalAlignment = VerticalAlignment.Center });
                         row.Children.Add(new TextBlock { Text = $"R{EffRobot(p)}", FontSize = 10, Width = 24, Foreground = ColorFromHex("#777777"), VerticalAlignment = VerticalAlignment.Center });
                         row.Children.Add(new Border
                         {
@@ -1211,8 +1271,17 @@ namespace App4.PAGES
                             Child = new TextBlock { Text = "int " + EffInt(p), FontSize = 10, Foreground = ColorFromHex("#9E9E9E") }
                         });
                         row.Children.Add(new TextBlock { Text = ng ? "KAÇAK" : "OK", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = ng ? red : green, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) });
+                        LeakPointLegendPanel.Children.Add(row);
+
+                        // Açıklama varsa nokta altında küçük gri satır
+                        if (!string.IsNullOrEmpty(desc))
+                            LeakPointLegendPanel.Children.Add(new TextBlock
+                            {
+                                Text = desc, FontSize = 10, Foreground = ColorFromHex("#8A8A8A"),
+                                FontStyle = Windows.UI.Text.FontStyle.Italic,
+                                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(21, 0, 0, 3)
+                            });
                     }
-                    LeakPointLegendPanel.Children.Add(row);
                 }
             }
         }
@@ -1239,6 +1308,15 @@ namespace App4.PAGES
                 {
                     tb.Text = EffInt(p).ToString();
                 }
+            }
+        }
+
+        private void PointDesc_Commit(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tb && tb.Tag is LeakPoint p)
+            {
+                SetOvrDesc(p.name, tb.Text);
+                RenderAllMarkers(); // tooltip'ler güncellensin
             }
         }
 
@@ -1372,6 +1450,7 @@ namespace App4.PAGES
         {
             public int? i { get; set; }
             public int? r { get; set; }
+            public string d { get; set; }   // açıklama (opsiyonel)
         }
         private class OvrFile
         {
