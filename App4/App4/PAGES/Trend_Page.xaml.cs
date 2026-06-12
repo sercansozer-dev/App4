@@ -1195,19 +1195,33 @@ namespace App4.PAGES
                     TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
                 });
 
-            foreach (var part in _lmEntry.parts)
+            // Noktalar robot bazında gruplanır ve ETKİN INT'e göre sıralanır → tarama sırası
+            // net okunur (INT 1 en üstte, 2 altında...). INT/robot değişince liste yeniden sıralanır.
+            var allPts = _lmEntry.parts.Where(pt => pt?.points != null)
+                .SelectMany(pt => pt.points.Select(p => (part: pt, p)))
+                .ToList();
+
+            foreach (var robotGrp in allPts.GroupBy(x => EffRobot(x.p)).OrderBy(grp => grp.Key))
             {
                 LeakPointLegendPanel.Children.Add(new TextBlock
                 {
-                    Text = part.title ?? "",
+                    Text = $"ROBOT {robotGrp.Key} — TARAMA SIRASI",
                     FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                    Foreground = ColorFromHex("#888888"), Margin = new Thickness(0, 6, 0, 2)
+                    Foreground = ColorFromHex(robotGrp.Key == 2 ? "#F39C12" : "#E74C3C"),
+                    Margin = new Thickness(0, 8, 0, 2)
                 });
 
-                foreach (var p in part.points)
+                // Aynı robotta aynı INT birden fazla noktaya atanmışsa → çakışma (kırmızı vurgu)
+                var dupInts = robotGrp.GroupBy(x => EffInt(x.p)).Where(grp => grp.Count() > 1)
+                    .Select(grp => grp.Key).ToHashSet();
+
+                foreach (var (part, p) in robotGrp
+                    .OrderBy(x => EffInt(x.p))
+                    .ThenBy(x => x.p.name, StringComparer.OrdinalIgnoreCase))
                 {
                     bool ng = IsNgPoint(_lmRecord, p);
                     string desc = EffDesc(p);
+                    bool dupInt = dupInts.Contains(EffInt(p));
 
                     if (_lmEdit)
                     {
@@ -1222,7 +1236,7 @@ namespace App4.PAGES
                         row.Children.Add(dot);
 
                         var nameTb = new TextBlock { Text = p.name, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = ColorFromHex("#DDDDDD"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
-                        ToolTipService.SetToolTip(nameTb, p.name);
+                        ToolTipService.SetToolTip(nameTb, $"{p.name} — {part.title}");
                         Grid.SetColumn(nameTb, 1); row.Children.Add(nameTb);
 
                         var rcombo = new ComboBox { Width = 74, MinWidth = 74, Height = 32, FontSize = 11, Padding = new Thickness(8, 4, 0, 4), Tag = p, VerticalAlignment = VerticalAlignment.Center };
@@ -1236,8 +1250,10 @@ namespace App4.PAGES
                             Text = EffInt(p).ToString(),
                             Width = 54, Height = 32, FontSize = 12,
                             Background = ColorFromHex("#202020"), Foreground = ColorFromHex("#FFFFFF"),
-                            BorderBrush = ColorFromHex("#00A4EF"), VerticalAlignment = VerticalAlignment.Center, Tag = p
+                            BorderBrush = dupInt ? red : ColorFromHex("#00A4EF"),
+                            VerticalAlignment = VerticalAlignment.Center, Tag = p
                         };
+                        if (dupInt) ToolTipService.SetToolTip(box, "⚠ Bu INT aynı robotta birden fazla noktaya atanmış!");
                         box.LostFocus += PointInt_Commit;
                         box.KeyDown += (s, ev) => { if (ev.Key == Windows.System.VirtualKey.Enter) PointInt_Commit(s, null); };
                         Grid.SetColumn(box, 3); row.Children.Add(box);
@@ -1268,7 +1284,7 @@ namespace App4.PAGES
                         {
                             Background = ColorFromHex("#1A1A1A"), CornerRadius = new CornerRadius(4),
                             Padding = new Thickness(6, 1, 6, 1), VerticalAlignment = VerticalAlignment.Center,
-                            Child = new TextBlock { Text = "int " + EffInt(p), FontSize = 10, Foreground = ColorFromHex("#9E9E9E") }
+                            Child = new TextBlock { Text = "int " + EffInt(p), FontSize = 10, Foreground = dupInt ? red : ColorFromHex("#9E9E9E") }
                         });
                         row.Children.Add(new TextBlock { Text = ng ? "KAÇAK" : "OK", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = ng ? red : green, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) });
                         LeakPointLegendPanel.Children.Add(row);
@@ -1292,6 +1308,8 @@ namespace App4.PAGES
             {
                 SetOvr(p.name, null, cb.SelectedIndex + 1);
                 RenderAllMarkers();
+                // Liste tarama sırasına göre yeniden dizilsin (event bitince — güvenli)
+                DispatcherQueue.TryEnqueue(BuildLeakLegend);
             }
         }
 
@@ -1303,6 +1321,8 @@ namespace App4.PAGES
                 {
                     SetOvr(p.name, v, null);
                     RenderAllMarkers();
+                    // "1 dediğim başa gelsin": liste etkin INT sırasına göre yeniden dizilir
+                    DispatcherQueue.TryEnqueue(BuildLeakLegend);
                 }
                 else
                 {
