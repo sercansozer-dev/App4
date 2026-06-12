@@ -283,22 +283,102 @@ namespace App4.Utilities
             return stats;
         }
 
-        // ─── CSV DIŞA AKTARMA ───
+        // ─── CSV DIŞA AKTARMA (TAM RAPOR: özet + kırılımlar + detay kayıtlar) ───
         public string ExportToCsv(List<TrendRecord> records, string filePath)
         {
             try
             {
                 using var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8);
+                records ??= new List<TrendRecord>();
 
-                // Başlık satırı
-                writer.WriteLine("Tarih;Saat;İstasyon;RFID;Ürün;Klima Tip;Sonuç;OK Sayısı;NOK Sayısı;Başarı%;Süre(sn);Offset X;Offset Y;Offset Z;Offset A;Offset B;Offset C;Notlar");
+                // ═══ 1) RAPOR BAŞLIĞI ═══
+                writer.WriteLine("SIMBIOSIS LEAK TEST — TREND RAPORU");
+                writer.WriteLine($"Oluşturma;{DateTime.Now:dd.MM.yyyy HH:mm:ss}");
+                if (records.Count > 0)
+                {
+                    var min = records.Min(r => r.Timestamp);
+                    var max = records.Max(r => r.Timestamp);
+                    writer.WriteLine($"Kayıt Aralığı;{min:dd.MM.yyyy HH:mm} - {max:dd.MM.yyyy HH:mm}");
+                }
+                writer.WriteLine($"Kayıt Sayısı;{records.Count}");
+                writer.WriteLine();
 
+                // ═══ 2) GENEL ÖZET ═══
+                var stats = CalculateStatistics(records);
+                writer.WriteLine("GENEL ÖZET");
+                writer.WriteLine($"Toplam Üretim;{stats.TotalRecords}");
+                writer.WriteLine($"OK;{stats.OkRecords};%{stats.OkPercent:F0}");
+                writer.WriteLine($"NOK;{stats.NokRecords};%{stats.NokPercent:F0}");
+                writer.WriteLine($"Ortalama Çevrim (sn);{stats.AvgCycleTime:F1}");
+                writer.WriteLine($"Toplam Kaçak Nokta;{stats.TotalNokPoints}");
+                writer.WriteLine($"Ort. Offset;X:{stats.AvgOffsetX:F3};Y:{stats.AvgOffsetY:F3};Z:{stats.AvgOffsetZ:F3}");
+                writer.WriteLine();
+
+                // ═══ 3) RFID/MODEL BAZINDA ÜRETİM ═══
+                writer.WriteLine("RFID BAZINDA ÜRETİM");
+                writer.WriteLine("RFID;Adet;OK;NOK;Başarı%;Ort. Süre(sn);Kaçak Nokta");
+                var modelGroups = records
+                    .GroupBy(r => string.IsNullOrWhiteSpace(r.RfidTag) ? "Tanımsız" : r.RfidTag)
+                    .Select(g => new
+                    {
+                        Model = g.Key,
+                        Toplam = g.Count(),
+                        Ok = g.Count(x => x.OverallResult == "OK"),
+                        Nok = g.Count(x => x.OverallResult == "NOK"),
+                        OrtSure = g.Average(x => x.CycleTime),
+                        NgToplam = g.Sum(x => (x.NgPointsR1?.Count ?? 0) + (x.NgPointsR2?.Count ?? 0)),
+                        Kayitlar = g.ToList()
+                    })
+                    .OrderByDescending(x => x.Toplam)
+                    .ToList();
+                foreach (var g in modelGroups)
+                {
+                    string basari = g.Toplam > 0 ? $"%{(g.Ok * 100.0 / g.Toplam):F0}" : "-";
+                    writer.WriteLine($"{g.Model};{g.Toplam};{g.Ok};{g.Nok};{basari};{g.OrtSure:F0};{g.NgToplam}");
+                }
+                writer.WriteLine();
+
+                // ═══ 4) EN SIK KAÇAK NOKTALAR (tüm kayıtlar, R1+R2) ═══
+                writer.WriteLine("EN SIK KAÇAK NOKTALAR");
+                writer.WriteLine("Nokta;Tespit Adedi");
+                var topPoints = records
+                    .SelectMany(r => (r.NgPointsR1 ?? new List<int>()).Concat(r.NgPointsR2 ?? new List<int>()))
+                    .GroupBy(p => p)
+                    .Select(g => new { Nokta = g.Key, Adet = g.Count() })
+                    .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta)
+                    .ToList();
+                if (topPoints.Count == 0) writer.WriteLine("Kaçak nokta yok;-");
+                foreach (var p in topPoints) writer.WriteLine($"Nokta {p.Nokta};{p.Adet}");
+                writer.WriteLine();
+
+                // ═══ 5) MODEL BAZINDA TESPİT EDİLEN KAÇAK NOKTALARI ═══
+                writer.WriteLine("MODEL BAZINDA TESPİT EDİLEN KAÇAK NOKTALARI");
+                writer.WriteLine("Model;Robot;Nokta;Tespit Adedi");
+                bool anyModelNg = false;
+                foreach (var g in modelGroups)
+                {
+                    var r1 = g.Kayitlar.SelectMany(x => x.NgPointsR1 ?? new List<int>())
+                        .GroupBy(p => p).OrderByDescending(x => x.Count()).ThenBy(x => x.Key);
+                    var r2 = g.Kayitlar.SelectMany(x => x.NgPointsR2 ?? new List<int>())
+                        .GroupBy(p => p).OrderByDescending(x => x.Count()).ThenBy(x => x.Key);
+                    foreach (var p in r1) { writer.WriteLine($"{g.Model};R1;Nokta {p.Key};{p.Count()}"); anyModelNg = true; }
+                    foreach (var p in r2) { writer.WriteLine($"{g.Model};R2;Nokta {p.Key};{p.Count()}"); anyModelNg = true; }
+                }
+                if (!anyModelNg) writer.WriteLine("Kaçak nokta yok;-;-;-");
+                writer.WriteLine();
+
+                // ═══ 6) DETAY KAYITLAR (kaçak nokta listeleri dahil) ═══
+                writer.WriteLine("DETAY KAYITLAR");
+                writer.WriteLine("Tarih;Saat;İstasyon;RFID;Ürün;Klima Tip;Sonuç;OK Sayısı;NOK Sayısı;Başarı%;Süre(sn);Kaçak R1;Kaçak R2;Offset X;Offset Y;Offset Z;Offset A;Offset B;Offset C;Notlar");
                 foreach (var r in records)
                 {
+                    string ngR1 = (r.NgPointsR1 != null && r.NgPointsR1.Count > 0) ? string.Join(",", r.NgPointsR1) : "-";
+                    string ngR2 = (r.NgPointsR2 != null && r.NgPointsR2.Count > 0) ? string.Join(",", r.NgPointsR2) : "-";
                     writer.WriteLine(string.Join(";",
                         r.DateStr, r.TimeStr, $"İSTASYON {r.StationNo}", r.RfidTag, r.ProductName,
                         r.KlimaTip, r.OverallResult, r.OkCount, r.NokCount, r.SuccessRate,
-                        r.CycleTime.ToString("F1"), r.OffsetX.ToString("F3"), r.OffsetY.ToString("F3"),
+                        r.CycleTime.ToString("F1"), ngR1, ngR2,
+                        r.OffsetX.ToString("F3"), r.OffsetY.ToString("F3"),
                         r.OffsetZ.ToString("F3"), r.OffsetA.ToString("F3"), r.OffsetB.ToString("F3"),
                         r.OffsetC.ToString("F3"), r.Notes));
                 }

@@ -164,7 +164,112 @@ namespace App4.PAGES
             UpdateProductBreakdown();
         }
 
-        /// <summary>Filtrelenen kayıtlarda ürün tipi başına Adet / OK / NOK / Ort.Süre / NG detayı.</summary>
+        // ═══════════════════════════════════════════════════════════════
+        // ÖZET PANELİ — paylaşılan fırçalar ve görsel yardımcı fabrikalar
+        // ═══════════════════════════════════════════════════════════════
+        private static SolidColorBrush B(byte r, byte g, byte b)
+            => new(Microsoft.UI.ColorHelper.FromArgb(255, r, g, b));
+
+        private static readonly SolidColorBrush BrWhite   = new(Microsoft.UI.Colors.White);
+        private static readonly SolidColorBrush BrGreen   = B(0x4C, 0xAF, 0x50);
+        private static readonly SolidColorBrush BrRed     = B(0xE7, 0x4C, 0x3C);
+        private static readonly SolidColorBrush BrOrange  = B(0xF3, 0x9C, 0x12);
+        private static readonly SolidColorBrush BrBlue    = B(0x00, 0xA4, 0xEF);
+        private static readonly SolidColorBrush BrG666    = B(0x66, 0x66, 0x66);
+        private static readonly SolidColorBrush BrG888    = B(0x88, 0x88, 0x88);
+        private static readonly SolidColorBrush BrZebra   = B(0x16, 0x16, 0x16);
+        private static readonly SolidColorBrush BrOkBg    = B(0x0D, 0x28, 0x18);
+        private static readonly SolidColorBrush BrNokBg   = B(0x2D, 0x0A, 0x0A);
+        private static readonly SolidColorBrush BrNgBg    = B(0x2D, 0x1F, 0x0A);
+        private static readonly SolidColorBrush BrNeutral = B(0x1E, 0x1E, 0x1E);
+        private static readonly SolidColorBrush BrTrack   = B(0x22, 0x22, 0x22);
+        private static readonly SolidColorBrush BrPTrack  = B(0x1A, 0x1A, 0x1A);
+        private static readonly SolidColorBrush BrBadge   = B(0x3A, 0x12, 0x12);
+
+        // Kolon pill'i: değer 0 ise nötr gri (sıfır sessiz kalır, gerçek hata renkle bağırır)
+        private static Border MakePill(string text, SolidColorBrush bg, SolidColorBrush fg) => new()
+        {
+            Background = bg, CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(0, 2, 0, 2), VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock { Text = text, FontSize = 11,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = fg,
+                HorizontalTextAlignment = TextAlignment.Center }
+        };
+
+        // NG chip'i: R1 kırmızı, R2 turuncu — "C1-1 ×3" (kod yoksa "N5 ×3")
+        private static Border MakeChip(string label, int adet, bool r2) => new()
+        {
+            Background = r2 ? BrNgBg : BrNokBg, CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(7, 2, 7, 2),
+            Child = new TextBlock { Text = $"{label} ×{adet}", FontSize = 10,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = r2 ? BrOrange : BrRed }
+        };
+
+        // Sol tabloda seçili RFID (sağ Pareto bu ürüne filtrelenir; null = tümü)
+        private string _selectedNgRfid;
+
+        /// <summary>(rfid, robot, INT) → nokta kodu (örn. "C1-1"). Nokta Kütüphanesi eşlemesinden
+        /// ters çözüm: RFID override > tip override > varsayılan. Eşleme yoksa null.</summary>
+        private string ResolvePointCode(string rfid, int robot, int value)
+        {
+            EnsureLeakMaps();
+            rfid = rfid?.Trim();
+            if (string.IsNullOrEmpty(rfid) || _leakMaps?.models == null
+                || _leakMaps.types == null || _leakMaps.maps == null) return null;
+
+            if (!_leakMaps.models.TryGetValue(rfid, out string typeKey))
+                typeKey = _leakMaps.models.FirstOrDefault(kv => string.Equals(kv.Key, rfid, StringComparison.OrdinalIgnoreCase)).Value;
+            if (string.IsNullOrEmpty(typeKey) || !_leakMaps.types.TryGetValue(typeKey, out var ti)
+                || ti?.diagram == null || !_leakMaps.maps.TryGetValue(ti.diagram, out var entry)
+                || entry?.parts == null) return null;
+
+            foreach (var part in entry.parts)
+            {
+                if (part?.points == null) continue;
+                foreach (var p in part.points)
+                {
+                    var rr = Lookup(_rfidOvr, rfid, p.name);
+                    var tt = Lookup(_typeOvr, typeKey, p.name);
+                    int effI = rr?.i ?? tt?.i ?? p.idx;
+                    int effR = rr?.r ?? tt?.r ?? p.robot;
+                    if (effI == value && effR == robot) return p.name;
+                }
+            }
+            return null;
+        }
+
+        // "R1"/"R2" mini etiketi
+        private static Border MakeRobotTag(string t) => new()
+        {
+            Background = BrNeutral, CornerRadius = new CornerRadius(3),
+            Padding = new Thickness(5, 1, 5, 1), VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock { Text = t, FontSize = 9,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = BrG888 }
+        };
+
+        // OK oranı hücresi: 64x6 track + star-oranlı dolgu + "%96" metni.
+        // ProgressBar BİLEREK kullanılmadı (tema track rengini ezebiliyor).
+        private static FrameworkElement MakeRateCell(double pct)
+        {
+            var fg = pct >= 90 ? BrGreen : (pct >= 70 ? BrOrange : BrRed);
+            double p = Math.Clamp(pct, 0, 100);
+            double vis = p == 0 ? 0 : Math.Max(p, 6);   // %1–5 dolgu görünür kalsın
+            var fill = new Grid();
+            fill.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(vis, GridUnitType.Star) });
+            fill.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100 - vis, GridUnitType.Star) });
+            if (vis > 0) fill.Children.Add(new Border { Background = fg, CornerRadius = new CornerRadius(3) });
+            var sp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            sp.Children.Add(new Border { Width = 64, Height = 6, CornerRadius = new CornerRadius(3),
+                Background = BrTrack, VerticalAlignment = VerticalAlignment.Center, Child = fill });
+            sp.Children.Add(new TextBlock { Text = $"%{p:F0}", FontSize = 10,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = fg,
+                VerticalAlignment = VerticalAlignment.Center });
+            return sp;
+        }
+
+        /// <summary>RFID/model başına üretim kırılımı: zebra satır, OK-oranı barı, pill rozetler,
+        /// satır altında R1/R2 kaçak nokta chip şeridi (model bazında kaçak görünümü buraya entegre).</summary>
         private void UpdateProductBreakdown()
         {
             if (ProductBreakdownPanel == null) return;
@@ -178,127 +283,6 @@ namespace App4.PAGES
                     Ok = g.Count(x => x.OverallResult == "OK"),
                     Nok = g.Count(x => x.OverallResult == "NOK"),
                     OrtSure = g.Average(x => x.CycleTime),
-                    NgNokta = g.Sum(x => (x.NgPointsR1?.Count ?? 0) + (x.NgPointsR2?.Count ?? 0))
-                })
-                .OrderByDescending(x => x.Toplam)
-                .ToList();
-
-            StatProductCount.Text = groups.Count.ToString();
-            UpdateTopNgPoints();
-            UpdateModelNgBreakdown();
-            ProductBreakdownPanel.Children.Clear();
-
-            if (groups.Count == 0)
-            {
-                ProductBreakdownPanel.Children.Add(new TextBlock { Text = "Kayıt yok", FontSize = 11, Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
-                return;
-            }
-
-            var gray = new SolidColorBrush(Microsoft.UI.Colors.Gray);
-            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
-            var green = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x4C, 0xAF, 0x50));
-            var red = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE7, 0x4C, 0x3C));
-            var blue = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x00, 0xA4, 0xEF));
-            var orange = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xF3, 0x9C, 0x12));
-            var bold = Microsoft.UI.Text.FontWeights.Bold;
-            var norm = Microsoft.UI.Text.FontWeights.Normal;
-            double[] W = { 0, 42, 34, 34, 54, 38 }; // 0 = esnek (ürün adı)
-
-            Grid MakeRow(string[] vals, Microsoft.UI.Xaml.Media.Brush[] brushes, bool header)
-            {
-                var g = new Grid { Margin = new Thickness(0, header ? 0 : 1, 0, header ? 3 : 1) };
-                for (int i = 0; i < 6; i++)
-                    g.ColumnDefinitions.Add(new ColumnDefinition { Width = W[i] == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(W[i]) });
-                for (int i = 0; i < 6; i++)
-                {
-                    var tb = new TextBlock
-                    {
-                        Text = vals[i],
-                        FontSize = header ? 9 : 11,
-                        Foreground = header ? gray : brushes[i],
-                        FontWeight = (header || i == 1) ? bold : norm,
-                        HorizontalTextAlignment = i == 0 ? TextAlignment.Left : TextAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis
-                    };
-                    Grid.SetColumn(tb, i);
-                    g.Children.Add(tb);
-                }
-                return g;
-            }
-
-            var hb = new[] { gray, gray, gray, gray, gray, gray };
-            ProductBreakdownPanel.Children.Add(MakeRow(new[] { "RFID", "ADET", "OK", "NOK", "SÜRE", "NG" }, hb, true));
-            var rb = new[] { white, white, green, red, blue, orange };
-            foreach (var g in groups)
-                ProductBreakdownPanel.Children.Add(MakeRow(
-                    new[] { g.Urun, g.Toplam.ToString(), g.Ok.ToString(), g.Nok.ToString(), g.OrtSure.ToString("F0") + "sn", g.NgNokta.ToString() },
-                    rb, false));
-        }
-
-        /// <summary>Filtrelenen kayıtlarda en sık NG tespit edilen nokta numaraları (R1+R2 birleşik, frekansa göre).</summary>
-        private void UpdateTopNgPoints()
-        {
-            if (TopNgPointsPanel == null) return;
-            TopNgPointsPanel.Children.Clear();
-
-            var freq = _currentRecords
-                .SelectMany(r => (r.NgPointsR1 ?? new List<int>()).Concat(r.NgPointsR2 ?? new List<int>()))
-                .GroupBy(p => p)
-                .Select(g => new { Nokta = g.Key, Adet = g.Count() })
-                .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta)
-                .Take(8)
-                .ToList();
-
-            if (freq.Count == 0)
-            {
-                TopNgPointsPanel.Children.Add(new TextBlock { Text = "Kaçak nokta yok", FontSize = 11, Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray) });
-                return;
-            }
-
-            int max = freq.Max(x => x.Adet);
-            var red = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE7, 0x4C, 0x3C));
-            var redBg = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x3A, 0x12, 0x12));
-            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
-
-            foreach (var f in freq)
-            {
-                var row = new Grid();
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(66) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
-
-                var lbl = new TextBlock { Text = $"Nokta {f.Nokta}", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = white, VerticalAlignment = VerticalAlignment.Center };
-
-                var barHost = new Grid { Margin = new Thickness(4, 0, 4, 0) };
-                var barBg = new Border { Background = redBg, CornerRadius = new CornerRadius(3), Height = 14, HorizontalAlignment = HorizontalAlignment.Stretch };
-                var bar = new Border { Background = red, CornerRadius = new CornerRadius(3), Height = 14, HorizontalAlignment = HorizontalAlignment.Left, Width = Math.Max(8, 240.0 * f.Adet / max) };
-                barHost.Children.Add(barBg); barHost.Children.Add(bar);
-
-                var cnt = new TextBlock { Text = $"{f.Adet}x", FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = red, HorizontalTextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-
-                Grid.SetColumn(barHost, 1); Grid.SetColumn(cnt, 2);
-                row.Children.Add(lbl); row.Children.Add(barHost); row.Children.Add(cnt);
-                TopNgPointsPanel.Children.Add(row);
-            }
-        }
-
-        /// <summary>Filtrelenen kayıtlarda MODEL bazında tespit edilen kaçak noktaları (R1/R2 ayrımı + adet, sıklığa göre).</summary>
-        private void UpdateModelNgBreakdown()
-        {
-            if (ModelNgBreakdownPanel == null) return;
-            ModelNgBreakdownPanel.Children.Clear();
-
-            var gray = new SolidColorBrush(Microsoft.UI.Colors.Gray);
-            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
-            var red = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE7, 0x4C, 0x3C));
-            var orange = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xF3, 0x9C, 0x12));
-            var bold = Microsoft.UI.Text.FontWeights.Bold;
-
-            var models = _currentRecords
-                .GroupBy(r => string.IsNullOrWhiteSpace(r.RfidTag) ? "Tanımsız" : r.RfidTag)
-                .Select(g => new
-                {
-                    Model = g.Key,
                     R1 = g.SelectMany(x => x.NgPointsR1 ?? new List<int>())
                           .GroupBy(p => p).Select(p => new { Nokta = p.Key, Adet = p.Count() })
                           .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList(),
@@ -306,57 +290,231 @@ namespace App4.PAGES
                           .GroupBy(p => p).Select(p => new { Nokta = p.Key, Adet = p.Count() })
                           .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList()
                 })
-                .Where(m => m.R1.Count > 0 || m.R2.Count > 0)
-                .OrderByDescending(m => m.R1.Sum(x => x.Adet) + m.R2.Sum(x => x.Adet))
+                .OrderByDescending(x => x.Toplam)
                 .ToList();
 
-            if (models.Count == 0)
+            // Seçili ürün artık listede yoksa filtreyi bırak
+            if (_selectedNgRfid != null && !groups.Any(x => x.Urun == _selectedNgRfid))
+                _selectedNgRfid = null;
+
+            StatProductCount.Text = groups.Count.ToString();
+            UpdateTopNgPoints();
+            ProductBreakdownPanel.Children.Clear();
+
+            if (groups.Count == 0)
             {
-                ModelNgBreakdownPanel.Children.Add(new TextBlock { Text = "Kaçak nokta yok", FontSize = 11, Foreground = gray });
+                ProductBreakdownPanel.Children.Add(new TextBlock { Text = "Seçili filtrede kayıt yok",
+                    FontSize = 11, Foreground = BrG666, Margin = new Thickness(8, 10, 0, 10) });
                 return;
             }
 
-            foreach (var m in models)
+            // XAML kolon başlığıyla birebir aynı: * | 44 | 106 | 50 | 50 | 54 | 44
+            double[] W = { 0, 44, 106, 50, 50, 54, 44 };
+            var semi = Microsoft.UI.Text.FontWeights.SemiBold;
+            var bold = Microsoft.UI.Text.FontWeights.Bold;
+
+            for (int idx = 0; idx < groups.Count; idx++)
             {
-                int toplam = m.R1.Sum(x => x.Adet) + m.R2.Sum(x => x.Adet);
+                var g = groups[idx];
+                int ngToplam = g.R1.Sum(x => x.Adet) + g.R2.Sum(x => x.Adet);
+                double pct = g.Toplam > 0 ? 100.0 * g.Ok / g.Toplam : 0;
 
-                var row = new Grid { Padding = new Thickness(6, 4, 6, 4) };
-                row.Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x16, 0x16, 0x16));
-                row.CornerRadius = new CornerRadius(4);
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var grid = new Grid { ColumnSpacing = 4 };
+                for (int i = 0; i < 7; i++)
+                    grid.ColumnDefinitions.Add(new ColumnDefinition
+                    { Width = W[i] == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(W[i]) });
 
-                var name = new TextBlock
+                // [0] durum accent şeridi + model adı
+                var accent = new Microsoft.UI.Xaml.Shapes.Rectangle
                 {
-                    Text = m.Model, FontSize = 11, FontWeight = bold, Foreground = white,
-                    VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
+                    Width = 3, Height = 18, RadiusX = 1.5, RadiusY = 1.5,
+                    Fill = g.Nok == 0 ? BrBlue
+                         : ((double)g.Nok / g.Toplam >= 0.25 ? BrRed : BrOrange)
                 };
-                var total = new TextBlock
+                var name = new TextBlock { Text = g.Urun, FontSize = 12, FontWeight = semi,
+                    Foreground = BrWhite, TextTrimming = TextTrimming.CharacterEllipsis,
+                    VerticalAlignment = VerticalAlignment.Center };
+                ToolTipService.SetToolTip(name, g.Urun);   // kırpılan ad tam gösterilir
+                var nameSp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8,
+                    VerticalAlignment = VerticalAlignment.Center };
+                nameSp.Children.Add(accent); nameSp.Children.Add(name);
+                grid.Children.Add(nameSp);
+
+                // [1] ADET
+                var adet = new TextBlock { Text = g.Toplam.ToString(), FontSize = 12, FontWeight = bold,
+                    Foreground = BrWhite, HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center };
+                Grid.SetColumn(adet, 1); grid.Children.Add(adet);
+
+                // [2] OK ORANI — bar + yüzde
+                var rate = MakeRateCell(pct);
+                Grid.SetColumn(rate, 2); grid.Children.Add(rate);
+
+                // [3] OK / [4] NOK / [6] NG pill'leri (0 ise nötr gri)
+                var okPill  = MakePill(g.Ok.ToString(),  g.Ok  > 0 ? BrOkBg  : BrNeutral, g.Ok  > 0 ? BrGreen  : BrG666);
+                var nokPill = MakePill(g.Nok.ToString(), g.Nok > 0 ? BrNokBg : BrNeutral, g.Nok > 0 ? BrRed    : BrG666);
+                var ngPill  = MakePill(ngToplam.ToString(), ngToplam > 0 ? BrNgBg : BrNeutral, ngToplam > 0 ? BrOrange : BrG666);
+                Grid.SetColumn(okPill, 3);  grid.Children.Add(okPill);
+                Grid.SetColumn(nokPill, 4); grid.Children.Add(nokPill);
+
+                // [5] ORT. SÜRE
+                var sure = new TextBlock { Text = $"{g.OrtSure:F0} sn", FontSize = 11, Foreground = BrBlue,
+                    HorizontalTextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                Grid.SetColumn(sure, 5); grid.Children.Add(sure);
+                Grid.SetColumn(ngPill, 6); grid.Children.Add(ngPill);
+
+                // Zebra ana satır — tıklanabilir: sağ Pareto bu ürüne filtrelenir (tekrar tıkla = tümü)
+                bool isSel = _selectedNgRfid == g.Urun;
+                var rowBorder = new Border
                 {
-                    Text = $"{toplam}x", FontSize = 11, FontWeight = bold, Foreground = red,
-                    VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Center
+                    Background = isSel ? BrZebra : (idx % 2 == 0 ? BrZebra : null),
+                    BorderBrush = isSel ? BrBlue : null,
+                    BorderThickness = new Thickness(isSel ? 1 : 0),
+                    CornerRadius = new CornerRadius(4), Padding = new Thickness(8, 5, 8, 5), Child = grid
                 };
-
-                var detail = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-                if (m.R1.Count > 0)
+                string modelKey = g.Urun;
+                rowBorder.Tapped += (s, e2) =>
                 {
-                    detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = "R1:  ", Foreground = gray, FontWeight = bold });
-                    foreach (var p in m.R1)
-                        detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = $"Nokta {p.Nokta} ({p.Adet}x)   ", Foreground = red });
-                }
-                if (m.R2.Count > 0)
-                {
-                    detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = (m.R1.Count > 0 ? "  " : "") + "R2:  ", Foreground = gray, FontWeight = bold });
-                    foreach (var p in m.R2)
-                        detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = $"Nokta {p.Nokta} ({p.Adet}x)   ", Foreground = orange });
-                }
+                    _selectedNgRfid = (_selectedNgRfid == modelKey) ? null : modelKey;
+                    UpdateProductBreakdown();   // seçim vurgusu + sağ panel birlikte yenilenir
+                };
+                ToolTipService.SetToolTip(rowBorder, isSel
+                    ? "Filtreyi kaldırmak için tekrar tıklayın"
+                    : "Bu ürünün kaçak noktalarını sağ panelde göster");
+                ProductBreakdownPanel.Children.Add(rowBorder);
 
-                Grid.SetColumn(total, 1); Grid.SetColumn(detail, 2);
-                row.Children.Add(name); row.Children.Add(total); row.Children.Add(detail);
-                ModelNgBreakdownPanel.Children.Add(row);
+                // Satır altı NG chip şeridi — yalnız kaçak varsa (model bazında kaçak noktaları)
+                if (ngToplam > 0)
+                {
+                    var items = new List<FrameworkElement>();
+                    if (g.R1.Count > 0) { items.Add(MakeRobotTag("R1"));
+                        items.AddRange(g.R1.Select(p => (FrameworkElement)MakeChip(
+                            ResolvePointCode(g.Urun, 1, p.Nokta) ?? $"N{p.Nokta}", p.Adet, false))); }
+                    if (g.R2.Count > 0) { items.Add(MakeRobotTag("R2"));
+                        items.AddRange(g.R2.Select(p => (FrameworkElement)MakeChip(
+                            ResolvePointCode(g.Urun, 2, p.Nokta) ?? $"N{p.Nokta}", p.Adet, true))); }
+
+                    var strip = new StackPanel { Spacing = 3, Margin = new Thickness(22, 1, 8, 5) };
+                    StackPanel line = null;
+                    for (int i = 0; i < items.Count; i++)
+                    {   // ölçümsüz deterministik kırılım: 9 eleman/satır
+                        if (i % 9 == 0) { line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+                                          strip.Children.Add(line); }
+                        line.Children.Add(items[i]);
+                    }
+                    ProductBreakdownPanel.Children.Add(strip);
+                }
             }
         }
+
+        /// <summary>En sık NG noktaları — Pareto listesi: rank rozeti, orantılı bar, adet + toplam NG payı.
+        /// Sol tabloda bir RFID seçiliyse yalnız o ürünün noktaları; etiketler Nokta Kütüphanesi kodlarıyla (C1-1 vb.).</summary>
+        private void UpdateTopNgPoints()
+        {
+            if (TopNgPointsPanel == null) return;
+            TopNgPointsPanel.Children.Clear();
+
+            bool filtered = !string.IsNullOrEmpty(_selectedNgRfid);
+            var recs = filtered
+                ? _currentRecords.Where(r => (string.IsNullOrWhiteSpace(r.RfidTag) ? "Tanımsız" : r.RfidTag) == _selectedNgRfid).ToList()
+                : _currentRecords;
+
+            if (TopNgTitleText != null)
+                TopNgTitleText.Text = filtered ? $"EN SIK KAÇAK — {_selectedNgRfid}" : "EN SIK KAÇAK NOKTALAR";
+
+            // Her NG girişini nokta KODUNA çözümle (RFID'sine göre); eşleme yoksa "Nokta N"
+            var all = new List<string>();
+            foreach (var r in recs)
+            {
+                if (r.NgPointsR1 != null)
+                    foreach (var v in r.NgPointsR1) all.Add(ResolvePointCode(r.RfidTag, 1, v) ?? $"Nokta {v}");
+                if (r.NgPointsR2 != null)
+                    foreach (var v in r.NgPointsR2) all.Add(ResolvePointCode(r.RfidTag, 2, v) ?? $"Nokta {v}");
+            }
+            int totalNg = all.Count;
+            if (TopNgTotalText != null) TopNgTotalText.Text = $"{totalNg} NG";
+
+            if (filtered)
+                TopNgPointsPanel.Children.Add(new TextBlock
+                {
+                    Text = "ürün filtresi aktif — tümü için satıra tekrar tıklayın",
+                    FontSize = 9, Foreground = BrG666, Margin = new Thickness(2, 0, 0, 2)
+                });
+
+            if (totalNg == 0)
+            {
+                var empty = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8,
+                    HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 24, 0, 24) };
+                empty.Children.Add(new FontIcon { Glyph = "", FontSize = 16, Foreground = BrGreen });
+                empty.Children.Add(new TextBlock
+                {
+                    Text = filtered ? "Bu üründe kaçak tespit edilmedi" : "Seçili aralıkta kaçak tespit edilmedi",
+                    FontSize = 12, Foreground = BrGreen, VerticalAlignment = VerticalAlignment.Center
+                });
+                TopNgPointsPanel.Children.Add(empty);
+                return;
+            }
+
+            var freq = all.GroupBy(p => p)
+                .Select(g => new { Etiket = g.Key, Adet = g.Count() })
+                .OrderByDescending(x => x.Adet).ThenBy(x => x.Etiket, StringComparer.OrdinalIgnoreCase)
+                .Take(8).ToList();
+            int max = freq[0].Adet;
+            var bold = Microsoft.UI.Text.FontWeights.Bold;
+
+            for (int i = 0; i < freq.Count; i++)
+            {
+                var f = freq[i];
+                var row = new Grid { ColumnSpacing = 8 };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(78) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+
+                // Rank rozeti: 1. dolu kırmızı; 2.-3. koyu zemin + kırmızı çerçeve; 4+ nötr
+                var rank = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(11),
+                    VerticalAlignment = VerticalAlignment.Center };
+                if (i == 0)      rank.Background = BrRed;
+                else if (i <= 2) { rank.Background = BrBadge; rank.BorderBrush = BrRed; rank.BorderThickness = new Thickness(1); }
+                else             rank.Background = BrNeutral;
+                rank.Child = new TextBlock { Text = (i + 1).ToString(), FontSize = 11, FontWeight = bold,
+                    Foreground = i == 0 ? BrWhite : (i <= 2 ? BrRed : BrG888),
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                row.Children.Add(rank);
+
+                // Nokta kodu rozeti (C1-1 vb.; eşleme yoksa "Nokta N")
+                var pt = new Border { Background = BrBadge, CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(2, 3, 2, 3), VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock { Text = f.Etiket, FontSize = 11, FontWeight = bold,
+                        Foreground = BrWhite, HorizontalTextAlignment = TextAlignment.Center,
+                        TextTrimming = TextTrimming.CharacterEllipsis } };
+                ToolTipService.SetToolTip(pt, f.Etiket);
+                Grid.SetColumn(pt, 1); row.Children.Add(pt);
+
+                // Orantılı bar: star-genişlik (panelle ölçeklenir); taban max*0.06 → en küçük frekans da görünür
+                double fillW = Math.Max(f.Adet, max * 0.06);
+                var fillGrid = new Grid();
+                fillGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(fillW, GridUnitType.Star) });
+                fillGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0, max - fillW), GridUnitType.Star) });
+                fillGrid.Children.Add(new Border { Background = BrRed, CornerRadius = new CornerRadius(4) });
+                var track = new Border { Background = BrPTrack, CornerRadius = new CornerRadius(4),
+                    Height = 18, VerticalAlignment = VerticalAlignment.Center, Child = fillGrid };
+                Grid.SetColumn(track, 2); row.Children.Add(track);
+
+                // Adet + toplam NG payı
+                var num = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                num.Children.Add(new TextBlock { Text = $"{f.Adet}×", FontSize = 14, FontWeight = bold,
+                    Foreground = BrRed, HorizontalTextAlignment = TextAlignment.Right });
+                num.Children.Add(new TextBlock { Text = $"%{100.0 * f.Adet / totalNg:F0}", FontSize = 9,
+                    Foreground = BrG666, HorizontalTextAlignment = TextAlignment.Right });
+                Grid.SetColumn(num, 3); row.Children.Add(num);
+
+                TopNgPointsPanel.Children.Add(row);
+            }
+        }
+
+        // NOT: Model bazında kaçak noktaları artık ayrı panel değil — UpdateProductBreakdown
+        // içindeki satır altı R1/R2 chip şeritleri olarak gösteriliyor.
 
         // ─── FİLTRE DEĞİŞİKLİKLERİ ───
         private void Filter_Changed(object sender, object e)
@@ -537,6 +695,11 @@ namespace App4.PAGES
   tr:nth-child(even) {{ background: #fafafa; }}
   .badge {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; }}
   .badge-ok {{ background: #E8F5E9; color: #4CAF50; }} .badge-nok {{ background: #FFEBEE; color: #E74C3C; }}
+  h2 {{ font-size: 14px; color: #333; margin: 22px 0 6px 0; border-left: 4px solid #00A4EF; padding-left: 8px; }}
+  .bar {{ background: #eee; border-radius: 4px; height: 12px; width: 100%; }}
+  .bar-fill {{ background: #E74C3C; border-radius: 4px; height: 12px; }}
+  .chip {{ display: inline-block; padding: 1px 7px; border-radius: 4px; font-weight: bold; font-size: 10px; margin: 1px; }}
+  .chip-r1 {{ background: #FFEBEE; color: #C62828; }} .chip-r2 {{ background: #FFF3E0; color: #E65100; }}
   @media print {{ body {{ padding: 0; }} .no-print {{ display: none; }} }}
 </style></head><body>
 <h1>📊 Trend Raporu</h1>
@@ -547,26 +710,112 @@ namespace App4.PAGES
   <div class='stat-card'><div class='label'>NOK</div><div class='value nok'>{stats.NokRecords} (%{stats.NokPercent:F0})</div></div>
   <div class='stat-card'><div class='label'>ORT. SÜRE</div><div class='value'>{stats.AvgCycleTime:F1}s</div></div>
   <div class='stat-card'><div class='label'>NOK NOKTA</div><div class='value nok'>{stats.TotalNokPoints}</div></div>
-</div>
+</div>";
+
+            // ═══ ÖZET BÖLÜMLERİ (CSV tam raporuyla aynı içerik) ═══
+            var modelGroups = _currentRecords
+                .GroupBy(r => string.IsNullOrWhiteSpace(r.RfidTag) ? "Tanımsız" : r.RfidTag)
+                .Select(g => new
+                {
+                    Model = g.Key,
+                    Toplam = g.Count(),
+                    Ok = g.Count(x => x.OverallResult == "OK"),
+                    Nok = g.Count(x => x.OverallResult == "NOK"),
+                    OrtSure = g.Average(x => x.CycleTime),
+                    R1 = g.SelectMany(x => x.NgPointsR1 ?? new List<int>()).GroupBy(p => p)
+                          .Select(p => new { Nokta = p.Key, Adet = p.Count() })
+                          .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList(),
+                    R2 = g.SelectMany(x => x.NgPointsR2 ?? new List<int>()).GroupBy(p => p)
+                          .Select(p => new { Nokta = p.Key, Adet = p.Count() })
+                          .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList()
+                })
+                .OrderByDescending(x => x.Toplam)
+                .ToList();
+
+            // 1) RFID bazında üretim
+            html += "<h2>📦 RFID Bazında Üretim</h2><table><thead><tr><th>RFID / Model</th><th>Adet</th><th>OK</th><th>NOK</th><th>Başarı</th><th>Ort. Süre</th><th>Kaçak</th></tr></thead><tbody>";
+            foreach (var gM in modelGroups)
+            {
+                int ngT = gM.R1.Sum(x => x.Adet) + gM.R2.Sum(x => x.Adet);
+                string basari = gM.Toplam > 0 ? $"%{(gM.Ok * 100.0 / gM.Toplam):F0}" : "-";
+                html += $"<tr><td><b>{gM.Model}</b></td><td>{gM.Toplam}</td><td class='ok'><b>{gM.Ok}</b></td><td class='nok'><b>{gM.Nok}</b></td><td>{basari}</td><td>{gM.OrtSure:F0} sn</td><td class='nok'><b>{ngT}</b></td></tr>";
+            }
+            html += "</tbody></table>";
+
+            // 2) En sık kaçak noktalar (Pareto)
+            var allNg = _currentRecords
+                .SelectMany(r => (r.NgPointsR1 ?? new List<int>()).Concat(r.NgPointsR2 ?? new List<int>()))
+                .ToList();
+            html += "<h2>⚠️ En Sık Kaçak Noktalar</h2>";
+            if (allNg.Count == 0)
+            {
+                html += "<p class='ok'><b>✓ Seçili aralıkta kaçak tespit edilmedi</b></p>";
+            }
+            else
+            {
+                var freqAll = allNg.GroupBy(p => p)
+                    .Select(g2 => new { Nokta = g2.Key, Adet = g2.Count() })
+                    .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList();
+                int maxA = freqAll[0].Adet;
+                html += "<table style='max-width:560px'><thead><tr><th>#</th><th>Nokta</th><th style='width:50%'>Dağılım</th><th>Adet</th><th>Pay</th></tr></thead><tbody>";
+                for (int fi = 0; fi < freqAll.Count; fi++)
+                {
+                    var f = freqAll[fi];
+                    double w = 100.0 * f.Adet / maxA;
+                    html += $"<tr><td><b>{fi + 1}.</b></td><td><b>Nokta {f.Nokta}</b></td>" +
+                            $"<td><div class='bar'><div class='bar-fill' style='width:{w:F0}%'></div></div></td>" +
+                            $"<td class='nok'><b>{f.Adet}×</b></td><td>%{(100.0 * f.Adet / allNg.Count):F0}</td></tr>";
+                }
+                html += "</tbody></table>";
+            }
+
+            // 3) Model bazında tespit edilen kaçak noktaları
+            html += "<h2>🎯 Model Bazında Tespit Edilen Kaçak Noktaları</h2>";
+            var ngModels = modelGroups
+                .Where(m => m.R1.Count > 0 || m.R2.Count > 0)
+                .OrderByDescending(m => m.R1.Sum(x => x.Adet) + m.R2.Sum(x => x.Adet))
+                .ToList();
+            if (ngModels.Count == 0)
+            {
+                html += "<p class='ok'><b>✓ Kaçak tespit edilen model yok</b></p>";
+            }
+            else
+            {
+                html += "<table><thead><tr><th>Model</th><th>Robot 1</th><th>Robot 2</th><th>Toplam</th></tr></thead><tbody>";
+                foreach (var m in ngModels)
+                {
+                    string r1c = m.R1.Count > 0 ? string.Join(" ", m.R1.Select(p => $"<span class='chip chip-r1'>N{p.Nokta} ×{p.Adet}</span>")) : "-";
+                    string r2c = m.R2.Count > 0 ? string.Join(" ", m.R2.Select(p => $"<span class='chip chip-r2'>N{p.Nokta} ×{p.Adet}</span>")) : "-";
+                    int t = m.R1.Sum(x => x.Adet) + m.R2.Sum(x => x.Adet);
+                    html += $"<tr><td><b>{m.Model}</b></td><td>{r1c}</td><td>{r2c}</td><td class='nok'><b>{t}×</b></td></tr>";
+                }
+                html += "</tbody></table>";
+            }
+
+            // ═══ DETAY KAYITLAR ═══
+            html += @"<h2>📋 Detay Kayıtlar</h2>
 <table><thead><tr>
   <th>Tarih</th><th>Saat</th><th>Sonuç</th><th>İstasyon</th><th>RFID</th><th>Ürün</th>
-  <th>OK</th><th>NOK</th><th>Başarı</th><th>Ofs X</th><th>Ofs Y</th><th>Ofs Z</th><th>Süre</th>
+  <th>OK</th><th>NOK</th><th>Başarı</th><th>Kaçak R1</th><th>Kaçak R2</th><th>Ofs X</th><th>Ofs Y</th><th>Ofs Z</th><th>Süre</th>
 </tr></thead><tbody>";
 
             foreach (var r in _currentRecords.Take(500))
             {
                 string badge = r.OverallResult == "OK" ? "badge-ok" : "badge-nok";
+                string ngR1 = (r.NgPointsR1 != null && r.NgPointsR1.Count > 0) ? string.Join(",", r.NgPointsR1) : "-";
+                string ngR2 = (r.NgPointsR2 != null && r.NgPointsR2.Count > 0) ? string.Join(",", r.NgPointsR2) : "-";
                 html += $@"<tr>
   <td>{r.DateStr}</td><td>{r.TimeStr}</td>
   <td><span class='badge {badge}'>{r.OverallResult}</span></td>
   <td>{r.StationName}</td><td>{r.RfidTag}</td><td>{r.ProductName}</td>
   <td>{r.OkCount}</td><td>{r.NokCount}</td><td>{r.SuccessRate}</td>
+  <td>{ngR1}</td><td>{ngR2}</td>
   <td>{r.OffsetX:F3}</td><td>{r.OffsetY:F3}</td><td>{r.OffsetZ:F3}</td><td>{r.CycleTime:F1}s</td>
 </tr>";
             }
 
             if (_currentRecords.Count > 500)
-                html += $"<tr><td colspan='13' style='text-align:center;color:#888;'>... ve {_currentRecords.Count - 500} kayıt daha (CSV ile tamamını alabilirsiniz)</td></tr>";
+                html += $"<tr><td colspan='15' style='text-align:center;color:#888;'>... ve {_currentRecords.Count - 500} kayıt daha (CSV ile tamamını alabilirsiniz)</td></tr>";
 
             html += "</tbody></table></body></html>";
 
