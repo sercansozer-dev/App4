@@ -185,6 +185,7 @@ namespace App4.PAGES
 
             StatProductCount.Text = groups.Count.ToString();
             UpdateTopNgPoints();
+            UpdateModelNgBreakdown();
             ProductBreakdownPanel.Children.Clear();
 
             if (groups.Count == 0)
@@ -278,6 +279,82 @@ namespace App4.PAGES
                 Grid.SetColumn(barHost, 1); Grid.SetColumn(cnt, 2);
                 row.Children.Add(lbl); row.Children.Add(barHost); row.Children.Add(cnt);
                 TopNgPointsPanel.Children.Add(row);
+            }
+        }
+
+        /// <summary>Filtrelenen kayıtlarda MODEL bazında tespit edilen kaçak noktaları (R1/R2 ayrımı + adet, sıklığa göre).</summary>
+        private void UpdateModelNgBreakdown()
+        {
+            if (ModelNgBreakdownPanel == null) return;
+            ModelNgBreakdownPanel.Children.Clear();
+
+            var gray = new SolidColorBrush(Microsoft.UI.Colors.Gray);
+            var white = new SolidColorBrush(Microsoft.UI.Colors.White);
+            var red = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE7, 0x4C, 0x3C));
+            var orange = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xF3, 0x9C, 0x12));
+            var bold = Microsoft.UI.Text.FontWeights.Bold;
+
+            var models = _currentRecords
+                .GroupBy(r => string.IsNullOrWhiteSpace(r.RfidTag) ? "Tanımsız" : r.RfidTag)
+                .Select(g => new
+                {
+                    Model = g.Key,
+                    R1 = g.SelectMany(x => x.NgPointsR1 ?? new List<int>())
+                          .GroupBy(p => p).Select(p => new { Nokta = p.Key, Adet = p.Count() })
+                          .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList(),
+                    R2 = g.SelectMany(x => x.NgPointsR2 ?? new List<int>())
+                          .GroupBy(p => p).Select(p => new { Nokta = p.Key, Adet = p.Count() })
+                          .OrderByDescending(x => x.Adet).ThenBy(x => x.Nokta).ToList()
+                })
+                .Where(m => m.R1.Count > 0 || m.R2.Count > 0)
+                .OrderByDescending(m => m.R1.Sum(x => x.Adet) + m.R2.Sum(x => x.Adet))
+                .ToList();
+
+            if (models.Count == 0)
+            {
+                ModelNgBreakdownPanel.Children.Add(new TextBlock { Text = "Kaçak nokta yok", FontSize = 11, Foreground = gray });
+                return;
+            }
+
+            foreach (var m in models)
+            {
+                int toplam = m.R1.Sum(x => x.Adet) + m.R2.Sum(x => x.Adet);
+
+                var row = new Grid { Padding = new Thickness(6, 4, 6, 4) };
+                row.Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x16, 0x16, 0x16));
+                row.CornerRadius = new CornerRadius(4);
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var name = new TextBlock
+                {
+                    Text = m.Model, FontSize = 11, FontWeight = bold, Foreground = white,
+                    VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
+                };
+                var total = new TextBlock
+                {
+                    Text = $"{toplam}x", FontSize = 11, FontWeight = bold, Foreground = red,
+                    VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Center
+                };
+
+                var detail = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+                if (m.R1.Count > 0)
+                {
+                    detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = "R1:  ", Foreground = gray, FontWeight = bold });
+                    foreach (var p in m.R1)
+                        detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = $"Nokta {p.Nokta} ({p.Adet}x)   ", Foreground = red });
+                }
+                if (m.R2.Count > 0)
+                {
+                    detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = (m.R1.Count > 0 ? "  " : "") + "R2:  ", Foreground = gray, FontWeight = bold });
+                    foreach (var p in m.R2)
+                        detail.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = $"Nokta {p.Nokta} ({p.Adet}x)   ", Foreground = orange });
+                }
+
+                Grid.SetColumn(total, 1); Grid.SetColumn(detail, 2);
+                row.Children.Add(name); row.Children.Add(total); row.Children.Add(detail);
+                ModelNgBreakdownPanel.Children.Add(row);
             }
         }
 

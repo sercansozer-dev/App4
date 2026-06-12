@@ -217,6 +217,10 @@
                         <ColumnDefinition Width="3*"/>
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <!-- SOL: RFID bazında üretim kırılımı -->
                     <Border Grid.Column="0" Background="#111" CornerRadius="8" Padding="10,8" Margin="0,0,6,0" BorderBrush="#222" BorderThickness="1">
                         <StackPanel Spacing="6">
@@ -235,6 +239,18 @@
                             </StackPanel>
                             <ScrollViewer MaxHeight="210" VerticalScrollBarVisibility="Auto">
                                 <StackPanel x:Name="TopNgPointsPanel" Spacing="2"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                    <!-- ALT: Model bazında tespit edilen kaçak noktaları (R1/R2 + adet) -->
+                    <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#111" CornerRadius="8" Padding="10,8" Margin="0,8,0,0" BorderBrush="#222" BorderThickness="1">
+                        <StackPanel Spacing="6">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE9D2;" FontSize="12" Foreground="#F39C12"/>
+                                <TextBlock Text="MODEL BAZINDA TESPİT EDİLEN KAÇAK NOKTALARI" FontSize="10" FontWeight="Bold" Foreground="#F39C12" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ModelNgBreakdownPanel" Spacing="3"/>
                             </ScrollViewer>
                         </StackPanel>
                     </Border>
