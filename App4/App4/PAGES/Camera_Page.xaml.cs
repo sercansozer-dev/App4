@@ -782,6 +782,10 @@ namespace App4.PAGES
                 ? Microsoft.UI.Xaml.Visibility.Visible
                 : Microsoft.UI.Xaml.Visibility.Collapsed;
             try { if (AdminGate_TablaRefPoints != null) AdminGate_TablaRefPoints.Visibility = vis; } catch { }
+            try { if (GocatorTablesGrid != null) GocatorTablesGrid.Visibility = vis; } catch { }
+            // Sensör iş dosyaları + reçete yönetimi: operatör GÖRÜR, sadece admin İŞLEM yapar
+            try { if (SensorJobOpsPanel != null) SensorJobOpsPanel.Visibility = vis; } catch { }
+            try { if (RecipeOpsPanel != null) RecipeOpsPanel.Visibility = vis; } catch { }
         }
 
         private void Camera_Page_Unloaded(object sender, RoutedEventArgs e)
@@ -2551,6 +2555,7 @@ namespace App4.PAGES
         // Receteye Job Ekleme
         private void BtnAddJobToSequence_Click(object sender, RoutedEventArgs e)
         {
+            if (!RecipeEditAllowed()) return; // düzenleme yalnız admin (görüntüleme serbest)
             var btn = sender as Button;
             var rfidItem = FindParentRfidDef(btn);
 

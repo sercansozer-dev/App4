@@ -44,9 +44,19 @@ namespace App4.PAGES
             }
         }
 
+        // ═══ REÇETE DÜZENLEME YETKİSİ ═══
+        // Operatör reçete kartlarını GÖRÜR; düzenleme (taşı/sil/ekle/değer) yalnız admin.
+        private bool RecipeEditAllowed()
+        {
+            if (App4.Utilities.GlobalData.IsAdminUnlocked) return true;
+            try { AddLog("⚠ Reçete düzenleme admin yetkisi gerektirir (PIN ile giriş yapın)."); } catch { }
+            return false;
+        }
+
         // Job Yukari Tasima
         private void MoveJobUp(object sender, RoutedEventArgs e)
         {
+            if (!RecipeEditAllowed()) return;
             var btn = sender as Button;
             if (btn == null) return;
 
@@ -86,6 +96,7 @@ namespace App4.PAGES
         // Job Asagi Tasima
         private void MoveJobDown(object sender, RoutedEventArgs e)
         {
+            if (!RecipeEditAllowed()) return;
             var btn = sender as Button;
             if (btn == null) return;
 
@@ -125,6 +136,7 @@ namespace App4.PAGES
         // Job Silme
         private void RemoveJobFromSequence(object sender, RoutedEventArgs e)
         {
+            if (!RecipeEditAllowed()) return;
             var btn = sender as Button;
             var jobName = btn?.Tag as string;
 
@@ -176,6 +188,9 @@ namespace App4.PAGES
                 if (string.IsNullOrEmpty(newMode)) return;
                 if (newMode == jobItem.DataSourceMode) return; // Değişiklik yoksa (Loaded tetiklemesi)
 
+                // Operatör: seçimi geri al, kaydetme (görüntüleme serbest, düzenleme admin)
+                if (!RecipeEditAllowed()) { DataSourceModeComboBox_Loaded(cb, null); return; }
+
                 var rfid = FindParentRfidDef(cb);
                 if (rfid != null && jobItem.Index < rfid.DataSourceModes.Count)
                 {
@@ -191,6 +206,14 @@ namespace App4.PAGES
         {
             if (sender.DataContext is App4.Utilities.IndexedJobItem jobItem)
             {
+                // Operatör: değeri geri al, kaydetme (düzenleme admin)
+                if (!App4.Utilities.GlobalData.IsAdminUnlocked)
+                {
+                    double nv = double.IsNaN(args.NewValue) ? 0.0 : args.NewValue;
+                    if (Math.Abs(nv - jobItem.SnifferDuration) > 0.0001) { RecipeEditAllowed(); sender.Value = jobItem.SnifferDuration; }
+                    return;
+                }
+
                 var rfid = FindParentRfidDef(sender);
                 if (rfid != null && jobItem.Index < rfid.SnifferDurations.Count)
                 {
@@ -210,6 +233,14 @@ namespace App4.PAGES
         {
             if (sender.DataContext is App4.Utilities.IndexedJobItem jobItem)
             {
+                // Operatör: değeri geri al, kaydetme (düzenleme admin)
+                if (!App4.Utilities.GlobalData.IsAdminUnlocked)
+                {
+                    double nv = double.IsNaN(args.NewValue) ? 50.0 : args.NewValue;
+                    if (Math.Abs(nv - jobItem.DeviationLimit) > 0.0001) { RecipeEditAllowed(); sender.Value = jobItem.DeviationLimit; }
+                    return;
+                }
+
                 var rfid = FindParentRfidDef(sender);
                 if (rfid != null && jobItem.Index < rfid.DeviationLimits.Count)
                 {

@@ -439,7 +439,7 @@
                         <RowDefinition Height="10"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="10"/>
-                        <RowDefinition Height="800"/>
+                        <RowDefinition Height="Auto"/>   <!-- 3D Görselleştirici gizlendi: 800 → Auto (içerik Collapsed olunca satır 0) -->
                         <RowDefinition Height="10"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="10"/>
@@ -844,8 +844,8 @@
                         </Grid>
                     </Border>
 
-                    <!-- ═══ 3D UZAY GÖRSELLEŞTİRİCİ (Hand-Eye Spatial View) ═══ -->
-                    <Border Grid.Row="4" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
+                    <!-- ═══ 3D UZAY GÖRSELLEŞTİRİCİ (Hand-Eye Spatial View) — gösterimden gizlendi (istek üzerine) ═══ -->
+                    <Border Grid.Row="4" Visibility="Collapsed" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="40"/>
@@ -880,8 +880,8 @@
                         </Grid>
                     </Border>
 
-                    <!-- ═══ SNAPSHOT VERİ TABLOSU (Tool Doğrulama) + TOOL GÖRECELİ KONUM ═══ -->
-                    <Border Grid.Row="6" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
+                    <!-- ═══ SNAPSHOT VERİ TABLOSU (Tool Doğrulama) + TOOL GÖRECELİ KONUM — gösterimden gizlendi (istek üzerine) ═══ -->
+                    <Border Grid.Row="6" Visibility="Collapsed" Background="#1A1A1C" CornerRadius="10" BorderBrush="#333" BorderThickness="1" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="40"/>
@@ -1165,7 +1165,8 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="8" ColumnSpacing="15" RowSpacing="15">
+                    <!-- Gocator ölçüm tabloları: yalnızca admin (PIN) erişiminde görünür -->
+                    <Grid Grid.Row="8" x:Name="GocatorTablesGrid" Visibility="Collapsed" ColumnSpacing="15" RowSpacing="15">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
@@ -2098,7 +2099,8 @@
                                         <TextBlock Text="SENSÖR İŞ DOSYALARI (JOBS)" FontSize="12" FontWeight="Bold" Foreground="White"/>
                                     </StackPanel>
 
-                                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <!-- İşlem butonları: yalnız admin (operatör job listesini görür, işlem yapamaz) -->
+                                    <StackPanel x:Name="SensorJobOpsPanel" Visibility="Collapsed" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" VerticalAlignment="Center">
                                         <Button Click="BtnRefreshJobs_Click" Background="#333" CornerRadius="4" Height="28" ToolTipService.ToolTip="Listeyi Yenile">
                                             <FontIcon Glyph="&#xE72C;" Foreground="White" FontSize="12"/>
                                         </Button>
@@ -2138,7 +2140,8 @@
                                         <TextBlock Text="REÇETE YÖNETİMİ (KART GÖRÜNÜMÜ)" FontSize="12" FontWeight="Bold" Foreground="White"/>
                                         <TextBlock Text="Klima tipleri ve işlem adımları." FontSize="10" Foreground="#888" VerticalAlignment="Center" Margin="15,0,0,0"/>
                                     </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                    <!-- İşlem butonları: yalnız admin (operatör reçeteleri görür, içe/dışa aktaramaz) -->
+                                    <StackPanel x:Name="RecipeOpsPanel" Visibility="Collapsed" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Right">
                                         <Button Click="BtnExportRecipes_Click" Background="#1B3A2A" BorderBrush="#00FF88" BorderThickness="1" Padding="10,5"
                                                 ToolTipService.ToolTip="Tüm reçeteleri JSON dosyasına dışa aktar">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
