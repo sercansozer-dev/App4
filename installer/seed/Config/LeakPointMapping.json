@@ -1,4 +1,7 @@
 {
- "types": {},
- "rfids": {}
+  "types": {},
+  "rfids": {},
+  "models": {
+    "ARXF71A5V1B": "T10"
+  }
 }
