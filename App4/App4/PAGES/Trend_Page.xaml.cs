@@ -894,6 +894,12 @@ namespace App4.PAGES
         private Dictionary<string, string> _modelOvr = new(StringComparer.OrdinalIgnoreCase);
         private static readonly string _pointMapPath =
             Path.Combine(GlobalData.ConfigBaseDir, "LeakPointMapping.json");
+        // Kullanıcı kaçak-harita editörü deposu
+        private UserMapStore _userMap = new();
+        private static readonly string _userMapPath = Path.Combine(GlobalData.ConfigBaseDir, "LeakMapsUser.json");
+        private static readonly string _userImgDir = Path.Combine(GlobalData.ConfigBaseDir, "LeakMapImages");
+        private string _lmDiagram;   // açık diyagram anahtarı (editör için)
+        private bool _lmMarkMode;    // bölge işaretleme modu: resme tıkla = nokta ekle
         // Açık overlay durumu
         private TrendRecord _lmRecord;
         private string _lmTypeKey;
@@ -927,6 +933,17 @@ namespace App4.PAGES
                 }
             }
             catch { _typeOvr = new(); _rfidOvr = new(); _modelOvr = new(StringComparer.OrdinalIgnoreCase); }
+
+            // Kullanıcı editör katmanı
+            try
+            {
+                if (File.Exists(_userMapPath))
+                    _userMap = JsonSerializer.Deserialize<UserMapStore>(File.ReadAllText(_userMapPath)) ?? new();
+            }
+            catch { _userMap = new(); }
+            _userMap.addedParts ??= new();
+            _userMap.addedPoints ??= new();
+            _userMap.hidden ??= new();
         }
 
         private void SaveOvr()
@@ -943,6 +960,64 @@ namespace App4.PAGES
 
         private static PointOvr Lookup(Dictionary<string, Dictionary<string, PointOvr>> d, string key, string name)
             => (key != null && d.TryGetValue(key, out var m) && m.TryGetValue(name, out var o)) ? o : null;
+
+        private void SaveUserMap()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_userMapPath));
+                File.WriteAllText(_userMapPath, JsonSerializer.Serialize(_userMap, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LEAKMAP] kullanıcı katmanı kayıt hatası: {ex.Message}"); }
+        }
+
+        /// <summary>Asset diyagramı + kullanıcı katmanını birleştirip ETKİN entry üretir (derin kopya — asset bozulmaz).</summary>
+        private LeakMapEntry BuildEffectiveEntry(string diagram)
+        {
+            var eff = new LeakMapEntry { parts = new List<LeakPart>() };
+            if (string.IsNullOrEmpty(diagram)) return eff;
+
+            // Yerleşik parçalar (gizlenenler hariç)
+            if (_leakMaps?.maps != null && _leakMaps.maps.TryGetValue(diagram, out var raw) && raw?.parts != null)
+                foreach (var p in raw.parts)
+                {
+                    if (_userMap.hidden.Contains($"part:{diagram}::{p.title}")) continue;
+                    eff.parts.Add(CloneFilteredPart(diagram, p, false));
+                }
+
+            // Kullanıcı eklediği parçalar (resimler)
+            if (_userMap.addedParts.TryGetValue(diagram, out var ups) && ups != null)
+                foreach (var p in ups)
+                    eff.parts.Add(CloneFilteredPart(diagram, p, true));
+
+            return eff;
+        }
+
+        private LeakPart CloneFilteredPart(string diagram, LeakPart src, bool userPart)
+        {
+            var np = new LeakPart { image = src.image, title = src.title, w = src.w, h = src.h, isUser = userPart, points = new List<LeakPoint>() };
+            string key = $"{diagram}::{src.title}";
+            if (src.points != null)
+                foreach (var pt in src.points)
+                {
+                    if (!userPart && _userMap.hidden.Contains($"point:{diagram}::{src.title}::{pt.name}")) continue;
+                    np.points.Add(new LeakPoint { name = pt.name, robot = pt.robot, idx = pt.idx, x = pt.x, y = pt.y, isUser = userPart });
+                }
+            // Yerleşik parçaya kullanıcı eklediği noktalar
+            if (_userMap.addedPoints.TryGetValue(key, out var aps) && aps != null)
+                foreach (var pt in aps)
+                    np.points.Add(new LeakPoint { name = pt.name, robot = pt.robot, idx = pt.idx, x = pt.x, y = pt.y, isUser = true });
+            return np;
+        }
+
+        /// <summary>Açık diyagramı kullanıcı katmanıyla yeniden kurar ve görseli + lejantı tazeler.</summary>
+        private void RefreshLeakEditor()
+        {
+            if (string.IsNullOrEmpty(_lmDiagram)) return;
+            _lmEntry = BuildEffectiveEntry(_lmDiagram);
+            BuildLeakParts();
+            BuildLeakLegend();
+        }
 
         /// <summary>RFID → typeKey çözümü: önce kullanıcı eşlemesi (_modelOvr), sonra yerleşik LeakMaps.models.
         /// Yeni RFID'ler (Excel'de olmayan) uygulama içinden bir tipe atanınca diyagramları açılır.</summary>
@@ -1026,11 +1101,12 @@ namespace App4.PAGES
             // RFID → tip → diyagram (kullanıcı eşlemesi öncelikli). Override TİP bazında.
             string typeKey = ResolveTypeKey(rfid);
             if (string.IsNullOrEmpty(typeKey) || _leakMaps.types == null
-                || !_leakMaps.types.TryGetValue(typeKey, out var ti)
-                || !_leakMaps.maps.TryGetValue(ti.diagram, out var entry) || entry.parts == null || entry.parts.Count == 0)
+                || !_leakMaps.types.TryGetValue(typeKey, out var ti) || string.IsNullOrEmpty(ti?.diagram))
                 return false;
+            var entry = BuildEffectiveEntry(ti.diagram);
+            if (entry.parts == null || entry.parts.Count == 0) return false;
 
-            _lmRecord = record; _lmTypeKey = typeKey; _lmRfid = rfid; _lmEntry = entry; _lmEdit = false;
+            _lmRecord = record; _lmTypeKey = typeKey; _lmRfid = rfid; _lmDiagram = ti.diagram; _lmEntry = entry; _lmEdit = false; _lmMarkMode = false;
 
             // Başlık / rozet
             bool isNok = record.OverallResult == "NOK";
@@ -1103,22 +1179,37 @@ namespace App4.PAGES
         private FrameworkElement MakePartColumn(LeakPart part, bool vertical)
         {
             var col = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6, Margin = new Thickness(4, 0, 4, 0) };
-            col.Children.Add(new TextBlock
+
+            // Başlık satırı (+ düzenlemede parça sil)
+            var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
+            titleRow.Children.Add(new TextBlock
             {
                 Text = part.title ?? "",
                 FontSize = vertical ? 13 : 11,
                 FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Foreground = ColorFromHex("#00A4EF"),
-                HorizontalAlignment = HorizontalAlignment.Center
+                Foreground = ColorFromHex(part.isUser ? "#4CAF50" : "#00A4EF"),
+                VerticalAlignment = VerticalAlignment.Center
             });
+            if (_lmEdit)
+            {
+                var delPart = new Button { Content = "✕", FontSize = 10, Padding = new Thickness(5, 0, 5, 0), MinWidth = 0, MinHeight = 0, Background = ColorFromHex("#2A1212"), Foreground = ColorFromHex("#E74C3C"), VerticalAlignment = VerticalAlignment.Center };
+                ToolTipService.SetToolTip(delPart, "Bu görseli/parçayı kaldır");
+                var capPart = part;
+                delPart.Click += (s, _) => DeletePart_Click(capPart);
+                titleRow.Children.Add(delPart);
+            }
+            col.Children.Add(titleRow);
 
             var grid = new Grid { Width = part.w, Height = part.h };
-            grid.Children.Add(new Image
+            grid.Children.Add(new Image { Source = ResolveImageSource(part.image), Stretch = Stretch.Fill });
+            var canvas = new Canvas { Width = part.w, Height = part.h };
+            // Bölge işaretleme modunda tıkla = nokta ekle (tüm alan tıklanabilsin)
+            if (_lmEdit && _lmMarkMode)
             {
-                Source = new BitmapImage(new Uri($"ms-appx:///Assets/LeakMaps/{part.image}")),
-                Stretch = Stretch.Fill
-            });
-            var canvas = new Canvas();
+                canvas.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                var capPart2 = part; var capCanvas = canvas;
+                canvas.Tapped += (s, e) => OnPartTapped(capPart2, capCanvas, e);
+            }
             grid.Children.Add(canvas);
 
             var vb = new Viewbox { Stretch = Stretch.Uniform, Child = grid };
@@ -1129,8 +1220,8 @@ namespace App4.PAGES
             {
                 Background = ColorFromHex("#0A0A0A"),
                 CornerRadius = new CornerRadius(8),
-                BorderBrush = ColorFromHex("#222222"),
-                BorderThickness = new Thickness(1),
+                BorderBrush = ColorFromHex(_lmMarkMode ? "#4CAF50" : "#222222"),
+                BorderThickness = new Thickness(_lmMarkMode ? 2 : 1),
                 Padding = new Thickness(4),
                 Child = vb
             });
@@ -1138,6 +1229,23 @@ namespace App4.PAGES
             _partCanvases.Add((canvas, part));
             RenderPartMarkers(canvas, part);
             return col;
+        }
+
+        /// <summary>Görsel kaynağı: önce asset (ms-appx), yoksa kullanıcı klasörü (Config\LeakMapImages).</summary>
+        private static Microsoft.UI.Xaml.Media.ImageSource ResolveImageSource(string image)
+        {
+            if (string.IsNullOrEmpty(image)) return null;
+            try
+            {
+                string assetPath = Path.Combine(AppContext.BaseDirectory, "Assets", "LeakMaps", image);
+                if (File.Exists(assetPath))
+                    return new BitmapImage(new Uri($"ms-appx:///Assets/LeakMaps/{image}"));
+                string userPath = Path.Combine(_userImgDir, image);
+                if (File.Exists(userPath))
+                    return new BitmapImage(new Uri(userPath));
+            }
+            catch { }
+            return null;
         }
 
         /// <summary>Bir parçanın marker'larını (yeşil=OK, kırmızı=KAÇAK) çizer.</summary>
@@ -1246,8 +1354,9 @@ namespace App4.PAGES
                         var row = new Grid { ColumnSpacing = 4, Margin = new Thickness(0, 2, 0, 0) };
                         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
                         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 0 });
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });
 
                         var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 11, Height = 11, Stroke = ng ? red : green, StrokeThickness = 2.5, Fill = ng ? redFill : greenFill, VerticalAlignment = VerticalAlignment.Center };
                         row.Children.Add(dot);
@@ -1256,7 +1365,7 @@ namespace App4.PAGES
                         ToolTipService.SetToolTip(nameTb, $"{p.name} — {part.title}");
                         Grid.SetColumn(nameTb, 1); row.Children.Add(nameTb);
 
-                        var rcombo = new ComboBox { Width = 70, MinWidth = 70, Height = 32, FontSize = 11, Padding = new Thickness(8, 4, 0, 4), Tag = p, VerticalAlignment = VerticalAlignment.Center };
+                        var rcombo = new ComboBox { Width = 64, MinWidth = 64, Height = 32, FontSize = 11, Padding = new Thickness(7, 4, 0, 4), Tag = p, VerticalAlignment = VerticalAlignment.Center };
                         rcombo.Items.Add("R1"); rcombo.Items.Add("R2");
                         rcombo.SelectedIndex = EffRobot(p) == 2 ? 1 : 0;
                         rcombo.SelectionChanged += Robot_Changed;
@@ -1265,7 +1374,7 @@ namespace App4.PAGES
                         var box = new TextBox
                         {
                             Text = EffInt(p).ToString(),
-                            Width = 48, MinWidth = 0, Height = 32, FontSize = 12,
+                            Width = 44, MinWidth = 0, Height = 32, FontSize = 12,
                             Background = ColorFromHex("#202020"), Foreground = ColorFromHex("#FFFFFF"),
                             BorderBrush = dupInt ? red : ColorFromHex("#00A4EF"),
                             VerticalAlignment = VerticalAlignment.Center, Tag = p
@@ -1274,6 +1383,13 @@ namespace App4.PAGES
                         box.LostFocus += PointInt_Commit;
                         box.KeyDown += (s, ev) => { if (ev.Key == Windows.System.VirtualKey.Enter) PointInt_Commit(s, null); };
                         Grid.SetColumn(box, 3); row.Children.Add(box);
+
+                        // Nokta sil/gizle (✕)
+                        var delPt = new Button { Content = "✕", FontSize = 10, Padding = new Thickness(2, 0, 2, 0), MinWidth = 0, MinHeight = 0, Background = ColorFromHex("#2A1212"), Foreground = ColorFromHex("#E74C3C"), VerticalAlignment = VerticalAlignment.Center };
+                        var capPart = part; var capP = p;
+                        delPt.Click += (s, ev) => DeletePoint_Click(capPart, capP);
+                        ToolTipService.SetToolTip(delPt, capP.isUser ? "Bu noktayı sil" : "Bu yerleşik noktayı gizle");
+                        Grid.SetColumn(delPt, 4); row.Children.Add(delPt);
 
                         LeakPointLegendPanel.Children.Add(row);
 
@@ -1360,6 +1476,8 @@ namespace App4.PAGES
         private void ToggleLeakEdit_Click(object sender, RoutedEventArgs e)
         {
             _lmEdit = !_lmEdit;
+            if (!_lmEdit) _lmMarkMode = false;
+            BuildLeakParts();   // tap handler / parça-sil butonları edit durumuna göre
             BuildLeakLegend();
             UpdateLeakEditButton();
         }
@@ -1367,7 +1485,176 @@ namespace App4.PAGES
         private void UpdateLeakEditButton()
         {
             if (LeakEditBtnText != null) LeakEditBtnText.Text = _lmEdit ? "Bitti" : "INT Düzenle";
+            var _ev = _lmEdit ? Visibility.Visible : Visibility.Collapsed;
+            if (LeakAddImageBtn != null) LeakAddImageBtn.Visibility = _ev;
+            if (LeakMarkBtn != null)
+            {
+                LeakMarkBtn.Visibility = _ev;
+                if (LeakMarkBtnText != null) LeakMarkBtnText.Text = _lmMarkMode ? "İşaretleme: AÇIK" : "Bölge İşaretle";
+                LeakMarkBtn.Background = ColorFromHex(_lmMarkMode ? "#1B3D1B" : "#1E2A38");
+            }
             if (LeakEditBtnIcon != null) LeakEditBtnIcon.Glyph = _lmEdit ? "" : "";
+        }
+
+        // ═══ EDİTÖR: RESİM EKLE / BÖLGE İŞARETLE / SİL ═══
+
+        private void BtnLeakMarkMode_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_lmEdit) return;
+            _lmMarkMode = !_lmMarkMode;
+            BuildLeakParts();        // canvas tap handler ekle/çıkar
+            UpdateLeakEditButton();
+        }
+
+        private async void BtnAddLeakImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_lmDiagram)) return;
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileOpenPicker { SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop };
+                picker.FileTypeFilter.Add(".png"); picker.FileTypeFilter.Add(".jpg"); picker.FileTypeFilter.Add(".jpeg");
+                var window = (Application.Current as App)?.MainWindow;
+                if (window != null) WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+
+                var file = await picker.PickSingleFileAsync();
+                if (file == null) return;
+
+                Directory.CreateDirectory(_userImgDir);
+                string ext = Path.GetExtension(file.Path);
+                string safe = new string((_lmDiagram ?? "d").Where(c => char.IsLetterOrDigit(c)).ToArray());
+                string destName = $"user_{safe}_{DateTime.Now:yyyyMMdd_HHmmss}{ext}";
+                string dest = Path.Combine(_userImgDir, destName);
+                File.Copy(file.Path, dest, true);
+
+                double w = 1000, h = 700;
+                try
+                {
+                    using var s = await file.OpenReadAsync();
+                    var dec = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(s);
+                    w = dec.PixelWidth; h = dec.PixelHeight;
+                }
+                catch { }
+
+                var titleBox = new TextBox { Text = Path.GetFileNameWithoutExtension(file.Path), MinWidth = 240 };
+                var dlg = new ContentDialog
+                {
+                    Title = "Görsel Başlığı (parça adı)",
+                    Content = titleBox,
+                    PrimaryButtonText = "Ekle", CloseButtonText = "İptal", DefaultButton = ContentDialogButton.Primary,
+                    XamlRoot = this.XamlRoot, RequestedTheme = ElementTheme.Dark
+                };
+                if (await dlg.ShowAsync() != ContentDialogResult.Primary)
+                {
+                    try { File.Delete(dest); } catch { }
+                    return;
+                }
+                string title = MakeUniquePartTitle(string.IsNullOrWhiteSpace(titleBox.Text) ? Path.GetFileNameWithoutExtension(file.Path) : titleBox.Text.Trim());
+
+                if (!_userMap.addedParts.TryGetValue(_lmDiagram, out var list)) { list = new(); _userMap.addedParts[_lmDiagram] = list; }
+                list.Add(new LeakPart { image = destName, title = title, w = w, h = h, points = new List<LeakPoint>() });
+                SaveUserMap();
+                _lmMarkMode = true;   // ekledikten sonra direkt işaretlemeye hazır
+                RefreshLeakEditor();
+                UpdateLeakEditButton();
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LEAKMAP] resim ekleme hatası: {ex.Message}"); }
+        }
+
+        private async void OnPartTapped(LeakPart part, Canvas canvas, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+        {
+            if (!_lmEdit || !_lmMarkMode || part == null || string.IsNullOrEmpty(_lmDiagram)) return;
+            var pos = e.GetPosition(canvas);
+            double xf = part.w > 0 ? Math.Clamp(pos.X / part.w, 0, 1) : 0;
+            double yf = part.h > 0 ? Math.Clamp(pos.Y / part.h, 0, 1) : 0;
+
+            var nameBox = new TextBox { Text = SuggestPointName(part), MinWidth = 160 };
+            var robotCombo = new ComboBox { MinWidth = 90 }; robotCombo.Items.Add("R1"); robotCombo.Items.Add("R2"); robotCombo.SelectedIndex = 0;
+            var intBox = new TextBox { Text = "0", MinWidth = 70 };
+            var sp = new StackPanel { Spacing = 8, MinWidth = 300 };
+            sp.Children.Add(new TextBlock { Text = $"Konum: %{xf * 100:F0} , %{yf * 100:F0}  ·  {part.title}", FontSize = 11, Foreground = ColorFromHex("#888888") });
+            var r1 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            r1.Children.Add(new TextBlock { Text = "Kod:", Width = 50, VerticalAlignment = VerticalAlignment.Center }); r1.Children.Add(nameBox);
+            var r2 = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            r2.Children.Add(new TextBlock { Text = "Robot:", Width = 50, VerticalAlignment = VerticalAlignment.Center }); r2.Children.Add(robotCombo);
+            r2.Children.Add(new TextBlock { Text = "INT:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) }); r2.Children.Add(intBox);
+            sp.Children.Add(r1); sp.Children.Add(r2);
+
+            var dlg = new ContentDialog
+            {
+                Title = "Yeni Nokta İşaretle",
+                Content = sp,
+                PrimaryButtonText = "Ekle", CloseButtonText = "İptal", DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = this.XamlRoot, RequestedTheme = ElementTheme.Dark
+            };
+            if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+
+            string name = MakeUniquePointName(part, string.IsNullOrWhiteSpace(nameBox.Text) ? SuggestPointName(part) : nameBox.Text.Trim());
+            int robot = robotCombo.SelectedIndex == 1 ? 2 : 1;
+            int iv = int.TryParse(intBox.Text?.Trim(), out var v) ? v : 0;
+
+            string key = $"{_lmDiagram}::{part.title}";
+            if (!_userMap.addedPoints.TryGetValue(key, out var pts)) { pts = new(); _userMap.addedPoints[key] = pts; }
+            pts.Add(new LeakPoint { name = name, robot = robot, idx = iv, x = xf, y = yf });
+            SaveUserMap();
+            RefreshLeakEditor();
+        }
+
+        private void DeletePart_Click(LeakPart part)
+        {
+            if (part == null || string.IsNullOrEmpty(_lmDiagram)) return;
+            if (part.isUser)
+            {
+                if (_userMap.addedParts.TryGetValue(_lmDiagram, out var ups))
+                    ups.RemoveAll(x => x.title == part.title && x.image == part.image);
+                _userMap.addedPoints.Remove($"{_lmDiagram}::{part.title}");
+                try { var ip = Path.Combine(_userImgDir, part.image ?? ""); if (File.Exists(ip)) File.Delete(ip); } catch { }
+            }
+            else
+            {
+                if (!_userMap.hidden.Contains($"part:{_lmDiagram}::{part.title}"))
+                    _userMap.hidden.Add($"part:{_lmDiagram}::{part.title}");
+            }
+            SaveUserMap();
+            RefreshLeakEditor();
+        }
+
+        private void DeletePoint_Click(LeakPart part, LeakPoint p)
+        {
+            if (part == null || p == null || string.IsNullOrEmpty(_lmDiagram)) return;
+            string key = $"{_lmDiagram}::{part.title}";
+            if (p.isUser)
+            {
+                if (_userMap.addedPoints.TryGetValue(key, out var l)) l.RemoveAll(x => x.name == p.name);
+            }
+            else
+            {
+                string h = $"point:{_lmDiagram}::{part.title}::{p.name}";
+                if (!_userMap.hidden.Contains(h)) _userMap.hidden.Add(h);
+            }
+            SaveUserMap();
+            RefreshLeakEditor();
+        }
+
+        private static string SuggestPointName(LeakPart part) => $"Y{(part?.points?.Count ?? 0) + 1}";
+
+        private string MakeUniquePointName(LeakPart part, string name)
+        {
+            var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (_lmEntry?.parts != null)
+                foreach (var pp in _lmEntry.parts)
+                    if (pp.points != null) foreach (var pt in pp.points) existing.Add(pt.name);
+            string baseName = name; int i = 2;
+            while (existing.Contains(name)) name = $"{baseName}-{i++}";
+            return name;
+        }
+
+        private string MakeUniquePartTitle(string title)
+        {
+            var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (_lmEntry?.parts != null) foreach (var pp in _lmEntry.parts) existing.Add(pp.title);
+            string baseName = title; int i = 2;
+            while (existing.Contains(title)) title = $"{baseName} ({i++})";
+            return title;
         }
 
         private static SolidColorBrush ColorFromHex(string hex)
@@ -1526,12 +1813,12 @@ namespace App4.PAGES
         private void ShowLeakLibraryForType(string typeKey)
         {
             EnsureLeakMaps();
-            if (_leakMaps?.types == null || !_leakMaps.types.TryGetValue(typeKey, out var ti)) return;
-            if (!_leakMaps.maps.TryGetValue(ti.diagram, out var entry) || entry.parts == null || entry.parts.Count == 0) return;
+            if (_leakMaps?.types == null || !_leakMaps.types.TryGetValue(typeKey, out var ti) || string.IsNullOrEmpty(ti?.diagram)) return;
+            var entry = BuildEffectiveEntry(ti.diagram);  // boş olsa bile aç — resim eklenebilsin
 
             // Boş kayıt → tüm noktalar OK (yeşil); düzenleme açık
             var empty = new TrendRecord { NgPointsR1 = new List<int>(), NgPointsR2 = new List<int>(), OverallResult = "" };
-            _lmRecord = empty; _lmTypeKey = typeKey; _lmRfid = null; _lmEntry = entry; _lmEdit = true;
+            _lmRecord = empty; _lmTypeKey = typeKey; _lmRfid = null; _lmDiagram = ti.diagram; _lmEntry = entry; _lmEdit = true; _lmMarkMode = false;
 
             LeakMapResult.Text = "KÜTÜPHANE";
             LeakMapResult.Foreground = ColorFromHex("#00A4EF");
@@ -1573,6 +1860,7 @@ namespace App4.PAGES
             public double w { get; set; }
             public double h { get; set; }
             public List<LeakPoint> points { get; set; }
+            [System.Text.Json.Serialization.JsonIgnore] public bool isUser { get; set; } // kullanıcı eklediği parça mı
         }
         private class LeakPoint
         {
@@ -1581,6 +1869,15 @@ namespace App4.PAGES
             public int idx { get; set; }
             public double x { get; set; }
             public double y { get; set; }
+            [System.Text.Json.Serialization.JsonIgnore] public bool isUser { get; set; } // kullanıcı eklediği nokta mı
+        }
+
+        // ═══ KULLANICI KAÇAK-HARİTA KATMANI (uygulama içi editör — asset üstüne yazılabilir) ═══
+        private class UserMapStore
+        {
+            public Dictionary<string, List<LeakPart>> addedParts { get; set; } = new();   // diagram -> eklenen parçalar(resimler)
+            public Dictionary<string, List<LeakPoint>> addedPoints { get; set; } = new();  // "diagram::partTitle" -> eklenen noktalar
+            public List<string> hidden { get; set; } = new();                              // "point:diag::part::ad" / "part:diag::part"
         }
         private class PointOvr
         {

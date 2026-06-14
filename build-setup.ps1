@@ -222,6 +222,14 @@ if (-not $SkipInstaller -and -not $NoConfigSync) {
                 $copied++
             }
         }
+        # Kullanici kacak-harita gorselleri (alt klasor) — top-level *.json donguye girmez
+        $LiveImgDir = Join-Path $LiveConfigDir 'LeakMapImages'
+        if (Test-Path -LiteralPath $LiveImgDir) {
+            $SeedImgDir = Join-Path $SeedConfigDir 'LeakMapImages'
+            New-Item -ItemType Directory -Force -Path $SeedImgDir | Out-Null
+            Copy-Item -LiteralPath (Join-Path $LiveImgDir '*') -Destination $SeedImgDir -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Ok "Kacak-harita kullanici gorselleri seed'e kopyalandi (LeakMapImages)"
+        }
         Write-Ok "Config sync tamamlandi: $copied dosya seed'e kopyalandi, $skipped runtime/log atlandi"
     } else {
         Write-Warn "Canli config klasoru yok ($LiveConfigDir) - seed oldugu gibi kullanilacak"

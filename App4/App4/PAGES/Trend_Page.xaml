@@ -484,6 +484,20 @@
                                 <TextBlock x:Name="LeakMapSubTitle" Text="" FontSize="12" Foreground="#888" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Button x:Name="LeakAddImageBtn" Click="BtnAddLeakImage_Click" Visibility="Collapsed" Background="#2D1F0A" BorderBrush="#F39C12" BorderThickness="1" Padding="10,5" CornerRadius="6"
+                                        ToolTipService.ToolTip="Bu diyagrama PC'den yeni bir görsel (parça) ekle">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xEE71;" FontSize="13" Foreground="#F39C12"/>
+                                        <TextBlock Text="Resim Ekle" FontSize="12" Foreground="#F39C12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="LeakMarkBtn" Click="BtnLeakMarkMode_Click" Visibility="Collapsed" Background="#1E2A38" BorderBrush="#4CAF50" BorderThickness="1" Padding="10,5" CornerRadius="6"
+                                        ToolTipService.ToolTip="Açıkken görsele tıklayarak nokta işaretle">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon Glyph="&#xE7C5;" FontSize="13" Foreground="#4CAF50"/>
+                                        <TextBlock x:Name="LeakMarkBtnText" Text="Bölge İşaretle" FontSize="12" Foreground="#4CAF50"/>
+                                    </StackPanel>
+                                </Button>
                                 <Button Click="ToggleLeakEdit_Click" Background="#1E2A38" BorderBrush="#00A4EF" BorderThickness="1" Padding="10,5" CornerRadius="6"
                                         ToolTipService.ToolTip="Her noktaya robottan gelen INT değerini ata">
                                     <StackPanel Orientation="Horizontal" Spacing="6">

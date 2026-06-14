@@ -113,11 +113,11 @@ Source: "redist\MicrosoftEdgeWebView2RuntimeInstaller.exe"; DestDir: "{tmp}"; Fl
 ;   - KullanÄ±cÄ± "sÄ±fÄ±rlama" isterse Config klasÃ¶rÃ¼nÃ¼ silip tekrar kurabilir
 ; KORUMA MODU (varsayilan): sadece eksik dosyalar eklenir, mevcut ayar JSON'lari EZILMEZ.
 Source: "seed\Config\*"; DestDir: "C:\Simbiosis\SimbiosisLeakTestApp\Config"; \
-    Flags: onlyifdoesntexist uninsneveruninstall; Permissions: users-modify; Check: KeepExistingConfig
+    Flags: onlyifdoesntexist uninsneveruninstall recursesubdirs createallsubdirs; Permissions: users-modify; Check: KeepExistingConfig
 ; SIFIRLAMA MODU (kullanici acikca secerse): tum seed dosyalari uzerine yazilir (fabrika ayarlari).
 ; CurStepChanged icinde Config klasoru once silinir, sonra bu satir fabrika ayarlarini yukler.
 Source: "seed\Config\*"; DestDir: "C:\Simbiosis\SimbiosisLeakTestApp\Config"; \
-    Flags: uninsneveruninstall; Permissions: users-modify; Check: ResetConfigToDefaults
+    Flags: uninsneveruninstall recursesubdirs createallsubdirs; Permissions: users-modify; Check: ResetConfigToDefaults
 
 ; 3D model dosyalari (.glb) - Klima Editoru ve RobotArmViewer bunlari okuyor.
 ; ModelsPathHelper.cs C:\Simbiosis\SimbiosisLeakTestApp\Models lokasyonunu kullanir.
