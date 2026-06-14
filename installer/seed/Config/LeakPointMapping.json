@@ -1,5 +1,926 @@
 {
-  "types": {},
+  "types": {
+    "T1": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A15": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3-1": {
+        "d": "Suction-1 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B3-2": {
+        "d": "Suction-2 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası(beraber)"
+      },
+      "B4-3": {
+        "d": "Gas Valve-inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      }
+    },
+    "T2": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-4": {
+        "d": "MOV parçası ile likit vanası arasındaki dördüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-5": {
+        "d": "MOV parçası ile likit vanası arasındaki beşinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3-1": {
+        "d": "Suction-1 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B3-2": {
+        "d": "Suction-2 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T3": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A20": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-4": {
+        "d": "MOV parçası ile likit vanası arasındaki dördüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-5": {
+        "d": "MOV parçası ile likit vanası arasındaki beşinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B4-3": {
+        "d": "Gas Valve-inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T4": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-4": {
+        "d": "MOV parçası ile likit vanası arasındaki dördüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-5": {
+        "d": "MOV parçası ile likit vanası arasındaki beşinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3-1": {
+        "d": "Suction-1 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B3-2": {
+        "d": "Suction-2 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T5": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A18": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-4": {
+        "d": "MOV parçası ile likit vanası arasındaki dördüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-5": {
+        "d": "MOV parçası ile likit vanası arasındaki beşinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3-1": {
+        "d": "Suction-1 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B3-2": {
+        "d": "Suction-2 — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T6": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B4-3": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B4-4": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü ve beşinci kaynak noktası(beraber)"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T7": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B4-3": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B4-4": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü ve beşinci kaynak noktası(beraber)"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T8": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası(beraber)"
+      },
+      "B4-3": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T9": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası(beraber)"
+      },
+      "B4-3": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T10": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B4-3": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B4-4": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü ve beşinci kaynak noktası(beraber)"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T11": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T12": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A25": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "C1-1": {
+        "d": "MOV - Liquid receiver (muffer) connection — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-3": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki üçüncü kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "C2-3": {
+        "d": "MOV - HX Side -3 — MOV parçası ile HX arasındaki üçüncü kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci ve üçüncü kaynak noktası"
+      },
+      "B4-3": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B4-4": {
+        "d": "4 Yollu vanadan çıkan üçüncü parçanın devamındaki dördüncü ve beşinci kaynak noktası(beraber)"
+      },
+      "B5-1": {
+        "d": "Discharge-1 — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge-2 — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B5-3": {
+        "d": "Discharge-3 — 4 Yollu vanada üstten çıkan parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-4": {
+        "d": "Discharge-4 — 4 Yollu vanada üstten çıkan parçanın devamındaki dördüncü kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    },
+    "T13": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A18": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A19": {
+        "d": "Muffler Inlet — Muffler giriş kaynak noktası"
+      },
+      "A20": {
+        "d": "Muffler Outlet — Muffler çıkış kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-3": {
+        "d": "Gas Valve-inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5": {
+        "d": "Discharge — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "C1-1": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      }
+    },
+    "T14": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A15": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A16": {
+        "d": "Muffler Giriş — Muffler giriş kaynak noktası"
+      },
+      "A17": {
+        "d": "Muffler Çıkış — Muffler çıkış kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-3": {
+        "d": "Gas Valve-inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5": {
+        "d": "Discharge — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "C1-1": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      }
+    },
+    "T15": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A15": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A16": {
+        "d": "Muffler Giriş — Muffler giriş kaynak noktası"
+      },
+      "A17": {
+        "d": "Muffler Çıkış — Muffler çıkış kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-3": {
+        "d": "Gas Valve-inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5": {
+        "d": "Discharge — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      },
+      "C1-1": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      }
+    },
+    "T16": {
+      "A1": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A18": {
+        "d": "UBEND — En alt kaynak noktasından yukarıya doğru sırayla etiketleme yapıldı."
+      },
+      "A19": {
+        "d": "Muffler Giriş — Muffler giriş kaynak noktası"
+      },
+      "A20": {
+        "d": "Muffler Çıkış — Muffler çıkış kaynak noktası"
+      },
+      "C1-1": {
+        "d": "Liquid receiver(muffler) inlet — MOV parçası ile likit vanası arasındaki ilk kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C1-2": {
+        "d": "Liquid receiver(muffler) outlet — MOV parçası ile likit vanası arasındaki ikinci kaynak noktası (MOV (Expansion) - Liquid Valve)"
+      },
+      "C2-1": {
+        "d": "MOV - HX Side -1 — MOV parçası ile HX arasındaki ilk kaynak noktası"
+      },
+      "C2-2": {
+        "d": "MOV - HX Side -2 — MOV parçası ile HX arasındaki ikinci kaynak noktası"
+      },
+      "B1": {
+        "d": "4WV — 4 Yollu vanada bulunan 3 kaynak noktası"
+      },
+      "B2": {
+        "d": "Connection — 4 Yollu vanadan çıkan ilk parçanın(üstten çıkan parçanın tersindeki) devamındaki ilk kaynak noktası"
+      },
+      "B3": {
+        "d": "Suction — 4 Yollu vanadan çıkan ikinci parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-1": {
+        "d": "Gas Valve - Muffler inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ilk kaynak noktası"
+      },
+      "B4-2": {
+        "d": "Gas Valve - Muffler outlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki ikinci kaynak noktası"
+      },
+      "B4-3": {
+        "d": "Gas Valve-inlet — 4 Yollu vanadan çıkan üçüncü parçanın devamındaki üçüncü kaynak noktası"
+      },
+      "B5-1": {
+        "d": "Discharge — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B5-2": {
+        "d": "Discharge — 4 Yollu vanada üstten çıkan parçanın devamındaki ilk kaynak noktası"
+      },
+      "B6": {
+        "d": "Compressor inlet — 4 Yollu vanada üstten çıkan parçanın devamındaki ikinci kaynak noktası"
+      }
+    }
+  },
   "rfids": {},
   "models": {
     "ARXF71A5V1B": "T10"
