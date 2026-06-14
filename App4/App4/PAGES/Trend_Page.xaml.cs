@@ -214,11 +214,9 @@ namespace App4.PAGES
         {
             EnsureLeakMaps();
             rfid = rfid?.Trim();
-            if (string.IsNullOrEmpty(rfid) || _leakMaps?.models == null
-                || _leakMaps.types == null || _leakMaps.maps == null) return null;
+            if (string.IsNullOrEmpty(rfid) || _leakMaps?.types == null || _leakMaps.maps == null) return null;
 
-            if (!_leakMaps.models.TryGetValue(rfid, out string typeKey))
-                typeKey = _leakMaps.models.FirstOrDefault(kv => string.Equals(kv.Key, rfid, StringComparison.OrdinalIgnoreCase)).Value;
+            string typeKey = ResolveTypeKey(rfid);
             if (string.IsNullOrEmpty(typeKey) || !_leakMaps.types.TryGetValue(typeKey, out var ti)
                 || ti?.diagram == null || !_leakMaps.maps.TryGetValue(ti.diagram, out var entry)
                 || entry?.parts == null) return null;
@@ -891,6 +889,9 @@ namespace App4.PAGES
         // İki katmanlı override: tip geneli (kütüphane) + RFID'ye özel. RFID override tipi EZER.
         private Dictionary<string, Dictionary<string, PointOvr>> _typeOvr = new();
         private Dictionary<string, Dictionary<string, PointOvr>> _rfidOvr = new();
+        // Kullanıcı tanımlı RFID → tip eşlemesi (Excel'de olmayan yeni modeller için).
+        // LeakMaps.json'daki yerleşik 'models' eşlemesini tamamlar/ezerek diyagram gösterimini açar.
+        private Dictionary<string, string> _modelOvr = new(StringComparer.OrdinalIgnoreCase);
         private static readonly string _pointMapPath =
             Path.Combine(GlobalData.ConfigBaseDir, "LeakPointMapping.json");
         // Açık overlay durumu
@@ -922,9 +923,10 @@ namespace App4.PAGES
                     var of = JsonSerializer.Deserialize<OvrFile>(File.ReadAllText(_pointMapPath));
                     _typeOvr = of?.types ?? new();
                     _rfidOvr = of?.rfids ?? new();
+                    _modelOvr = new(of?.models ?? new(), StringComparer.OrdinalIgnoreCase);
                 }
             }
-            catch { _typeOvr = new(); _rfidOvr = new(); }
+            catch { _typeOvr = new(); _rfidOvr = new(); _modelOvr = new(StringComparer.OrdinalIgnoreCase); }
         }
 
         private void SaveOvr()
@@ -932,13 +934,28 @@ namespace App4.PAGES
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(_pointMapPath));
-                File.WriteAllText(_pointMapPath, JsonSerializer.Serialize(new OvrFile { types = _typeOvr, rfids = _rfidOvr }, new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(_pointMapPath, JsonSerializer.Serialize(
+                    new OvrFile { types = _typeOvr, rfids = _rfidOvr, models = new Dictionary<string, string>(_modelOvr) },
+                    new JsonSerializerOptions { WriteIndented = true }));
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LEAKMAP] mapping kayıt hatası: {ex.Message}"); }
         }
 
         private static PointOvr Lookup(Dictionary<string, Dictionary<string, PointOvr>> d, string key, string name)
             => (key != null && d.TryGetValue(key, out var m) && m.TryGetValue(name, out var o)) ? o : null;
+
+        /// <summary>RFID → typeKey çözümü: önce kullanıcı eşlemesi (_modelOvr), sonra yerleşik LeakMaps.models.
+        /// Yeni RFID'ler (Excel'de olmayan) uygulama içinden bir tipe atanınca diyagramları açılır.</summary>
+        private string ResolveTypeKey(string rfid)
+        {
+            if (string.IsNullOrWhiteSpace(rfid)) return null;
+            rfid = rfid.Trim();
+            if (_modelOvr != null && _modelOvr.TryGetValue(rfid, out var ut) && !string.IsNullOrEmpty(ut)) return ut;
+            var m = _leakMaps?.models;
+            if (m == null) return null;
+            if (m.TryGetValue(rfid, out var t) && !string.IsNullOrEmpty(t)) return t;
+            return m.FirstOrDefault(kv => string.Equals(kv.Key, rfid, StringComparison.OrdinalIgnoreCase)).Value;
+        }
 
         /// <summary>Düzenleme kapsamına yazar: RFID modunda RFID'ye özel, kütüphane modunda tip geneli.</summary>
         private void SetOvr(string name, int? i, int? r)
@@ -1002,13 +1019,12 @@ namespace App4.PAGES
         private bool TryShowLeakMap(TrendRecord record)
         {
             EnsureLeakMaps();
-            if (_leakMaps?.maps == null || _leakMaps.models == null) return false;
+            if (_leakMaps?.maps == null || _leakMaps.types == null) return false;
             string rfid = record.RfidTag?.Trim();
             if (string.IsNullOrEmpty(rfid)) return false;
 
-            // RFID → tip → diyagram. Override TİP bazında (aynı tipteki tüm RFID'ler ortak ayar).
-            if (!_leakMaps.models.TryGetValue(rfid, out string typeKey))
-                typeKey = _leakMaps.models.FirstOrDefault(kv => string.Equals(kv.Key, rfid, StringComparison.OrdinalIgnoreCase)).Value;
+            // RFID → tip → diyagram (kullanıcı eşlemesi öncelikli). Override TİP bazında.
+            string typeKey = ResolveTypeKey(rfid);
             if (string.IsNullOrEmpty(typeKey) || _leakMaps.types == null
                 || !_leakMaps.types.TryGetValue(typeKey, out var ti)
                 || !_leakMaps.maps.TryGetValue(ti.diagram, out var entry) || entry.parts == null || entry.parts.Count == 0)
@@ -1225,12 +1241,13 @@ namespace App4.PAGES
 
                     if (_lmEdit)
                     {
-                        // Sabit kolonlu grid: 16 | * | 74 | 54 — 320px panele her zaman sığar
-                        var row = new Grid { ColumnSpacing = 5, Margin = new Thickness(0, 2, 0, 0) };
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(74) });
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(54) });
+                        // Sabit kolonlu grid: 14 | * | 70 | 48 — panele her zaman sığar
+                        // (WinUI TextBox/ComboBox varsayılan MinWidth=64'tür; aşağıda MinWidth=0/70 ile eziliyor)
+                        var row = new Grid { ColumnSpacing = 4, Margin = new Thickness(0, 2, 0, 0) };
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 0 });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
+                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
 
                         var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 11, Height = 11, Stroke = ng ? red : green, StrokeThickness = 2.5, Fill = ng ? redFill : greenFill, VerticalAlignment = VerticalAlignment.Center };
                         row.Children.Add(dot);
@@ -1239,7 +1256,7 @@ namespace App4.PAGES
                         ToolTipService.SetToolTip(nameTb, $"{p.name} — {part.title}");
                         Grid.SetColumn(nameTb, 1); row.Children.Add(nameTb);
 
-                        var rcombo = new ComboBox { Width = 74, MinWidth = 74, Height = 32, FontSize = 11, Padding = new Thickness(8, 4, 0, 4), Tag = p, VerticalAlignment = VerticalAlignment.Center };
+                        var rcombo = new ComboBox { Width = 70, MinWidth = 70, Height = 32, FontSize = 11, Padding = new Thickness(8, 4, 0, 4), Tag = p, VerticalAlignment = VerticalAlignment.Center };
                         rcombo.Items.Add("R1"); rcombo.Items.Add("R2");
                         rcombo.SelectedIndex = EffRobot(p) == 2 ? 1 : 0;
                         rcombo.SelectionChanged += Robot_Changed;
@@ -1248,7 +1265,7 @@ namespace App4.PAGES
                         var box = new TextBox
                         {
                             Text = EffInt(p).ToString(),
-                            Width = 54, Height = 32, FontSize = 12,
+                            Width = 48, MinWidth = 0, Height = 32, FontSize = 12,
                             Background = ColorFromHex("#202020"), Foreground = ColorFromHex("#FFFFFF"),
                             BorderBrush = dupInt ? red : ColorFromHex("#00A4EF"),
                             VerticalAlignment = VerticalAlignment.Center, Tag = p
@@ -1268,7 +1285,7 @@ namespace App4.PAGES
                             FontSize = 11, Height = 30,
                             Background = ColorFromHex("#1A1A1A"), Foreground = ColorFromHex("#CCCCCC"),
                             BorderBrush = ColorFromHex("#333333"),
-                            Margin = new Thickness(21, 1, 0, 4), Tag = p
+                            Margin = new Thickness(18, 1, 0, 4), Tag = p
                         };
                         descBox.LostFocus += PointDesc_Commit;
                         descBox.KeyDown += (s, ev) => { if (ev.Key == Windows.System.VirtualKey.Enter) PointDesc_Commit(s, null); };
@@ -1378,27 +1395,126 @@ namespace App4.PAGES
                 return;
             }
             ContentDialog dialog = null;
-            var panel = new StackPanel { Spacing = 4 };
-            foreach (var kv in _leakMaps.types.OrderBy(k => TypeNum(k.Key)))
+            var bold = Microsoft.UI.Text.FontWeights.Bold;
+            var orderedTypes = _leakMaps.types.OrderBy(k => TypeNum(k.Key)).ToList();
+
+            // ── Yeni RFID atama formu ──
+            var rfidBox = new TextBox { PlaceholderText = "RFID kodu (örn. ARXF71V1B)", MinWidth = 0, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var typeCombo = new ComboBox { MinWidth = 0, FontSize = 12, PlaceholderText = "Tip / diyagram seç", VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch };
+            foreach (var kv in orderedTypes)
+                typeCombo.Items.Add(new ComboBoxItem { Content = $"{kv.Key} — {kv.Value.name}", Tag = kv.Key });
+            var addBtn = new Button { Content = "Ata", Background = ColorFromHex("#1E6F3E"), Foreground = ColorFromHex("#FFFFFF"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+            var addStatus = new TextBlock { FontSize = 10, Foreground = ColorFromHex("#888888"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+
+            var listPanel = new StackPanel { Spacing = 6 };
+
+            // Manuel sarmalı chip akışı (WinUI'de WrapPanel yok)
+            StackPanel ChipFlow(List<FrameworkElement> chips)
             {
-                string tk = kv.Key;
-                var btn = new Button
+                var flow = new StackPanel { Spacing = 4 };
+                StackPanel line = null;
+                for (int i = 0; i < chips.Count; i++)
                 {
-                    Content = $"{tk}  —  {kv.Value.name}",
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Left,
-                    Margin = new Thickness(0, 2, 0, 2),
-                    Background = ColorFromHex("#202020"),
-                    Foreground = ColorFromHex("#DDDDDD"),
-                    FontSize = 12
-                };
-                btn.Click += (s, _) => { dialog?.Hide(); ShowLeakLibraryForType(tk); };
-                panel.Children.Add(btn);
+                    if (i % 3 == 0) { line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; flow.Children.Add(line); }
+                    line.Children.Add(chips[i]);
+                }
+                return flow;
             }
+
+            void Rebuild()
+            {
+                listPanel.Children.Clear();
+                foreach (var kv in orderedTypes)
+                {
+                    string tk = kv.Key;
+                    var builtins = (_leakMaps.models ?? new()).Where(m => m.Value == tk).Select(m => m.Key).ToList();
+                    var users = _modelOvr.Where(m => m.Value == tk).Select(m => m.Key).ToList();
+
+                    var cg = new StackPanel { Spacing = 5 };
+                    // Grid: Tn (auto) | ad+diyagram (star, ellipsis çalışsın) | Düzenle (auto)
+                    var head = new Grid { ColumnSpacing = 8 };
+                    head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                    var tnBlock = new TextBlock { Text = tk, FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#00A4EF"), VerticalAlignment = VerticalAlignment.Center };
+                    Grid.SetColumn(tnBlock, 0); head.Children.Add(tnBlock);
+
+                    var midCol = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                    midCol.Children.Add(new TextBlock { Text = kv.Value.name, FontSize = 11, Foreground = ColorFromHex("#CCCCCC"), TextTrimming = TextTrimming.CharacterEllipsis });
+                    midCol.Children.Add(new TextBlock { Text = "🖼 " + kv.Value.diagram, FontSize = 9, Foreground = ColorFromHex("#777777"), TextTrimming = TextTrimming.CharacterEllipsis });
+                    Grid.SetColumn(midCol, 1); head.Children.Add(midCol);
+
+                    var editBtn = new Button { Content = "Düzenle", FontSize = 11, Padding = new Thickness(10, 4, 10, 4), Background = ColorFromHex("#202020"), Foreground = ColorFromHex("#DDDDDD"), VerticalAlignment = VerticalAlignment.Center };
+                    editBtn.Click += (s, _) => { dialog?.Hide(); ShowLeakLibraryForType(tk); };
+                    Grid.SetColumn(editBtn, 2); head.Children.Add(editBtn);
+                    cg.Children.Add(head);
+
+                    if (builtins.Count == 0 && users.Count == 0)
+                    {
+                        cg.Children.Add(new TextBlock { Text = "kayıtlı RFID yok", FontSize = 10, Foreground = ColorFromHex("#666666"), FontStyle = Windows.UI.Text.FontStyle.Italic });
+                    }
+                    else
+                    {
+                        var chips = new List<FrameworkElement>();
+                        foreach (var rf in builtins.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                            chips.Add(new Border { Background = ColorFromHex("#1E1E1E"), CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
+                                Child = new TextBlock { Text = rf, FontSize = 10, Foreground = ColorFromHex("#AAAAAA") } });
+                        foreach (var rf in users.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+                        {
+                            var sp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+                            sp.Children.Add(new TextBlock { Text = rf, FontSize = 10, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center });
+                            var rmBtn = new Button { Content = "✕", FontSize = 9, Padding = new Thickness(3, 0, 3, 0), MinWidth = 0, MinHeight = 0, Background = ColorFromHex("#2A1212"), Foreground = ColorFromHex("#E74C3C") };
+                            string rfCap = rf;
+                            rmBtn.Click += (s, _) => { _modelOvr.Remove(rfCap); SaveOvr(); Rebuild(); };
+                            sp.Children.Add(rmBtn);
+                            chips.Add(new Border { Background = ColorFromHex("#13281C"), BorderBrush = ColorFromHex("#1E6F3E"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 5, 2), Child = sp });
+                        }
+                        cg.Children.Add(ChipFlow(chips));
+                    }
+
+                    listPanel.Children.Add(new Border { Background = ColorFromHex("#161616"), CornerRadius = new CornerRadius(6), BorderBrush = ColorFromHex("#262626"), BorderThickness = new Thickness(1), Padding = new Thickness(10, 8, 10, 8), Child = cg });
+                }
+            }
+
+            addBtn.Click += (s, _) =>
+            {
+                string rf = rfidBox.Text?.Trim();
+                if (string.IsNullOrWhiteSpace(rf)) { addStatus.Text = "⚠ RFID kodu girin."; return; }
+                if (typeCombo.SelectedItem is not ComboBoxItem ci || ci.Tag is not string tk) { addStatus.Text = "⚠ Tip seçin."; return; }
+                _modelOvr[rf] = tk;
+                SaveOvr();
+                addStatus.Text = $"✓ {rf} → {tk} ({_leakMaps.types[tk].name}) atandı. Artık bu RFID'nin kaçak haritası açılır.";
+                rfidBox.Text = "";
+                Rebuild();
+            };
+
+            Rebuild();
+
+            var form = new Border { Background = ColorFromHex("#141414"), CornerRadius = new CornerRadius(8), BorderBrush = ColorFromHex("#2A2A2A"), BorderThickness = new Thickness(1), Padding = new Thickness(12), Margin = new Thickness(0, 0, 0, 8) };
+            var formInner = new StackPanel { Spacing = 6 };
+            formInner.Children.Add(new TextBlock { Text = "YENİ RFID → TİP/DİYAGRAM ATA", FontSize = 11, FontWeight = bold, Foreground = ColorFromHex("#00A4EF") });
+            formInner.Children.Add(new TextBlock { Text = "Excel'de olmayan yeni bir modeli (örn. ARXF71) mevcut bir diyagrama bağla — kaçak haritası ve nokta kütüphanesi o RFID için de açılır.", FontSize = 10, Foreground = ColorFromHex("#888888"), TextWrapping = TextWrapping.Wrap });
+            // Sabit kolonlu satır: combo seçili uzun adla büyüyüp "Ata"yı itemesin
+            var formRow = new Grid { ColumnSpacing = 8 };
+            formRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            formRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) });
+            formRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(rfidBox, 0); Grid.SetColumn(typeCombo, 1); Grid.SetColumn(addBtn, 2);
+            formRow.Children.Add(rfidBox); formRow.Children.Add(typeCombo); formRow.Children.Add(addBtn);
+            formInner.Children.Add(formRow);
+            formInner.Children.Add(addStatus);
+            form.Child = formInner;
+
+            var root = new StackPanel { Spacing = 0, Width = 500 };
+            root.Children.Add(form);
+            root.Children.Add(new TextBlock { Text = "DİYAGRAM / TİP BAŞINA KAYITLI MODELLER", FontSize = 11, FontWeight = bold, Foreground = ColorFromHex("#888888"), Margin = new Thickness(2, 0, 0, 6) });
+            root.Children.Add(new ScrollViewer { Content = listPanel, MaxHeight = 420, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+
             dialog = new ContentDialog
             {
-                Title = "Nokta Kütüphanesi — Tip seç",
-                Content = new ScrollViewer { Content = panel, MaxHeight = 480, MinWidth = 380 },
+                Title = "Nokta Kütüphanesi — Model / RFID Yönetimi",
+                Content = root,
                 CloseButtonText = "Kapat",
                 XamlRoot = this.XamlRoot,
                 RequestedTheme = ElementTheme.Dark
@@ -1476,6 +1592,7 @@ namespace App4.PAGES
         {
             public Dictionary<string, Dictionary<string, PointOvr>> types { get; set; }   // typeKey -> noktalar
             public Dictionary<string, Dictionary<string, PointOvr>> rfids { get; set; }   // RFID -> noktalar
+            public Dictionary<string, string> models { get; set; }                        // RFID -> typeKey (kullanıcı eşlemesi)
         }
     }
 }

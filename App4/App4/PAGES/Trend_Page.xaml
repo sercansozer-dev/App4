@@ -502,7 +502,7 @@
                     <Grid Grid.Row="1" Padding="16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="320"/>
+                            <ColumnDefinition Width="360"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Diyagram parçaları — eşit kolonlara bölünür, hepsi ekrana sığar -->
@@ -535,8 +535,8 @@
                             </StackPanel>
 
                             <!-- Nokta listesi -->
-                            <Border Grid.Row="2" Background="#111" CornerRadius="10" Padding="10" BorderBrush="#222" BorderThickness="1">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <Border Grid.Row="2" Background="#111" CornerRadius="10" Padding="8,10,4,10" BorderBrush="#222" BorderThickness="1">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
                                     <StackPanel x:Name="LeakPointLegendPanel" Spacing="3"/>
                                 </ScrollViewer>
                             </Border>
