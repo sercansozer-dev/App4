@@ -57,6 +57,16 @@ namespace App4.PAGES
         private bool _isPageLoaded = false;
         private Microsoft.UI.Xaml.DispatcherTimer _liveTimer;
 
+        // ═══ CANLI KAÇAK HARİTASI (görsel üzerinde NG takibi) ═══
+        private bool _liveMapMode = true;   // resim üzerinde göster (toggle: Harita)
+        private bool _liveNgOnly = true;    // yalnız kaçak noktaları (toggle: Sadece NG)
+        // 1sn kronometre: yapısal yeniden kurmadan yalnız süre metnini güncellemek için kayıt
+        private readonly List<(TextBlock clock, DateTime start)> _liveClocks = new();
+        // Çözülmüş görselleri tekrar decode etmemek için önbellek (yeniden kurmada titremeyi önler)
+        private static readonly Dictionary<string, Microsoft.UI.Xaml.Media.ImageSource> _liveBmpCache = new();
+        // Aktif nabız animasyonları — yeniden kurmada durdurulur (RepeatForever sızıntısını önler)
+        private readonly List<Microsoft.UI.Xaml.Media.Animation.Storyboard> _livePulses = new();
+
         public Trend_Page()
         {
             this.InitializeComponent();
@@ -81,7 +91,9 @@ namespace App4.PAGES
             if (_liveTimer == null)
             {
                 _liveTimer = new Microsoft.UI.Xaml.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-                _liveTimer.Tick += (s2, e2) => BuildLiveProduction(); // süre canlı saysın
+                // Yalnız kronometreyi güncelle — yapı (kart/çip/harita) sadece LiveProductionChanged'de yeniden kurulur
+                // (her saniye görsel yeniden kurmak titreme + bitmap decode maliyeti yaratırdı).
+                _liveTimer.Tick += (s2, e2) => UpdateLiveClocks();
             }
             _liveTimer.Start();
             BuildLiveProduction();
@@ -92,6 +104,8 @@ namespace App4.PAGES
             GlobalData.LiveProductionChanged -= OnLiveProductionChanged;
             GlobalData.ProductionRecorded -= OnProductionRecorded;
             _liveTimer?.Stop();
+            foreach (var sb in _livePulses) { try { sb.Stop(); } catch { } }
+            _livePulses.Clear();
             _isPageLoaded = false;
         }
 
@@ -102,6 +116,9 @@ namespace App4.PAGES
         private void BuildLiveProduction()
         {
             if (LiveProductionPanel == null) return;
+            _liveClocks.Clear();
+            foreach (var sb in _livePulses) { try { sb.Stop(); } catch { } }
+            _livePulses.Clear();
             var active = GlobalData.LiveStations.Where(l => l != null && l.Active).OrderBy(l => l.StationNo).ToList();
 
             if (active.Count == 0)
@@ -134,7 +151,9 @@ namespace App4.PAGES
                     head.Children.Add(new TextBlock { Text = lp.ProductName, FontSize = 11, Foreground = ColorFromHex("#CCCCCC"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
                 var ts = DateTime.Now - lp.StartTime;
                 if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
-                head.Children.Add(new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Right });
+                var clock = new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Right };
+                head.Children.Add(clock);
+                _liveClocks.Add((clock, lp.StartTime)); // 1sn timer bunu günceller (yapıyı yeniden kurmadan)
                 cg.Children.Add(head);
 
                 // Canlı kaçak noktaları (kod çözülmüş)
@@ -168,6 +187,11 @@ namespace App4.PAGES
                     cg.Children.Add(row);
                 }
 
+                // ═══ CANLI GÖRSEL HARİTA (kaçak noktaları diyagram üzerinde) ═══
+                // Çipler her zaman üstte kalır (koordinatı eksik diyagramlar için güvenli yedek).
+                if (_liveMapMode)
+                    BuildLiveLeakMap(lp, cg);
+
                 card.Child = cg;
                 LiveProductionPanel.Children.Add(card);
             }
@@ -178,6 +202,244 @@ namespace App4.PAGES
             Background = r2 ? BrNgBg : BrNokBg, CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
             Child = new TextBlock { Text = label, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = r2 ? BrOrange : BrRed }
         };
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  CANLI GÖRSEL KAÇAK HARİTASI — robotun o an verdiği NG noktalarını
+        //  ürünün diyagram görseli ÜZERİNDE canlı işaretler. Çiplerle BİRLİKTE çalışır.
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>1sn timer — yapıyı yeniden kurmadan yalnız kronometre metnini günceller (titreme yok).</summary>
+        private void UpdateLiveClocks()
+        {
+            foreach (var (clock, start) in _liveClocks)
+            {
+                if (clock == null) continue;
+                var ts = DateTime.Now - start;
+                if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
+                clock.Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}";
+            }
+        }
+
+        /// <summary>Harita / Sadece-NG toggle'ları değişince paneli yeniden kur.</summary>
+        private void LiveViewToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            _liveMapMode = LiveMapToggle?.IsChecked ?? true;
+            _liveNgOnly = LiveNgOnlyToggle?.IsChecked ?? true;
+            BuildLiveProduction();
+        }
+
+        /// <summary>TEST: PLC olmadan canlı görsel NG haritasını görmek için sahte aktif üretim enjekte eder.
+        /// Yalnızca BELLEKTEKİ GlobalData.LiveStations'a yazar — trend veritabanına HİÇBİR kayıt eklemez.
+        /// Gerçek RFID'ler kullanılır (diyagramlara çözülür); NG INT'leri gerçek nokta indekslerine denk gelir.</summary>
+        private void LiveDemoToggle_Click(object sender, RoutedEventArgs e)
+        {
+            bool on = LiveDemoToggle?.IsChecked ?? false;
+            var s = GlobalData.LiveStations;
+            if (on)
+            {
+                // İstasyon 1 — Alpha (T1): A15 (R1/i15), B6 (R1/i6), C2-2 (R2/i2)
+                s[0].StationNo = 1; s[0].StationName = "İSTASYON 1"; s[0].Rfid = "RXJ20A5V1B9";
+                s[0].ProductName = DemoProductName("RXJ20A5V1B9"); s[0].StartTime = DateTime.Now.AddSeconds(-23);
+                s[0].Active = true; s[0].NgR1 = new List<int> { 15, 6 }; s[0].NgR2 = new List<int> { 2 };
+
+                // İstasyon 2 — SF2-1YC (T3): A20 (R1/i20), C2-1 (R2/i1)
+                s[1].StationNo = 2; s[1].StationName = "İSTASYON 2"; s[1].Rfid = "RXM20A5V1B";
+                s[1].ProductName = DemoProductName("RXM20A5V1B"); s[1].StartTime = DateTime.Now.AddSeconds(-48);
+                s[1].Active = true; s[1].NgR1 = new List<int> { 20 }; s[1].NgR2 = new List<int> { 1 };
+
+                // İstasyon 3 — Alpha (T1), kaçaksız (temiz örnek: "Sadece NG" kapalıyken yeşil noktalar)
+                s[2].StationNo = 3; s[2].StationName = "İSTASYON 3"; s[2].Rfid = "RXJ25A5V1B9";
+                s[2].ProductName = DemoProductName("RXJ25A5V1B9"); s[2].StartTime = DateTime.Now.AddSeconds(-9);
+                s[2].Active = true; s[2].NgR1 = new List<int>(); s[2].NgR2 = new List<int>();
+            }
+            else
+            {
+                foreach (var lp in s) { lp.Active = false; lp.NgR1 = new List<int>(); lp.NgR2 = new List<int>(); }
+            }
+            GlobalData.RaiseLiveProductionChanged();
+        }
+
+        private static string DemoProductName(string rfid)
+        {
+            var r = GlobalData.KnownRfids.FirstOrDefault(x => string.Equals(x.Id, rfid, StringComparison.OrdinalIgnoreCase));
+            return r?.Description ?? "(demo ürün)";
+        }
+
+        /// <summary>Aktif bir istasyonun diyagram görsel(ler)ini, canlı NG noktaları işaretli olarak karta ekler.
+        /// Diyagram/görsel yoksa sessizce çıkar (çipler yeterli yedek). Sadece-NG modunda yalnız kaçak olan parçalar çizilir.</summary>
+        private void BuildLiveLeakMap(GlobalData.LiveProductionItem lp, Panel cardBody)
+        {
+            try
+            {
+                EnsureLeakMaps();
+                if (_leakMaps?.maps == null || _leakMaps.types == null) return;
+                string rfid = lp.Rfid?.Trim();
+                if (string.IsNullOrEmpty(rfid)) return;
+
+                string typeKey = ResolveTypeKey(rfid);
+                if (string.IsNullOrEmpty(typeKey) || !_leakMaps.types.TryGetValue(typeKey, out var ti) || string.IsNullOrEmpty(ti?.diagram))
+                    return; // diyagram yok → çipler yeterli
+                var entry = BuildEffectiveEntry(ti.diagram);
+                if (entry?.parts == null || entry.parts.Count == 0) return;
+
+                var ngR1 = lp.NgR1; var ngR2 = lp.NgR2;
+                bool anyNg = (ngR1?.Count ?? 0) + (ngR2?.Count ?? 0) > 0;
+                if (_liveNgOnly && !anyNg) return; // kaçak yok → görsel gösterme (çip 'kaçak yok' diyor)
+
+                Func<LeakPoint, bool> isNg = pt => IsNgPointLive(rfid, typeKey, ngR1, ngR2, pt);
+
+                // Gösterilecek parçalar: NG-only → yalnız içinde kaçak olan parçalar; aksi halde tüm diyagram
+                var partsToShow = _liveNgOnly
+                    ? entry.parts.Where(p => p.points != null && p.points.Any(isNg)).ToList()
+                    : entry.parts;
+                if (partsToShow.Count == 0) return;
+
+                var rowSp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                foreach (var part in partsToShow)
+                {
+                    var col = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2 };
+                    col.Children.Add(new TextBlock
+                    {
+                        Text = part.title ?? "",
+                        FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                        Foreground = ColorFromHex("#8AB0C8"), HorizontalAlignment = HorizontalAlignment.Center,
+                        TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 260
+                    });
+
+                    var grid = new Grid { Width = part.w, Height = part.h };
+                    grid.Children.Add(new Image { Source = ResolveLiveImageSource(part.image), Stretch = Stretch.Fill });
+                    var canvas = new Canvas { Width = part.w, Height = part.h };
+                    grid.Children.Add(canvas);
+                    RenderLiveMarkers(canvas, part, isNg, rfid, typeKey);
+
+                    var vb = new Viewbox { Stretch = Stretch.Uniform, Child = grid, MaxHeight = 190, MaxWidth = 280, VerticalAlignment = VerticalAlignment.Top };
+                    col.Children.Add(new Border
+                    {
+                        Background = ColorFromHex("#0A0A0A"), CornerRadius = new CornerRadius(6),
+                        BorderBrush = ColorFromHex("#234523"), BorderThickness = new Thickness(1),
+                        Padding = new Thickness(3), Child = vb
+                    });
+                    rowSp.Children.Add(col);
+                }
+
+                cardBody.Children.Add(new ScrollViewer
+                {
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                    Content = rowSp,
+                    Margin = new Thickness(0, 2, 0, 0)
+                });
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LIVEMAP] hata: {ex.Message}"); }
+        }
+
+        /// <summary>Canlı NG predikatı (sayfa durumundan BAĞIMSIZ — editör _lm* alanlarına dokunmaz).
+        /// EffInt/EffRobot mantığının aynısı ama rfid/typeKey parametre olarak alınır (çok istasyon aynı anda).</summary>
+        private bool IsNgPointLive(string rfid, string typeKey, List<int> ngR1, List<int> ngR2, LeakPoint p)
+        {
+            var rr = Lookup(_rfidOvr, rfid, p.name);
+            var tt = Lookup(_typeOvr, typeKey, p.name);
+            int effI = rr?.i ?? tt?.i ?? p.idx;
+            int effR = rr?.r ?? tt?.r ?? p.robot;
+            return (effR == 1 && ngR1 != null && ngR1.Contains(effI))
+                || (effR == 2 && ngR2 != null && ngR2.Contains(effI));
+        }
+
+        /// <summary>Canlı marker çizimi: kaçak = kırmızı + nabız animasyonu; OK = ince yeşil (yalnız 'tümü' modunda).
+        /// RenderPartMarkers ile aynı yerleşim matematiği, ama predikat parametre (editör durumuna bağımlı değil).</summary>
+        private void RenderLiveMarkers(Canvas canvas, LeakPart part, Func<LeakPoint, bool> isNg, string rfid, string typeKey)
+        {
+            canvas.Children.Clear();
+            if (part?.points == null) return;
+            double W = part.w, H = part.h;
+            double rad = Math.Max(13, W / 26.0);
+            var green = ColorFromHex("#4CAF50");
+            var red = ColorFromHex("#E74C3C");
+            var greenFill = new SolidColorBrush(Windows.UI.Color.FromArgb(120, 26, 46, 26));
+            var redFill = new SolidColorBrush(Windows.UI.Color.FromArgb(160, 55, 12, 12));
+            foreach (var p in part.points)
+            {
+                bool ng = isNg(p);
+                if (_liveNgOnly && !ng) continue; // sadece-NG: OK noktalarını çizme
+                var ell = new Microsoft.UI.Xaml.Shapes.Ellipse
+                {
+                    Width = rad * 2, Height = rad * 2,
+                    Stroke = ng ? red : green,
+                    StrokeThickness = Math.Max(3, W / 110.0),
+                    Fill = ng ? redFill : greenFill,
+                    RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5)
+                };
+                Canvas.SetLeft(ell, p.x * W - rad);
+                Canvas.SetTop(ell, p.y * H - rad);
+                canvas.Children.Add(ell);
+
+                string dsc = EffDescLive(rfid, typeKey, p);
+                if (!string.IsNullOrEmpty(dsc)) ToolTipService.SetToolTip(ell, $"{p.name} — {dsc}");
+
+                if (ng) AddPulse(ell); // canlı kaçak → nabız (göze çarpsın)
+
+                // Etiket: NG'de her zaman; OK'te yalnız 'tümü' modunda
+                if (ng || !_liveNgOnly)
+                {
+                    var lbl = new TextBlock
+                    {
+                        Text = p.name, FontSize = Math.Max(12, W / 24.0),
+                        FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = ng ? red : green
+                    };
+                    Canvas.SetLeft(lbl, p.x * W + rad + 2);
+                    Canvas.SetTop(lbl, p.y * H - rad - 2);
+                    canvas.Children.Add(lbl);
+                }
+            }
+        }
+
+        /// <summary>Nokta açıklaması — canlı haritada tooltip için. Kapsam: RFID override > tip override (kanonik EffDesc ile aynı).</summary>
+        private string EffDescLive(string rfid, string typeKey, LeakPoint p)
+        {
+            var rr = Lookup(_rfidOvr, rfid, p.name);
+            if (!string.IsNullOrEmpty(rr?.d)) return rr.d;
+            var tt = Lookup(_typeOvr, typeKey, p.name);
+            return string.IsNullOrEmpty(tt?.d) ? null : tt.d;
+        }
+
+        /// <summary>Canlı kaçak noktasına nabız (scale) animasyonu ekler ve takibe alır (yeniden kurmada durdurulur).</summary>
+        private void AddPulse(Microsoft.UI.Xaml.Shapes.Ellipse ell)
+        {
+            try
+            {
+                var st = new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = 1, ScaleY = 1 };
+                ell.RenderTransform = st;
+                var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                void Anim(string prop)
+                {
+                    var da = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+                    {
+                        From = 1.0, To = 1.35,
+                        Duration = new Duration(TimeSpan.FromMilliseconds(650)),
+                        AutoReverse = true,
+                        RepeatBehavior = Microsoft.UI.Xaml.Media.Animation.RepeatBehavior.Forever,
+                        EnableDependentAnimation = true
+                    };
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(da, st);
+                    Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(da, prop);
+                    sb.Children.Add(da);
+                }
+                Anim("ScaleX"); Anim("ScaleY");
+                _livePulses.Add(sb);
+                sb.Begin();
+            }
+            catch { }
+        }
+
+        /// <summary>ResolveImageSource + filename önbelleği (yeniden kurmada decode maliyeti/titreme olmasın).</summary>
+        private static Microsoft.UI.Xaml.Media.ImageSource ResolveLiveImageSource(string image)
+        {
+            if (string.IsNullOrEmpty(image)) return null;
+            if (_liveBmpCache.TryGetValue(image, out var cached)) return cached;
+            var src = ResolveImageSource(image);
+            if (src != null) _liveBmpCache[image] = src;
+            return src;
+        }
 
         // ─── VERİ YENİLEME ───
         private void RefreshData()

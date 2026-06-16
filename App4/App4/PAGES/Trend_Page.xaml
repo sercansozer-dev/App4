@@ -36,6 +36,13 @@
                     </Border>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ToggleButton x:Name="LiveDemoToggle" Click="LiveDemoToggle_Click" Background="#2A1E3A" BorderBrush="#9B59B6" BorderThickness="1" Foreground="#C39BD3"
+                            CornerRadius="6" Padding="12,6" FontSize="12" ToolTipService.ToolTip="PLC olmadan canlı görsel NG haritasını test et (sahte aktif üretim — kayıt yazmaz)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="🧪"/>
+                            <TextBlock Text="Canlı Demo"/>
+                        </StackPanel>
+                    </ToggleButton>
                     <Button x:Name="BtnExport" Click="BtnExport_Click" Background="#1E6F3E" Foreground="White"
                             CornerRadius="6" Padding="12,6" FontSize="12">
                         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -301,11 +308,21 @@
         <Border x:Name="LivePanel" Grid.Row="4" Margin="10,0,10,0" Background="#101A10" CornerRadius="10"
                 BorderBrush="#1E6F3E" BorderThickness="1" Padding="12,10" Visibility="Collapsed">
             <StackPanel Spacing="8">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Ellipse Width="9" Height="9" Fill="#4CAF50" VerticalAlignment="Center"/>
-                    <TextBlock Text="CANLI ÜRETİM TAKİBİ" FontSize="12" FontWeight="Bold" Foreground="#4CAF50" CharacterSpacing="60" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="LiveCountText" Text="" FontSize="11" Foreground="#7BB97B" VerticalAlignment="Center"/>
-                </StackPanel>
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Ellipse Width="9" Height="9" Fill="#4CAF50" VerticalAlignment="Center"/>
+                        <TextBlock Text="CANLI ÜRETİM TAKİBİ" FontSize="12" FontWeight="Bold" Foreground="#4CAF50" CharacterSpacing="60" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="LiveCountText" Text="" FontSize="11" Foreground="#7BB97B" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ToggleButton x:Name="LiveMapToggle" IsChecked="True" Click="LiveViewToggle_Changed"
+                                      MinWidth="0" MinHeight="0" Padding="9,3" FontSize="11" Content="🗺 Harita"
+                                      ToolTipService.ToolTip="Kaçak noktalarını canlı görsel üzerinde göster"/>
+                        <ToggleButton x:Name="LiveNgOnlyToggle" IsChecked="True" Click="LiveViewToggle_Changed"
+                                      MinWidth="0" MinHeight="0" Padding="9,3" FontSize="11" Content="Sadece NG"
+                                      ToolTipService.ToolTip="Açık: yalnız kaçak noktaları • Kapalı: tüm noktalar"/>
+                    </StackPanel>
+                </Grid>
                 <StackPanel x:Name="LiveProductionPanel" Spacing="6"/>
             </StackPanel>
         </Border>
