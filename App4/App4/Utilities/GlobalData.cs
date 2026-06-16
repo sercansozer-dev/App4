@@ -94,6 +94,35 @@ namespace App4.Utilities
 
         // Robot durum kodu → mesaj referans tablosu (uygulama içinden düzenlenebilir, kalıcı)
         public static ObservableCollection<RobotStatusCodeEntry> RobotStatusCodes { get; } = new();
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // CANLI ÜRETİM TAKİBİ (Trend sayfası canlı panel için)
+        //   Auto_Page çevrim sırasında günceller; Trend_Page dinleyip gösterir.
+        //   NG noktaları INT olarak tutulur; Trend kod çözümünü kendi yapar.
+        // ═══════════════════════════════════════════════════════════════════════
+        public class LiveProductionItem
+        {
+            public int StationNo { get; set; }
+            public string StationName { get; set; }
+            public string Rfid { get; set; }
+            public string ProductName { get; set; }
+            public bool Active { get; set; }
+            public DateTime StartTime { get; set; }
+            public List<int> NgR1 { get; set; } = new();
+            public List<int> NgR2 { get; set; } = new();
+        }
+        public static readonly LiveProductionItem[] LiveStations =
+        {
+            new LiveProductionItem { StationNo = 1 },
+            new LiveProductionItem { StationNo = 2 },
+            new LiveProductionItem { StationNo = 3 }
+        };
+        /// <summary>Canlı üretim verisi (aktif ürün / NG noktası) değişince — Trend canlı panelini tazeler.</summary>
+        public static event Action LiveProductionChanged;
+        /// <summary>Yeni bir üretim kaydı eklenince — Trend kayıt tablosunu tazeler.</summary>
+        public static event Action ProductionRecorded;
+        public static void RaiseLiveProductionChanged() { try { LiveProductionChanged?.Invoke(); } catch { } }
+        public static void RaiseProductionRecorded() { try { ProductionRecorded?.Invoke(); } catch { } }
         private static readonly System.Collections.Generic.Dictionary<int, string> _robotStatusDefaults = new()
         {
             {0,"Bosta"}, {1,"Calisiyor"}, {2,"HATA"},

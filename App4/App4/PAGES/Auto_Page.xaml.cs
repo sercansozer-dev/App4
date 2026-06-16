@@ -200,6 +200,9 @@ namespace App4
         {
             // Safety timer durdur
             _safetySignalTimer?.Stop();
+            // NOT: NG latch BİLEREK bırakılmıyor — sayfa cache'li (NavigationCacheMode=Required) ve çevrim
+            // işleme event-driven kalıcı olduğundan, başka sayfadayken (örn. Trend canlı takip) de
+            // kaçak noktaları yakalanmaya devam etsin. HookNgLatch idempotent (önce -= sonra +=).
 
             foreach (var s in Stations)
             {
@@ -248,6 +251,9 @@ namespace App4
         {
             // Admin durumu sayfa her açıldığında güncellenir (logout sonrası dahil)
             ApplyAdminVisibility();
+
+            // Kaçak (NG) nokta mandalı: NG_NOKTALAR değiştikçe aktif istasyona yakalansın
+            HookNgLatch();
 
             // İstasyon Üretim Adedi + Verimlilik'i bugünkü kayıtlardan hesapla (app hesaplar, PLC değil)
             RecalcStationKpis();
@@ -2494,6 +2500,57 @@ namespace App4
         // Ortak IS_BASLADI ile başlayan aktif çevrim istasyonu (ISLEM_BITTI'de aynı istasyonu kullanmak için latch)
         private StationViewModel _cycleStation;
 
+        // ═══ KAÇAK (NG) NOKTA MANDALI ═══
+        // NG_NOKTALAR ORTAK sinyal; çevrim ortasında yazılıp iş bitmeden silinebiliyor. Kayıt
+        // ISLEM_BITTI'de alındığı için o ana kadar silinmiş NG kaçırılıyordu. Çözüm: NG değiştikçe
+        // (olay-tabanlı) aktif istasyona mandalla, IS_BASLADI'da sıfırla, kayıtta mandalı kullan.
+        private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>> _ngLatchR1 = new();
+        private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>> _ngLatchR2 = new();
+        private PlcVariable _ngVarR1, _ngVarR2;
+
+        private void HookNgLatch()
+        {
+            UnhookNgLatch();
+            _ngVarR1 = GlobalData.GeneralInputVars?.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1");
+            _ngVarR2 = GlobalData.GeneralInputVars?.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2");
+            if (_ngVarR1 != null) _ngVarR1.PropertyChanged += NgLatch_Changed;
+            if (_ngVarR2 != null) _ngVarR2.PropertyChanged += NgLatch_Changed;
+        }
+        private void UnhookNgLatch()
+        {
+            if (_ngVarR1 != null) _ngVarR1.PropertyChanged -= NgLatch_Changed;
+            if (_ngVarR2 != null) _ngVarR2.PropertyChanged -= NgLatch_Changed;
+        }
+        private void NgLatch_Changed(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            var cs = _cycleStation;
+            if (cs == null || !cs.CycleRunning) return; // yalnız aktif çevrimde mandalla
+            int sn = Stations.IndexOf(cs) + 1;
+            if (sn < 1) return;
+            var gen = GlobalData.GeneralInputVars;
+            var r1 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
+            var r2 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
+            if (r1.Count > 0) _ngLatchR1[sn] = UnionInts(_ngLatchR1.GetValueOrDefault(sn), r1);
+            if (r2.Count > 0) _ngLatchR2[sn] = UnionInts(_ngLatchR2.GetValueOrDefault(sn), r2);
+
+            // Canlı üretim takibine yansıt (Trend canlı paneli için)
+            if (sn >= 1 && sn <= 3)
+            {
+                var lp = GlobalData.LiveStations[sn - 1];
+                lp.NgR1 = new System.Collections.Generic.List<int>(_ngLatchR1.GetValueOrDefault(sn) ?? new System.Collections.Generic.List<int>());
+                lp.NgR2 = new System.Collections.Generic.List<int>(_ngLatchR2.GetValueOrDefault(sn) ?? new System.Collections.Generic.List<int>());
+                GlobalData.RaiseLiveProductionChanged();
+            }
+        }
+        private static System.Collections.Generic.List<int> UnionInts(
+            System.Collections.Generic.List<int> a, System.Collections.Generic.List<int> b)
+        {
+            var set = new System.Collections.Generic.SortedSet<int>();
+            if (a != null) foreach (var x in a) set.Add(x);
+            if (b != null) foreach (var x in b) set.Add(x);
+            return new System.Collections.Generic.List<int>(set);
+        }
+
         /// <summary>Ortak çevrim sinyalleri için aktif istasyonu çözer.
         /// Öncelik: TargetSliderStation (robotun bulunduğu istasyon — slider köprüsü günceller, app her yerde bunu kullanır)
         /// → AKTUEL_ISTASYON (PLC'den okunuyorsa) → üretimde görünen istasyon.</summary>
@@ -2535,6 +2592,24 @@ namespace App4
                 s.CycleRunning = true;
                 s.LastIslemBitti = false;   // yeni çevrim → bitti bayrağını sıfırla
                 s.CycleTimeText = "00:00";
+
+                // Yeni çevrim → bu istasyonun kaçak nokta mandalını sıfırla (önceki üründen kalmasın)
+                int sn = Stations.IndexOf(s) + 1;
+                if (sn >= 1) { _ngLatchR1.Remove(sn); _ngLatchR2.Remove(sn); }
+
+                // Canlı üretim takibi: bu istasyonda yeni ürün işleniyor
+                if (sn >= 1 && sn <= 3)
+                {
+                    var live = GlobalData.LiveStations[sn - 1];
+                    live.Active = true;
+                    live.StationName = s.Name;
+                    live.Rfid = s.CurrentRfid ?? "";
+                    live.ProductName = GlobalData.KnownRfids.FirstOrDefault(r => string.Equals(r.Id, s.CurrentRfid, StringComparison.OrdinalIgnoreCase))?.Description ?? "";
+                    live.StartTime = DateTime.Now;
+                    live.NgR1 = new System.Collections.Generic.List<int>();
+                    live.NgR2 = new System.Collections.Generic.List<int>();
+                    GlobalData.RaiseLiveProductionChanged();
+                }
 
                 // Tam tur (3 istasyon) çevrimi: hat boştayken ilk başlama → tur başlar
                 if (!_lineRunning) { _lineRunning = true; _lineStart = DateTime.Now; _lineLastBitti = DateTime.MinValue; _lineTourCount = 0; }
@@ -2624,6 +2699,13 @@ namespace App4
         private async System.Threading.Tasks.Task RecordProductionDelayed(StationViewModel s, TimeSpan elapsed)
         {
             int stationNo = Stations.IndexOf(s) + 1;
+            // ═══ Sonuç verisini OTURDUĞU İLK ANDA yakala ═══
+            // NG_NOKTALAR ORTAK (sistem geneli) sinyaldir; istasyon geçişinde sonraki istasyon
+            // bunu ezebilir. Bu yüzden ilk dolu okumayı YAKALAYIP saklıyoruz ve geç tekrar okuma
+            // yerine bunu kaydediyoruz → NOK ürünün kaçak noktaları kaybolmaz, OK kaydolmaz.
+            var capNgR1 = new System.Collections.Generic.List<int>();
+            var capNgR2 = new System.Collections.Generic.List<int>();
+            bool capRNg = false, capROk = false;
             if (stationNo >= 1)
             {
                 var vars = stationNo switch
@@ -2635,23 +2717,28 @@ namespace App4
                 };
                 for (int i = 0; i < 8; i++) // 8 × 200ms = maks 1.6 sn
                 {
-                    bool rOk = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_OK")?.Value);
-                    bool rNg = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
+                    if (!capROk) capROk = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_OK")?.Value);
+                    if (!capRNg) capRNg = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
                     var gen0 = GlobalData.GeneralInputVars;
-                    bool anyNg = ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value).Count > 0
-                              || ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value).Count > 0;
-                    if (rOk || rNg || anyNg) break; // sonuç verisi geldi
+                    var r1 = ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
+                    var r2 = ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
+                    if (r1.Count > 0) capNgR1 = r1;   // ilk dolu okumayı sakla (sonra ezilse de korunur)
+                    if (r2.Count > 0) capNgR2 = r2;
+                    if (capROk || capRNg || capNgR1.Count > 0 || capNgR2.Count > 0) break; // veri geldi
                     await System.Threading.Tasks.Task.Delay(200);
                 }
             }
-            RecordProduction(s, elapsed);
+            RecordProduction(s, elapsed, capNgR1, capNgR2, capRNg);
         }
 
         /// <summary>
         /// Çevrim bitince (ISLEM_BITTI) bir üretim kaydı oluşturup TrendDataService'e ekler.
         /// Kayıt: istasyon, ürün/RFID, çevrim süresi, sonuç (RESULT_OK/RESULT_NG), zaman damgası.
         /// </summary>
-        private void RecordProduction(StationViewModel s, TimeSpan elapsed)
+        private void RecordProduction(StationViewModel s, TimeSpan elapsed,
+            System.Collections.Generic.List<int> capNgR1 = null,
+            System.Collections.Generic.List<int> capNgR2 = null,
+            bool capRNg = false)
         {
             try
             {
@@ -2666,14 +2753,20 @@ namespace App4
                     3 => GlobalData.Station3Vars,
                     _ => null
                 };
-                // ═══ KAÇAK (NG) NOKTALAR — Robot 1/2 için AYRI int array, ORTAK değişkenden (sistem geneli) ═══
+                // ═══ KAÇAK (NG) NOKTALAR — settle anında YAKALANAN değerleri kullan (istasyon geçişinde
+                //     ortak NG_NOKTALAR sinyali ezilmiş olabilir). Yakalanmadıysa (eski yol) tekrar oku. ═══
                 var gen = GlobalData.GeneralInputVars;
-                var ngR1 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
-                var ngR2 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
+                var capturedR1 = (capNgR1 != null) ? capNgR1 : ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
+                var capturedR2 = (capNgR2 != null) ? capNgR2 : ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
+                // Çevrim boyunca mandallanan NG (silinmiş olsa bile) + ISLEM_BITTI sonrası yakalanan → birleşim
+                var ngR1 = UnionInts(_ngLatchR1.GetValueOrDefault(stationNo), capturedR1);
+                var ngR2 = UnionInts(_ngLatchR2.GetValueOrDefault(stationNo), capturedR2);
+                _ngLatchR1.Remove(stationNo); _ngLatchR2.Remove(stationNo); // kullanıldı → mandalı temizle
 
                 // Sonuç: RESULT_NG TRUE *veya* herhangi bir NG noktası varsa NOK.
                 // (RESULT_NG geç gelse bile NG noktalar NOK'u garanti eder → NOK ürün OK kaydolmaz.)
-                bool ngResult = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
+                // RESULT_NG per-istasyon (ezilmez) → yakalanan ya da güncel okuma, hangisi TRUE ise.
+                bool ngResult = capRNg || IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
                 bool ng = ngResult || ngR1.Count > 0 || ngR2.Count > 0;
                 string result = ng ? "NOK" : "OK";
 
@@ -2707,6 +2800,17 @@ namespace App4
 
                 TrendDataService.Instance.AddRecord(record);
                 System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı: ST{stationNo} {result} {rfid} {record.CycleTime}sn | Kaçıklık X={record.OffsetX} Y={record.OffsetY} Z={record.OffsetZ}");
+
+                // Canlı üretim: bu istasyon bitti → paneli kapat + Trend tablosunu tazele
+                if (stationNo >= 1 && stationNo <= 3)
+                {
+                    var live = GlobalData.LiveStations[stationNo - 1];
+                    live.Active = false;
+                    live.NgR1 = new System.Collections.Generic.List<int>(ngR1);
+                    live.NgR2 = new System.Collections.Generic.List<int>(ngR2);
+                }
+                GlobalData.RaiseLiveProductionChanged();
+                GlobalData.RaiseProductionRecorded();
 
                 // Üretim Adedi + Verimlilik'i kayıttan yeniden hesapla (canlı güncelleme)
                 RecalcStationKpis();

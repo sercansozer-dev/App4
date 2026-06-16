@@ -55,10 +55,12 @@ namespace App4.PAGES
         private List<TrendRecord> _currentRecords = new();
         private bool _isLoading = false;
         private bool _isPageLoaded = false;
+        private Microsoft.UI.Xaml.DispatcherTimer _liveTimer;
 
         public Trend_Page()
         {
             this.InitializeComponent();
+            this.Unloaded += Trend_Page_Unloaded;
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -72,7 +74,110 @@ namespace App4.PAGES
 
             _isPageLoaded = true;
             RefreshData();
+
+            // ═══ CANLI ÜRETİM TAKİBİ ═══
+            GlobalData.LiveProductionChanged += OnLiveProductionChanged;
+            GlobalData.ProductionRecorded += OnProductionRecorded;
+            if (_liveTimer == null)
+            {
+                _liveTimer = new Microsoft.UI.Xaml.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+                _liveTimer.Tick += (s2, e2) => BuildLiveProduction(); // süre canlı saysın
+            }
+            _liveTimer.Start();
+            BuildLiveProduction();
         }
+
+        private void Trend_Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            GlobalData.LiveProductionChanged -= OnLiveProductionChanged;
+            GlobalData.ProductionRecorded -= OnProductionRecorded;
+            _liveTimer?.Stop();
+            _isPageLoaded = false;
+        }
+
+        private void OnLiveProductionChanged() => DispatcherQueue?.TryEnqueue(BuildLiveProduction);
+        private void OnProductionRecorded() => DispatcherQueue?.TryEnqueue(() => { if (_isPageLoaded) RefreshData(); });
+
+        /// <summary>Aktif çevrimdeki ürünleri + robotun o an verdiği kaçak noktalarını canlı gösterir.</summary>
+        private void BuildLiveProduction()
+        {
+            if (LiveProductionPanel == null) return;
+            var active = GlobalData.LiveStations.Where(l => l != null && l.Active).OrderBy(l => l.StationNo).ToList();
+
+            if (active.Count == 0)
+            {
+                if (LivePanel != null) LivePanel.Visibility = Visibility.Collapsed;
+                LiveProductionPanel.Children.Clear();
+                return;
+            }
+            if (LivePanel != null) LivePanel.Visibility = Visibility.Visible;
+            if (LiveCountText != null) LiveCountText.Text = $"·  {active.Count} istasyon işlemde";
+
+            LiveProductionPanel.Children.Clear();
+            var bold = Microsoft.UI.Text.FontWeights.Bold;
+
+            foreach (var lp in active)
+            {
+                var card = new Border
+                {
+                    Background = ColorFromHex("#142014"), CornerRadius = new CornerRadius(8),
+                    BorderBrush = ColorFromHex("#234523"), BorderThickness = new Thickness(1), Padding = new Thickness(10, 8, 10, 8)
+                };
+                var cg = new StackPanel { Spacing = 6 };
+
+                // Üst satır: istasyon · RFID · ürün · süre
+                var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                head.Children.Add(new Border { Background = ColorFromHex("#1E6F3E"), CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
+                    Child = new TextBlock { Text = $"İSTASYON {lp.StationNo}", FontSize = 11, FontWeight = bold, Foreground = BrWhite } });
+                head.Children.Add(new TextBlock { Text = string.IsNullOrEmpty(lp.Rfid) ? "—" : lp.Rfid, FontSize = 13, FontWeight = bold, Foreground = BrBlue, VerticalAlignment = VerticalAlignment.Center });
+                if (!string.IsNullOrEmpty(lp.ProductName))
+                    head.Children.Add(new TextBlock { Text = lp.ProductName, FontSize = 11, Foreground = ColorFromHex("#CCCCCC"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                var ts = DateTime.Now - lp.StartTime;
+                if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
+                head.Children.Add(new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Right });
+                cg.Children.Add(head);
+
+                // Canlı kaçak noktaları (kod çözülmüş)
+                int total = (lp.NgR1?.Count ?? 0) + (lp.NgR2?.Count ?? 0);
+                if (total == 0)
+                {
+                    cg.Children.Add(new TextBlock { Text = "✓ şimdilik kaçak yok", FontSize = 11, Foreground = ColorFromHex("#7BB97B") });
+                }
+                else
+                {
+                    var chips = new List<FrameworkElement>();
+                    if (lp.NgR1 != null && lp.NgR1.Count > 0)
+                    {
+                        chips.Add(MakeRobotTag("R1"));
+                        foreach (var v in lp.NgR1) chips.Add(LiveChip(ResolvePointCode(lp.Rfid, 1, v) ?? $"N{v}", false));
+                    }
+                    if (lp.NgR2 != null && lp.NgR2.Count > 0)
+                    {
+                        chips.Add(MakeRobotTag("R2"));
+                        foreach (var v in lp.NgR2) chips.Add(LiveChip(ResolvePointCode(lp.Rfid, 2, v) ?? $"N{v}", true));
+                    }
+                    var row = new StackPanel { Spacing = 4 };
+                    StackPanel line = null;
+                    for (int i = 0; i < chips.Count; i++)
+                    {
+                        if (i % 8 == 0) { line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; row.Children.Add(line); }
+                        line.Children.Add(chips[i]);
+                    }
+                    cg.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = {
+                        new TextBlock { Text = $"⚠ {total} kaçak:", FontSize = 11, FontWeight = bold, Foreground = BrRed, VerticalAlignment = VerticalAlignment.Center } } });
+                    cg.Children.Add(row);
+                }
+
+                card.Child = cg;
+                LiveProductionPanel.Children.Add(card);
+            }
+        }
+
+        private static Border LiveChip(string label, bool r2) => new()
+        {
+            Background = r2 ? BrNgBg : BrNokBg, CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
+            Child = new TextBlock { Text = label, FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = r2 ? BrOrange : BrRed }
+        };
 
         // ─── VERİ YENİLEME ───
         private void RefreshData()
