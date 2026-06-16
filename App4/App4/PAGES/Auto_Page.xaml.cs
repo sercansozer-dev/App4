@@ -198,11 +198,10 @@ namespace App4
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
-            // Safety timer durdur
+            // Safety timer durdur (yalnızca gösterim timer'ı — LED/kronometre/hat süresi).
             _safetySignalTimer?.Stop();
-            // NOT: NG latch BİLEREK bırakılmıyor — sayfa cache'li (NavigationCacheMode=Required) ve çevrim
-            // işleme event-driven kalıcı olduğundan, başka sayfadayken (örn. Trend canlı takip) de
-            // kaçak noktaları yakalanmaya devam etsin. HookNgLatch idempotent (önce -= sonra +=).
+            // NOT: Çevrim işleme + NG mandalı + üretim kaydı artık ProductionMonitor (global servis)
+            // üzerinde, bu sayfadan bağımsız çalışır. Sayfa kapansa da kayıt arka planda devam eder.
 
             foreach (var s in Stations)
             {
@@ -252,11 +251,10 @@ namespace App4
             // Admin durumu sayfa her açıldığında güncellenir (logout sonrası dahil)
             ApplyAdminVisibility();
 
-            // Kaçak (NG) nokta mandalı: NG_NOKTALAR değiştikçe aktif istasyona yakalansın
-            HookNgLatch();
+            // NOT: Çevrim mantığı (NG mandalı dahil) artık ProductionMonitor global servisinde — burada hook edilmez.
 
-            // İstasyon Üretim Adedi + Verimlilik'i bugünkü kayıtlardan hesapla (app hesaplar, PLC değil)
-            RecalcStationKpis();
+            // İstasyon Üretim Adedi + Verimlilik'i bugünkü kayıtlardan hesapla (global servis hesaplar, sayfa gösterir)
+            ProductionMonitor.RecalcStationKpis();
 
             // 0. Model kütüphanesini yenile (Klima Editörü'nden yeni yüklenen modelleri yakala)
             //    Sayfa NavigationCacheMode="Required" olduğu için ctor tekrar çalışmaz,
@@ -2487,9 +2485,10 @@ namespace App4
         }
 
         private void UpdateStationStatus(string n, string v) {
-            // ═══ ORTAK ÇEVRİM SİNYALLERİ (per-station DEĞİL, tek tag → aktüel istasyona yönlenir) ═══
-            if (n == "IS_BASLADI")  { var st = ResolveActiveStation(); if (st != null) { _cycleStation = st; HandleCycleIsBasladi(st, IsTrue(v)); } return; }
-            if (n == "ISLEM_BITTI") { var st = _cycleStation ?? ResolveActiveStation(); if (st != null) HandleCycleIslemBitti(st, IsTrue(v)); return; }
+            // ═══ ORTAK ÇEVRİM SİNYALLERİ artık ProductionMonitor (global servis) tarafından işlenir ═══
+            // IS_BASLADI / ISLEM_BITTI yönlendirmesi + üretim kaydı + NG mandalı sayfadan bağımsız
+            // çalışır. Bu sayfa yalnızca per-station gösterim tag'lerini günceller (aşağıda).
+            if (n == "IS_BASLADI" || n == "ISLEM_BITTI") return;
             foreach (var s in Stations) { if (s.StatusTag == n) s.ProcessStatus = MapStatus(v);// Başına ünlem (!) koyarak tersini alıyoruz.
                                                                                                                                                   // IsTrue(v) 1 dönerse (True), ! işareti onu False yapar (Alarm Yok).
                                                                                                                                                   // IsTrue(v) 0 dönerse (False), ! işareti onu True yapar (Alarm Var).
@@ -2497,182 +2496,21 @@ namespace App4
                 // NOT: Üretim Adedi ve Verimlilik artık PLC tag'inden DEĞİL, trend kayıtlarından hesaplanır (RecalcStationKpis).
         private bool IsTrue(string v) => !string.IsNullOrEmpty(v) && (v.ToUpper() == "TRUE" || v == "1" || v == "ON");
 
-        // Ortak IS_BASLADI ile başlayan aktif çevrim istasyonu (ISLEM_BITTI'de aynı istasyonu kullanmak için latch)
-        private StationViewModel _cycleStation;
-
-        // ═══ KAÇAK (NG) NOKTA MANDALI ═══
-        // NG_NOKTALAR ORTAK sinyal; çevrim ortasında yazılıp iş bitmeden silinebiliyor. Kayıt
-        // ISLEM_BITTI'de alındığı için o ana kadar silinmiş NG kaçırılıyordu. Çözüm: NG değiştikçe
-        // (olay-tabanlı) aktif istasyona mandalla, IS_BASLADI'da sıfırla, kayıtta mandalı kullan.
-        private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>> _ngLatchR1 = new();
-        private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>> _ngLatchR2 = new();
-        private PlcVariable _ngVarR1, _ngVarR2;
-
-        private void HookNgLatch()
-        {
-            UnhookNgLatch();
-            _ngVarR1 = GlobalData.GeneralInputVars?.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1");
-            _ngVarR2 = GlobalData.GeneralInputVars?.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2");
-            if (_ngVarR1 != null) _ngVarR1.PropertyChanged += NgLatch_Changed;
-            if (_ngVarR2 != null) _ngVarR2.PropertyChanged += NgLatch_Changed;
-        }
-        private void UnhookNgLatch()
-        {
-            if (_ngVarR1 != null) _ngVarR1.PropertyChanged -= NgLatch_Changed;
-            if (_ngVarR2 != null) _ngVarR2.PropertyChanged -= NgLatch_Changed;
-        }
-        private void NgLatch_Changed(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            var cs = _cycleStation;
-            if (cs == null || !cs.CycleRunning) return; // yalnız aktif çevrimde mandalla
-            int sn = Stations.IndexOf(cs) + 1;
-            if (sn < 1) return;
-            var gen = GlobalData.GeneralInputVars;
-            var r1 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
-            var r2 = ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
-            if (r1.Count > 0) _ngLatchR1[sn] = UnionInts(_ngLatchR1.GetValueOrDefault(sn), r1);
-            if (r2.Count > 0) _ngLatchR2[sn] = UnionInts(_ngLatchR2.GetValueOrDefault(sn), r2);
-
-            // Canlı üretim takibine yansıt (Trend canlı paneli için)
-            if (sn >= 1 && sn <= 3)
-            {
-                var lp = GlobalData.LiveStations[sn - 1];
-                lp.NgR1 = new System.Collections.Generic.List<int>(_ngLatchR1.GetValueOrDefault(sn) ?? new System.Collections.Generic.List<int>());
-                lp.NgR2 = new System.Collections.Generic.List<int>(_ngLatchR2.GetValueOrDefault(sn) ?? new System.Collections.Generic.List<int>());
-                GlobalData.RaiseLiveProductionChanged();
-            }
-        }
-        private static System.Collections.Generic.List<int> UnionInts(
-            System.Collections.Generic.List<int> a, System.Collections.Generic.List<int> b)
-        {
-            var set = new System.Collections.Generic.SortedSet<int>();
-            if (a != null) foreach (var x in a) set.Add(x);
-            if (b != null) foreach (var x in b) set.Add(x);
-            return new System.Collections.Generic.List<int>(set);
-        }
-
-        /// <summary>Ortak çevrim sinyalleri için aktif istasyonu çözer.
-        /// Öncelik: TargetSliderStation (robotun bulunduğu istasyon — slider köprüsü günceller, app her yerde bunu kullanır)
-        /// → AKTUEL_ISTASYON (PLC'den okunuyorsa) → üretimde görünen istasyon.</summary>
-        private StationViewModel ResolveActiveStation()
-        {
-            // Slider'ın "İstasyon: İSTASYON N" gösterdiği mantığın AYNISI — ekranda ne yazıyorsa o istasyona kayıt düşer.
-            // 1) TargetSliderStation (robotun bulunduğu istasyon — slider köprüsü günceller)
-            int tss = GlobalData.TargetSliderStation;
-            if (tss >= 1 && tss <= Stations.Count) return Stations[tss - 1];
-
-            // 2) KL100_HEDEF_ISTASYON (slider göstergesinin fallback'i — output ya da input)
-            var hedefVar = GlobalData.GeneralOutputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON")
-                        ?? GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "KL100_HEDEF_ISTASYON");
-            if (int.TryParse(hedefVar?.Value?.Trim(), out int hno) && hno >= 1 && hno <= Stations.Count) return Stations[hno - 1];
-
-            // 3) AKTUEL_ISTASYON (PLC'den okunuyorsa — eşlenmiş olmalı)
-            var av = GlobalData.GeneralInputVars.FirstOrDefault(x => x.Name == "AKTUEL_ISTASYON");
-            if (int.TryParse(av?.Value?.Trim(), out int no) && no >= 1 && no <= Stations.Count) return Stations[no - 1];
-
-            // 4) Üretimde görünen ilk istasyon
-            var prod = Stations.FirstOrDefault(s => s.IsProducing);
-            if (prod == null)
-                System.Diagnostics.Debug.WriteLine("[CYCLE] ResolveActiveStation: aktif istasyon belirlenemedi " +
-                    $"(TargetSliderStation={tss}, KL100_HEDEF='{hedefVar?.Value}', AKTUEL_ISTASYON='{av?.Value}', üretimde istasyon yok) → IS_BASLADI/ISLEM_BITTI yok sayıldı.");
-            return prod;
-        }
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // CYCLE TIME (ÇEVRİM SÜRESİ) — IS_BASLADI başlatır, ISLEM_BITTI durdurur
-        // ═══════════════════════════════════════════════════════════════════════
-
-        /// <summary>IS_BASLADI sinyali — yükselen kenarda (false→true) sayacı başlatır.</summary>
-        private void HandleCycleIsBasladi(StationViewModel s, bool val)
-        {
-            if (val && !s.LastIsBasladi)
-            {
-                // Yükselen kenar: yeni çevrim başladı
-                s.CycleStartTime = DateTime.Now;
-                s.CycleRunning = true;
-                s.LastIslemBitti = false;   // yeni çevrim → bitti bayrağını sıfırla
-                s.CycleTimeText = "00:00";
-
-                // Yeni çevrim → bu istasyonun kaçak nokta mandalını sıfırla (önceki üründen kalmasın)
-                int sn = Stations.IndexOf(s) + 1;
-                if (sn >= 1) { _ngLatchR1.Remove(sn); _ngLatchR2.Remove(sn); }
-
-                // Canlı üretim takibi: bu istasyonda yeni ürün işleniyor
-                if (sn >= 1 && sn <= 3)
-                {
-                    var live = GlobalData.LiveStations[sn - 1];
-                    live.Active = true;
-                    live.StationName = s.Name;
-                    live.Rfid = s.CurrentRfid ?? "";
-                    live.ProductName = GlobalData.KnownRfids.FirstOrDefault(r => string.Equals(r.Id, s.CurrentRfid, StringComparison.OrdinalIgnoreCase))?.Description ?? "";
-                    live.StartTime = DateTime.Now;
-                    live.NgR1 = new System.Collections.Generic.List<int>();
-                    live.NgR2 = new System.Collections.Generic.List<int>();
-                    GlobalData.RaiseLiveProductionChanged();
-                }
-
-                // Tam tur (3 istasyon) çevrimi: hat boştayken ilk başlama → tur başlar
-                if (!_lineRunning) { _lineRunning = true; _lineStart = DateTime.Now; _lineLastBitti = DateTime.MinValue; _lineTourCount = 0; }
-            }
-            s.LastIsBasladi = val;
-        }
-
-        /// <summary>ISLEM_BITTI sinyali — yükselen kenarda sayacı durdurur, son süreyi dondurur.</summary>
-        private void HandleCycleIslemBitti(StationViewModel s, bool val)
-        {
-            if (val && !s.LastIslemBitti && s.CycleRunning && s.CycleStartTime.HasValue)
-            {
-                // Yükselen kenar: çevrim bitti → süreyi dondur
-                var elapsed = DateTime.Now - s.CycleStartTime.Value;
-                s.CycleTimeText = FormatCycle(elapsed);
-                s.CycleRunning = false;
-
-                // ═══ ÜRETİM KAYDI (Trend/Rapor sayfası için) ═══
-                // ISLEM_BITTI sonuç verisinden (RESULT_NG/NG_NOKTALAR) hemen önce gelebildiği için,
-                // veriyi oturtup öyle kaydet — yoksa NOK ürün OK kaydolur.
-                _ = RecordProductionDelayed(s, elapsed);
-
-                // Tam tur çevrimi: bu istasyon bitti → son bitti anını işaretle + tur içi üretim say
-                _lineLastBitti = DateTime.Now;
-                if (_lineRunning) _lineTourCount++;
-            }
-            s.LastIslemBitti = val;
-        }
-
-        // ── TAM TUR (3 İSTASYON) ÇEVRİM SÜRESİ ──
-        // Hat boştayken ilk IS_BASLADI ile başlar; istasyonlar arası geçişlerde devam eder;
-        // son ISLEM_BITTI'den sonra hat LINE_GRACE_SEC kadar boş kalınca tur süresi dondurulur.
-        private bool _lineRunning;
-        private DateTime _lineStart;
-        private DateTime _lineLastBitti = DateTime.MinValue;
-        private TimeSpan _lineLastDuration = TimeSpan.Zero;
-        private int _lineTourCount;        // mevcut turda biten üretim sayısı
-        private int _lineLastTourCount;    // son tamamlanan turdaki üretim sayısı
-        private const double LINE_GRACE_SEC = 12;
-        private const double SHIFT_SECONDS = 8 * 3600; // 8 saatlik vardiya
-
+        /// <summary>Tam-tur (3 istasyon) çevrim süresini GÖSTERİR. Durum ProductionMonitor'da tutulur;
+        /// bu metot yalnızca timer'da TextBlock'ları PM durumundan tazeler.</summary>
         private void UpdateLineCycle()
         {
             if (LineCycleTimeText == null) return;
-            if (_lineRunning)
+            if (ProductionMonitor.LineRunning)
             {
-                LineCycleTimeText.Text = FormatCycle(DateTime.Now - _lineStart);
+                LineCycleTimeText.Text = FormatCycle(DateTime.Now - ProductionMonitor.LineStart);
                 LineCycleTimeText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xFF, 0x9F, 0x27)); // turuncu = sürüyor
-
-                bool allIdle = Stations.All(st => !st.CycleRunning);
-                if (allIdle && _lineLastBitti != DateTime.MinValue && (DateTime.Now - _lineLastBitti).TotalSeconds >= LINE_GRACE_SEC)
-                {
-                    _lineLastDuration = _lineLastBitti - _lineStart;   // ilk başladı → son bitti
-                    _lineLastTourCount = _lineTourCount;
-                    _lineRunning = false;
-                    LineCycleTimeText.Text = FormatCycle(_lineLastDuration);
-                    LineCycleTimeText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x00, 0xA4, 0xEF)); // mavi = tamamlandı
-                    UpdateLineEstimate();
-                }
             }
-            else if (_lineLastDuration > TimeSpan.Zero)
+            else if (ProductionMonitor.LineLastDuration > TimeSpan.Zero)
             {
-                LineCycleTimeText.Text = FormatCycle(_lineLastDuration);
+                LineCycleTimeText.Text = FormatCycle(ProductionMonitor.LineLastDuration);
+                LineCycleTimeText.Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x00, 0xA4, 0xEF)); // mavi = tamamlandı
+                UpdateLineEstimate();
             }
         }
 
@@ -2680,9 +2518,12 @@ namespace App4
         private void UpdateLineEstimate()
         {
             if (LineEstimateText == null) return;
-            if (_lineLastDuration.TotalSeconds > 0 && _lineLastTourCount > 0)
+            const double SHIFT_SECONDS = 8 * 3600;
+            var dur = ProductionMonitor.LineLastDuration;
+            int tour = ProductionMonitor.LineLastTourCount;
+            if (dur.TotalSeconds > 0 && tour > 0)
             {
-                int est = (int)Math.Round(SHIFT_SECONDS / _lineLastDuration.TotalSeconds * _lineLastTourCount);
+                int est = (int)Math.Round(SHIFT_SECONDS / dur.TotalSeconds * tour);
                 LineEstimateText.Text = $"~{est} adet";
             }
             else
@@ -2691,198 +2532,12 @@ namespace App4
             }
         }
 
-        /// <summary>
-        /// ISLEM_BITTI sonrası sonuç verisini (RESULT_OK / RESULT_NG / NG_NOKTALAR) oturtup öyle kaydeder.
-        /// RESULT_OK ya da RESULT_NG set olana veya NG noktalar gelene kadar kısa bekler (maks ~1.6 sn).
-        /// Böylece ISLEM_BITTI sonuçtan önce gelse bile NOK ürün yanlışlıkla OK kaydolmaz.
-        /// </summary>
-        private async System.Threading.Tasks.Task RecordProductionDelayed(StationViewModel s, TimeSpan elapsed)
-        {
-            int stationNo = Stations.IndexOf(s) + 1;
-            // ═══ Sonuç verisini OTURDUĞU İLK ANDA yakala ═══
-            // NG_NOKTALAR ORTAK (sistem geneli) sinyaldir; istasyon geçişinde sonraki istasyon
-            // bunu ezebilir. Bu yüzden ilk dolu okumayı YAKALAYIP saklıyoruz ve geç tekrar okuma
-            // yerine bunu kaydediyoruz → NOK ürünün kaçak noktaları kaybolmaz, OK kaydolmaz.
-            var capNgR1 = new System.Collections.Generic.List<int>();
-            var capNgR2 = new System.Collections.Generic.List<int>();
-            bool capRNg = false, capROk = false;
-            if (stationNo >= 1)
-            {
-                var vars = stationNo switch
-                {
-                    1 => GlobalData.Station1Vars,
-                    2 => GlobalData.Station2Vars,
-                    3 => GlobalData.Station3Vars,
-                    _ => null
-                };
-                for (int i = 0; i < 8; i++) // 8 × 200ms = maks 1.6 sn
-                {
-                    if (!capROk) capROk = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_OK")?.Value);
-                    if (!capRNg) capRNg = IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
-                    var gen0 = GlobalData.GeneralInputVars;
-                    var r1 = ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
-                    var r2 = ParseNgPoints(gen0.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
-                    if (r1.Count > 0) capNgR1 = r1;   // ilk dolu okumayı sakla (sonra ezilse de korunur)
-                    if (r2.Count > 0) capNgR2 = r2;
-                    if (capROk || capRNg || capNgR1.Count > 0 || capNgR2.Count > 0) break; // veri geldi
-                    await System.Threading.Tasks.Task.Delay(200);
-                }
-            }
-            RecordProduction(s, elapsed, capNgR1, capNgR2, capRNg);
-        }
 
-        /// <summary>
-        /// Çevrim bitince (ISLEM_BITTI) bir üretim kaydı oluşturup TrendDataService'e ekler.
-        /// Kayıt: istasyon, ürün/RFID, çevrim süresi, sonuç (RESULT_OK/RESULT_NG), zaman damgası.
-        /// </summary>
-        private void RecordProduction(StationViewModel s, TimeSpan elapsed,
-            System.Collections.Generic.List<int> capNgR1 = null,
-            System.Collections.Generic.List<int> capNgR2 = null,
-            bool capRNg = false)
-        {
-            try
-            {
-                int stationNo = Stations.IndexOf(s) + 1;
-                if (stationNo < 1) return;
 
-                // Sonuç: RESULT_NG açıkça TRUE ise NOK, aksi halde OK (NG istisna olarak bildirilir)
-                var vars = stationNo switch
-                {
-                    1 => GlobalData.Station1Vars,
-                    2 => GlobalData.Station2Vars,
-                    3 => GlobalData.Station3Vars,
-                    _ => null
-                };
-                // ═══ KAÇAK (NG) NOKTALAR — settle anında YAKALANAN değerleri kullan (istasyon geçişinde
-                //     ortak NG_NOKTALAR sinyali ezilmiş olabilir). Yakalanmadıysa (eski yol) tekrar oku. ═══
-                var gen = GlobalData.GeneralInputVars;
-                var capturedR1 = (capNgR1 != null) ? capNgR1 : ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R1")?.Value);
-                var capturedR2 = (capNgR2 != null) ? capNgR2 : ParseNgPoints(gen.FirstOrDefault(v => v.Name == "NG_NOKTALAR_R2")?.Value);
-                // Çevrim boyunca mandallanan NG (silinmiş olsa bile) + ISLEM_BITTI sonrası yakalanan → birleşim
-                var ngR1 = UnionInts(_ngLatchR1.GetValueOrDefault(stationNo), capturedR1);
-                var ngR2 = UnionInts(_ngLatchR2.GetValueOrDefault(stationNo), capturedR2);
-                _ngLatchR1.Remove(stationNo); _ngLatchR2.Remove(stationNo); // kullanıldı → mandalı temizle
-
-                // Sonuç: RESULT_NG TRUE *veya* herhangi bir NG noktası varsa NOK.
-                // (RESULT_NG geç gelse bile NG noktalar NOK'u garanti eder → NOK ürün OK kaydolmaz.)
-                // RESULT_NG per-istasyon (ezilmez) → yakalanan ya da güncel okuma, hangisi TRUE ise.
-                bool ngResult = capRNg || IsTrue(vars?.FirstOrDefault(v => v.Name == $"ST{stationNo}_RESULT_NG")?.Value);
-                bool ng = ngResult || ngR1.Count > 0 || ngR2.Count > 0;
-                string result = ng ? "NOK" : "OK";
-
-                // Ürün/RFID bilgisi (aktif kartta okunan RFID → reçete adı)
-                string rfid = s.CurrentRfid ?? "";
-                var recipe = GlobalData.KnownRfids.FirstOrDefault(
-                    r => string.Equals(r.Id, rfid, StringComparison.OrdinalIgnoreCase));
-
-                var record = new TrendRecord
-                {
-                    Timestamp = DateTime.Now,
-                    StationNo = stationNo,
-                    StationName = s.Name,
-                    RfidTag = rfid,
-                    ProductName = recipe?.Description ?? "",
-                    KlimaTip = recipe?.Id ?? "",
-                    KlimaId = recipe?.IndexDisplay ?? 0,
-                    CycleTime = Math.Round(elapsed.TotalSeconds, 1),
-                    OverallResult = result,
-                    NgPointsR1 = ngR1,
-                    NgPointsR2 = ngR2,
-                    NokCount = ngR1.Count + ngR2.Count,
-                    // ═══ TABLA KAÇIKLIK (üründe tespit edilen offset değerleri) ═══
-                    OffsetX = ParseOffset(s.TablaOffsetX),
-                    OffsetY = ParseOffset(s.TablaOffsetY),
-                    OffsetZ = ParseOffset(s.TablaOffsetZ),
-                    OffsetA = ParseOffset(s.TablaOffsetA),
-                    OffsetB = ParseOffset(s.TablaOffsetB),
-                    OffsetC = ParseOffset(s.TablaOffsetC)
-                };
-
-                TrendDataService.Instance.AddRecord(record);
-                System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı: ST{stationNo} {result} {rfid} {record.CycleTime}sn | Kaçıklık X={record.OffsetX} Y={record.OffsetY} Z={record.OffsetZ}");
-
-                // Canlı üretim: bu istasyon bitti → paneli kapat + Trend tablosunu tazele
-                if (stationNo >= 1 && stationNo <= 3)
-                {
-                    var live = GlobalData.LiveStations[stationNo - 1];
-                    live.Active = false;
-                    live.NgR1 = new System.Collections.Generic.List<int>(ngR1);
-                    live.NgR2 = new System.Collections.Generic.List<int>(ngR2);
-                }
-                GlobalData.RaiseLiveProductionChanged();
-                GlobalData.RaiseProductionRecorded();
-
-                // Üretim Adedi + Verimlilik'i kayıttan yeniden hesapla (canlı güncelleme)
-                RecalcStationKpis();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[TREND] Üretim kaydı hatası: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// İstasyon kartlarındaki "Üretim Adedi" ve "Verimlilik"i BUGÜNKÜ trend kayıtlarından hesaplar.
-        /// Üretim Adedi = istasyonun bugünkü kayıt sayısı; Verimlilik = OK oranı (OK / toplam %).
-        /// PLC tag'inden okunmaz; app kendi hesaplar.
-        /// </summary>
-        private void RecalcStationKpis()
-        {
-            try
-            {
-                var start = DateTime.Today;
-                var end = DateTime.Now;
-                for (int i = 0; i < Stations.Count; i++)
-                {
-                    int stNo = i + 1;
-                    var recs = TrendDataService.Instance.GetRecords(start, end, stNo, null, null);
-                    int total = recs?.Count ?? 0;
-                    int ok = recs?.Count(r => r.OverallResult == "OK") ?? 0;
-                    int eff = total > 0 ? (int)Math.Round(ok * 100.0 / total) : 0;
-                    var s = Stations[i];
-                    DispatcherQueue?.TryEnqueue(() =>
-                    {
-                        s.ProductionCount = total.ToString();
-                        s.Efficiency = $"%{eff}";
-                    });
-                }
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[KPI] Hesaplama hatası: {ex.Message}"); }
-        }
-
-        /// <summary>
-        /// PLC'den gelen NG nokta listesini parse eder. Desteklenen formatlar:
-        /// "3,7,12" / "3;7;12" / "3 7 12" / "[3, 7, 12]" / "(boş)" — virgül, noktalı virgül,
-        /// boşluk, köşeli/normal parantez ayraçlı. Array özet string'i ([..]) de doğru okunur.
-        /// </summary>
-        private static System.Collections.Generic.List<int> ParseNgPoints(string v)
-        {
-            var list = new System.Collections.Generic.List<int>();
-            if (string.IsNullOrWhiteSpace(v)) return list;
-            var parts = v.Split(new[] { ',', ';', ' ', '\t', '|', '[', ']', '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var p in parts)
-            {
-                if (int.TryParse(p.Trim(), out int n) && n > 0 && !list.Contains(n))
-                    list.Add(n);
-            }
-            return list;
-        }
-
-        /// <summary>Tabla kaçıklık string değerini (örn. "1.234" veya "1,234") double'a çevirir.</summary>
-        private static double ParseOffset(string v)
-        {
-            if (string.IsNullOrWhiteSpace(v)) return 0;
-            var inv = System.Globalization.CultureInfo.InvariantCulture;
-            var styles = System.Globalization.NumberStyles.Any;
-            if (double.TryParse(v, styles, inv, out double d)) return d;
-            if (double.TryParse(v.Replace(',', '.'), styles, inv, out d)) return d;
-            return 0;
-        }
-
-        /// <summary>Çalışan istasyonların canlı kronometresini günceller (timer'dan periyodik çağrılır).</summary>
+        /// <summary>Çalışan istasyonların canlı kronometresini GÖSTERİR (timer'dan periyodik çağrılır).
+        /// Çevrim mantığı/kaydı ProductionMonitor'da; bu yalnızca ekrandaki mm:ss'i tazeler.</summary>
         private void UpdateCycleTimers()
         {
-            PollCycleSignals(); // güvenlik ağı: ortak IS_BASLADI/ISLEM_BITTI'yi aktif istasyona uygula (kaçan kenarları yakalar)
             foreach (var s in Stations)
             {
                 if (s.CycleRunning && s.CycleStartTime.HasValue)
@@ -2893,21 +2548,6 @@ namespace App4
             }
         }
 
-        /// <summary>Güvenlik ağı: ortak IS_BASLADI / ISLEM_BITTI değerlerini periyodik (her tick) okur ve aktif istasyona uygular.
-        /// Olay-bazlı yönlendirme aktif istasyon geç çözüldüğü için (örn. IS_BASLADI app açılmadan önce 1 olmuşsa) kaçırırsa burada yakalanır.
-        /// HandleCycle* metodları kenar-tabanlı (LastIsBasladi/LastIslemBitti) olduğundan olay yolu ile çift işlem olmaz.</summary>
-        private void PollCycleSignals()
-        {
-            var st = ResolveActiveStation();
-            if (st == null) return;
-            var isb = GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "IS_BASLADI");
-            var ibt = GlobalData.GeneralInputVars.FirstOrDefault(v => v.Name == "ISLEM_BITTI");
-            bool isBasladi = IsTrue(isb?.Value);
-            bool islemBitti = IsTrue(ibt?.Value);
-            if (isBasladi && !st.LastIsBasladi) _cycleStation = st;
-            HandleCycleIsBasladi(st, isBasladi);
-            HandleCycleIslemBitti(_cycleStation ?? st, islemBitti);
-        }
 
         /// <summary>Süreyi mm:ss formatına çevirir (1 saati aşarsa hh:mm:ss).</summary>
         private static string FormatCycle(TimeSpan t)

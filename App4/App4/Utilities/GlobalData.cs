@@ -1413,6 +1413,11 @@ namespace App4.Utilities
             // sadece bağlıyken ve tag eşleşmişken yazar.
             StartHeartbeatOutput();
 
+            // ═══ GLOBAL ÜRETİM İZLEYİCİ ═══
+            // Çevrim mantığı (IS_BASLADI/ISLEM_BITTI/NG kaydı/KPI/canlı takip) artık Auto_Page'de DEĞİL,
+            // sayfadan bağımsız bu serviste çalışır. Sayfalar yalnızca gösterim yapar.
+            ProductionMonitor.Start();
+
             _isInitialized = true;
 
         }
