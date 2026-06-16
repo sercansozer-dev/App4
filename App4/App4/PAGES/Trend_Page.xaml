@@ -16,13 +16,10 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>   <!-- 0: baslik (sabit) -->
+            <RowDefinition Height="Auto"/>   <!-- 1: filtreler (sabit) -->
+            <RowDefinition Height="*"/>      <!-- 2: TEK SCROLL — tum icerik -->
+            <RowDefinition Height="Auto"/>   <!-- 3: alt bar (sabit) -->
         </Grid.RowDefinitions>
 
         <!-- BASLIK -->
@@ -128,8 +125,12 @@
             </StackPanel>
         </Border>
 
+        <!-- ═══ TEK SCROLL ═══ Tüm içerik (özet + RFID raporu + canlı panel + kayıt tablosu)
+             tek bir kaydırılır bölgede; sayfa komple bütün gezilir. Başlık/filtre üstte, alt bar altta sabit. -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
         <!-- ISTATISTIK KARTLARI -->
-        <Border Grid.Row="2" Background="#111" Padding="16,10" BorderBrush="#222" BorderThickness="0,0,0,1">
+        <Border Background="#111" Padding="16,10" BorderBrush="#222" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -205,7 +206,7 @@
         </Border>
 
         <!-- RFID BAZINDA DETAYLI RAPOR (her zaman görünür — popup yok) -->
-        <Border Grid.Row="3" Background="#141414" Padding="12,8" BorderBrush="#222" BorderThickness="0,0,0,1">
+        <Border Background="#141414" Padding="12,8" BorderBrush="#222" BorderThickness="0,0,0,1">
             <Expander IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                       Background="#161616" BorderBrush="#2A2A2A" CornerRadius="8">
                 <Expander.Header>
@@ -266,7 +267,7 @@
                                 <TextBlock Grid.Column="6" Text="NG" FontSize="9" FontWeight="Bold" Foreground="#F39C12" HorizontalTextAlignment="Center"/>
                             </Grid>
 
-                            <ScrollViewer Grid.Row="2" MaxHeight="280" VerticalScrollBarVisibility="Auto" Padding="6,4,6,6">
+                            <ScrollViewer Grid.Row="2" MaxHeight="1600" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Padding="6,4,6,6">
                                 <StackPanel x:Name="ProductBreakdownPanel" Spacing="2"/>
                             </ScrollViewer>
                         </Grid>
@@ -295,7 +296,7 @@
                                 </Grid>
                             </Border>
 
-                            <ScrollViewer Grid.Row="1" MaxHeight="280" VerticalScrollBarVisibility="Auto" Padding="10,8">
+                            <ScrollViewer Grid.Row="1" MaxHeight="1600" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Padding="10,8">
                                 <StackPanel x:Name="TopNgPointsPanel" Spacing="6"/>
                             </ScrollViewer>
                         </Grid>
@@ -305,7 +306,7 @@
         </Border>
 
         <!-- CANLI ÜRETİM TAKİBİ (işlenen ürün + robotun o an verdiği kaçak noktaları) -->
-        <Border x:Name="LivePanel" Grid.Row="4" Margin="10,0,10,0" Background="#101A10" CornerRadius="10"
+        <Border x:Name="LivePanel" Margin="10,0,10,0" Background="#101A10" CornerRadius="10"
                 BorderBrush="#1E6F3E" BorderThickness="1" Padding="12,10" Visibility="Collapsed">
             <StackPanel Spacing="8">
                 <Grid>
@@ -318,21 +319,25 @@
                         <ToggleButton x:Name="LiveMapToggle" IsChecked="True" Click="LiveViewToggle_Changed"
                                       MinWidth="0" MinHeight="0" Padding="9,3" FontSize="11" Content="🗺 Harita"
                                       ToolTipService.ToolTip="Kaçak noktalarını canlı görsel üzerinde göster"/>
-                        <ToggleButton x:Name="LiveNgOnlyToggle" IsChecked="True" Click="LiveViewToggle_Changed"
+                        <ToggleButton x:Name="LiveNgOnlyToggle" IsChecked="False" Click="LiveViewToggle_Changed"
                                       MinWidth="0" MinHeight="0" Padding="9,3" FontSize="11" Content="Sadece NG"
-                                      ToolTipService.ToolTip="Açık: yalnız kaçak noktaları • Kapalı: tüm noktalar"/>
+                                      ToolTipService.ToolTip="Kapalı (varsayılan): tüm noktalar — yeşil OK + kırmızı kaçak • Açık: yalnız kaçaklar"/>
+                        <ToggleButton x:Name="LiveCollapseBtn" IsChecked="True" Click="LiveCollapse_Click"
+                                      MinWidth="0" MinHeight="0" Padding="9,3" FontSize="11" Content="▾ Gizle"
+                                      ToolTipService.ToolTip="Canlı paneli küçült/aç — alttaki kayıt tablosuna yer aç"/>
                     </StackPanel>
                 </Grid>
+                <!-- Üst bölge ScrollViewer'ı kaydırma sağladığı için iç cap gerekmez -->
                 <StackPanel x:Name="LiveProductionPanel" Spacing="6"/>
             </StackPanel>
         </Border>
 
-        <!-- ANA VERI TABLOSU -->
-        <Border Grid.Row="5" Margin="10" Background="#161616" CornerRadius="10" BorderBrush="#252525" BorderThickness="1">
+        <!-- ANA VERI TABLOSU (tek scroll içinde — içeriğe göre uzar, kendi scroll'u yok) -->
+        <Border Margin="10" Background="#161616" CornerRadius="10" BorderBrush="#252525" BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Border Grid.Row="0" Background="#1E1E1E" CornerRadius="10,10,0,0" Padding="12,8">
@@ -372,6 +377,7 @@
 
                 <ListView x:Name="TrendListView" Grid.Row="1"
                           SelectionMode="Single" IsItemClickEnabled="True" ItemClick="TrendListView_ItemClick"
+                          ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                           Background="Transparent">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
@@ -476,9 +482,11 @@
                 </StackPanel>
             </Grid>
         </Border>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- ALT BAR -->
-        <Border Grid.Row="6" Background="#161616" Padding="16,8" BorderBrush="#222" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="#161616" Padding="16,8" BorderBrush="#222" BorderThickness="0,1,0,0">
             <Grid>
                 <StackPanel Orientation="Horizontal" Spacing="20">
                     <TextBlock x:Name="TxtStatusInfo" Text="Hazir" FontSize="11" Foreground="Gray" VerticalAlignment="Center"/>
@@ -493,7 +501,7 @@
         </Border>
 
         <!-- ═══════════ KAÇAK HARİTASI OVERLAY (seçili ürünün kaçak noktaları) ═══════════ -->
-        <Border x:Name="LeakMapOverlay" Grid.RowSpan="7" Background="#D8000000" Visibility="Collapsed"
+        <Border x:Name="LeakMapOverlay" Grid.RowSpan="4" Background="#D8000000" Visibility="Collapsed"
                 Tapped="LeakMapOverlay_Tapped">
             <Border Background="#161616" CornerRadius="14" BorderBrush="#333" BorderThickness="1"
                     MaxWidth="1850" MaxHeight="1060" Margin="16" Tapped="LeakMapCard_Tapped">

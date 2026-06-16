@@ -59,7 +59,7 @@ namespace App4.PAGES
 
         // ═══ CANLI KAÇAK HARİTASI (görsel üzerinde NG takibi) ═══
         private bool _liveMapMode = true;   // resim üzerinde göster (toggle: Harita)
-        private bool _liveNgOnly = true;    // yalnız kaçak noktaları (toggle: Sadece NG)
+        private bool _liveNgOnly = false;   // VARSAYILAN: tüm noktalar (yeşil OK + kırmızı NG) — yeşiller hep dursun, kaçak kırmızı düşsün
         // 1sn kronometre: yapısal yeniden kurmadan yalnız süre metnini güncellemek için kayıt
         private readonly List<(TextBlock clock, DateTime start)> _liveClocks = new();
         // Çözülmüş görselleri tekrar decode etmemek için önbellek (yeniden kurmada titremeyi önler)
@@ -133,8 +133,15 @@ namespace App4.PAGES
             LiveProductionPanel.Children.Clear();
             var bold = Microsoft.UI.Text.FontWeights.Bold;
 
-            foreach (var lp in active)
+            // ═══ İSTASYONLAR YAN YANA ═══ — her aktif istasyon eşit genişlikte bir sütun.
+            // Hat 3 istasyonlu; dikey istif yerine yan yana → çok daha az dikey alan + hepsi aynı anda görünür.
+            var lineGrid = new Grid { ColumnSpacing = 8 };
+            for (int c = 0; c < active.Count; c++)
+                lineGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            for (int si = 0; si < active.Count; si++)
             {
+                var lp = active[si];
                 var card = new Border
                 {
                     Background = ColorFromHex("#142014"), CornerRadius = new CornerRadius(8),
@@ -142,19 +149,21 @@ namespace App4.PAGES
                 };
                 var cg = new StackPanel { Spacing = 6 };
 
-                // Üst satır: istasyon · RFID · ürün · süre
-                var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                // Üst satır: istasyon · RFID · süre (dar sütun → kompakt)
+                var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                 head.Children.Add(new Border { Background = ColorFromHex("#1E6F3E"), CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
-                    Child = new TextBlock { Text = $"İSTASYON {lp.StationNo}", FontSize = 11, FontWeight = bold, Foreground = BrWhite } });
-                head.Children.Add(new TextBlock { Text = string.IsNullOrEmpty(lp.Rfid) ? "—" : lp.Rfid, FontSize = 13, FontWeight = bold, Foreground = BrBlue, VerticalAlignment = VerticalAlignment.Center });
-                if (!string.IsNullOrEmpty(lp.ProductName))
-                    head.Children.Add(new TextBlock { Text = lp.ProductName, FontSize = 11, Foreground = ColorFromHex("#CCCCCC"), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                    Child = new TextBlock { Text = $"İST {lp.StationNo}", FontSize = 11, FontWeight = bold, Foreground = BrWhite } });
+                head.Children.Add(new TextBlock { Text = string.IsNullOrEmpty(lp.Rfid) ? "—" : lp.Rfid, FontSize = 12, FontWeight = bold, Foreground = BrBlue, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
                 var ts = DateTime.Now - lp.StartTime;
                 if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
-                var clock = new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center, HorizontalTextAlignment = TextAlignment.Right };
+                var clock = new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center };
                 head.Children.Add(clock);
                 _liveClocks.Add((clock, lp.StartTime)); // 1sn timer bunu günceller (yapıyı yeniden kurmadan)
                 cg.Children.Add(head);
+
+                // Ürün adı ayrı satır (dar sütunda taşmasın)
+                if (!string.IsNullOrEmpty(lp.ProductName))
+                    cg.Children.Add(new TextBlock { Text = lp.ProductName, FontSize = 10, Foreground = ColorFromHex("#CCCCCC"), TextTrimming = TextTrimming.CharacterEllipsis });
 
                 // Canlı kaçak noktaları (kod çözülmüş)
                 int total = (lp.NgR1?.Count ?? 0) + (lp.NgR2?.Count ?? 0);
@@ -175,15 +184,14 @@ namespace App4.PAGES
                         chips.Add(MakeRobotTag("R2"));
                         foreach (var v in lp.NgR2) chips.Add(LiveChip(ResolvePointCode(lp.Rfid, 2, v) ?? $"N{v}", true));
                     }
+                    cg.Children.Add(new TextBlock { Text = $"⚠ {total} kaçak", FontSize = 11, FontWeight = bold, Foreground = BrRed });
                     var row = new StackPanel { Spacing = 4 };
                     StackPanel line = null;
                     for (int i = 0; i < chips.Count; i++)
                     {
-                        if (i % 8 == 0) { line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; row.Children.Add(line); }
+                        if (i % 5 == 0) { line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; row.Children.Add(line); }
                         line.Children.Add(chips[i]);
                     }
-                    cg.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = {
-                        new TextBlock { Text = $"⚠ {total} kaçak:", FontSize = 11, FontWeight = bold, Foreground = BrRed, VerticalAlignment = VerticalAlignment.Center } } });
                     cg.Children.Add(row);
                 }
 
@@ -193,8 +201,10 @@ namespace App4.PAGES
                     BuildLiveLeakMap(lp, cg);
 
                 card.Child = cg;
-                LiveProductionPanel.Children.Add(card);
+                Grid.SetColumn(card, si);
+                lineGrid.Children.Add(card);
             }
+            LiveProductionPanel.Children.Add(lineGrid);
         }
 
         private static Border LiveChip(string label, bool r2) => new()
@@ -226,6 +236,14 @@ namespace App4.PAGES
             _liveMapMode = LiveMapToggle?.IsChecked ?? true;
             _liveNgOnly = LiveNgOnlyToggle?.IsChecked ?? true;
             BuildLiveProduction();
+        }
+
+        /// <summary>Canlı panel gövdesini gizle/aç — üst bölgede yer açmak için.</summary>
+        private void LiveCollapse_Click(object sender, RoutedEventArgs e)
+        {
+            bool show = LiveCollapseBtn?.IsChecked ?? true;
+            if (LiveProductionPanel != null) LiveProductionPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (LiveCollapseBtn != null) LiveCollapseBtn.Content = show ? "▾ Gizle" : "▸ Göster";
         }
 
         /// <summary>TEST: PLC olmadan canlı görsel NG haritasını görmek için sahte aktif üretim enjekte eder.
@@ -294,7 +312,9 @@ namespace App4.PAGES
                     : entry.parts;
                 if (partsToShow.Count == 0) return;
 
-                var rowSp = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                // İstasyonlar yan yana olduğu için parçalar sütun İÇİNDE DİKEY istiflenir
+                // (her görsel sütun genişliğine sığacak şekilde Uniform ölçeklenir).
+                var colSp = new StackPanel { Orientation = Orientation.Vertical, Spacing = 4, Margin = new Thickness(0, 2, 0, 0) };
                 foreach (var part in partsToShow)
                 {
                     var col = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2 };
@@ -303,7 +323,7 @@ namespace App4.PAGES
                         Text = part.title ?? "",
                         FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                         Foreground = ColorFromHex("#8AB0C8"), HorizontalAlignment = HorizontalAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 260
+                        TextTrimming = TextTrimming.CharacterEllipsis
                     });
 
                     var grid = new Grid { Width = part.w, Height = part.h };
@@ -312,23 +332,18 @@ namespace App4.PAGES
                     grid.Children.Add(canvas);
                     RenderLiveMarkers(canvas, part, isNg, rfid, typeKey);
 
-                    var vb = new Viewbox { Stretch = Stretch.Uniform, Child = grid, MaxHeight = 190, MaxWidth = 280, VerticalAlignment = VerticalAlignment.Top };
+                    // Uniform + MaxHeight: sütun genişliğine göre küçülür, çok büyümez
+                    var vb = new Viewbox { Stretch = Stretch.Uniform, Child = grid, MaxHeight = 175, HorizontalAlignment = HorizontalAlignment.Center };
                     col.Children.Add(new Border
                     {
                         Background = ColorFromHex("#0A0A0A"), CornerRadius = new CornerRadius(6),
                         BorderBrush = ColorFromHex("#234523"), BorderThickness = new Thickness(1),
                         Padding = new Thickness(3), Child = vb
                     });
-                    rowSp.Children.Add(col);
+                    colSp.Children.Add(col);
                 }
 
-                cardBody.Children.Add(new ScrollViewer
-                {
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                    Content = rowSp,
-                    Margin = new Thickness(0, 2, 0, 0)
-                });
+                cardBody.Children.Add(colSp);
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LIVEMAP] hata: {ex.Message}"); }
         }
