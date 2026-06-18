@@ -53,6 +53,10 @@ namespace App4.PAGES
     {
         private readonly TrendDataService _trendService = TrendDataService.Instance;
         private List<TrendRecord> _currentRecords = new();
+
+        // Aktif vardiya filtresi (gün içi saat penceresi) — null = tüm vardiyalar
+        private (TimeSpan start, TimeSpan end, string label)? _shiftFilter;
+        private const int MAX_TABLE_ROWS = 2000; // tabloda en çok bu kadar satır çizilir (özet/CSV tümünü kullanır)
         private bool _isLoading = false;
         private bool _isPageLoaded = false;
         private Microsoft.UI.Xaml.DispatcherTimer _liveTimer;
@@ -88,6 +92,8 @@ namespace App4.PAGES
             // ═══ CANLI ÜRETİM TAKİBİ ═══
             GlobalData.LiveProductionChanged += OnLiveProductionChanged;
             GlobalData.ProductionRecorded += OnProductionRecorded;
+            // İstasyon güncel ürünü (CurrentRfid) değişince canlı görünümü tazele (yeni ürün gelince diyagram değişsin)
+            foreach (var st in GlobalData.Stations) { st.PropertyChanged -= Station_LiveChanged; st.PropertyChanged += Station_LiveChanged; }
             if (_liveTimer == null)
             {
                 _liveTimer = new Microsoft.UI.Xaml.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -103,45 +109,73 @@ namespace App4.PAGES
         {
             GlobalData.LiveProductionChanged -= OnLiveProductionChanged;
             GlobalData.ProductionRecorded -= OnProductionRecorded;
+            foreach (var st in GlobalData.Stations) st.PropertyChanged -= Station_LiveChanged;
             _liveTimer?.Stop();
             foreach (var sb in _livePulses) { try { sb.Stop(); } catch { } }
             _livePulses.Clear();
             _isPageLoaded = false;
         }
 
+        private void Station_LiveChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            // Yeni ürün geldiğinde (RFID değişti) canlı paneli yeniden kur
+            if (e.PropertyName == "CurrentRfid") DispatcherQueue?.TryEnqueue(BuildLiveProduction);
+        }
+
         private void OnLiveProductionChanged() => DispatcherQueue?.TryEnqueue(BuildLiveProduction);
         private void OnProductionRecorded() => DispatcherQueue?.TryEnqueue(() => { if (_isPageLoaded) RefreshData(); });
 
-        /// <summary>Aktif çevrimdeki ürünleri + robotun o an verdiği kaçak noktalarını canlı gösterir.</summary>
+        /// <summary>SÜREKLI canlı görünüm: her istasyonun GÜNCEL ürününü (RFID) diyagramıyla gösterir.
+        /// NG yoksa noktalar yeşil durur; o an NG geldikçe ilgili nokta kırmızı+nabız olur. Çevrime/demo'ya bağlı değil.</summary>
         private void BuildLiveProduction()
         {
             if (LiveProductionPanel == null) return;
             _liveClocks.Clear();
             foreach (var sb in _livePulses) { try { sb.Stop(); } catch { } }
             _livePulses.Clear();
-            var active = GlobalData.LiveStations.Where(l => l != null && l.Active).OrderBy(l => l.StationNo).ToList();
 
-            if (active.Count == 0)
+            // Her istasyonun güncel ürünü: önce Stations[i].CurrentRfid (PLC sürekli besler),
+            // yoksa LiveStations[i] (çevrim/demo yedeği). NG yalnız AYNI ürünse uygulanır (stale NG karışmasın).
+            var stations = GlobalData.Stations;
+            var items = new List<(int stNo, string rfid, string product, List<int> ngR1, List<int> ngR2, DateTime? start)>();
+            int n = Math.Min(3, stations.Count);
+            for (int i = 0; i < n; i++)
+            {
+                var st = stations[i];
+                var live = GlobalData.LiveStations[i];
+                string rfid = st?.CurrentRfid?.Trim();
+                if (string.IsNullOrEmpty(rfid) && live != null && live.Active) rfid = live.Rfid?.Trim(); // demo/çevrim yedeği
+                if (string.IsNullOrEmpty(rfid)) continue; // ürün yok → istasyonu gösterme
+
+                bool same = live != null && string.Equals(live.Rfid?.Trim(), rfid, StringComparison.OrdinalIgnoreCase);
+                var ngR1 = (same && live.NgR1 != null) ? live.NgR1 : new List<int>();
+                var ngR2 = (same && live.NgR2 != null) ? live.NgR2 : new List<int>();
+                string product = GlobalData.KnownRfids.FirstOrDefault(r => string.Equals(r.Id, rfid, StringComparison.OrdinalIgnoreCase))?.Description
+                                 ?? (live?.ProductName ?? "");
+                DateTime? start = (live != null && live.Active) ? live.StartTime : (DateTime?)null;
+                items.Add((i + 1, rfid, product, ngR1, ngR2, start));
+            }
+
+            if (items.Count == 0)
             {
                 if (LivePanel != null) LivePanel.Visibility = Visibility.Collapsed;
                 LiveProductionPanel.Children.Clear();
                 return;
             }
             if (LivePanel != null) LivePanel.Visibility = Visibility.Visible;
-            if (LiveCountText != null) LiveCountText.Text = $"·  {active.Count} istasyon işlemde";
+            if (LiveCountText != null) LiveCountText.Text = $"·  {items.Count} istasyon";
 
             LiveProductionPanel.Children.Clear();
             var bold = Microsoft.UI.Text.FontWeights.Bold;
 
-            // ═══ İSTASYONLAR YAN YANA ═══ — her aktif istasyon eşit genişlikte bir sütun.
-            // Hat 3 istasyonlu; dikey istif yerine yan yana → çok daha az dikey alan + hepsi aynı anda görünür.
+            // ═══ İSTASYONLAR YAN YANA ═══ — her istasyon eşit genişlikte bir sütun.
             var lineGrid = new Grid { ColumnSpacing = 8 };
-            for (int c = 0; c < active.Count; c++)
+            for (int c = 0; c < items.Count; c++)
                 lineGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            for (int si = 0; si < active.Count; si++)
+            for (int si = 0; si < items.Count; si++)
             {
-                var lp = active[si];
+                var it = items[si];
                 var card = new Border
                 {
                     Background = ColorFromHex("#142014"), CornerRadius = new CornerRadius(8),
@@ -149,40 +183,43 @@ namespace App4.PAGES
                 };
                 var cg = new StackPanel { Spacing = 6 };
 
-                // Üst satır: istasyon · RFID · süre (dar sütun → kompakt)
+                // Üst satır: istasyon · RFID · (varsa) süre
                 var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                 head.Children.Add(new Border { Background = ColorFromHex("#1E6F3E"), CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 2, 7, 2),
-                    Child = new TextBlock { Text = $"İST {lp.StationNo}", FontSize = 11, FontWeight = bold, Foreground = BrWhite } });
-                head.Children.Add(new TextBlock { Text = string.IsNullOrEmpty(lp.Rfid) ? "—" : lp.Rfid, FontSize = 12, FontWeight = bold, Foreground = BrBlue, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-                var ts = DateTime.Now - lp.StartTime;
-                if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
-                var clock = new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center };
-                head.Children.Add(clock);
-                _liveClocks.Add((clock, lp.StartTime)); // 1sn timer bunu günceller (yapıyı yeniden kurmadan)
+                    Child = new TextBlock { Text = $"İST {it.stNo}", FontSize = 11, FontWeight = bold, Foreground = BrWhite } });
+                head.Children.Add(new TextBlock { Text = it.rfid, FontSize = 12, FontWeight = bold, Foreground = BrBlue, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                if (it.start.HasValue)
+                {
+                    var ts = DateTime.Now - it.start.Value;
+                    if (ts < TimeSpan.Zero) ts = TimeSpan.Zero;
+                    var clock = new TextBlock { Text = $"⏱ {(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}", FontSize = 12, FontWeight = bold, Foreground = ColorFromHex("#4CAF50"), VerticalAlignment = VerticalAlignment.Center };
+                    head.Children.Add(clock);
+                    _liveClocks.Add((clock, it.start.Value)); // 1sn timer bunu günceller
+                }
                 cg.Children.Add(head);
 
                 // Ürün adı ayrı satır (dar sütunda taşmasın)
-                if (!string.IsNullOrEmpty(lp.ProductName))
-                    cg.Children.Add(new TextBlock { Text = lp.ProductName, FontSize = 10, Foreground = ColorFromHex("#CCCCCC"), TextTrimming = TextTrimming.CharacterEllipsis });
+                if (!string.IsNullOrEmpty(it.product))
+                    cg.Children.Add(new TextBlock { Text = it.product, FontSize = 10, Foreground = ColorFromHex("#CCCCCC"), TextTrimming = TextTrimming.CharacterEllipsis });
 
-                // Canlı kaçak noktaları (kod çözülmüş)
-                int total = (lp.NgR1?.Count ?? 0) + (lp.NgR2?.Count ?? 0);
+                // Canlı kaçak noktaları (kod çözülmüş) — NG yoksa "kaçak yok"
+                int total = it.ngR1.Count + it.ngR2.Count;
                 if (total == 0)
                 {
-                    cg.Children.Add(new TextBlock { Text = "✓ şimdilik kaçak yok", FontSize = 11, Foreground = ColorFromHex("#7BB97B") });
+                    cg.Children.Add(new TextBlock { Text = "✓ kaçak yok", FontSize = 11, Foreground = ColorFromHex("#7BB97B") });
                 }
                 else
                 {
                     var chips = new List<FrameworkElement>();
-                    if (lp.NgR1 != null && lp.NgR1.Count > 0)
+                    if (it.ngR1.Count > 0)
                     {
                         chips.Add(MakeRobotTag("R1"));
-                        foreach (var v in lp.NgR1) chips.Add(LiveChip(ResolvePointCode(lp.Rfid, 1, v) ?? $"N{v}", false));
+                        foreach (var v in it.ngR1) chips.Add(LiveChip(ResolvePointCode(it.rfid, 1, v) ?? $"N{v}", false));
                     }
-                    if (lp.NgR2 != null && lp.NgR2.Count > 0)
+                    if (it.ngR2.Count > 0)
                     {
                         chips.Add(MakeRobotTag("R2"));
-                        foreach (var v in lp.NgR2) chips.Add(LiveChip(ResolvePointCode(lp.Rfid, 2, v) ?? $"N{v}", true));
+                        foreach (var v in it.ngR2) chips.Add(LiveChip(ResolvePointCode(it.rfid, 2, v) ?? $"N{v}", true));
                     }
                     cg.Children.Add(new TextBlock { Text = $"⚠ {total} kaçak", FontSize = 11, FontWeight = bold, Foreground = BrRed });
                     var row = new StackPanel { Spacing = 4 };
@@ -195,10 +232,9 @@ namespace App4.PAGES
                     cg.Children.Add(row);
                 }
 
-                // ═══ CANLI GÖRSEL HARİTA (kaçak noktaları diyagram üzerinde) ═══
-                // Çipler her zaman üstte kalır (koordinatı eksik diyagramlar için güvenli yedek).
+                // ═══ CANLI GÖRSEL HARİTA ═══ — diyagram + yeşil/kırmızı noktalar
                 if (_liveMapMode)
-                    BuildLiveLeakMap(lp, cg);
+                    BuildLiveLeakMap(it.rfid, it.ngR1, it.ngR2, cg);
 
                 card.Child = cg;
                 Grid.SetColumn(card, si);
@@ -283,16 +319,17 @@ namespace App4.PAGES
             return r?.Description ?? "(demo ürün)";
         }
 
-        /// <summary>Aktif bir istasyonun diyagram görsel(ler)ini, canlı NG noktaları işaretli olarak karta ekler.
+        /// <summary>Bir istasyonun diyagram görsel(ler)ini, canlı NG noktaları işaretli olarak karta ekler.
         /// Diyagram/görsel yoksa sessizce çıkar (çipler yeterli yedek). Sadece-NG modunda yalnız kaçak olan parçalar çizilir.</summary>
-        private void BuildLiveLeakMap(GlobalData.LiveProductionItem lp, Panel cardBody)
+        private void BuildLiveLeakMap(string rfid, List<int> ngR1, List<int> ngR2, Panel cardBody)
         {
             try
             {
                 EnsureLeakMaps();
                 if (_leakMaps?.maps == null || _leakMaps.types == null) return;
-                string rfid = lp.Rfid?.Trim();
+                rfid = rfid?.Trim();
                 if (string.IsNullOrEmpty(rfid)) return;
+                ngR1 ??= new List<int>(); ngR2 ??= new List<int>();
 
                 string typeKey = ResolveTypeKey(rfid);
                 if (string.IsNullOrEmpty(typeKey) || !_leakMaps.types.TryGetValue(typeKey, out var ti) || string.IsNullOrEmpty(ti?.diagram))
@@ -300,8 +337,7 @@ namespace App4.PAGES
                 var entry = BuildEffectiveEntry(ti.diagram);
                 if (entry?.parts == null || entry.parts.Count == 0) return;
 
-                var ngR1 = lp.NgR1; var ngR2 = lp.NgR2;
-                bool anyNg = (ngR1?.Count ?? 0) + (ngR2?.Count ?? 0) > 0;
+                bool anyNg = ngR1.Count + ngR2.Count > 0;
                 if (_liveNgOnly && !anyNg) return; // kaçak yok → görsel gösterme (çip 'kaçak yok' diyor)
 
                 Func<LeakPoint, bool> isNg = pt => IsNgPointLive(rfid, typeKey, ngR1, ngR2, pt);
@@ -492,24 +528,39 @@ namespace App4.PAGES
                 // Verileri çek (zaten tarihe göre AZALAN sıralı — en yeni en üstte)
                 _currentRecords = _trendService.GetRecords(startDate, endDate, stationFilter, rfidFilter, resultFilter);
 
+                // ═══ VARDİYA FİLTRESİ (gün içi saat penceresi) — özet/CSV dahil her şeyi etkiler ═══
+                if (_shiftFilter != null)
+                {
+                    var sf = _shiftFilter.Value;
+                    _currentRecords = _currentRecords
+                        .Where(r => r.Timestamp.TimeOfDay >= sf.start && r.Timestamp.TimeOfDay < sf.end)
+                        .ToList();
+                }
+
                 // SIRA NO: en üstteki (en son işlenen ürün) en büyük numara, aşağı doğru azalır
                 int _total = _currentRecords.Count;
                 for (int _i = 0; _i < _total; _i++)
                     _currentRecords[_i].SiraNo = _total - _i;
 
-                // ListView güncelle
-                TrendListView.ItemsSource = _currentRecords;
+                // ═══ TABLO GÖSTERİM SINIRI (2000 satır) ═══
+                // Tek scroll için tablo sanallaştırma kullanmıyor → en yeni MAX_TABLE_ROWS satır çizilir.
+                // Özet kartları, Pareto ve CSV dışa aktarma TÜM _currentRecords'ı kullanır (kayıp yok).
+                bool capped = _total > MAX_TABLE_ROWS;
+                TrendListView.ItemsSource = capped ? _currentRecords.Take(MAX_TABLE_ROWS).ToList() : _currentRecords;
 
                 // Boş durum kontrolü
-                EmptyState.Visibility = _currentRecords.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                EmptyState.Visibility = _total == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-                // İstatistikleri güncelle
+                // İstatistikleri güncelle (tüm filtrelenmiş set üzerinden)
                 UpdateStatistics();
 
                 // Durum çubuğu
-                TxtRecordCount.Text = $"{_currentRecords.Count} kayıt";
-                TxtDateRange.Text = $"{startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}";
-                TxtStatusInfo.Text = $"Son güncelleme: {DateTime.Now:HH:mm:ss}";
+                string shiftLbl = _shiftFilter != null ? $"  •  {_shiftFilter.Value.label}" : "";
+                TxtRecordCount.Text = capped ? $"ilk {MAX_TABLE_ROWS} / {_total} kayıt" : $"{_total} kayıt";
+                TxtDateRange.Text = $"{startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}{shiftLbl}";
+                TxtStatusInfo.Text = capped
+                    ? $"Son güncelleme: {DateTime.Now:HH:mm:ss}  —  tabloda ilk {MAX_TABLE_ROWS} satır (özet/CSV tümünü kapsar)"
+                    : $"Son güncelleme: {DateTime.Now:HH:mm:ss}";
 
                 // Depolama bilgisi
                 var months = _trendService.GetAvailableMonths();
@@ -912,31 +963,61 @@ namespace App4.PAGES
         // ─── HIZLI FİLTRELER ───
         private void QuickFilter_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string tag)
+            if (sender is not Button btn || btn.Tag is not string tag) return;
+            _shiftFilter = null; // hızlı tarih filtresi → vardiya filtresini temizle
+            var now = DateTime.Now;
+            _isLoading = true; // tarih değişiminin tetiklediği RefreshData'yı bastır, tek seferde yenile
+            switch (tag)
             {
-                var now = DateTime.Now;
-                switch (tag)
-                {
-                    case "today":
-                        DpStart.Date = new DateTimeOffset(now.Date);
-                        DpEnd.Date = new DateTimeOffset(now.Date);
-                        break;
-                    case "week":
-                        int dayOfWeek = ((int)now.DayOfWeek + 6) % 7; // Pazartesi = 0
-                        DpStart.Date = new DateTimeOffset(now.Date.AddDays(-dayOfWeek));
-                        DpEnd.Date = new DateTimeOffset(now.Date);
-                        break;
-                    case "month":
-                        DpStart.Date = new DateTimeOffset(new DateTime(now.Year, now.Month, 1));
-                        DpEnd.Date = new DateTimeOffset(now.Date);
-                        break;
-                    case "year":
-                        DpStart.Date = new DateTimeOffset(now.Date.AddMonths(-12));
-                        DpEnd.Date = new DateTimeOffset(now.Date);
-                        break;
-                }
-                // CalendarDatePicker DateChanged event otomatik tetikler → RefreshData çalışır
+                case "today":
+                    DpStart.Date = new DateTimeOffset(now.Date);
+                    DpEnd.Date = new DateTimeOffset(now.Date);
+                    break;
+                case "week":
+                    int dayOfWeek = ((int)now.DayOfWeek + 6) % 7; // Pazartesi = 0
+                    DpStart.Date = new DateTimeOffset(now.Date.AddDays(-dayOfWeek));
+                    DpEnd.Date = new DateTimeOffset(now.Date);
+                    break;
+                case "month":
+                    DpStart.Date = new DateTimeOffset(new DateTime(now.Year, now.Month, 1));
+                    DpEnd.Date = new DateTimeOffset(now.Date);
+                    break;
+                case "year":
+                    DpStart.Date = new DateTimeOffset(now.Date.AddMonths(-12));
+                    DpEnd.Date = new DateTimeOffset(now.Date);
+                    break;
             }
+            _isLoading = false;
+            RefreshData();
+        }
+
+        // ─── VARDİYA FİLTRELERİ ─── (V1 00-08 · V2 08-16 · V3 16-24)
+        private void ShiftFilter_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string tag) return;
+            var now = DateTime.Now;
+            _shiftFilter = tag switch
+            {
+                "v1" => (TimeSpan.FromHours(0), TimeSpan.FromHours(8), "Vardiya 1 (00-08)"),
+                "v2" => (TimeSpan.FromHours(8), TimeSpan.FromHours(16), "Vardiya 2 (08-16)"),
+                "v3" => (TimeSpan.FromHours(16), TimeSpan.FromHours(24), "Vardiya 3 (16-24)"),
+                "current" => CurrentShiftWindow(now),
+                _ => null
+            };
+            // Vardiya = bugünün ilgili saat dilimi (tarihi bugüne çek)
+            _isLoading = true;
+            DpStart.Date = new DateTimeOffset(now.Date);
+            DpEnd.Date = new DateTimeOffset(now.Date);
+            _isLoading = false;
+            RefreshData();
+        }
+
+        private static (TimeSpan, TimeSpan, string) CurrentShiftWindow(DateTime now)
+        {
+            int h = now.Hour;
+            if (h < 8) return (TimeSpan.FromHours(0), TimeSpan.FromHours(8), "Vardiya 1 (00-08)");
+            if (h < 16) return (TimeSpan.FromHours(8), TimeSpan.FromHours(16), "Vardiya 2 (08-16)");
+            return (TimeSpan.FromHours(16), TimeSpan.FromHours(24), "Vardiya 3 (16-24)");
         }
 
         // ─── YENİLE ───

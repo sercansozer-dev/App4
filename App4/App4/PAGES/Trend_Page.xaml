@@ -110,7 +110,7 @@
                              RequestedTheme="Dark" TextChanged="TxtRfidFilter_TextChanged"/>
                 </StackPanel>
                 <StackPanel Spacing="2">
-                    <TextBlock Text="Hizli" FontSize="10" Foreground="Gray"/>
+                    <TextBlock Text="Hizli / Vardiya" FontSize="10" Foreground="Gray"/>
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <Button Content="Bugun" Click="QuickFilter_Click" Tag="today"
                                 Background="#2D2D2D" Foreground="White" CornerRadius="4" Padding="10,5" FontSize="11"/>
@@ -120,6 +120,16 @@
                                 Background="#2D2D2D" Foreground="White" CornerRadius="4" Padding="10,5" FontSize="11"/>
                         <Button Content="12 Ay" Click="QuickFilter_Click" Tag="year"
                                 Background="#2D2D2D" Foreground="White" CornerRadius="4" Padding="10,5" FontSize="11"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Content="Bu Vardiya" Click="ShiftFilter_Click" Tag="current" ToolTipService.ToolTip="Suanki vardiya (bugun)"
+                                Background="#1E2A38" BorderBrush="#00A4EF" BorderThickness="1" Foreground="#9CD3F0" CornerRadius="4" Padding="10,5" FontSize="11"/>
+                        <Button Content="V1" Click="ShiftFilter_Click" Tag="v1" ToolTipService.ToolTip="Vardiya 1 — 00:00-08:00 (bugun)"
+                                Background="#1E2A38" BorderBrush="#3A5A72" BorderThickness="1" Foreground="#9CD3F0" CornerRadius="4" Padding="13,5" FontSize="11"/>
+                        <Button Content="V2" Click="ShiftFilter_Click" Tag="v2" ToolTipService.ToolTip="Vardiya 2 — 08:00-16:00 (bugun)"
+                                Background="#1E2A38" BorderBrush="#3A5A72" BorderThickness="1" Foreground="#9CD3F0" CornerRadius="4" Padding="13,5" FontSize="11"/>
+                        <Button Content="V3" Click="ShiftFilter_Click" Tag="v3" ToolTipService.ToolTip="Vardiya 3 — 16:00-24:00 (bugun)"
+                                Background="#1E2A38" BorderBrush="#3A5A72" BorderThickness="1" Foreground="#9CD3F0" CornerRadius="4" Padding="13,5" FontSize="11"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
