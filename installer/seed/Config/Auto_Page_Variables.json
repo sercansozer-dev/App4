@@ -310,7 +310,7 @@
       "name": "AKTUEL_KLIMA_INDEX",
       "plcTag": "R1:G_KLIMA_TIP",
       "plcTag2": "R2:G_KLIMA_TIP",
-      "value": "54",
+      "value": "23",
       "type": "WORD",
       "direction": "Output"
     },
@@ -318,7 +318,7 @@
       "name": "AKTUEL_RFID",
       "plcTag": null,
       "plcTag2": null,
-      "value": "ARXF71A5V1B9",
+      "value": "RXF50F5V1B",
       "type": "STRING",
       "direction": "Output"
     },
@@ -326,7 +326,7 @@
       "name": "SNIFFER_OLCUM_SURE",
       "plcTag": null,
       "plcTag2": null,
-      "value": "5000",
+      "value": "0",
       "type": "REAL",
       "direction": "Output"
     },
@@ -342,7 +342,7 @@
       "name": "TABLA_LIMIT_ALARM",
       "plcTag": null,
       "plcTag2": null,
-      "value": "False",
+      "value": "True",
       "type": "BOOL",
       "direction": "Output"
     },
@@ -494,7 +494,7 @@
       "name": "AKTUEL_CASE_ID",
       "plcTag": "R1:G_CASE_ID",
       "plcTag2": "R2:G_CASE_ID",
-      "value": "3",
+      "value": "2",
       "type": "INT",
       "direction": "Output"
     },
@@ -560,7 +560,7 @@
       "name": "ST1_RFID_ACT",
       "plcTag": "ISTASYON1_RFID",
       "plcTag2": null,
-      "value": "ARXF71A5V1B9",
+      "value": "RXF50F5V1B",
       "type": "STRING",
       "direction": "Input"
     },
@@ -574,17 +574,17 @@
     },
     {
       "name": "ST1_RESULT_OK",
-      "plcTag": null,
+      "plcTag": "IST1_PROD_OK",
       "plcTag2": null,
-      "value": "False",
+      "value": "1",
       "type": "BOOL",
       "direction": "Input"
     },
     {
       "name": "ST1_RESULT_NG",
-      "plcTag": null,
+      "plcTag": "IST1_PROD_NG",
       "plcTag2": null,
-      "value": "False",
+      "value": "1",
       "type": "BOOL",
       "direction": "Input"
     }
@@ -692,7 +692,7 @@
       "name": "ST2_RFID_ACT",
       "plcTag": "ISTASYON2_RFID",
       "plcTag2": null,
-      "value": "RXM42A5V1B",
+      "value": "RXF71D5V1B9",
       "type": "STRING",
       "direction": "Input"
     },
@@ -706,17 +706,17 @@
     },
     {
       "name": "ST2_RESULT_OK",
-      "plcTag": null,
+      "plcTag": "IST2_PROD_OK",
       "plcTag2": null,
-      "value": "False",
+      "value": "0",
       "type": "BOOL",
       "direction": "Input"
     },
     {
       "name": "ST2_RESULT_NG",
-      "plcTag": null,
+      "plcTag": "IST2_PROD_NG",
       "plcTag2": null,
-      "value": "False",
+      "value": "0",
       "type": "BOOL",
       "direction": "Input"
     }
@@ -742,7 +742,7 @@
       "name": "ST2_ID_MATCHED",
       "plcTag": "DB10.W20.20",
       "plcTag2": null,
-      "value": "0",
+      "value": "1",
       "type": "WORD",
       "direction": "Output"
     },
@@ -758,7 +758,7 @@
       "name": "ST2_CONVEYOR_PERM",
       "plcTag": "DB10.W20.24",
       "plcTag2": null,
-      "value": "0",
+      "value": "1",
       "type": "WORD",
       "direction": "Output"
     },
@@ -824,7 +824,7 @@
       "name": "ST3_RFID_ACT",
       "plcTag": "ISTASYON3_RFID",
       "plcTag2": null,
-      "value": "RXM42A5V1B",
+      "value": "RXF71D5V1B9",
       "type": "STRING",
       "direction": "Input"
     },
@@ -838,17 +838,17 @@
     },
     {
       "name": "ST3_RESULT_OK",
-      "plcTag": null,
+      "plcTag": "IST3_PROD_OK",
       "plcTag2": null,
-      "value": "False",
+      "value": "0",
       "type": "BOOL",
       "direction": "Input"
     },
     {
       "name": "ST3_RESULT_NG",
-      "plcTag": null,
+      "plcTag": "IST3_PROD_NG",
       "plcTag2": null,
-      "value": "False",
+      "value": "0",
       "type": "BOOL",
       "direction": "Input"
     }
@@ -874,7 +874,7 @@
       "name": "ST3_ID_MATCHED",
       "plcTag": "DB10.W40.20",
       "plcTag2": null,
-      "value": "0",
+      "value": "1",
       "type": "WORD",
       "direction": "Output"
     },
@@ -890,7 +890,7 @@
       "name": "ST3_CONVEYOR_PERM",
       "plcTag": "DB10.W40.24",
       "plcTag2": null,
-      "value": "0",
+      "value": "1",
       "type": "WORD",
       "direction": "Output"
     },
@@ -1068,7 +1068,7 @@
       "name": "G_TABLA_OLCUM_TAMAM",
       "plcTag": null,
       "plcTag2": null,
-      "value": "FALSE",
+      "value": "TRUE",
       "type": "BOOL",
       "direction": "Input"
     },
@@ -1286,7 +1286,7 @@
       "name": "G_KLIMA_TIP",
       "plcTag": null,
       "plcTag2": null,
-      "value": "21",
+      "value": "23",
       "type": "INT",
       "direction": "Output"
     },
@@ -1302,7 +1302,7 @@
       "name": "G_OFFSET_X",
       "plcTag": null,
       "plcTag2": null,
-      "value": "176.255",
+      "value": "49.244",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1310,7 +1310,7 @@
       "name": "G_OFFSET_Y",
       "plcTag": null,
       "plcTag2": null,
-      "value": "-34.582",
+      "value": "220.513",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1318,7 +1318,7 @@
       "name": "G_OFFSET_Z",
       "plcTag": null,
       "plcTag2": null,
-      "value": "-107.202",
+      "value": "320.671",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1326,7 +1326,7 @@
       "name": "G_OFFSET_A",
       "plcTag": null,
       "plcTag2": null,
-      "value": "111.620",
+      "value": "0.000",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1334,7 +1334,7 @@
       "name": "G_OFFSET_B",
       "plcTag": null,
       "plcTag2": null,
-      "value": "38.700",
+      "value": "0.000",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1342,7 +1342,7 @@
       "name": "G_OFFSET_C",
       "plcTag": null,
       "plcTag2": null,
-      "value": "-162.650",
+      "value": "0.000",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1358,7 +1358,7 @@
       "name": "G_TABLA_OLCUM_TAMAM",
       "plcTag": null,
       "plcTag2": null,
-      "value": "FALSE",
+      "value": "TRUE",
       "type": "BOOL",
       "direction": "Output"
     },
@@ -1374,7 +1374,7 @@
       "name": "G_TABLA_OFFSET_X",
       "plcTag": null,
       "plcTag2": null,
-      "value": "0.306",
+      "value": "-6.957",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1382,7 +1382,7 @@
       "name": "G_TABLA_OFFSET_Y",
       "plcTag": null,
       "plcTag2": null,
-      "value": "-3.087",
+      "value": "1.319",
       "type": "REAL",
       "direction": "Output"
     },
@@ -1390,7 +1390,7 @@
       "name": "G_TABLA_OFFSET_Z",
       "plcTag": null,
       "plcTag2": null,
-      "value": "1.983",
+      "value": "-1.779",
       "type": "REAL",
       "direction": "Output"
     },

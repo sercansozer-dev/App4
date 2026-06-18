@@ -1786,6 +1786,8 @@
   }
  },
  "models": {
+  "ARXF71A5V1B9": "T10",
+  "ARXF71A5V1B": "T10",
   "RXJ20A5V1B9": "T1",
   "RXJ25A5V1B9": "T1",
   "RXJ35A5V1B9": "T1",
