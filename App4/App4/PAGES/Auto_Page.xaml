@@ -1081,6 +1081,43 @@
                     </Grid>
                 </Expander>
 
+                <!-- ═══ GEÇERSİZ (İZİN VERİLMEYEN) RFID LİSTESİ (admin) ═══ -->
+                <Expander x:Name="AdminGate_DisallowedRfid" Header="Geçersiz (İzin Verilmeyen) RFID Listesi — üretime alınmayacak ürünler" IsExpanded="True" Margin="0,5,0,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Background="#1A1A1C" BorderBrush="#333">
+                    <Grid Padding="15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="220"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" TextWrapping="Wrap" Foreground="#AAA" FontSize="11" Margin="0,0,0,8"
+                                   Text="Bu listedeki RFID'lerden bir ürün istasyona girerse ilgili istasyonun NOT_ALLOWED_PRODUCT_RFID_STn çıkışı TRUE olur. Çıkışları Otomasyon değişkenleri tablosundan PLC tag'ine eşleyin."/>
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DisallowedRfidInput" Grid.Column="0" PlaceholderText="RFID giriniz (örn. ARXF71A5V1B9)" Background="#151515" Foreground="White" BorderBrush="#444" Height="32"/>
+                            <Button Grid.Column="1" Content="Ekle" Click="BtnAddDisallowedRfid_Click" Background="#1E6F3E" Foreground="White" Margin="8,0,0,0" Padding="16,0" Height="32"/>
+                        </Grid>
+                        <ListView Grid.Row="2" ItemsSource="{x:Bind utils:GlobalData.DisallowedRfids, Mode=OneWay}" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Border Background="#2A1212" CornerRadius="4" Margin="0,2" BorderBrush="#5A2A2A" BorderThickness="1">
+                                        <Grid Padding="10,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{x:Bind}" Foreground="#E74C3C" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" Content="Sil" Click="BtnRemoveDisallowedRfid_Click" Tag="{x:Bind}" Background="#3A1212" Foreground="#E74C3C" BorderThickness="0" FontSize="11" Padding="10,2"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </Expander>
+
                 <!-- (Robot durum bilgisi slider bölümüne taşındı) -->
 
                 <Border Background="#1A1A1C" CornerRadius="8" BorderThickness="1" BorderBrush="#333" Margin="0,20,0,0">

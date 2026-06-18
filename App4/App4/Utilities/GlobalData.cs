@@ -1399,6 +1399,8 @@ namespace App4.Utilities
             try { FaultLogService.Instance.PurgeOldFiles(); } catch { } // Alarm kayıtları: 1 aydan eski ay dosyalarını temizle (servisi de hazırlar)
             LoadAlarmDefinitions();      // PLC input → alarm eşleştirme tanımları (admin)
             StartPlcAlarmEvaluator();    // tanımları periyodik (1sn) değerlendir → alarm kaydı
+            LoadDisallowedRfids();       // Geçersiz (izin verilmeyen) RFID listesi (admin)
+            StartNotAllowedRfidEvaluator(); // İstasyon güncel ürünü geçersizse NOT_ALLOWED_PRODUCT_RFID_STn çıkışı
             LoadRobotSliderMappings(); // Robot sinyal eşleştirmelerini yükle
             LoadKL100StationPositions(); // KL100 istasyon pozisyon verilerini yükle
             SyncStationPosToRobots();   // İstasyon E1 pozisyonlarını robotlara yaz
@@ -1484,6 +1486,106 @@ namespace App4.Utilities
             {
                 _heartbeatBusy = false;
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GEÇERSİZ (İZİN VERİLMEYEN) RFID LİSTESİ + ÇIKIŞ DEĞERLENDİRİCİ
+        // Bir istasyonun güncel ürün RFID'i bu listedeyse NOT_ALLOWED_PRODUCT_RFID_STn = TRUE
+        // (seviye sinyali). Liste admin tarafından Otomatik Mod sayfasından yönetilir, JSON'da kalıcı.
+        // Çıkış PLC'ye heartbeat deseniyle (UiRunner + WriteAsync) yazılır → sayfadan bağımsız.
+        // ═══════════════════════════════════════════════════════════════════════════
+        private static readonly string _disallowedRfidFilePath = Path.Combine(ConfigBaseDir, "Disallowed_RFID_List.json");
+        public static ObservableCollection<string> DisallowedRfids { get; } = new();
+        public static event Action DisallowedRfidsChanged;
+
+        public static void LoadDisallowedRfids()
+        {
+            try
+            {
+                DisallowedRfids.Clear();
+                if (File.Exists(_disallowedRfidFilePath))
+                {
+                    var list = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(_disallowedRfidFilePath));
+                    if (list != null)
+                        foreach (var r in list)
+                            if (!string.IsNullOrWhiteSpace(r)) DisallowedRfids.Add(r.Trim());
+                }
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DISALLOWED_RFID] yükleme hatası: {ex.Message}"); }
+        }
+
+        public static void SaveDisallowedRfids()
+        {
+            try
+            {
+                Directory.CreateDirectory(ConfigBaseDir);
+                File.WriteAllText(_disallowedRfidFilePath, JsonConvert.SerializeObject(DisallowedRfids.ToList(), Formatting.Indented));
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DISALLOWED_RFID] kayıt hatası: {ex.Message}"); }
+            // Liste değişince değerlendirici hemen güncellesin
+            _notAllowedFirstRun = true;
+            try { DisallowedRfidsChanged?.Invoke(); } catch { }
+        }
+
+        /// <summary>RFID izin verilmeyenler listesinde mi (büyük/küçük harf duyarsız).</summary>
+        public static bool IsRfidDisallowed(string rfid)
+        {
+            if (string.IsNullOrWhiteSpace(rfid)) return false;
+            rfid = rfid.Trim();
+            foreach (var r in DisallowedRfids)
+                if (string.Equals(r, rfid, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        private static System.Threading.Timer _notAllowedRfidTimer;
+        private static readonly bool[] _notAllowedLastState = new bool[3];
+        private static bool _notAllowedFirstRun = true;
+
+        public static void StartNotAllowedRfidEvaluator()
+        {
+            if (_notAllowedRfidTimer != null) return;
+            _notAllowedRfidTimer = new System.Threading.Timer(NotAllowedRfidTick, null, 2500, 1000);
+        }
+
+        private static void NotAllowedRfidTick(object state)
+        {
+            try
+            {
+                int n = Math.Min(3, Stations.Count);
+                for (int i = 0; i < n; i++)
+                {
+                    bool disallowed = IsRfidDisallowed(Stations[i]?.CurrentRfid);
+                    if (!_notAllowedFirstRun && disallowed == _notAllowedLastState[i]) continue; // değişmediyse PLC'ye yazma
+                    _notAllowedLastState[i] = disallowed;
+                    _ = SetBoolOutputAsync($"NOT_ALLOWED_PRODUCT_RFID_ST{i + 1}", disallowed);
+                }
+                _notAllowedFirstRun = false;
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DISALLOWED_RFID] tick hatası: {ex.Message}"); }
+        }
+
+        /// <summary>Bir GeneralOutputVars BOOL çıkışını günceller ve (bağlıysa) eşlenen PLC tag'ine yazar.
+        /// Heartbeat deseni: UI değerini UiRunner ile güncelle + PlcService.WriteAsync ile PLC'ye yaz (global).</summary>
+        public static async System.Threading.Tasks.Task SetBoolOutputAsync(string varName, bool value)
+        {
+            try
+            {
+                var v = GeneralOutputVars.FirstOrDefault(x => x.Name == varName);
+                if (v == null) return;
+                var uiRunner = PlcService.Instance?.UiRunner;
+                if (uiRunner != null) uiRunner.Invoke(() => v.CurrentValue = value);
+                else v.CurrentValue = value;
+
+                if (PlcService.Instance == null || !PlcService.Instance.IsConnected) return;
+                string tag = v.PlcTag;
+                if (string.IsNullOrEmpty(tag)) return;
+                var plcVar = PlcService.Instance.OutputVariables.FirstOrDefault(p => p.Name == tag)
+                          ?? PlcService.Instance.InputVariables.FirstOrDefault(p => p.Name == tag);
+                if (plcVar == null) return;
+                plcVar.Value = value ? "1" : "0";
+                await PlcService.Instance.WriteAsync(plcVar, value ? 1 : 0);
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[OUTPUT_WRITE] {varName} hatası: {ex.Message}"); }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -2106,6 +2208,12 @@ namespace App4.Utilities
             // ▼▼▼ TABLA LİMİT ALARM ▼▼▼
             GeneralOutputVars.Add(Create("TABLA_LIMIT_ALARM", "BOOL", "Output", false));   // Tabla kaçıklık/değer limiti aşıldığında TRUE → G_TABLA_LIMIT_ALARM
             GeneralOutputVars.Add(Create("SAFETY_OK", "BOOL", "Output", false));               // Safety tablosu sonucu: tum alarmlar temizse TRUE
+            // ▼▼▼ GEÇERSİZ (İZİN VERİLMEYEN) RFID ÇIKIŞLARI — istasyon başına ▼▼▼
+            // İlgili istasyonun güncel ürün RFID'i "Geçersiz RFID Listesi"ndeyse TRUE olur (seviye sinyali).
+            // Kullanıcı bu çıkışları PLC tag'lerine eşler. Liste Otomatik Mod sayfasından (admin) yönetilir.
+            GeneralOutputVars.Add(Create("NOT_ALLOWED_PRODUCT_RFID_ST1", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("NOT_ALLOWED_PRODUCT_RFID_ST2", "BOOL", "Output", false));
+            GeneralOutputVars.Add(Create("NOT_ALLOWED_PRODUCT_RFID_ST3", "BOOL", "Output", false));
             // KL100_HEDEF_ISTASYON should be an Input (PLC -> PC): robot/PLC writes target station
             GeneralInputVars.Add(Create("KL100_HEDEF_ISTASYON", "WORD", "Input", "0"));    // KL100 slider hedef istasyon numarası
             // KL100_HEDEF_POZ kaldırıldı - slider pozisyonu doğrudan Robot 2'ye yazılıyor (G_SLIDER_HEDEF_POZ)

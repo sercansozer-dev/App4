@@ -194,6 +194,28 @@ namespace App4
             try { if (AdminGate_SystemStart   != null) AdminGate_SystemStart.Visibility   = vis; } catch { }
             try { if (AdminGate_Safety        != null) AdminGate_Safety.Visibility        = vis; } catch { }
             try { if (AdminGate_GeneralVars   != null) AdminGate_GeneralVars.Visibility   = vis; } catch { }
+            try { if (AdminGate_DisallowedRfid != null) AdminGate_DisallowedRfid.Visibility = vis; } catch { }
+        }
+
+        // ═══ GEÇERSİZ RFID LİSTESİ (admin) — ekle/sil ═══
+        private void BtnAddDisallowedRfid_Click(object sender, RoutedEventArgs e)
+        {
+            string rfid = DisallowedRfidInput?.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(rfid)) return;
+            if (!GlobalData.DisallowedRfids.Any(r => string.Equals(r, rfid, StringComparison.OrdinalIgnoreCase)))
+                GlobalData.DisallowedRfids.Add(rfid);
+            GlobalData.SaveDisallowedRfids();
+            if (DisallowedRfidInput != null) DisallowedRfidInput.Text = "";
+        }
+
+        private void BtnRemoveDisallowedRfid_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.Tag is string rfid)
+            {
+                var match = GlobalData.DisallowedRfids.FirstOrDefault(r => string.Equals(r, rfid, StringComparison.OrdinalIgnoreCase));
+                if (match != null) GlobalData.DisallowedRfids.Remove(match);
+                GlobalData.SaveDisallowedRfids();
+            }
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
