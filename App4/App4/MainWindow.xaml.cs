@@ -67,6 +67,8 @@ namespace App4
             PlcService.Instance.OnConnectionLost += OnPlcConnectionLost;
             PlcService.Instance.OnConnectionRestored += OnPlcConnectionRestored;
 
+            // HEARTBEAT_ALARM yeniden-bağlanma durum mesajı değişince sol-alt göstergeyi hemen tazele
+            GlobalData.PlcStatusOverrideChanged += () => { try { DispatcherQueue?.TryEnqueue(UpdateSystemStatusPanel); } catch { } };
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -433,13 +435,23 @@ namespace App4
                 // Global durum güncelle (tek noktadan)
                 GlobalData.RefreshEquipmentStatus();
 
-                // PLC Durumu
-                bool plcConnected = GlobalData.PlcConnected;
-                PlcStatusLed.Fill = new SolidColorBrush(plcConnected ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
-                PlcStatusText.Text = plcConnected ? "PLC Bağlı" : "PLC Bağlantısız";
-                PlcStatusDetail.Text = plcConnected 
-                    ? $"{PlcService.Instance?.InputVariables?.Count ?? 0}I/{PlcService.Instance?.OutputVariables?.Count ?? 0}O" 
-                    : "Offline";
+                // PLC Durumu — HEARTBEAT_ALARM yeniden-bağlanma mesajı varsa onu göster (öncelikli)
+                string plcOverride = GlobalData.PlcStatusOverride;
+                if (!string.IsNullOrEmpty(plcOverride))
+                {
+                    PlcStatusLed.Fill = new SolidColorBrush(GlobalData.PlcStatusOverrideIsError ? Microsoft.UI.Colors.Red : Microsoft.UI.Colors.Orange);
+                    PlcStatusText.Text = plcOverride;
+                    PlcStatusDetail.Text = GlobalData.PlcStatusOverrideIsError ? "Hata" : "...";
+                }
+                else
+                {
+                    bool plcConnected = GlobalData.PlcConnected;
+                    PlcStatusLed.Fill = new SolidColorBrush(plcConnected ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Red);
+                    PlcStatusText.Text = plcConnected ? "PLC Bağlı" : "PLC Bağlantısız";
+                    PlcStatusDetail.Text = plcConnected
+                        ? $"{PlcService.Instance?.InputVariables?.Count ?? 0}I/{PlcService.Instance?.OutputVariables?.Count ?? 0}O"
+                        : "Offline";
+                }
 
                 // Robot Durumu (KukaRobotManager)
                 int total = GlobalData.RobotTotalCount;

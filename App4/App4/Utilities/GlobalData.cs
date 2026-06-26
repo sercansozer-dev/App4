@@ -1420,6 +1420,9 @@ namespace App4.Utilities
             // sayfadan bağımsız bu serviste çalışır. Sayfalar yalnızca gösterim yapar.
             ProductionMonitor.Start();
 
+            // PLC HEARTBEAT_ALARM → kontrollü yeniden bağlanma izleyici
+            StartHeartbeatAlarmMonitor();
+
             _isInitialized = true;
 
         }
@@ -1486,6 +1489,71 @@ namespace App4.Utilities
             {
                 _heartbeatBusy = false;
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PLC → APP HEARTBEAT ALARM → KONTROLLÜ YENİDEN BAĞLANMA
+        // PLC, app heartbeat'inin koptuğunu HEARTBEAT_ALARM biti ile bildirir. App bu bit
+        // 1 olunca PLC bağlantısını 3 kez yeniden kurmayı dener; başarısızsa "kontrol ediniz" uyarısı.
+        // Durum sol-alt PLC göstergesinde PlcStatusOverride ile gösterilir (MainWindow okur).
+        // ═══════════════════════════════════════════════════════════════════════════
+        private static PlcVariable _hbAlarmVar;
+        private static bool _hbAlarmLast;
+        private static bool _hbReconnecting;
+
+        /// <summary>Sol-alt PLC durum göstergesi için geçici mesaj (null = varsayılan PLC Bağlı/Bağlantısız).</summary>
+        public static string PlcStatusOverride { get; private set; }
+        public static bool PlcStatusOverrideIsError { get; private set; }
+        public static event Action PlcStatusOverrideChanged;
+
+        public static void StartHeartbeatAlarmMonitor() => HookHeartbeatAlarm();
+
+        /// <summary>HEARTBEAT_ALARM input değişkenine abone ol (idempotent). GeneralInputVars yeniden kurulursa tekrar çağrılabilir.</summary>
+        public static void HookHeartbeatAlarm()
+        {
+            try
+            {
+                if (_hbAlarmVar != null) _hbAlarmVar.PropertyChanged -= HbAlarm_Changed;
+                _hbAlarmVar = GeneralInputVars?.FirstOrDefault(v => v.Name == "HEARTBEAT_ALARM");
+                if (_hbAlarmVar != null) _hbAlarmVar.PropertyChanged += HbAlarm_Changed;
+            }
+            catch { }
+        }
+
+        private static bool IsBitTrue(string v) => !string.IsNullOrEmpty(v) && (v == "1" || v.ToUpper() == "TRUE" || v.ToUpper() == "ON");
+
+        private static void HbAlarm_Changed(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(PlcVariable.CurrentValue) && e.PropertyName != nameof(PlcVariable.Value)) return;
+            bool alarm = IsBitTrue(_hbAlarmVar?.Value);
+            if (alarm && !_hbAlarmLast && !_hbReconnecting)
+                _ = HandleHeartbeatAlarmReconnect();
+            else if (!alarm && _hbAlarmLast)
+                SetPlcStatusOverride(null, false); // alarm geçti → varsayılana dön
+            _hbAlarmLast = alarm;
+        }
+
+        private static async System.Threading.Tasks.Task HandleHeartbeatAlarmReconnect()
+        {
+            _hbReconnecting = true;
+            try
+            {
+                var plc = PlcService.Instance;
+                if (plc == null) return;
+                bool ok = await plc.ForceReconnectAsync(3, attempt =>
+                    SetPlcStatusOverride($"PLC bağlantısında hata — bağlanıyor... ({attempt}/3)", false));
+                if (ok) SetPlcStatusOverride(null, false);                              // başarılı → PLC Bağlı
+                else SetPlcStatusOverride("PLC bağlantısını kontrol ediniz", true);      // 3 deneme başarısız
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HB_ALARM] reconnect hatası: {ex.Message}"); }
+            finally { _hbReconnecting = false; }
+        }
+
+        private static void SetPlcStatusOverride(string text, bool isError)
+        {
+            PlcStatusOverride = text;
+            PlcStatusOverrideIsError = isError;
+            try { PlcStatusOverrideChanged?.Invoke(); } catch { }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -2199,6 +2267,10 @@ namespace App4.Utilities
             // PLC bu biti izler: değişiyorsa App canlı, X sn değişmediyse App/bağlantı koptu.
             // Kullanıcı Otomasyon sayfasında dropdown'dan PLC tag'ini eşleştirir.
             var hbOutVar = Create("HEARTBEAT_OUT", "BOOL", "Output", false); hbOutVar.LabelNote = "(1000ms)"; GeneralOutputVars.Add(hbOutVar);  // App→PLC canlılık biti (0↔1 toggle, 1sn periyot)
+            // ▼▼▼ PLC → APP HEARTBEAT ALARM (PLC, app heartbeat'inin koptuğunu bu bitle bildirir) ▼▼▼
+            // PLC HEARTBEAT_OUT toggle'ı X sn değişmezse bu biti 1 yapar. App okuyunca PLC bağlantısını
+            // 3 kez yeniden kurmayı dener; başarısızsa sol-altta "PLC bağlantısını kontrol ediniz" uyarısı.
+            GeneralInputVars.Add(Create("HEARTBEAT_ALARM", "BOOL", "Input", false));
             // ▼▼▼ AKTÜEL KLİMA INDEX VE RFID ▼▼▼
             GeneralOutputVars.Add(Create("AKTUEL_KLIMA_INDEX", "WORD", "Output", "0"));      // Aktüel klima tipi indexi (KnownRfids sıra no)
             GeneralOutputVars.Add(Create("AKTUEL_CASE_ID", "INT", "Output", "0"));           // Aktüel kasa tipi indexi (1=ALPHA, 2=SF2, 3=BML-H, 4=BMS)

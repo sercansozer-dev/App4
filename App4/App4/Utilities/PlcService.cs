@@ -442,6 +442,18 @@ namespace App4.Utilities
 
         public void Initialize(Action<Action> uiRunner) => UiRunner = uiRunner;
 
+        /// <summary>Ayarlı MelsecMcNet üretir: hızlı timeout + TCP KeepAlive.
+        /// Ölü/yarı-açık bağlantı OS keepalive probe'larıyla hızlı tespit edilip RST ile kapanır →
+        /// PLC tek bağlantı yuvasını çabuk bırakır → uygulamayı kapatıp açmaya gerek kalmaz.</summary>
+        private static MelsecMcNet CreateMcNet(string ip, int port)
+        {
+            var net = new MelsecMcNet(ip, port);
+            net.ConnectTimeOut = 3000;        // bağlantı kurma 3sn'de bitsin (yuva doluysa hızlı reddedilsin, asılı kalmasın)
+            net.ReceiveTimeOut = 2000;        // okuma 2sn timeout → zombie bağlantı hızlı yakalanır
+            net.SocketKeepAliveTime = 2000;   // TCP keepalive: OS ölü bağlantıyı probe'la tespit edip RST yollar
+            return net;
+        }
+
         public async Task<bool> ConnectAsync(string ip, int port)
         {
             try
@@ -459,8 +471,8 @@ namespace App4.Utilities
                 PlcIpAddress = ip;
                 PlcPort = port;
 
-                // Mitsubishi MC Protokolü (Binary)
-                _melsecNet = new MelsecMcNet(ip, port);
+                // Mitsubishi MC Protokolü (Binary) — KeepAlive + timeout ayarlı
+                _melsecNet = CreateMcNet(ip, port);
                 var result = await _melsecNet.ConnectServerAsync();
 
                 if (result.IsSuccess)
@@ -495,6 +507,37 @@ namespace App4.Utilities
                 System.Diagnostics.Debug.WriteLine("PLC Bağlantı Hatası: " + ex.Message);
             }
             return false;
+        }
+
+        /// <summary>KONTROLLÜ yeniden bağlanma (örn. HEARTBEAT_ALARM tetiğiyle): bayat bağlantıyı kapatıp
+        /// maxAttempts kez ConnectAsync dener. Başarısızsa arka plan auto-reconnect'i etkinleştirir.
+        /// onAttempt her deneme başında çağrılır (UI durumu için).</summary>
+        public async Task<bool> ForceReconnectAsync(int maxAttempts, Action<int> onAttempt = null)
+        {
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try { onAttempt?.Invoke(attempt); } catch { }
+                // Bayat bağlantıyı kapat (manual flag KOYMADAN — auto-reconnect engellenmesin); ConnectAsync gerçekten bağlansın
+                CloseConnectionInternal();
+                await Task.Delay(800);
+                bool ok = false;
+                try { ok = await ConnectAsync(PlcIpAddress, PlcPort); } catch { }
+                if (ok && IsConnected) return true;
+                await Task.Delay(1500);
+            }
+            // 3 deneme başarısız → arka planda denemeye devam et (PLC ayağa kalkınca OnConnectionRestored)
+            try { _manualDisconnect = false; StartAutoReconnect(); } catch { }
+            return false;
+        }
+
+        /// <summary>Bağlantıyı kapatır ama _manualDisconnect KOYMAZ (auto-reconnect / ConnectAsync engellenmesin).</summary>
+        private void CloseConnectionInternal()
+        {
+            try { _refreshTimer?.Dispose(); } catch { }
+            _refreshTimer = null;
+            try { _melsecNet?.ConnectClose(); } catch { }
+            IsConnected = false;
+            GlobalData.PlcConnected = false;
         }
 
         /// <summary>
@@ -1059,7 +1102,7 @@ namespace App4.Utilities
                 {
                     System.Diagnostics.Debug.WriteLine("[PLC_HB] Yeniden bağlanma deneniyor...");
 
-                    _melsecNet = new MelsecMcNet(PlcIpAddress, PlcPort);
+                    _melsecNet = CreateMcNet(PlcIpAddress, PlcPort);
                     var result = await _melsecNet.ConnectServerAsync();
 
                     if (result.IsSuccess)
